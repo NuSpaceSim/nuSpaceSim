@@ -35,23 +35,23 @@
 
 ```
 
-# MasterLoopOpt
+# nuSpaceSim
 
-This repository contains python code for a preliminary version of the master loop (master_loop_skeleton.py). This code calculates the tau neutrino acceptance for the Optical Cherenkov technique. Also included in the repository is python code for creating the input xml file (create_xml.py), a sample input xml file (sample_input_file.xml), a directory including the tau propagation files from Reno et al. 2019, and python code to read the tau propagation files and store the necessary arrays in an hdf5 file.
+%% This repository contains python code for a preliminary version of the nuspacesim master scheduler. This code calculates the tau neutrino acceptance for the Optical Cherenkov technique. Also included in the repository is python code for creating the input xml file (create_xml.py), a sample input xml file (sample_input_file.xml), a directory including the tau propagation files from Reno et al. 2019, and python code to read the tau propagation files and store the necessary arrays in an hdf5 file.
 
-## Requirements
+%% ## Requirements
 
--- master_loop_skeleton.py -- To run this code, you will need:
+%% -- master_loop_skeleton.py -- To run this code, you will need:
 
-* Conda - python3 (required for nssgeometry)
-* The "nssgeometry" module installed. You can find the repository and instructions for building it at https://github.com/NuSpaceSim/nssgeometry.git . Once installed, you must update the "sys.path.append" statement in the master_loop_skeleton_traj_only.py code to point at the user's local nssgeometry repository.
-* Detection parameters are read from an input xml file (sample included in this repository). The "create_xml.py" script creates an xml file using the format expected by the master loop script.
+%% * python3 
+%% * The "nssgeometry" module installed. You can find the repository and instructions for building it at https://github.com/NuSpaceSim/nssgeometry.git . Once installed, you must update the "sys.path.append" statement in the master_loop_skeleton_traj_only.py code to point at the user's local nssgeometry repository.
+%% * Detection parameters are read from an input xml file (sample included in this repository). The "create_xml.py" script creates an xml file using the format expected by the master loop script.
 
--- create_xml.py -- To run this code, you will need:
+%% -- create_xml.py -- To run this code, you will need:
 
-* The lxml module installed.
+%% * The lxml module installed.
 
-## Download and run
+%% ## Download and run
 
-1. git clone https://github.com/NuSpaceSim/MasterLoopTrajOnly.git
-2. python master_loop_skeleton.py
+%% 1. git clone https://github.com/NuSpaceSim/MasterLoopTrajOnly.git
+%% 2. python master_loop_skeleton.py
