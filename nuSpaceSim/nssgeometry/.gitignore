@@ -1,0 +1,15 @@
+.eggs
+*.egg-info
+*.egg-info/
+*.so*
+eggs
+__pycache__
+build
+_build
+dist
+archive
+*.f~
+a.out
+*~
+*.pyc
+.DS_Store

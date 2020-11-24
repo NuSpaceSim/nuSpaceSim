@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<NuSpaceSimParams>
+  <DetectorCharacteristics Type="Satellite" Method="Optical">
+    <QuantumEfficiency>0.2</QuantumEfficiency>
+    <TelescopeEffectiveArea Unit="Sq.Meters">2.5</TelescopeEffectiveArea>
+    <PhotoElectronThreshold Preset="True">
+      <NPE>10</NPE>
+    </PhotoElectronThreshold>
+    <DetectorAltitude Unit="km">525.0</DetectorAltitude>
+    <InitialDetectorRightAscension Unit="Degrees">0.0</InitialDetectorRightAscension>
+    <InitialDetectorDeclination Unit="Degrees">0.0</InitialDetectorDeclination>
+  </DetectorCharacteristics>
+  <SimulationParameters DetectionMode="Diffuse">
+    <MaximumCherenkovAngle Unit="Degrees">3.0</MaximumCherenkovAngle>
+    <AngleFromLimb Unit="Degrees">7.0</AngleFromLimb>
+    <TauShowerType Preset="True">
+      <FracETauInShower>0.5</FracETauInShower>
+    </TauShowerType>
+    <NuTauEnergySpecType SpectrumType="Mono">
+      <NuTauEnergy>8.0</NuTauEnergy>
+    </NuTauEnergySpecType>
+    <AzimuthalAngle Unit="Degrees">360.0</AzimuthalAngle>
+    <NumTrajs>10</NumTrajs>
+  </SimulationParameters>
+</NuSpaceSimParams>

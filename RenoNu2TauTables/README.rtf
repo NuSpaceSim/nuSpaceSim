@@ -1,0 +1,40 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf610
+{\fonttbl\f0\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\sl280\partightenfactor0
+
+\f0\fs24 \cf2 \expnd0\expndtw0\kerning0
+The file multi-efix.26 has first column beta, second column neutrino \
+energy, then skip to the last column to get the total exit probability \
+for the neutrino to come in at the beta and energy and come out a tau. \
+There are 10 beta values and 16 energy values. This is the file I use to \
+do the 2-D interpolation to get p-exit.\
+\
+For the tau energy, I have normalized the Delta(N-tau)/N(nu) by p-exit, \
+then progressively added the probabilities to get the files labeled by \
+neutrino energy and "angleC" where "C" is for cumulative distribution \
+function. I have forced the first entry to be zero and the last entry to \
+be one so that a random number will find a place between the two. (Of \
+course the top number is 1 since I normalized by p-exit.) These files \
+are tar-gz'd (no directory, just files). The format is first column is z \
+then the other columns are for each beta value in order.\
+\
+Energies of the neutrinos\
+\
+ \'a0\'a0\'a0\'a0\'a0 data enua/1.e+7,1.78e+7,3.16e+7,5.62e+7,\
+ \'a0\'a0\'a0\'a0 x\'a0\'a0\'a0\'a0 1.e+8,1.78e+8,3.16e+8,5.62e+8,\
+ \'a0\'a0\'a0\'a0 x\'a0\'a0\'a0\'a0 1.e+9,1.78e+9,3.16e+9,5.62e+9,\
+ \'a0\'a0\'a0\'a0 x\'a0\'a0\'a0\'a0 1.e+10,1.78e+10,3.16e+10,5.62e+10/\
+z = Etau/Enu(fixed Enu)\
+\
+How many z values for a given energy\
+\
+ \'a0\'a0\'a0\'a0\'a0 data nca/11,13,16,18,21,23,26,28,31,33,36,38,41,43,46,48/\
+\
+The usual beta values\
+\
+ \'a0\'a0\'a0\'a0\'a0 data be/1.d0,3.d0,5.d0,7.d0,10.d0,12.d0,15.d0,17.d0,20.d0,25.d0/\
+}
