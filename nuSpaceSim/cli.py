@@ -1,0 +1,53 @@
+import click
+from .params import NssConfig
+from .detector_geometry import DetectorGeometry
+from .taus import Taus
+from .eas import EAS
+from .create_xml import create_xml
+
+
+@click.group()
+@click.option('--debug/--no-debug', default=False)
+@click.pass_context
+def cli(ctx, debug):
+    ctx.ensure_object(dict)
+    ctx.obj['DEBUG'] = debug
+
+
+@cli.command()
+@click.argument('config_file', default="sample_input_file.xml.",
+                type=click.Path(exists=True))
+@click.argument('count', type=int)
+@click.pass_context
+def run(ctx, config_file, count):
+    """
+    Master loop for nuSpaceSim.  Given a XML configuration file, and optionally
+    a count of simulated nutrinos, runs nutrino simulation.
+    """
+
+    # User Inputs
+    config = NssConfig(config_file)
+    # numtrajs = config['NumTrajs'] if count == 0 else count
+    numtrajs = count
+
+    # Initialized Objects
+    detector = DetectorGeometry(config)
+    tau = Taus(config)
+    # eas = EAS(config)
+
+    # Run simulation
+    detector.throw(numtrajs)
+    betaArr = detector.betas()
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(betaArr)
+    # eas_results = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
+
+
+@cli.command()
+@click.option('-n', '--numtrajs', default=10, help='number of trajectories.')
+@click.argument('filename')
+@click.pass_context
+def create_config(ctx, filename, numtrajs):
+    """
+    Generate a configuration file from the given parameters.
+    """
+    create_xml(filename, numtrajs)

@@ -1,5 +1,5 @@
 import numpy as np
-import EAScherGen as ecg
+# import EAScherGen as ecg
 
 
 class EAS:
@@ -46,10 +46,11 @@ class EAS:
         dphots = np.zeros_like(beta)
         thetaCh = np.full(beta.shape, 1.5)
 
-        dphots[mask], thetaCh[mask] = ecg.c_phot_ang(beta[mask], altDec[mask])
+        # dphots[mask], thetaCh[mask] = ecg.c_phot_ang(beta[mask], altDec[mask])
 
         costhetaCh = np.cos(thetaCh * self.config.fundcon.pi / 180.0)
 
-        numPEs = dphots * showerEnergy * self.config.detAeff * self.config.detQeff
+        numPEs = dphots * showerEnergy * self.config.detAeff * \
+            self.config.detQeff
 
         return numPEs

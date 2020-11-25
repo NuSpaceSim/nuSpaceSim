@@ -65,7 +65,8 @@ class Taus(object):
     def __init__(self, config):
         self.config = config
 
-        ref = importlib_resources.files('DataLibraries/RenoNu2TauTables') / 'nu2taudata.hdf5'
+        ref = importlib_resources.files(
+            'nuSpaceSim.DataLibraries.RenoNu2TauTables') / 'nu2taudata.hdf5'
         with importlib_resources.as_file(ref) as path:
             self.pearr, self.pebarr, self.pelnearr, self.tecdfarr, \
                 self.tebarr, self.betaLowBnds, self.betaUppBnds, \

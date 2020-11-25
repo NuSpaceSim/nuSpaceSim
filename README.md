@@ -37,21 +37,38 @@
 
 # nuSpaceSim
 
-%% This repository contains python code for a preliminary version of the nuspacesim master scheduler. This code calculates the tau neutrino acceptance for the Optical Cherenkov technique. Also included in the repository is python code for creating the input xml file (create_xml.py), a sample input xml file (sample_input_file.xml), a directory including the tau propagation files from Reno et al. 2019, and python code to read the tau propagation files and store the necessary arrays in an hdf5 file.
+This is the beta release of the *nuSpaceSim* simulator tool!
 
-%% ## Requirements
+This application includes the main scheduler code which calculates the tau
+nutrino acceptance for the Optical Cherenkov technique. The configuration
+settings for which are controlled by an input XML configuration file. Generating
+a new file with input parameters is also supported.
 
-%% -- master_loop_skeleton.py -- To run this code, you will need:
+Tau propagation is interpolated using included data tables from Reno et at.
+2019.
 
-%% * python3 
-%% * The "nssgeometry" module installed. You can find the repository and instructions for building it at https://github.com/NuSpaceSim/nssgeometry.git . Once installed, you must update the "sys.path.append" statement in the master_loop_skeleton_traj_only.py code to point at the user's local nssgeometry repository.
-%% * Detection parameters are read from an input xml file (sample included in this repository). The "create_xml.py" script creates an xml file using the format expected by the master loop script.
+This package incorporates compiled sub-packages such as nssgeometry and
+EAScherGen.
 
-%% -- create_xml.py -- To run this code, you will need:
+## Requirements
 
-%% * The lxml module installed.
+Conda is no longer required to build nuSpaceSim, although it may be desirable
+for downloading compilers. All other build and runtime requirements are 
+downloaded automatically during setup.
 
-%% ## Download and run
+ * python3
+ * pip3
+ * C++11 or higher compiler
 
-%% 1. git clone https://github.com/NuSpaceSim/MasterLoopTrajOnly.git
-%% 2. python master_loop_skeleton.py
+## Download, build, run
+
+
+
+1. `git clone https://github.com/NuSpaceSim/nuSpaceSim.git`
+2. `cd nuSpaceSim`
+3. `pip3 install -e .`
+4. `nuSpaceSim create-config my_config_file.xml`
+5. `nuSpaceSim run my_config_file.xml 1000000`
+
+
+
