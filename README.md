@@ -70,5 +70,7 @@ downloaded automatically during setup.
 4. `nuSpaceSim create-config my_config_file.xml`
 5. `nuSpaceSim run my_config_file.xml 1000000`
 
+## Uninstall
 
+`pip3 uninstall nuSpaceSim`
 
