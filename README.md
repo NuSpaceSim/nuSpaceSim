@@ -83,6 +83,36 @@ downloaded automatically during setup.
 
 `nuSpaceSim run my_config_file.xml 1000000`
 
+### Help Documentation
+
+Use the `--help` flag for documentation.
+
+```
+$ nuSpaceSim --help
+Usage: nuSpaceSim [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --debug / --no-debug
+  --help                Show this message and exit.
+
+Commands:
+  create-config  Generate a configuration file from the given parameters.
+  run            Master loop for nuSpaceSim.
+```
+
+Also works for the subcommands.
+
+```
+$  nuSpaceSim run --help
+Usage: nuSpaceSim run [OPTIONS] [CONFIG_FILE] COUNT
+
+  Master loop for nuSpaceSim.  Given a XML configuration file, and
+  optionally a count of simulated nutrinos, runs nutrino simulation.
+
+Options:
+  --help  Show this message and exit.
+```
+
 ### Uninstall
 
 `python3 -m pip uninstall nuSpaceSim`
