@@ -57,20 +57,31 @@ for downloading compilers. All other build and runtime requirements are
 downloaded automatically during setup.
 
  * python3
- * pip3
+ * pip
  * C++11 or higher compiler
 
-## Download, build, run
 
+## Download & Build
 
+### Direct from GitHub
+
+1. `python3 -m pip install -e git+https://github.com/NuSpaceSim/nuSpaceSim.git#egg=nuSpaceSim`
+
+### Or clone the Repository for development
 
 1. `git clone https://github.com/NuSpaceSim/nuSpaceSim.git`
 2. `cd nuSpaceSim`
-3. `pip3 install -e .`
-4. `nuSpaceSim create-config my_config_file.xml`
-5. `nuSpaceSim run my_config_file.xml 1000000`
+3. `python3 -m pip install -e .`
+
+## Create an XML configuration script
+
+`nuSpaceSim create-config my_config_file.xml`
+
+## Run simulator
+
+`nuSpaceSim run my_config_file.xml 1000000`
 
 ## Uninstall
 
-`pip3 uninstall nuSpaceSim`
+`python3 -m pip uninstall nuSpaceSim`
 
