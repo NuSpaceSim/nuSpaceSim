@@ -50,7 +50,10 @@ Tau propagation is interpolated using included data tables from Reno et at.
 This package incorporates compiled sub-packages such as nssgeometry and
 EAScherGen.
 
-## Requirements
+
+# Download & Build
+
+### Requirements
 
 Conda is no longer required to build nuSpaceSim, although it may be desirable
 for downloading compilers. All other build and runtime requirements are 
@@ -58,10 +61,7 @@ downloaded automatically during setup.
 
  * python3
  * pip
- * C++11 or higher compiler
-
-
-## Download & Build
+ * C++11 (or higher) compiler
 
 ### Direct from GitHub
 
@@ -73,15 +73,17 @@ downloaded automatically during setup.
 2. `cd nuSpaceSim`
 3. `python3 -m pip install -e .`
 
-## Create an XML configuration script
+# Usage
+
+### Create an XML configuration script
 
 `nuSpaceSim create-config my_config_file.xml`
 
-## Run simulator
+### Run simulator
 
 `nuSpaceSim run my_config_file.xml 1000000`
 
-## Uninstall
+### Uninstall
 
 `python3 -m pip uninstall nuSpaceSim`
 
