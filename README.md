@@ -27,15 +27,15 @@
    /:/ /\  \     /\__\        |:|:\  \
   /:/ /::\  \   /:/__/      __|:|\:\  \
  /:/_/:/\:\__\ /::\  \     /::::|_\:\__\
- \:\/:/ /:/  / \/\:\  \__  \:\~~\  \/__/
-  \::/ /:/  /   ~~\:\/\__\  \:\  \
-   \/_/:/  /       \::/  /   \:\  \
-     /:/  /        /:/  /     \:\__\
-     \/__/         \/__/       \/__/
+ \:\/:/ /:/  / \/\:\  \__  \:\~~\  \/__/                       .
+  \::/ /:/  /   ~~\:\/\__\  \:\  \                            /
+   \/_/:/  /       \::/  /   \:\  \                          /
+     /:/  /        /:/  /     \:\__\                        /
+     \/__/         \/__/       \/__/                       /
 
 ```
 
-# nuSpaceSim
+# νSpaceSim
 
 This is the beta release of the *nuSpaceSim* simulator tool!
 
@@ -65,9 +65,9 @@ downloaded automatically during setup.
 
 ### Direct from GitHub
 
-1. `python3 -m pip install -e git+https://github.com/NuSpaceSim/nuSpaceSim.git#egg=nuSpaceSim`
+1. `python3 -m pip install git+https://github.com/NuSpaceSim/nuSpaceSim.git#egg=nuSpaceSim`
 
-### Or clone the Repository for development
+### Or clone the Repository (for development)
 
 1. `git clone https://github.com/NuSpaceSim/nuSpaceSim.git`
 2. `cd nuSpaceSim`
