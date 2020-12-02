@@ -323,21 +323,19 @@ class CphotAng:
 
         uhill = np.einsum('zj,ze->zje', athetaj, poweha, dtype=self.dtype)
         uhill /= wave[..., None, :]
-        uall = np.einsum('zj,ze->zje', sthetaj, poweha, dtype=self.dtype)
-        uall /= wave[..., None, :]
-        uhi = uall[..., 1:, :]
-        ulow = uall[..., :-1, :]
-        ubin = (uhi - ulow)
+        ubin = np.einsum('zj,ze->zje', sthetaj, poweha, dtype=self.dtype)
+        ubin /= wave[..., None, :]
+        ubin = ubin[..., 1:, :] - ubin[..., :-1, :]
         ubin[ubin < 0] = self.dtype(0)
 
-        z0hill = self.dtype(0.59)
-        ahill = self.dtype(0.777)
+        # z0hill = self.dtype(0.59)
+        # ahill = self.dtype(0.777)
 
-        xhill = np.sqrt(uhill, dtype=self.dtype) - z0hill
+        xhill = np.sqrt(uhill, dtype=self.dtype) - self.dtype(0.59)
 
         svtrm = np.where(xhill < 0, self.dtype(0.478), self.dtype(0.380))
         svtrm = np.exp(-xhill / svtrm)
-        svtrm *= ubin * deltrack[..., None, :] * ahill
+        svtrm *= ubin * deltrack[..., None, :] * self.dtype(0.777)
         svtrm[~jmask[..., 1:]] = self.dtype(0)
 
         photsum = np.einsum('zje,zw->', svtrm, sigval, dtype=self.dtype)
