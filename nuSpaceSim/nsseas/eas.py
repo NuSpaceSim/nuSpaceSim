@@ -1,10 +1,11 @@
 import numpy as np
-# import EAScherGen as ecg
+from .cphotang import CphotAng
 
 
 class EAS:
     def __init__(self, config):
         self.config = config
+        self.CphotAng = CphotAng()
 
     def altDec(self, beta, tauBeta, tauLorentz, u=None):
         """
@@ -18,7 +19,8 @@ class EAS:
 
         lenDec = tDec * tauBeta * self.config.fundcon.c
 
-        brad = beta * (self.config.fundcon.pi / 180.0)
+        # brad = beta * (self.config.fundcon.pi / 180.0)
+        brad = np.radians(beta)
 
         altDec = np.sqrt(
             self.config.EarthRadius ** 2 +
@@ -36,21 +38,20 @@ class EAS:
 
         altDec = self.altDec(beta, tauBeta, tauLorentz)
 
-        # print (altDec)
-
-        mask = np.logical_or(altDec < 0.0, altDec > 20.0)
-        mask = np.logical_or(mask, beta < 0.0)
-        mask = np.logical_or(mask, beta > 25.0)
+        mask = (altDec < 0.0) | (altDec > 20.0)
+        mask |= beta < 0.0
+        mask |= beta > 25.0
         mask = ~mask
 
         dphots = np.zeros_like(beta)
         thetaCh = np.full(beta.shape, 1.5)
 
-        # dphots[mask], thetaCh[mask] = ecg.c_phot_ang(beta[mask], altDec[mask])
+        dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
 
-        costhetaCh = np.cos(thetaCh * self.config.fundcon.pi / 180.0)
+        # costhetaCh = np.cos(thetaCh * self.config.fundcon.pi / 180.0)
+        costhetaCh = np.cos(np.degrees(thetaCh))
 
         numPEs = dphots * showerEnergy * self.config.detAeff * \
             self.config.detQeff
 
-        return numPEs
+        return numPEs, costhetaCh

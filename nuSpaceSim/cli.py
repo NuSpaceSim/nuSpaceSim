@@ -2,7 +2,7 @@ import click
 from .params import NssConfig
 from .detector_geometry import DetectorGeometry
 from .taus import Taus
-from .eas import EAS
+from .nsseas.eas import EAS
 from .create_xml import create_xml
 
 
@@ -33,13 +33,15 @@ def run(ctx, config_file, count):
     # Initialized Objects
     detector = DetectorGeometry(config)
     tau = Taus(config)
-    # eas = EAS(config)
+    eas = EAS(config)
 
     # Run simulation
     detector.throw(numtrajs)
     betaArr = detector.betas()
-    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(betaArr)
-    # eas_results = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
+    tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(betaArr)
+    numPEs, costhetaCh = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
+    mcintegral = detector.mcintegral(numPEs, costhetaCh, tauexitprob)
+    print("mcintegral", mcintegral)
 
 
 @cli.command()
