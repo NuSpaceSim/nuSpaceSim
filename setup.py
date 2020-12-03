@@ -1,9 +1,9 @@
-"""
+'''
 nuSpaceSim
 ----------
 
 A Simulator for Space-based Nutrino Detections.
-"""
+'''
 import ast
 import re
 import setuptools
@@ -19,9 +19,11 @@ with open('nuSpaceSim/__init__.py', 'rb') as f:
 
 nssgeometry = Pybind11Extension("nuSpaceSim/nssgeometry",
                                 ["nuSpaceSim/nssgeometry/src/nssgeometry.cpp"])
+zsteps = Pybind11Extension("nuSpaceSim/EAScherGen/zsteps",
+                           ["nuSpaceSim/EAScherGen/src/zsteps.cpp"])
 
 setup(
     version=version,
     cmdclass={"build_ext": build_ext},
-    ext_modules=[nssgeometry, ],
+    ext_modules=[nssgeometry, zsteps],
 )

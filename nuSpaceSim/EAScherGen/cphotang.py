@@ -1,34 +1,34 @@
 import numpy as np
 from numpy.polynomial import Polynomial
+from zsteps import zsteps as cppzsteps
 # from scipy import interpolate
 
-from numba import jit
+# from numba import jit
 
+# @jit(nopython=True)
+# def czsteps(z, sinThetView, RadE, zMaxZ, zmax, dL, pi, dtype):
+#     '''
+#     Compute all mid-bin z steps and corresponding delz values
+#     '''
 
-@jit(nopython=True)
-def czsteps(z, sinThetView, RadE, zMaxZ, zmax, dL, pi, dtype):
-    '''
-    Compute all mid-bin z steps and corresponding delz values
-    '''
+#     zsave = []
+#     delzs = []
+#     while (z <= zMaxZ):
+#         # c  correct ThetProp for starting altitude
+#         Rad = z + RadE
+#         tp = (RadE + zmax) / Rad
+#         ThetProp = np.arccos(sinThetView * tp)
+#         delz = np.sqrt((Rad * Rad) + (dL * dL) -
+#                        dtype(2)*Rad*dL*np.cos((pi / dtype(2)) +
+#                                                     ThetProp)) - Rad
+#         delzs.append(delz)
+#         zsave.append(z + delz / dtype(2.))
+#         z += delz
 
-    zsave = []
-    delzs = []
-    while (z <= zMaxZ):
-        # c  correct ThetProp for starting altitude
-        Rad = z + RadE
-        tp = (RadE + zmax) / Rad
-        ThetProp = np.arccos(sinThetView * tp)
-        delz = np.sqrt((Rad * Rad) + (dL * dL) -
-                       dtype(2)*Rad*dL*np.cos((pi / dtype(2)) +
-                                                    ThetProp)) - Rad
-        delzs.append(delz)
-        zsave.append(z + delz / dtype(2.))
-        z += delz
+#     zsave = np.array(zsave, dtype=dtype)
+#     delzs = np.array(delzs, dtype=dtype)
 
-    zsave = np.array(zsave, dtype=dtype)
-    delzs = np.array(delzs, dtype=dtype)
-
-    return zsave, delzs
+#     return zsave, delzs
 
 
 class CphotAng:
@@ -185,7 +185,7 @@ class CphotAng:
         TotZon = np.empty_like(z)
         TotZon[msk1] = self.dtype(310) + ((self.dtype(5.35) - z[msk1]) /
                                           self.dtype(5.35)) * self.dtype(15)
-        msk2 = z > 100
+        msk2 = z >= 100
         TotZon[msk2] = self.dtype(0.1)
 
         msk3 = np.logical_and(~msk1, ~msk2)
@@ -231,10 +231,10 @@ class CphotAng:
 
         # zsave = np.array(zsave)
         # delzs = np.array(delzs)
-        return czsteps(z, sinThetView, self.RadE, self.zMaxZ, self.zmax,
-                       self.dL, self.pi, self.dtype)
+        return cppzsteps(z, sinThetView, self.RadE, self.zMaxZ, self.zmax,
+                         self.dL, self.pi)
 
-        return zsave, delzs
+        # return zsave, delzs
 
     def slant_depth(self, alt, sinThetView):
         '''

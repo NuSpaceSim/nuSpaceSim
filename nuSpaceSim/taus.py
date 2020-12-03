@@ -96,7 +96,7 @@ class Taus(object):
         """
         Tau Exit Probability
         """
-        brad = betaArr * (self.config.fundcon.pi / 180.0)
+        brad = np.radians(betaArr)  # * (self.config.fundcon.pi / 180.0)
 
         logtauexitprob = self.pexitfunc(brad, np.full(
             brad.shape, self.config.logNuTauEnergy))
@@ -111,6 +111,7 @@ class Taus(object):
         """
         u = np.random.rand(betaArr.shape[0]) if u is None else u
 
+        # fast interpolation selection with masking
         betaIdxs = np.searchsorted((self.betaUppBnds * 180.0 / np.pi), betaArr)
         result = np.empty_like(betaArr)
 
@@ -131,8 +132,9 @@ class Taus(object):
         # in units of 100 PeV
         showerEnergy = self.config.eShowFrac * tauEnergy / 1.0e8
 
-        tauLorentz = tauEnergy * 1.0 / self.config.fundcon.massTau
+        tauLorentz = tauEnergy * np.reciprocal(self.config.fundcon.massTau)
 
-        tauBeta = np.sqrt(1.0 - 1.0 / (tauLorentz * tauLorentz))
+        tauBeta = np.where(tauLorentz == 1.0, 0.0,
+                           np.sqrt(1.0 - np.reciprocal(tauLorentz**2)))
 
         return tauBeta, tauLorentz, showerEnergy, tauExitProb
