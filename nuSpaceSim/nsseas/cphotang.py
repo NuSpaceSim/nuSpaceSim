@@ -2,6 +2,35 @@ import numpy as np
 from numpy.polynomial import Polynomial
 # from scipy import interpolate
 
+from numba import jit
+
+
+@jit(nopython=True)
+def czsteps(z, sinThetView, RadE, zMaxZ, zmax, dL, pi, dtype):
+    '''
+    Compute all mid-bin z steps and corresponding delz values
+    '''
+
+    zsave = []
+    delzs = []
+    while (z <= zMaxZ):
+        # c  correct ThetProp for starting altitude
+        Rad = z + RadE
+        tp = (RadE + zmax) / Rad
+        ThetProp = np.arccos(sinThetView * tp)
+        delz = np.sqrt((Rad * Rad) + (dL * dL) -
+                       dtype(2)*Rad*dL*np.cos((pi / dtype(2)) +
+                                                    ThetProp)) - Rad
+        delzs.append(delz)
+        zsave.append(z + delz / dtype(2.))
+        z += delz
+
+    zsave = np.array(zsave, dtype=dtype)
+    delzs = np.array(delzs, dtype=dtype)
+
+    return zsave, delzs
+
+
 class CphotAng:
     def __init__(self):
         self.dtype = np.float32
@@ -73,7 +102,8 @@ class CphotAng:
         # c calc OD/km difference
         # c
         # self.dfaOD55 = np.diff(self.aOD55[::-1], append=0)
-        tmp = [self.dtype(self.aOD55[i]-self.aOD55[i+1]) for i in range(29)]
+        tmp = [self.dtype(self.aOD55[i] - self.aOD55[i + 1])
+               for i in range(29)]
         tmp.append(self.dtype(0))
         self.dfaOD55 = np.array(tmp, dtype=self.dtype)
         # np.append(self.dfaOD55, 0)
@@ -81,8 +111,8 @@ class CphotAng:
         self.alpha = np.reciprocal(self.dtype(137.04))
         self.pi = self.dtype(3.1415926)
 
-        self.PYieldCoeff = self.dtype(2e12)*self.dL*self.pi*self.alpha * \
-            (np.reciprocal(self.wave1)[:-1] - np.reciprocal(self.wave1)[1:])
+        self.PYieldCoeff = self.dtype(2e12) * self.dL * self.pi * self.alpha * (
+            np.reciprocal(self.wave1)[:-1] - np.reciprocal(self.wave1)[1:])
 
         self.zmax = self.orbit_height
         self.zMaxZ = self.dtype(65.0)
@@ -93,11 +123,11 @@ class CphotAng:
         ecrit = self.dtype(0.710 / (Zair + 0.96))
 
         self.beta = self.dtype(
-            np.log(np.float64(self.Eshow)/np.float64(ecrit)))
+            np.log(np.float64(self.Eshow) / np.float64(ecrit)))
 
         # c     Calc ang spread ala Hillas
-        self.Ieang = int(np.log10(self.Eshow))-2+3
-        eang = np.arange(self.dtype(1.0), self.Ieang+self.dtype(2))
+        self.Ieang = int(np.log10(self.Eshow)) - 2 + 3
+        eang = np.arange(self.dtype(1.0), self.Ieang + self.dtype(2))
         self.ehill = np.power(10.0, eang, dtype=self.dtype)
 
     def theta_view(self, betaE):
@@ -105,7 +135,7 @@ class CphotAng:
         Compute theta view from initial betas
         '''
         ThetProp = np.radians(betaE)
-        ThetView = self.RadE/(self.RadE+self.zmax)
+        ThetView = self.RadE / (self.RadE + self.zmax)
         ThetView *= np.cos(ThetProp, dtype=self.dtype)
         ThetView = np.arcsin(ThetView, dtype=self.dtype)
         return ThetView
@@ -118,22 +148,33 @@ class CphotAng:
         mask1 = z < 11
         mask2 = np.logical_and(z >= 11, z < 25)
         mask3 = z >= 25
-        X[mask1] = np.power(((z[mask1] - 44.34) / -11.861), (1/0.19))
-        X[mask2] = np.exp(np.divide(z[mask2]-45.5, -6.34, dtype=self.dtype),
+        X[mask1] = np.power(((z[mask1] - 44.34) / -11.861), (1 / 0.19))
+        X[mask2] = np.exp(np.divide(z[mask2] - 45.5, -6.34, dtype=self.dtype),
                           dtype=self.dtype)
-        X[mask3] = np.exp(np.subtract(13.841, np.sqrt(28.920+3.344*z[mask3],
-                                                      dtype=self.dtype),
-                                      dtype=self.dtype))
+        X[mask3] = np.exp(
+            np.subtract(
+                13.841,
+                np.sqrt(
+                    28.920 +
+                    3.344 *
+                    z[mask3],
+                    dtype=self.dtype),
+                dtype=self.dtype))
 
         rho = np.empty_like(z, dtype=self.dtype)
-        rho[mask1] = self.dtype(-1.e-5)*(1/0.19) / (-11.861) * \
-            ((z[mask1]-44.34)/-11.861)**((1./0.19)-1.)
-        rho[mask2] = np.multiply(-1e-5*np.reciprocal(-6.34), X[mask2],
+        rho[mask1] = self.dtype(-1.e-5) * (1 / 0.19) / (-11.861) * \
+            ((z[mask1] - 44.34) / -11.861)**((1. / 0.19) - 1.)
+        rho[mask2] = np.multiply(-1e-5 * np.reciprocal(-6.34), X[mask2],
                                  dtype=self.dtype)
-        rho[mask3] = np.multiply(np.divide(0.5e-5 * 3.344,
-                                           np.sqrt(28.920+3.344*z[mask3],
-                                                   dtype=self.dtype),
-                                           dtype=self.dtype), X[mask3], dtype=self.dtype)
+        rho[mask3] = np.multiply(
+            np.divide(
+                0.5e-5 * 3.344,
+                np.sqrt(
+                    28.920 + 3.344 * z[mask3],
+                    dtype=self.dtype),
+                dtype=self.dtype),
+            X[mask3],
+            dtype=self.dtype)
         return X, rho
 
     def ozone_losses(self, z):
@@ -142,8 +183,8 @@ class CphotAng:
         '''
         msk1 = z < 5.35
         TotZon = np.empty_like(z)
-        TotZon[msk1] = self.dtype(310) + ((self.dtype(5.35)-z[msk1]) /
-                                          self.dtype(5.35))*self.dtype(15)
+        TotZon[msk1] = self.dtype(310) + ((self.dtype(5.35) - z[msk1]) /
+                                          self.dtype(5.35)) * self.dtype(15)
         msk2 = z > 100
         TotZon[msk2] = self.dtype(0.1)
 
@@ -151,7 +192,7 @@ class CphotAng:
         idxs = np.searchsorted(self.OzZeta, z[msk3])
         TotZon[msk3] = self.OzDsum[idxs] + ((self.OzZeta[idxs] - z[msk3]) /
                                             (self.OzZeta[idxs] -
-                                             self.OzZeta[idxs-1])
+                                             self.OzZeta[idxs - 1])
                                             ) * self.OzDepth[idxs]
         return TotZon
 
@@ -163,34 +204,35 @@ class CphotAng:
         tp = (self.RadE + self.zmax) / (self.RadE + z)
         return np.arccos(sinThetView * tp, dtype=self.dtype)
 
-    def delta_z(self, z, ThetProp):
-        '''
-        Change in z.
-        '''
-        Rad = z + self.RadE
-        return np.sqrt((Rad*Rad) + (self.dL*self.dL) -
-                       self.dtype(2)*Rad*self.dL*np.cos(
-                           (self.pi/self.dtype(2)) +
-            ThetProp, dtype=self.dtype),
-            dtype=self.dtype) - Rad
+    # def delta_z(self, z, ThetProp):
+    #     '''
+    #     Change in z.
+    #     '''
+    #     Rad = z + self.RadE
+    #     return np.sqrt((Rad*Rad) + (self.dL*self.dL) -
+    #                    self.dtype(2)*Rad*self.dL*np.cos(
+    #                        (self.pi/self.dtype(2)) +
+    #         ThetProp, dtype=self.dtype),
+    #         dtype=self.dtype) - Rad
 
     def zsteps(self, z, sinThetView):
         '''
         Compute all mid-bin z steps and corresponding delz values
         '''
+        # zsave = []
+        # delzs = []
+        # while (z <= self.zMaxZ):
+        #     # c  correct ThetProp for starting altitude
+        #     ThetProp = self.theta_prop(z, sinThetView)
+        #     delz = self.delta_z(z, ThetProp)
+        #     delzs.append(delz)
+        #     zsave.append(z+delz/self.dtype(2.))
+        #     z += delz
 
-        zsave = []
-        delzs = []
-        while (z <= self.zMaxZ):
-            # c  correct ThetProp for starting altitude
-            ThetProp = self.theta_prop(z, sinThetView)
-            delz = self.delta_z(z, ThetProp)
-            delzs.append(delz)
-            zsave.append(z+delz/self.dtype(2.))
-            z += delz
-
-        zsave = np.array(zsave)
-        delzs = np.array(delzs)
+        # zsave = np.array(zsave)
+        # delzs = np.array(delzs)
+        return czsteps(z, sinThetView, self.RadE, self.zMaxZ, self.zmax,
+                       self.dL, self.pi, self.dtype)
 
         return zsave, delzs
 
@@ -227,11 +269,11 @@ class CphotAng:
 
         aTrans = np.ones((*z.shape, *self.aBetaF.shape), dtype=self.dtype)
 
-        tmpOD = self.aOD55[np.int32(z[z < 30])] - (z[z < 30]-self.dtype(
+        tmpOD = self.aOD55[np.int32(z[z < 30])] - (z[z < 30] - self.dtype(
             np.int32(z[z < 30]))) * self.dfaOD55[np.int32(z[z < 30])]
 
-        aODepth = -np.outer(tmpOD, self.aBetaF )
-        costhet = np.cos(self.pi/2 - ThetPrpA[z < 30], dtype=self.dtype)
+        aODepth = -np.outer(tmpOD, self.aBetaF)
+        costhet = np.cos(self.pi / 2 - ThetPrpA[z < 30], dtype=self.dtype)
 
         aTrans[z < 30, :] = np.exp(
             (aODepth / costhet[:, None]), dtype=self.dtype)
@@ -246,7 +288,7 @@ class CphotAng:
             0.89, E0, dtype=self.dtype), 1.2, dtype=self.dtype)
         t2 = np.divide(t1, (E0 + eCthres), dtype=self.dtype)
         t3 = np.power(t2, s, dtype=self.dtype)
-        t4 = np.power(1+self.dtype(1e-4*s*eCthres), 2, dtype=self.dtype)
+        t4 = np.power(1 + self.dtype(1e-4 * s * eCthres), 2, dtype=self.dtype)
         return np.divide(t3, t4, dtype=self.dtype)
 
     def sphoton_yeild(self, thetaC, RN, delgram, ZonZ, z, ThetPrpA):
@@ -276,7 +318,16 @@ class CphotAng:
 
         return SPYield
 
-    def photon_sum(self, SPYield, DistStep, thetaC, e2hill, eCthres, Tfrac, E0, s):
+    def photon_sum(
+            self,
+            SPYield,
+            DistStep,
+            thetaC,
+            e2hill,
+            eCthres,
+            Tfrac,
+            E0,
+            s):
         '''
         Sum photons (Gaisser-Hillas)
         '''
@@ -292,18 +343,18 @@ class CphotAng:
         jjstep = np.broadcast_to(jstep, (*CradLim.shape, *jstep.shape))
         jmask = jjstep < jlim[..., None]
 
-        athetaj = jjstep[:, 1:]-0.5
+        athetaj = jjstep[:, 1:] - 0.5
         athetaj = np.arctan2(athetaj, DistStep[:, None], dtype=self.dtype)
-        athetaj = 2.*(1.-np.cos(athetaj, dtype=self.dtype))
+        athetaj = 2. * (1. - np.cos(athetaj, dtype=self.dtype))
 
         sthetaj = np.arctan2(jjstep, DistStep[:, None], dtype=self.dtype)
-        sthetaj = 2.*(1.-np.cos(sthetaj, dtype=self.dtype))
+        sthetaj = 2. * (1. - np.cos(sthetaj, dtype=self.dtype))
 
         # c     Calc ang spread ala Hillas
         ehillave = np.where(eCthres[..., None] >= self.ehill[:-1][None, :],
-                            (eCthres[..., None]+self.ehill[1:]
+                            (eCthres[..., None] + self.ehill[1:]
                                 [None, :]) / self.dtype(2),
-                            self.dtype(5)*self.ehill[:-1][None, :])
+                            self.dtype(5) * self.ehill[:-1][None, :])
 
         tlen = np.where(eCthres[..., None] >= self.ehill[None, :],
                         Tfrac[..., None],
@@ -315,10 +366,10 @@ class CphotAng:
 
         vhill = ehillave / e2hill[..., None]
 
-        wave = self.dtype(0.0054*ehillave *
-                          (1+vhill) / (1+13*vhill + 8.3*vhill**2))
+        wave = self.dtype(0.0054 * ehillave *
+                          (1 + vhill) / (1 + 13 * vhill + 8.3 * vhill**2))
 
-        poweha = np.power(ehillave/21.0, 2, dtype=self.dtype)
+        poweha = np.power(ehillave / 21.0, 2, dtype=self.dtype)
 
         uhill = np.einsum('zj,ze->zje', athetaj, poweha, dtype=self.dtype)
         uhill /= wave[..., None, :]
@@ -349,8 +400,8 @@ class CphotAng:
         mask = zsave <= self.zmax
 
         AirN = np.empty_like(zsave, dtype=self.dtype)
-        AirN[mask] = 1.0+0.000296 * \
-            (gramz[mask]/1032.9414) * (273.2/(204.0+0.091*gramz[mask]))
+        AirN[mask] = 1.0 + 0.000296 * \
+            (gramz[mask] / 1032.9414) * (273.2 / (204.0 + 0.091 * gramz[mask]))
 
         mask &= (AirN != 1) & (AirN != 0)
 
@@ -359,18 +410,19 @@ class CphotAng:
         t[mask] = gramsum[mask] / self.dtype(36.66)
 
         s = np.zeros_like(zsave, dtype=self.dtype)
-        s[mask] = self.dtype(3)*t[mask]/(t[mask]+self.dtype(2)*self.beta)
+        s[mask] = self.dtype(3) * t[mask] / (t[mask] +
+                                             self.dtype(2) * self.beta)
 
         RN = np.zeros_like(zsave, dtype=self.dtype)
-        RN[mask] = self.dtype(0.31)/np.sqrt(self.beta, dtype=self.dtype) *\
-            np.exp(t[mask]*(1-self.dtype(3/2)*np.log(s[mask], dtype=self.dtype)),
+        RN[mask] = self.dtype(0.31) / np.sqrt(self.beta, dtype=self.dtype) *\
+            np.exp(t[mask] * (1 - self.dtype(3 / 2) * np.log(s[mask], dtype=self.dtype)),
                    dtype=self.dtype)
         RN[RN < 0] = self.dtype(0)
 
         mask &= ~((RN < 1) & (s > 1))
 
         e2hill = np.zeros_like(zsave, dtype=self.dtype)
-        e2hill[mask] = self.dtype(1150)+self.dtype(454) * \
+        e2hill[mask] = self.dtype(1150) + self.dtype(454) * \
             np.log(s[mask], dtype=self.dtype)
         mask &= ~(e2hill < 0)
 
@@ -391,7 +443,7 @@ class CphotAng:
         '''
         '''
         E0 = np.full(shape, 26.0, dtype=self.dtype)
-        E0[s >= 0.4] = 44.0-17.0*(s[(s >= 0.4)]-1.46)**2
+        E0[s >= 0.4] = 44.0 - 17.0 * (s[(s >= 0.4)] - 1.46)**2
         return E0
 
     def cherenkov_threshold_angle(self, AirN):
@@ -409,24 +461,24 @@ class CphotAng:
         '''
         Distance to detector
         '''
-        AngE = self.pi/(2)-ThetView-ThetPrpA
+        AngE = self.pi / (2) - ThetView - ThetPrpA
         DistStep = np.sin(AngE, dtype=self.dtype)
         DistStep /= np.sin(ThetView, dtype=self.dtype)
-        DistStep *= (self.RadE+zs)
+        DistStep *= (self.RadE + zs)
         return DistStep
 
     def cher_ang_sig_i(self, taphotstep, taphotsum, thetaC, AveCangI):
         '''
         '''
-        nAcnt = np.count_nonzero(taphotstep*thetaC, axis=-1)
-        CangsigI = taphotstep/taphotsum
+        nAcnt = np.count_nonzero(taphotstep * thetaC, axis=-1)
+        CangsigI = taphotstep / taphotsum
         CangsigI *= np.power(thetaC - AveCangI, 2, dtype=self.dtype)
         CangsigI = np.sum(CangsigI, axis=-1, dtype=self.dtype)
-        CangsigI = np.sqrt(CangsigI*nAcnt/(nAcnt-1), dtype=self.dtype)
+        CangsigI = np.sqrt(CangsigI * nAcnt / (nAcnt - 1), dtype=self.dtype)
         return CangsigI
 
     def cherenkov_area(self, AveCangI, DistStep, izRNmax):
-        CherArea = np.tan(AveCangI, dtype=self.dtype)*self.dtype(1e3)
+        CherArea = np.tan(AveCangI, dtype=self.dtype) * self.dtype(1e3)
         CherArea *= DistStep[izRNmax]
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea

@@ -1,9 +1,9 @@
 import click
-from params import NssConfig
-from detector_geometry import DetectorGeometry
-from taus import Taus
-from nsseas.eas import EAS
-from create_xml import create_xml
+from nuSpaceSim.params import NssConfig
+from nuSpaceSim.detector_geometry import DetectorGeometry
+from nuSpaceSim.taus import Taus
+from nuSpaceSim.nsseas.eas import EAS
+from nuSpaceSim.create_xml import create_xml
 
 
 @click.group()

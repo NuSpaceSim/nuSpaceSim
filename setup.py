@@ -8,8 +8,7 @@ import ast
 import re
 import setuptools
 from setuptools import setup
-from pybind11.setup_helpers import Pybind11Extension as pyExtension
-from pybind11.setup_helpers import build_ext as py_build_ext
+from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 _version_re = re.compile(r'__version__\s+=\s+(.*)')
 
@@ -18,11 +17,11 @@ with open('nuSpaceSim/__init__.py', 'rb') as f:
         f.read().decode('utf-8')).group(1)))
 
 
-nssgeometry = pyExtension("nssgeometry",
-                          ["nuSpaceSim/nssgeometry/src/nssgeometry.cpp"])
+nssgeometry = Pybind11Extension("nuSpaceSim/nssgeometry",
+                                ["nuSpaceSim/nssgeometry/src/nssgeometry.cpp"])
 
 setup(
     version=version,
-    cmdclass={"build_ext": py_build_ext},
+    cmdclass={"build_ext": build_ext},
     ext_modules=[nssgeometry, ],
 )
