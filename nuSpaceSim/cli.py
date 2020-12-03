@@ -2,7 +2,7 @@ import click
 from nuSpaceSim.params import NssConfig
 from nuSpaceSim.detector_geometry import DetectorGeometry
 from nuSpaceSim.taus import Taus
-from nuSpaceSim.nsseas.eas import EAS
+from nuSpaceSim.EAScherGen.eas import EAS
 from nuSpaceSim.create_xml import create_xml
 
 
