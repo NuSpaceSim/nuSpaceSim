@@ -81,7 +81,7 @@ downloaded automatically during setup.
 
 ### Run simulator
 
-`nuSpaceSim run my_config_file.xml 1000000`
+`nuSpaceSim run my_config_file.xml 1000`
 
 ### Help Documentation
 
@@ -97,7 +97,7 @@ Options:
 
 Commands:
   create-config  Generate a configuration file from the given parameters.
-  run            Master loop for nuSpaceSim.
+  run            Main Simulator for nuSpaceSim.
 ```
 
 Also works for the subcommands.
@@ -106,7 +106,7 @@ Also works for the subcommands.
 $  nuSpaceSim run --help
 Usage: nuSpaceSim run [OPTIONS] [CONFIG_FILE] COUNT
 
-  Master loop for nuSpaceSim.  Given a XML configuration file, and
+  Main Simulator for nuSpaceSim.  Given a XML configuration file, and
   optionally a count of simulated nutrinos, runs nutrino simulation.
 
 Options:

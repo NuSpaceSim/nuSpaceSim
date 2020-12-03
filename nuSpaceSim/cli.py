@@ -21,8 +21,8 @@ def cli(ctx, debug):
 @click.pass_context
 def run(ctx, config_file, count):
     """
-    Master loop for nuSpaceSim.  Given a XML configuration file, and optionally
-    a count of simulated nutrinos, runs nutrino simulation.
+    Main Simulator for nuSpaceSim.  Given a XML configuration file, and
+    optionally a count of simulated nutrinos, runs nutrino simulation.
     """
 
     # User Inputs
