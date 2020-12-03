@@ -1,9 +1,9 @@
 import click
-from .params import NssConfig
-from .detector_geometry import DetectorGeometry
-from .taus import Taus
-from .nsseas.eas import EAS
-from .create_xml import create_xml
+from params import NssConfig
+from detector_geometry import DetectorGeometry
+from taus import Taus
+from nsseas.eas import EAS
+from create_xml import create_xml
 
 
 @click.group()
@@ -53,3 +53,10 @@ def create_config(ctx, filename, numtrajs):
     Generate a configuration file from the given parameters.
     """
     create_xml(filename, numtrajs)
+
+if __name__ == "__main__":
+    cli(default_map={
+        'run': {
+            'count': 10
+        }
+    })

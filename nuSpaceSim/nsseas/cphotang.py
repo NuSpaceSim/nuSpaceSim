@@ -155,14 +155,13 @@ class CphotAng:
                                             ) * self.OzDepth[idxs]
         return TotZon
 
-    def theta_prop(self, z, ThetView):
+    def theta_prop(self, z, sinThetView):
         '''
         theta propagation.
         '''
-        aa = np.sin(ThetView, dtype=self.dtype)
-        bb = (self.RadE + self.zmax) / (self.RadE + z)
-        cc = np.arccos(aa * bb, dtype=self.dtype)
-        return cc
+        # aa = np.sin(ThetView, dtype=self.dtype)
+        tp = (self.RadE + self.zmax) / (self.RadE + z)
+        return np.arccos(sinThetView * tp, dtype=self.dtype)
 
     def delta_z(self, z, ThetProp):
         '''
@@ -175,7 +174,7 @@ class CphotAng:
             ThetProp, dtype=self.dtype),
             dtype=self.dtype) - Rad
 
-    def zsteps(self, z, ThetView):
+    def zsteps(self, z, sinThetView):
         '''
         Compute all mid-bin z steps and corresponding delz values
         '''
@@ -184,7 +183,7 @@ class CphotAng:
         delzs = []
         while (z <= self.zMaxZ):
             # c  correct ThetProp for starting altitude
-            ThetProp = self.theta_prop(z, ThetView)
+            ThetProp = self.theta_prop(z, sinThetView)
             delz = self.delta_z(z, ThetProp)
             delzs.append(delz)
             zsave.append(z+delz/self.dtype(2.))
@@ -195,12 +194,12 @@ class CphotAng:
 
         return zsave, delzs
 
-    def slant_depth(self, alt, ThetView):
+    def slant_depth(self, alt, sinThetView):
         '''
         Determine Rayleigh and Ozone slant depth
         '''
 
-        zsave, delzs = self.zsteps(alt, ThetView)
+        zsave, delzs = self.zsteps(alt, sinThetView)
         gramz, rhos = self.grammage(zsave)
 
         delgram_vals = rhos * self.dL * self.dtype(1e5)
@@ -211,7 +210,7 @@ class CphotAng:
         ZonZ_vals = (TotZons[:-1] - TotZons[1:]) / delzs * self.dL
         ZonZ = np.cumsum(ZonZ_vals[::-1])[::-1]
 
-        ThetPrpA = self.theta_prop(zsave, ThetView)
+        ThetPrpA = self.theta_prop(zsave, sinThetView)
 
         return zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA
 
@@ -441,13 +440,13 @@ class CphotAng:
         betaE = self.dtype(self.dtype(1) if betaE < 1.0 else betaE)
 
         ThetView = self.theta_view(betaE)
-
+        sinThetView = np.sin(ThetView, dtype=self.dtype)
         #
         # Shower
         #
 
         zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill \
-            = self.valid_arrays(*self.slant_depth(alt, ThetView))
+            = self.valid_arrays(*self.slant_depth(alt, sinThetView))
 
         izRNmax = np.argmax(RN, axis=-1)
         E0 = self.e0(zs.shape, s)
