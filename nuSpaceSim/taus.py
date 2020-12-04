@@ -1,7 +1,6 @@
 import importlib_resources
 import h5py
 import numpy as np
-import numpy.ma as ma
 from scipy import interpolate
 
 
@@ -116,8 +115,8 @@ class Taus(object):
         result = np.empty_like(betaArr)
 
         for i in range(self.tecdfarr.shape[1]):
-            idxs = betaIdxs[betaIdxs == i]
-            result[idxs] = self.tauEFracInterps[i](u[idxs])
+            mask = betaIdxs == i
+            result[mask] = self.tauEFracInterps[i](u[mask])
 
         return result * self.nuTauEnergy
 
@@ -132,7 +131,7 @@ class Taus(object):
         # in units of 100 PeV
         showerEnergy = self.config.eShowFrac * tauEnergy / 1.0e8
 
-        tauLorentz = tauEnergy * np.reciprocal(self.config.fundcon.massTau)
+        tauLorentz = tauEnergy / self.config.fundcon.massTau
 
         tauBeta = np.where(tauLorentz == 1.0, 0.0,
                            np.sqrt(1.0 - np.reciprocal(tauLorentz**2)))

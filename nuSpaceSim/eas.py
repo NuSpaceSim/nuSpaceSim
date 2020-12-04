@@ -1,5 +1,5 @@
 import numpy as np
-from .cphotang import CphotAng
+from nuSpaceSim.EAScherGen.cphotang import CphotAng
 
 
 class EAS:
@@ -48,7 +48,6 @@ class EAS:
 
         dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
 
-        # costhetaCh = np.cos(thetaCh * self.config.fundcon.pi / 180.0)
         costhetaCh = np.cos(np.degrees(thetaCh))
 
         numPEs = dphots * showerEnergy * self.config.detAeff * \

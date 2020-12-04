@@ -1,38 +1,22 @@
+"""
+cphotang
+
+Cherenkov photon density and angle determination class.
+"""
 import numpy as np
 from numpy.polynomial import Polynomial
-from zsteps import zsteps as cppzsteps
+from nuSpaceSim.EAScherGen.zsteps import zsteps as cppzsteps
 # from scipy import interpolate
-
-# from numba import jit
-
-# @jit(nopython=True)
-# def czsteps(z, sinThetView, RadE, zMaxZ, zmax, dL, pi, dtype):
-#     '''
-#     Compute all mid-bin z steps and corresponding delz values
-#     '''
-
-#     zsave = []
-#     delzs = []
-#     while (z <= zMaxZ):
-#         # c  correct ThetProp for starting altitude
-#         Rad = z + RadE
-#         tp = (RadE + zmax) / Rad
-#         ThetProp = np.arccos(sinThetView * tp)
-#         delz = np.sqrt((Rad * Rad) + (dL * dL) -
-#                        dtype(2)*Rad*dL*np.cos((pi / dtype(2)) +
-#                                                     ThetProp)) - Rad
-#         delzs.append(delz)
-#         zsave.append(z + delz / dtype(2.))
-#         z += delz
-
-#     zsave = np.array(zsave, dtype=dtype)
-#     delzs = np.array(delzs, dtype=dtype)
-
-#     return zsave, delzs
 
 
 class CphotAng:
     def __init__(self):
+        """
+        CphotAng: Cherenkov photon density and angle determination class.
+
+        Iterative summation of cherenkov radiation reimplemented in numpy and
+        C++.
+        """
         self.dtype = np.float32
         self.wave1 = np.array([200., 225., 250., 275., 300., 325., 350., 375.,
                                400., 425., 450., 475., 500., 525., 550., 575.,
@@ -131,9 +115,9 @@ class CphotAng:
         self.ehill = np.power(10.0, eang, dtype=self.dtype)
 
     def theta_view(self, betaE):
-        '''
+        """
         Compute theta view from initial betas
-        '''
+        """
         ThetProp = np.radians(betaE)
         ThetView = self.RadE / (self.RadE + self.zmax)
         ThetView *= np.cos(ThetProp, dtype=self.dtype)
@@ -141,9 +125,9 @@ class CphotAng:
         return ThetView
 
     def grammage(self, z):
-        '''
+        """
         # c     Calculate Grammage
-        '''
+        """
         X = np.empty_like(z, dtype=self.dtype)
         mask1 = z < 11
         mask2 = np.logical_and(z >= 11, z < 25)
@@ -178,9 +162,9 @@ class CphotAng:
         return X, rho
 
     def ozone_losses(self, z):
-        '''
+        """
         Calculate ozone losses from altitudes (z) in km.
-        '''
+        """
         msk1 = z < 5.35
         TotZon = np.empty_like(z)
         TotZon[msk1] = self.dtype(310) + ((self.dtype(5.35) - z[msk1]) /
@@ -197,9 +181,9 @@ class CphotAng:
         return TotZon
 
     def theta_prop(self, z, sinThetView):
-        '''
+        """
         theta propagation.
-        '''
+        """
         # aa = np.sin(ThetView, dtype=self.dtype)
         tp = (self.RadE + self.zmax) / (self.RadE + z)
         return np.arccos(sinThetView * tp, dtype=self.dtype)
@@ -216,9 +200,9 @@ class CphotAng:
     #         dtype=self.dtype) - Rad
 
     def zsteps(self, z, sinThetView):
-        '''
+        """
         Compute all mid-bin z steps and corresponding delz values
-        '''
+        """
         # zsave = []
         # delzs = []
         # while (z <= self.zMaxZ):
@@ -237,9 +221,7 @@ class CphotAng:
         # return zsave, delzs
 
     def slant_depth(self, alt, sinThetView):
-        '''
-        Determine Rayleigh and Ozone slant depth
-        '''
+        """ Determine Rayleigh and Ozone slant depth."""
 
         zsave, delzs = self.zsteps(alt, sinThetView)
         gramz, rhos = self.grammage(zsave)
@@ -257,15 +239,15 @@ class CphotAng:
         return zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA
 
     def aerosol_model(self, z, ThetPrpA):
-        '''
+        """
         Put in aerosol model based on 550 nm Elterman results.
 
         Use scipy linear interpolation function initialized in constructor.
 
-      z values above 30 (km altitude) return OD filled to 0, this should then
+        z values above 30 (km altitude) return OD filled to 0, this should then
         return aTrans = 1, but in the future masking may be used to further
         optimze for performance by avoiding this computation.
-        '''
+        """
 
         aTrans = np.ones((*z.shape, *self.aBetaF.shape), dtype=self.dtype)
 
@@ -281,9 +263,7 @@ class CphotAng:
         return aTrans
 
     def tracklen(self, E0, eCthres, s):
-        '''
-        Return tracklength and Tfrac.
-        '''
+        """ Return tracklength and Tfrac.  """
         t1 = np.subtract(np.multiply(
             0.89, E0, dtype=self.dtype), 1.2, dtype=self.dtype)
         t2 = np.divide(t1, (E0 + eCthres), dtype=self.dtype)
@@ -328,9 +308,9 @@ class CphotAng:
             Tfrac,
             E0,
             s):
-        '''
+        """
         Sum photons (Gaisser-Hillas)
-        '''
+        """
         sigval = np.divide(SPYield, np.power(
             1e3 * self.hist_bin_size, 2, dtype=self.dtype), dtype=self.dtype)
 
@@ -394,9 +374,9 @@ class CphotAng:
         return photsum
 
     def valid_arrays(self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA):
-        '''
+        """
         Return data arrays with invalid values removed
-        '''
+        """
         mask = zsave <= self.zmax
 
         AirN = np.empty_like(zsave, dtype=self.dtype)
@@ -440,16 +420,13 @@ class CphotAng:
         return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
 
     def e0(self, shape, s):
-        '''
-        '''
+        """ not sure what E0 is? """
         E0 = np.full(shape, 26.0, dtype=self.dtype)
         E0[s >= 0.4] = 44.0 - 17.0 * (s[(s >= 0.4)] - 1.46)**2
         return E0
 
     def cherenkov_threshold_angle(self, AirN):
-        '''
-        Calc Cherenkov Threshold and Cherenkov angle
-        '''
+        """ Calc Cherenkov Threshold and Cherenkov angle."""
         eCthres = np.reciprocal(np.power(AirN, 2))
         eCthres = np.sqrt(1. - eCthres, dtype=self.dtype)
         eCthres = np.divide(self.dtype(0.511), eCthres)
@@ -458,9 +435,7 @@ class CphotAng:
         return eCthres, thetaC
 
     def distance_to_detector(self, ThetView, ThetPrpA, zs):
-        '''
-        Distance to detector
-        '''
+        """ Distance to detector."""
         AngE = self.pi / (2) - ThetView - ThetPrpA
         DistStep = np.sin(AngE, dtype=self.dtype)
         DistStep /= np.sin(ThetView, dtype=self.dtype)
@@ -468,8 +443,7 @@ class CphotAng:
         return DistStep
 
     def cher_ang_sig_i(self, taphotstep, taphotsum, thetaC, AveCangI):
-        '''
-        '''
+        """ """
         nAcnt = np.count_nonzero(taphotstep * thetaC, axis=-1)
         CangsigI = taphotstep / taphotsum
         CangsigI *= np.power(thetaC - AveCangI, 2, dtype=self.dtype)
@@ -484,9 +458,7 @@ class CphotAng:
         return CherArea
 
     def run(self, betaE, alt):
-        '''
-        Main body of simulation code.
-        '''
+        """ Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
         betaE = self.dtype(self.dtype(1) if betaE < 1.0 else betaE)
@@ -539,10 +511,10 @@ class CphotAng:
         return photonDen, Cang
 
     def __call__(self, betaE, alt):
-        '''
+        """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
-        '''
+        """
 
         Dphots, Cang = zip(*[self.run(b, a) for b, a in zip(betaE, alt)])
 

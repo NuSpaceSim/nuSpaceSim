@@ -40,7 +40,7 @@
 This is the beta release of the *nuSpaceSim* simulator tool!
 
 This application includes the main scheduler code which calculates the tau
-nutrino acceptance for the Optical Cherenkov technique. The configuration
+neutrino acceptance for the Optical Cherenkov technique. The configuration
 settings for which are controlled by an input XML configuration file. Generating
 a new file with input parameters is also supported.
 
@@ -107,7 +107,7 @@ $  nuSpaceSim run --help
 Usage: nuSpaceSim run [OPTIONS] [CONFIG_FILE] COUNT
 
   Main Simulator for nuSpaceSim.  Given a XML configuration file, and
-  optionally a count of simulated nutrinos, runs nutrino simulation.
+  optionally a count of simulated neutrinos, runs neutrino simulation.
 
 Options:
   --help  Show this message and exit.

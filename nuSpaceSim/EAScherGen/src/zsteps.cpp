@@ -52,11 +52,11 @@ auto py_zsteps(T z,
 PYBIND11_MODULE(zsteps,m) {
   m.doc() = "Iterative z propagation through atmosphere.";
   m.def("zsteps", &py_zsteps<double>,
-      "Given a starting altitude and associated constants, compute the array "
-      "of z steps and the array of deltas for the full trajectory up to a "
-      "maximum altitude cutoff.");
+      "Given a double precision starting altitude and associated constants, "
+      "compute the array of z steps and the array of deltas for the full "
+      "trajectory up to a maximum altitude cutoff.");
   m.def("zsteps", &py_zsteps<float>,
-      "Given a starting altitude and associated constants, compute the array "
-      "of z steps and the array of deltas for the full trajectory up to a "
-      "maximum altitude cutoff.");
+      "Given a single precision starting altitude and associated constants, "
+      "compute the array of z steps and the array of deltas for the full "
+      "trajectory up to a maximum altitude cutoff.");
 }
