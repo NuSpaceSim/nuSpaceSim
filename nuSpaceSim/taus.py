@@ -112,13 +112,12 @@ class Taus(object):
 
         # fast interpolation selection with masking
         betaIdxs = np.searchsorted((self.betaUppBnds * 180.0 / np.pi), betaArr)
-        result = np.empty_like(betaArr)
-
+        tauEF = np.empty_like(betaArr)
         for i in range(self.tecdfarr.shape[1]):
             mask = betaIdxs == i
-            result[mask] = self.tauEFracInterps[i](u[mask])
+            tauEF[mask] = self.tauEFracInterps[i](u[mask])
 
-        return result * self.nuTauEnergy
+        return tauEF * self.nuTauEnergy
 
     def __call__(self, betaArr):
         """
