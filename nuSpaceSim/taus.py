@@ -61,7 +61,14 @@ def extract_nutau_data(filename, lognuenergy):
 
 
 class Taus(object):
+    """
+    Describe Tau Module HERE!
+    """
+
     def __init__(self, config):
+        """
+        Intialize the Taus object.
+        """
         self.config = config
 
         ref = importlib_resources.files(
@@ -111,8 +118,10 @@ class Taus(object):
         u = np.random.rand(betaArr.shape[0]) if u is None else u
 
         # fast interpolation selection with masking
-        betaIdxs = np.searchsorted((self.betaUppBnds * 180.0 / np.pi), betaArr)
+        betaIdxs = np.searchsorted(np.degrees(self.betaUppBnds), betaArr)
+
         tauEF = np.empty_like(betaArr)
+
         for i in range(self.tecdfarr.shape[1]):
             mask = betaIdxs == i
             tauEF[mask] = self.tauEFracInterps[i](u[mask])
@@ -122,6 +131,9 @@ class Taus(object):
     def __call__(self, betaArr):
         """
         Perform main operation for Taus module.
+
+        Returns:
+
         """
 
         tauExitProb = self.tau_exit_prob(betaArr)
@@ -132,7 +144,6 @@ class Taus(object):
 
         tauLorentz = tauEnergy / self.config.fundcon.massTau
 
-        tauBeta = np.where(tauLorentz == 1.0, 0.0,
-                           np.sqrt(1.0 - np.reciprocal(tauLorentz**2)))
+        tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz**2))
 
         return tauBeta, tauLorentz, showerEnergy, tauExitProb

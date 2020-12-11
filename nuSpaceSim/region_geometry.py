@@ -43,7 +43,6 @@ class RegionGeom(nssgeo.Geom_params):
         cossepangle = super().localevent.costhetaTrSubV
 
         # Geometry Factors
-        # mcintfactor = nssgeo.heaviside(cossepangle - costhetaCh)
         mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
         mcintfactor *= super().localevent.costhetaTrSubN
         mcintfactor /= super().localevent.costhetaNSubV
@@ -53,7 +52,6 @@ class RegionGeom(nssgeo.Geom_params):
         mcintfactor *= tauexitprob
 
         # PE threshold
-        # mcintfactor *= nssgeo.heaviside(numPEs - self.detPEthres)
         mcintfactor *= np.where(numPEs - self.detPEthres < 0, 0.0, 1.0)
 
         mcintegral = np.mean(mcintfactor) * super().mcnorm
