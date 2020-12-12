@@ -48,9 +48,22 @@ class EAS:
 
         dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
 
-        costhetaCh = np.cos(np.degrees(thetaCh))
-
         numPEs = dphots * showerEnergy * self.config.detAeff * \
             self.config.detQeff
 
-        return numPEs, costhetaCh
+        enhanceFactor = numPEs / self.config.detPEthres
+        logenhanceFactor = np.where(enhanceFactor > 2.0, np.log(enhanceFactor), 0.5)
+
+        #print (enhanceFactor, logenhanceFactor)
+
+        hwfm = np.sqrt(2.*logenhanceFactor)
+        thetaChEnh = np.multiply(thetaCh,hwfm)
+        thetaChEff = np.where(thetaChEnh > thetaCh, thetaChEnh, thetaCh)
+
+        #print(thetaCh, thetaChEff)
+
+        #costhetaCh = np.cos(np.degrees(thetaCh))
+        #costhetaCh = np.cos(np.radians(thetaCh))
+        costhetaChEff = np.cos(np.radians(thetaChEff))
+
+        return numPEs, costhetaChEff

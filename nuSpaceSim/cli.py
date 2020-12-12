@@ -42,10 +42,11 @@ def run(config_file, count):
     # Run simulation
     betaArr = geom(numtrajs)
     tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(betaArr)
-    numPEs, costhetaCh = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
+    numPEs, costhetaChEff = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
     # More modules here
-    mcintegral = geom.mcintegral(numPEs, costhetaCh, tauexitprob)
+    mcintegral, mcintegralgeoonly = geom.mcintegral(numPEs, costhetaChEff, tauexitprob)
 
+    print("Geom. Only MC Integral:", mcintegralgeoonly)
     print("mcintegral", mcintegral)
 
 
