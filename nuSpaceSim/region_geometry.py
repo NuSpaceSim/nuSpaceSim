@@ -40,13 +40,21 @@ class RegionGeom(nssgeo.Geom_params):
 
     def mcintegral(self, numPEs, costhetaCh, tauexitprob):
         """ Monte Carlo integral.  """
-        cossepangle = super().localevent.costhetaTrSubV
+        #cossepangle = super().localevent.costhetaTrSubV
+        cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
+
+        #print(cossepangle,costhetaCh)
 
         # Geometry Factors
         mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
-        mcintfactor *= super().localevent.costhetaTrSubN
-        mcintfactor /= super().localevent.costhetaNSubV
-        mcintfactor /= super().localevent.costhetaTrSubV
+        #mcintfactor *= super().localevent.costhetaTrSubN
+        mcintfactor = np.multiply(mcintfactor,super().evArray["costhetaTrSubN"][super().evMasknpArray])
+        #mcintfactor /= super().localevent.costhetaNSubV
+        mcintfactor = np.divide(mcintfactor,super().evArray["costhetaNSubV"][super().evMasknpArray])
+        #mcintfactor /= super().localevent.costhetaTrSubV
+        mcintfactor = np.divide(mcintfactor,super().evArray["costhetaTrSubV"][super().evMasknpArray])
+
+        mcintegralgeoonly = np.mean(mcintfactor) * super().mcnorm
 
         # Multiply by tau exit probability
         mcintfactor *= tauexitprob
@@ -55,4 +63,5 @@ class RegionGeom(nssgeo.Geom_params):
         mcintfactor *= np.where(numPEs - self.detPEthres < 0, 0.0, 1.0)
 
         mcintegral = np.mean(mcintfactor) * super().mcnorm
-        return mcintegral
+
+        return mcintegral, mcintegralgeoonly
