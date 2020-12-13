@@ -6,10 +6,11 @@ jobs:
   build-n-publish:
     
     name: Build and publish Python 🐍 distributions 📦 to TestPyPI
-    runs-on: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: [3.7, 3.8, 3.9]
 
     steps:
