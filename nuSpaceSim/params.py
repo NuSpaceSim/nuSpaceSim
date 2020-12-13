@@ -4,6 +4,10 @@ import numpy as np
 
 
 class Fund_Constants:
+    """
+    Fundimental constants used on nuSpaceSim simulator.
+    """
+
     def __init__(
         self,
         pi=np.pi,
@@ -54,6 +58,7 @@ def parseXML(xmlfile):
 
 
 class NssConfig:
+
     def __init__(self, configfile="sample_input_file.xml"):
         self.detchar, self.simparams = parseXML(configfile)
         self.fundcon = Fund_Constants()
@@ -65,13 +70,12 @@ class NssConfig:
         self.detQeff = float(self.detchar["QuantumEfficiency"])
         self.detPEthres = float(self.detchar["NPE"])
         self.logNuTauEnergy = float(self.simparams["NuTauEnergy"])
-        self.nuTauEnergy = 10 ** self.logNuTauEnergy
+        self.nuTauEnergy = 10**self.logNuTauEnergy
         self.eShowFrac = float(self.simparams["FracETauInShower"])
         self.AngFrLimb = self.fundcon.pi * \
             (float(self.simparams["AngleFromLimb"]) / 180.0)
         self.thetaChMax = self.fundcon.pi * (
-            float(self.simparams["MaximumCherenkovAngle"]) / 180.0
-        )
+            float(self.simparams["MaximumCherenkovAngle"]) / 180.0)
         self.sinthetaChMax = np.sin(self.thetaChMax)
         self.maxaziang = self.fundcon.pi * \
             (float(self.simparams["AzimuthalAngle"]) / 180.0)

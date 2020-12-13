@@ -82,11 +82,7 @@ def create_xml(filename="sample_input_file", numtraj_val=10):
     indent(nuspacesimparams)
 
     tree = ET.ElementTree(nuspacesimparams)
-    tree.write(
-        filename,
-        encoding='utf-8',
-        xml_declaration=True,
-        method="xml")
+    tree.write(filename, encoding='utf-8', xml_declaration=True, method="xml")
 
 
 # if __name__ == "__main__":

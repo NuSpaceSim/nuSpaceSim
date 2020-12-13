@@ -44,7 +44,8 @@ def run(config_file, count):
     tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(betaArr)
     numPEs, costhetaChEff = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
     # More modules here
-    mcintegral, mcintegralgeoonly = geom.mcintegral(numPEs, costhetaChEff, tauexitprob)
+    mcintegral, mcintegralgeoonly = geom.mcintegral(numPEs, costhetaChEff,
+                                                    tauexitprob)
 
     print("Geom. Only MC Integral:", mcintegralgeoonly)
     print("mcintegral", mcintegral)
