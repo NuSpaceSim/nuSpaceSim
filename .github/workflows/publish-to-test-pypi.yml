@@ -58,4 +58,4 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       run: |
-        find dist -name "*.whl" -exec twine upload --repository testpypi {} \;
+        twine upload --repository testpypi "*.whl"
