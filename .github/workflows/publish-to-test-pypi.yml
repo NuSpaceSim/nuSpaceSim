@@ -25,8 +25,8 @@ jobs:
         pip install setuptools wheel twine pybind11
     - name: Build a binary wheel and publish to test-pypi
       env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSQORD: ${{ secrets.test_pypi_password }}
-      run: >-
-        python setup.py bdist_wheel
-        python -m twine upload --repository testpypi dist/*
+        TWINE_USERNAME: areustle
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
