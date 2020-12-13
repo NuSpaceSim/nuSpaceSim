@@ -30,7 +30,7 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       run: |
-        twine upload --repository testpypi dist/*manylinux*.whl
+        find dist -name "*manylinux*.whl" -exec twine upload --repository testpypi {} \;
 
 
   macos-build-n-publish:
@@ -57,4 +57,4 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       run: |
-        twine upload --repository testpypi dist/*
+        find dist -name "*.whl" -exec twine upload --repository testpypi {} \;
