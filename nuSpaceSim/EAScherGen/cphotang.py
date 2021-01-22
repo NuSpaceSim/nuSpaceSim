@@ -7,6 +7,11 @@ import numpy as np
 from numpy.polynomial import Polynomial
 from nuSpaceSim.EAScherGen.zsteps import zsteps as cppzsteps
 # from scipy import interpolate
+# from dask import delayed
+import dask
+
+# import multiprocessing
+# from joblib import Parallel, delayed
 
 
 class CphotAng:
@@ -400,7 +405,7 @@ class CphotAng:
         e2hill = np.zeros_like(zsave, dtype=self.dtype)
         e2hill[mask] = self.dtype(1150) + self.dtype(454) * \
             np.log(s[mask], dtype=self.dtype)
-        mask &= ~(e2hill < 0)
+        mask &= ~(e2hill <= 0)
 
         # final mask set for loop
 
@@ -512,6 +517,52 @@ class CphotAng:
         numpy arrays.
         """
 
-        Dphots, Cang = zip(*[self.run(b, a) for b, a in zip(betaE, alt)])
+        #######################
+        # def batch(seq):
+        #     return [self.run(betaE[x], alt[x]) for x in seq]
+        # result = Parallel(multiprocessing.cpu_count())(
+        #         delayed(batch)(
+        #                 range(i, min(len(alt), i+100))
+        #             ) for i in range(0, len(alt), 100))
 
+        # flat_list = [item for sublist in result for item in sublist]
+
+        # Dphots, Cang = zip(*flat_list)
+        # return np.array(Dphots), np.array(Cang)
+
+        #######################
+        #num_cores = multiprocessing.cpu_count()
+        #result = Parallel(num_cores)(delayed(self.run)(a, b) for b, a in zip(betaE, alt))
+        #Dphots, Cang = zip(*result)
+        #return np.array(Dphots), np.array(Cang)
+
+        ######################
+        def batch(seq):
+            return [self.run(betaE[x], alt[x]) for x in seq]
+        result = []
+        for i in range(0, len(alt), 100):
+            result_batches = dask.delayed(batch)(range(i, min(i+100, len(alt))))
+            result.append(result_batches)
+        dask.compute(result)
+        flat_list = [item for sublist in result for item in sublist]
+        Dphots, Cang = zip(*flat_list)
         return np.array(Dphots), np.array(Cang)
+
+        #####################
+        # result = []
+        # for b, a in zip(betaE, alt):
+        #     result.append(dask.delayed(self.run)(b, a))
+        # dask.visualize(*result)
+        # Dphots, Cang = zip(*dask.compute(*result))
+        # return np.array(Dphots), np.array(Cang)
+
+        #####################
+        # Dphots = np.empty_like(betaE)
+        # Cang = np.empty_like(betaE)
+        # for i in range(len(betaE)):
+        #     Dphots[i], Cang[i] = self.run(betaE[i], alt[i])
+        # return Dphots, Cang
+
+        ######################
+        #Dphots, Cang = zip(*[self.run(b, a) for b, a in zip(betaE, alt)])
+        #return np.array(Dphots), np.array(Cang)
