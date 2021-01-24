@@ -18,10 +18,10 @@ def cli():
 @cli.command()
 @click.argument(
     "config_file",
-    default="sample_input_file.xml.",
-    type=click.Path(exists=True),
+    default="sample_input_file.xml",
+    type=click.Path(exists=True)
 )
-@click.argument("count", type=int)
+@click.argument("count", type=float, default=0.0)
 # @click.pass_context
 def run(config_file, count):
     """
@@ -31,8 +31,7 @@ def run(config_file, count):
 
     # User Inputs
     config = NssConfig(config_file)
-    # numtrajs = config['NumTrajs'] if count == 0 else count
-    numtrajs = count
+    numtrajs = int(config.N if count == 0.0 else count)
 
     # Initialized Objects
     geom = RegionGeom(config)
@@ -52,14 +51,14 @@ def run(config_file, count):
 
 
 @cli.command()
-@click.option("-n", "--numtrajs", default=10, help="number of trajectories.")
+@click.option("-n", "--numtrajs", type=float, default=100, help="number of trajectories.")
 @click.argument("filename")
 # @click.pass_context
 def create_config(filename, numtrajs):
     """
     Generate a configuration file from the given parameters.
     """
-    create_xml(filename, numtrajs)
+    create_xml(filename, int(numtrajs))
 
 
 if __name__ == "__main__":

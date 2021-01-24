@@ -7,8 +7,9 @@ import numpy as np
 from numpy.polynomial import Polynomial
 from nuSpaceSim.EAScherGen.zsteps import zsteps as cppzsteps
 # from scipy import interpolate
-# from dask import delayed
 import dask
+import dask.bag as db
+from dask.distributed import Client
 
 # import multiprocessing
 # from joblib import Parallel, delayed
@@ -511,11 +512,14 @@ class CphotAng:
 
         return photonDen, Cang
 
-    def __call__(self, betaE, alt):
+    def __call__(self, betaE, alt, client_input = None):
         """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
         """
+
+        if client_input is not None:
+            client = Client(client_input)
 
         #######################
         # def batch(seq):
@@ -536,17 +540,22 @@ class CphotAng:
         #Dphots, Cang = zip(*result)
         #return np.array(Dphots), np.array(Cang)
 
+        #######################
+        b = db.from_sequence(zip(betaE, alt), partition_size=100)
+        Dphots, Cang = zip(*b.map(lambda x: self.run(*x)).compute())
+        return np.asarray(Dphots), np.array(Cang)
+
         ######################
-        def batch(seq):
-            return [self.run(betaE[x], alt[x]) for x in seq]
-        result = []
-        for i in range(0, len(alt), 100):
-            result_batches = dask.delayed(batch)(range(i, min(i+100, len(alt))))
-            result.append(result_batches)
-        dask.compute(result)
-        flat_list = [item for sublist in result for item in sublist]
-        Dphots, Cang = zip(*flat_list)
-        return np.array(Dphots), np.array(Cang)
+        # def batch(seq):
+        #     return [self.run(betaE[x], alt[x]) for x in seq]
+        # result = []
+        # for i in range(0, len(alt), 100):
+        #     result_batches = dask.delayed(batch)(range(i, min(i+100, len(alt))))
+        #     result.append(result_batches)
+        # dask.compute(result)
+        # flat_list = [item for sublist in result for item in sublist]
+        # Dphots, Cang = zip(*flat_list)
+        # return np.array(Dphots), np.array(Cang)
 
         #####################
         # result = []
