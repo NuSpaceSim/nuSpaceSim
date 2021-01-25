@@ -3,6 +3,7 @@ __pycache__
 _build
 .build
 build/
+dask-worker-space/
 dist/
 archive
 a.out
