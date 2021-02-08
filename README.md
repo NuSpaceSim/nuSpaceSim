@@ -81,7 +81,7 @@ downloaded automatically during setup.
 
 ### Run simulator
 
-`nuSpaceSim run my_config_file.xml 1000`
+`nuSpaceSim run my_config_file.xml 1000 8.0`
 
 ### Help Documentation
 
@@ -104,10 +104,10 @@ Also works for the subcommands.
 
 ```
 $  nuSpaceSim run --help
-Usage: nuSpaceSim run [OPTIONS] [CONFIG_FILE] COUNT
+Usage: nuSpaceSim run [OPTIONS] [CONFIG_FILE] COUNT EVALUE
 
   Main Simulator for nuSpaceSim.  Given a XML configuration file, and
-  optionally a count of simulated neutrinos, runs neutrino simulation.
+  optionally a count of simulated neutrinos and log10(nuEnergy [GeV]), runs neutrino simulation.
 
 Options:
   --help  Show this message and exit.
