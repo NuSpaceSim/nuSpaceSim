@@ -58,7 +58,7 @@ class EAS:
 
         hwfm = np.sqrt(2.*logenhanceFactor)
         thetaChEnh = np.multiply(thetaCh,hwfm)
-        thetaChEff = np.where(thetaChEnh > thetaCh, thetaChEnh, thetaCh)
+        thetaChEff = np.where(thetaChEnh >= thetaCh, thetaChEnh, thetaCh)
 
         #print(thetaCh, thetaChEff)
 
