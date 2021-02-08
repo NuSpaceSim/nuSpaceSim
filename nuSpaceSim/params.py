@@ -3,7 +3,37 @@ import xml.etree.ElementTree as ET
 import numpy as np
 
 
+class NssConfig:
+
+    def __init__(self, configfile="sample_input_file.xml"):
+        self.detchar, self.simparams = parseXML(configfile)
+        self.fundcon = Fund_Constants()
+        self.EarthRadius = self.fundcon.earth_radius
+        self.detectAlt = float(self.detchar["DetectorAltitude"])
+        self.raStart = float(self.detchar["InitialDetectorRightAscension"])
+        self.decStart = float(self.detchar["InitialDetectorDeclination"])
+        self.detAeff = float(self.detchar["TelescopeEffectiveArea"])
+        self.detQeff = float(self.detchar["QuantumEfficiency"])
+        self.detPEthres = float(self.detchar["NPE"])
+        self.logNuTauEnergy = float(self.simparams["NuTauEnergy"])
+        self.nuTauEnergy = 10**self.logNuTauEnergy
+        self.eShowFrac = float(self.simparams["FracETauInShower"])
+        self.AngFrLimb = self.fundcon.pi * \
+            (float(self.simparams["AngleFromLimb"]) / 180.0)
+        self.thetaChMax = self.fundcon.pi * (
+            float(self.simparams["MaximumCherenkovAngle"]) / 180.0)
+        self.sinthetaChMax = np.sin(self.thetaChMax)
+        self.maxaziang = self.fundcon.pi * \
+            (float(self.simparams["AzimuthalAngle"]) / 180.0)
+        self.N = int(self.simparams["NumTrajs"])
+
+
+
 class Fund_Constants:
+    """
+    Fundimental constants used on nuSpaceSim simulator.
+    """
+
     def __init__(
         self,
         pi=np.pi,
@@ -51,27 +81,3 @@ def parseXML(xmlfile):
         else:
             fsimparams[node.tag] = node.text
     return (fdetchar, fsimparams)
-
-
-class NssConfig:
-    def __init__(self, configfile="sample_input_file.xml"):
-        self.detchar, self.simparams = parseXML(configfile)
-        self.fundcon = Fund_Constants()
-        self.EarthRadius = self.fundcon.earth_radius
-        self.detectAlt = float(self.detchar["DetectorAltitude"])
-        self.raStart = float(self.detchar["InitialDetectorRightAscension"])
-        self.decStart = float(self.detchar["InitialDetectorDeclination"])
-        self.detAeff = float(self.detchar["TelescopeEffectiveArea"])
-        self.detQeff = float(self.detchar["QuantumEfficiency"])
-        self.detPEthres = float(self.detchar["NPE"])
-        self.logNuTauEnergy = float(self.simparams["NuTauEnergy"])
-        self.nuTauEnergy = 10 ** self.logNuTauEnergy
-        self.eShowFrac = float(self.simparams["FracETauInShower"])
-        self.AngFrLimb = self.fundcon.pi * \
-            (float(self.simparams["AngleFromLimb"]) / 180.0)
-        self.thetaChMax = self.fundcon.pi * (
-            float(self.simparams["MaximumCherenkovAngle"]) / 180.0
-        )
-        self.sinthetaChMax = np.sin(self.thetaChMax)
-        self.maxaziang = self.fundcon.pi * \
-            (float(self.simparams["AzimuthalAngle"]) / 180.0)
