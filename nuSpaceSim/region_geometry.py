@@ -10,15 +10,14 @@ class RegionGeom(nssgeo.Geom_params):
     """
 
     def __init__(self, config):
-        super().__init__(
-            radE=config.EarthRadius,
-            detalt=config.detectAlt,
-            detra=config.raStart,
-            detdec=config.decStart,
-            delAlpha=config.AngFrLimb,
-            maxsepangle=config.thetaChMax,
-            delAziAng=config.maxaziang,
-            ParamPi=config.fundcon.pi)
+        super().__init__(radE=config.EarthRadius,
+                         detalt=config.detectAlt,
+                         detra=config.raStart,
+                         detdec=config.decStart,
+                         delAlpha=config.AngFrLimb,
+                         maxsepangle=config.thetaChMax,
+                         delAziAng=config.maxaziang,
+                         ParamPi=config.fundcon.pi)
         self.config = config
         self.detPEthres = config.detPEthres
 
@@ -47,12 +46,15 @@ class RegionGeom(nssgeo.Geom_params):
 
         # Geometry Factors
         mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
-        #mcintfactor *= super().localevent.costhetaTrSubN
-        mcintfactor = np.multiply(mcintfactor,super().evArray["costhetaTrSubN"][super().evMasknpArray])
-        #mcintfactor /= super().localevent.costhetaNSubV
-        mcintfactor = np.divide(mcintfactor,super().evArray["costhetaNSubV"][super().evMasknpArray])
-        #mcintfactor /= super().localevent.costhetaTrSubV
-        mcintfactor = np.divide(mcintfactor,super().evArray["costhetaTrSubV"][super().evMasknpArray])
+        mcintfactor = np.multiply(
+            mcintfactor,
+            super().evArray["costhetaTrSubN"][super().evMasknpArray])
+        mcintfactor = np.divide(
+            mcintfactor,
+            super().evArray["costhetaNSubV"][super().evMasknpArray])
+        mcintfactor = np.divide(
+            mcintfactor,
+            super().evArray["costhetaTrSubV"][super().evMasknpArray])
 
         mcintegralgeoonly = np.mean(mcintfactor) * super().mcnorm
 

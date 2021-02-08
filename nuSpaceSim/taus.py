@@ -35,7 +35,7 @@ def extract_nutau_data(filename, lognuenergy):
     #    np.floor(lognuebin), (lognuenergy - np.floor(lognuebin)) * 100
     #)
     testring = "TauEdist_grp_e{:02.0f}_{:02.0f}".format(
-        np.floor(lognuebin), (lognuebin - np.floor(lognuebin)) * 100
+      np.floor(lognuebin), (lognuebin - np.floor(lognuebin)) * 100
     )
 
     #print(testring)
@@ -90,12 +90,11 @@ class Taus(object):
         self.pelne_rbf = np.repeat(self.pelnearr, self.pebarr.shape, 0)
 
         # Interpolating function to be used to find P_exit
-        self.pexitfunc = interpolate.Rbf(
-            self.peb_rbf,
-            self.pelne_rbf,
-            self.pearr,
-            function="cubic",
-            smooth=0)
+        self.pexitfunc = interpolate.Rbf(self.peb_rbf,
+                                         self.pelne_rbf,
+                                         self.pearr,
+                                         function="cubic",
+                                         smooth=0)
 
         # Array of tecdf interpolation functions
         self.tauEFracInterps = [
@@ -111,10 +110,10 @@ class Taus(object):
         """
         brad = np.radians(betaArr)  # * (self.config.fundcon.pi / 180.0)
 
-        logtauexitprob = self.pexitfunc(brad, np.full(
-            brad.shape, self.config.logNuTauEnergy))
+        logtauexitprob = self.pexitfunc(
+            brad, np.full(brad.shape, self.config.logNuTauEnergy))
 
-        tauexitprob = 10 ** logtauexitprob
+        tauexitprob = 10**logtauexitprob
 
         return tauexitprob
 

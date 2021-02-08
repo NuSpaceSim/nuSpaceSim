@@ -3,6 +3,12 @@ from nuSpaceSim.EAScherGen.cphotang import CphotAng
 
 
 class EAS:
+    """
+    Electromagnetic Air Shower wrapper class.
+
+    Vectorized computation of photo-electrons and Cherenkov angles.
+    """
+
     def __init__(self, config):
         self.config = config
         self.CphotAng = CphotAng()
@@ -22,10 +28,8 @@ class EAS:
         # brad = beta * (self.config.fundcon.pi / 180.0)
         brad = np.radians(beta)
 
-        altDec = np.sqrt(
-            self.config.EarthRadius ** 2 +
-            lenDec ** 2 +
-            2.0 * self.config.EarthRadius * lenDec * np.sin(brad))
+        altDec = np.sqrt(self.config.EarthRadius**2 + lenDec**2 +
+                         2.0 * self.config.EarthRadius * lenDec * np.sin(brad))
 
         altDec -= self.config.EarthRadius
 
@@ -52,12 +56,13 @@ class EAS:
             self.config.detQeff
 
         enhanceFactor = numPEs / self.config.detPEthres
-        logenhanceFactor = np.where(enhanceFactor > 2.0, np.log(enhanceFactor), 0.5)
+        logenhanceFactor = np.where(enhanceFactor > 2.0, np.log(enhanceFactor),
+                                    0.5)
 
         #print (enhanceFactor, logenhanceFactor)
-
-        hwfm = np.sqrt(2.*logenhanceFactor)
-        thetaChEnh = np.multiply(thetaCh,hwfm)
+        
+        hwfm = np.sqrt(2. * logenhanceFactor)
+        thetaChEnh = np.multiply(thetaCh, hwfm)
         thetaChEff = np.where(thetaChEnh >= thetaCh, thetaChEnh, thetaCh)
 
         #print(thetaCh, thetaChEff)

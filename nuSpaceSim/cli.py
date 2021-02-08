@@ -18,10 +18,10 @@ def cli():
 @cli.command()
 @click.argument(
     "config_file",
-    default="sample_input_file.xml.",
-    type=click.Path(exists=True),
+    default="sample_input_file.xml",
+    type=click.Path(exists=True)
 )
-@click.argument("count", type=int)
+@click.argument("count", type=float, default=0.0)
 @click.argument("evalue", type=float)
 # @click.pass_context
 def run(config_file, count, evalue):
@@ -32,9 +32,7 @@ def run(config_file, count, evalue):
 
     # User Inputs
     config = NssConfig(config_file)
-    # numtrajs = config['NumTrajs'] if count == 0 else count
-    numtrajs = count
-    #energy = evalue
+    numtrajs = int(config.N if count == 0.0 else count)
     config.logNuTauEnergy = evalue
     config.nuTauEnergy = 10 ** config.logNuTauEnergy
 
@@ -48,13 +46,14 @@ def run(config_file, count, evalue):
     tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(betaArr)
     numPEs, costhetaChEff = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
     # More modules here
-    mcintegral, mcintegralgeoonly = geom.mcintegral(numPEs, costhetaChEff, tauexitprob)
+    mcintegral, mcintegralgeoonly = geom.mcintegral(numPEs, costhetaChEff,
+                                                    tauexitprob)
 
     print("Geom. Only MC Integral:", mcintegralgeoonly)
     print("MC integral:", mcintegral)
 
 @cli.command()
-@click.option("-n", "--numtrajs", default=10, help="number of trajectories.")
+@click.option("-n", "--numtrajs", type=float, default=100, help="number of trajectories.")
 @click.option("-e", "--energy", default=8.0, help="log10(nu_tau energy) in GeV")
 @click.argument("filename")
 # @click.pass_context
@@ -62,8 +61,7 @@ def create_config(filename, numtrajs, energy):
     """
     Generate a configuration file from the given parameters.
     """
-    create_xml(filename, numtrajs, energy)
-
+    create_xml(filename, ing(numtrajs), energy)
 
 if __name__ == "__main__":
     cli()
