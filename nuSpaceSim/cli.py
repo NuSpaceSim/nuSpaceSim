@@ -46,11 +46,12 @@ def run(config_file, count, evalue):
     tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(betaArr)
     numPEs, costhetaChEff = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
     # More modules here
-    mcintegral, mcintegralgeoonly = geom.mcintegral(numPEs, costhetaChEff,
-                                                    tauexitprob)
+    mcintegral, mcintegralgeoonly, numEvPass = geom.mcintegral(numPEs, 
+                                                    costhetaChEff, tauexitprob)
 
     print("Geom. Only MC Integral:", mcintegralgeoonly)
     print("MC integral:", mcintegral)
+    print("Number of Events Passing Selection Cuts:", numEvPass)
 
 @cli.command()
 @click.option("-n", "--numtrajs", type=float, default=100, help="number of trajectories.")

@@ -64,6 +64,8 @@ class RegionGeom(nssgeo.Geom_params):
         # PE threshold
         mcintfactor *= np.where(numPEs - self.detPEthres < 0, 0.0, 1.0)
 
+        numEvPass = np.count_nonzero(mcintfactor)
+
         mcintegral = np.mean(mcintfactor) * super().mcnorm
 
-        return mcintegral, mcintegralgeoonly
+        return mcintegral, mcintegralgeoonly, numEvPass
