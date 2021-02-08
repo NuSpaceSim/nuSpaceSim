@@ -4,7 +4,7 @@ from nuSpaceSim.region_geometry import RegionGeom
 from nuSpaceSim.taus import Taus
 from nuSpaceSim.eas import EAS
 from nuSpaceSim.create_xml import create_xml
-
+import numpy as np
 
 @click.group()
 # @click.option("--debug/--no-debug", default=False)
@@ -22,8 +22,9 @@ def cli():
     type=click.Path(exists=True)
 )
 @click.argument("count", type=float, default=0.0)
+@click.argument("evalue", type=float)
 # @click.pass_context
-def run(config_file, count):
+def run(config_file, count, evalue):
     """
     Main Simulator for nuSpaceSim.  Given a XML configuration file, and
     optionally a count of simulated nutrinos, runs nutrino simulation.
@@ -32,6 +33,8 @@ def run(config_file, count):
     # User Inputs
     config = NssConfig(config_file)
     numtrajs = int(config.N if count == 0.0 else count)
+    config.logNuTauEnergy = evalue
+    config.nuTauEnergy = 10 ** config.logNuTauEnergy
 
     # Initialized Objects
     geom = RegionGeom(config)
@@ -47,19 +50,18 @@ def run(config_file, count):
                                                     tauexitprob)
 
     print("Geom. Only MC Integral:", mcintegralgeoonly)
-    print("mcintegral", mcintegral)
-
+    print("MC integral:", mcintegral)
 
 @cli.command()
 @click.option("-n", "--numtrajs", type=float, default=100, help="number of trajectories.")
+@click.option("-e", "--energy", default=8.0, help="log10(nu_tau energy) in GeV")
 @click.argument("filename")
 # @click.pass_context
-def create_config(filename, numtrajs):
+def create_config(filename, numtrajs, energy):
     """
     Generate a configuration file from the given parameters.
     """
-    create_xml(filename, int(numtrajs))
-
+    create_xml(filename, ing(numtrajs), energy)
 
 if __name__ == "__main__":
     cli()

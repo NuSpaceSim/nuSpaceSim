@@ -17,7 +17,7 @@ def indent(elem, level=0):
             elem.tail = i
 
 
-def create_xml(filename="sample_input_file", numtraj_val=10):
+def create_xml(filename="sample_input_file", numtraj_val=10, energy_val=8.0):
     nuspacesimparams = ET.Element('NuSpaceSimParams')
 
     detchar = ET.SubElement(nuspacesimparams, 'DetectorCharacteristics')
@@ -70,7 +70,8 @@ def create_xml(filename="sample_input_file", numtraj_val=10):
     nutauspectype.set('SpectrumType', 'Mono')
 
     nutauen = ET.SubElement(nutauspectype, 'NuTauEnergy')
-    nutauen.text = '8.0'
+    #nutauen.text = '8.0'
+    nutauen.text = str(energy_val)
 
     azimuthang = ET.SubElement(simparams, 'AzimuthalAngle')
     azimuthang.set('Unit', 'Degrees')

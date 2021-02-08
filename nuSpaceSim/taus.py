@@ -29,8 +29,16 @@ def extract_nutau_data(filename, lognuenergy):
     # If we want to do closest bin rather than histogram bins
     q = int((lognuenergy * 100) / 25.0)
     lognuebin = float((q * 25) / 100.0)
+
+    #print (q, lognuebin)
+    #testring = "TauEdist_grp_e{:02.0f}_{:02.0f}".format(
+    #    np.floor(lognuebin), (lognuenergy - np.floor(lognuebin)) * 100
+    #)
     testring = "TauEdist_grp_e{:02.0f}_{:02.0f}".format(
-        np.floor(lognuebin), (lognuenergy - np.floor(lognuebin)) * 100)
+      np.floor(lognuebin), (lognuebin - np.floor(lognuebin)) * 100
+    )
+
+    #print(testring)
 
     tegrp = f[testring]
     tegrpcdfdset = tegrp["TauEDistCDF"]
