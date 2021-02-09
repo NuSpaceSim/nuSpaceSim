@@ -62,7 +62,7 @@ def create_config(filename, numtrajs, energy):
     """
     Generate a configuration file from the given parameters.
     """
-    create_xml(filename, ing(numtrajs), energy)
+    create_xml(filename, int(numtrajs), energy)
 
 if __name__ == "__main__":
     cli()
