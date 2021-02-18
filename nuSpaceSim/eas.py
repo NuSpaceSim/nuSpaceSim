@@ -56,8 +56,11 @@ class EAS:
             self.config.detQeff
 
         enhanceFactor = numPEs / self.config.detPEthres
-        logenhanceFactor = np.where(enhanceFactor > 2.0, np.log(enhanceFactor),
-                                    0.5)
+        # logenhanceFactor = np.where(enhanceFactor > 2.0, np.log(enhanceFactor), 0.5)
+        logenhanceFactor = np.empty_like(enhanceFactor)
+        efMask = enhanceFactor > 2.0
+        logenhanceFactor[efMask] = np.log(enhanceFactor[efMask])
+        logenhanceFactor[~efMask] = 0.5
 
         #print (enhanceFactor, logenhanceFactor)
         
