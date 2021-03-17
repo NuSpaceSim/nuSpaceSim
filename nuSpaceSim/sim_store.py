@@ -2,7 +2,6 @@
 sim_store: NuSpaceSim module for storing simulation intermediates in HDF5
 Files.
 
-
 Design requirements:
     1 file per simulation.
     1 top level attribute (metadata or header info) containing top level
