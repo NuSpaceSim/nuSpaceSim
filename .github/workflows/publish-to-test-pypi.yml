@@ -11,7 +11,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-versions: '3.x'
     - name: Install build requirements
       run: |
         python3 -m pip install --upgrade pip
@@ -19,14 +19,14 @@ jobs:
     - name: Python wheels manylinux build
       uses: RalfG/python-wheels-manylinux-build@v0.3.3
       with:
-        python-version: 'cp36-cp36m cp37-cp37m cp38-cp38m cp39-cp39m'
+        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38m cp39-cp39m'
         build-requirements: 'pybind11 setuptools_scm'
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       run: |
-        twine upload --repository testpypi dist/*manylinux*.whl
+        # twine upload --repository testpypi dist/*manylinux*.whl
 
 
   macos-build-n-publish:
@@ -34,7 +34,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python-versions: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -53,4 +53,4 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       run: |
-        twine upload --repository testpypi dist/nuSpaceSim*
+        # twine upload --repository testpypi dist/nuSpaceSim*
