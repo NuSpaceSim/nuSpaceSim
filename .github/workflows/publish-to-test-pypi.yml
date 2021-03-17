@@ -20,9 +20,7 @@ jobs:
       uses: RalfG/python-wheels-manylinux-build@v0.3.3
       with:
         python-version: 'cp36-cp36m cp37-cp37m cp38-cp38m cp39-cp39m'
-        build-requirements:
-          - 'pybind11'
-          - 'version-query'
+        build-requirements: 'pybind11 version-query'
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
