@@ -21,12 +21,12 @@ jobs:
       with:
         python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38m cp39-cp39m'
         build-requirements: 'pybind11 setuptools_scm'
-    - name: Publish to test-pypi
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
-      run: |
-        # twine upload --repository testpypi dist/*manylinux*.whl
+    # - name: Publish to test-pypi
+    #   env:
+    #     TWINE_USERNAME: __token__
+    #     TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
+    #   run: |
+    #     twine upload --repository testpypi dist/*manylinux*.whl
 
 
   macos-build-n-publish:
@@ -48,9 +48,9 @@ jobs:
     - name: Python wheels MacOS build
       run: |
         pip3 wheel -w dist --no-deps .
-    - name: Publish to test-pypi
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
-      run: |
-        # twine upload --repository testpypi dist/nuSpaceSim*
+    # - name: Publish to test-pypi
+    #   env:
+    #     TWINE_USERNAME: __token__
+    #     TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
+    #   run: |
+    #     twine upload --repository testpypi dist/nuSpaceSim*
