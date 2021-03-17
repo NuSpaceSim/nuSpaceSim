@@ -21,3 +21,4 @@ eggs
 *.so*
 *.dylib
 Simulation*.hdf5
+*.whl
