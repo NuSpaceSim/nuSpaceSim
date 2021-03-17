@@ -15,12 +15,14 @@ jobs:
     - name: Install pypa/build
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine pybind11
+        pip install setuptools wheel twine pybind11 version-query
     - name: Python wheels manylinux build
       uses: RalfG/python-wheels-manylinux-build@v0.3.3
       with:
         python-version: 'cp36-cp36m cp37-cp37m cp38-cp38m cp39-cp39m'
-        build-requirements: 'pybind11'
+        build-requirements:
+          - 'pybind11'
+          - 'version-query'
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
@@ -44,13 +46,13 @@ jobs:
     - name: Install pypa/build
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine pybind11
+        pip install setuptools wheel twine pybind11 version-query
     - name: Python wheels MacOS build
       run: |
-        python setup.py bdist_wheel
+        pip wheel -w dist --no-deps .
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       run: |
-        twine upload --repository testpypi dist/*
+        twine upload --repository testpypi dist/nuSpaceSim*
