@@ -8,8 +8,8 @@ Design requirements:
         configuration parameters.
     1 group per simulation module. (heirarchical subdivision, like a folder or
         dictionary)
-    1 dataset per result vector from module.
-    Masks???
+    1 dataset per result vector from module. (1 column per variable)
+    - Masks???
 """
 
 import h5py
