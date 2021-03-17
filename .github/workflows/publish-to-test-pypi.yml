@@ -14,8 +14,8 @@ jobs:
         python-version: '3.x'
     - name: Install build requirements
       run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine pybind11 setuptools_scm
+        python3 -m pip install --upgrade pip
+        pip3 install setuptools wheel twine pybind11 setuptools_scm
     - name: Python wheels manylinux build
       uses: RalfG/python-wheels-manylinux-build@v0.3.3
       with:
@@ -43,11 +43,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install build requirements
       run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine pybind11 setuptools_scm
+        python3 -m pip install --upgrade pip
+        pip3 install setuptools wheel twine pybind11 setuptools_scm
     - name: Python wheels MacOS build
       run: |
-        pip wheel -w dist --no-deps .
+        pip3 wheel -w dist --no-deps .
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
