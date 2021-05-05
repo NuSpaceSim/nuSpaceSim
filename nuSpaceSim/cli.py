@@ -1,9 +1,10 @@
 import click
+from nuSpaceSim.create_xml import create_xml
+from nuSpaceSim.eas import EAS
 from nuSpaceSim.params import NssConfig
 from nuSpaceSim.region_geometry import RegionGeom
+from nuSpaceSim.sim_store import SimStore
 from nuSpaceSim.taus import Taus
-from nuSpaceSim.eas import EAS
-from nuSpaceSim.create_xml import create_xml
 import numpy as np
 
 @click.group()
@@ -22,7 +23,7 @@ def cli():
     type=click.Path(exists=True)
 )
 @click.argument("count", type=float, default=0.0)
-@click.argument("evalue", type=float)
+@click.argument("evalue", type=float, default=8.0)
 # @click.pass_context
 def run(config_file, count, evalue):
     """
@@ -32,7 +33,7 @@ def run(config_file, count, evalue):
 
     # User Inputs
     config = NssConfig(config_file)
-    numtrajs = int(config.N if count == 0.0 else count)
+    config.N = int(config.N if count == 0.0 else count)
     config.logNuTauEnergy = evalue
     config.nuTauEnergy = 10 ** config.logNuTauEnergy
 
@@ -40,14 +41,26 @@ def run(config_file, count, evalue):
     geom = RegionGeom(config)
     tau = Taus(config)
     eas = EAS(config)
+    store = SimStore(config)
 
     # Run simulation
-    betaArr = geom(numtrajs)
+    betaArr = geom(config.N)
+    store('geom', ('betaArr'), betaArr)
+
     tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(betaArr)
+    store('tau', ('tauBeta', 'tauLorentz', 'showerEnergy', 'tauexitprob'),
+            tauBeta, tauLorentz, showerEnergy, tauexitprob)
+
     numPEs, costhetaChEff = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
+    store( 'eas', ('numPEs', 'costhetaChEff'), numPEs, costhetaChEff)
+
     # More modules here
     mcintegral, mcintegralgeoonly, numEvPass = geom.mcintegral(numPEs, 
                                                     costhetaChEff, tauexitprob)
+    store( 'mcintegral', ('mcintegral', 'mcintegralgeoonly', 'numEvPass'),
+            mcintegral, mcintegralgeoonly, numEvPass)
+
+    store.close()
 
     print("Geom. Only MC Integral:", mcintegralgeoonly)
     print("MC integral:", mcintegral)

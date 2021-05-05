@@ -1,6 +1,13 @@
 [build-system]
-requires = ["setuptools", "wheel", "pybind11 >= 2.6"]
+requires = ["setuptools>=46",
+            "setuptools_scm[toml]>=3.4",
+            "wheel",
+            "pybind11>=2.6",
+           ]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+local_scheme = ""
 
 [tool.black]
 line-length = 80

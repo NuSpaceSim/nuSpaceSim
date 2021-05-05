@@ -1,26 +1,28 @@
 name: Publish Python 🐍 distributions 📦 to TestPyPI
 
-on: [push]
+on:
+  release:
+    types: [published]
 
 jobs:
   linux-build-n-publish:
-    name: Build and publish Python 🐍 distributions 📦 to TestPyPI
+    name: Build and publish Linux Python 🐍 distributions 📦 to TestPyPI
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
-    - name: Install pypa/build
+        python-versions: '3.x'
+    - name: Install build requirements
       run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine pybind11
+        python3 -m pip install --upgrade pip
+        pip3 install setuptools wheel twine pybind11 setuptools_scm
     - name: Python wheels manylinux build
       uses: RalfG/python-wheels-manylinux-build@v0.3.3
       with:
-        python-version: 'cp36-cp36m cp37-cp37m cp38-cp38m cp39-cp39m'
-        build-requirements: 'pybind11'
+        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38m cp39-cp39m'
+        build-requirements: 'pybind11 setuptools_scm'
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
@@ -30,7 +32,7 @@ jobs:
 
 
   macos-build-n-publish:
-    name: Build and publish Python 🐍 distributions 📦 to TestPyPI
+    name: Build and publish MacOS Python 🐍 distributions 📦 to TestPyPI
     runs-on: macos-latest
     strategy:
       matrix:
@@ -41,16 +43,16 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install pypa/build
+    - name: Install build requirements
       run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine pybind11
+        python3 -m pip install --upgrade pip
+        pip3 install setuptools wheel twine pybind11 setuptools_scm
     - name: Python wheels MacOS build
       run: |
-        python setup.py bdist_wheel
+        pip3 wheel -w dist --no-deps .
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       run: |
-        twine upload --repository testpypi dist/*
+        twine upload --repository testpypi dist/nuSpaceSim*
