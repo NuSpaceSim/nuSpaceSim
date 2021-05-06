@@ -12,7 +12,7 @@ def extract_pexit_data(filename):
     return b, le, p
 
 def extra_taudist_data(filename):
-    bdeg = np.array([1.0, 3.0, 5.0, 7.0, 10.0, 12.0, 15.0, 17.0, 20.0, 25.0])
+    bdeg = np.array([1.0, 3.0, 5.0, 7.0, 10.0, 12.0, 15.0, 17.0, 20.0, 25.0, 30.0, 35.0])
     infile = open(filename, 'r')
     data = [line.split() for line in infile]
     brad = math.pi*bdeg/180.0
@@ -24,9 +24,11 @@ def extra_taudist_data(filename):
     return z, brad, cv
     
 def main():
-    f = h5py.File('RenoNu2TauTables/nu2taudata.hdf5','w')
+    #f = h5py.File('2019/nu2taudata.hdf5','w')
+    f = h5py.File('2020/nu2taudata.hdf5','w')
     pexitgrp = f.create_group('pexitdata')
-    blist, lelist, plist = extract_pexit_data('RenoNu2TauTables/multi-efix.26')
+    #blist, lelist, plist = extract_pexit_data('2019/multi-efix.26')
+    blist, lelist, plist = extract_pexit_data('2020/multi-efix-v5-sm35-5r-2020.26')
     beta = np.array(blist)
     logenergy = np.array(lelist)
     pexitval = np.array(plist)
@@ -42,7 +44,8 @@ def main():
         mygrpstring = 'TauEdist_grp_e{:02.0f}_{:02.0f}'.format(math.floor(lognuenergy),(lognuenergy - math.floor(lognuenergy))*100)
         tedistgrp = f.create_group(mygrpstring)
         
-        myfilestring = 'RenoNu2TauTables/nu2tau-angleC-e{:02.0f}-{:02.0f}smx.dat'.format(math.floor(lognuenergy),(lognuenergy - math.floor(lognuenergy))*100)
+        #myfilestring = '2019/nu2tau-angleC-e{:02.0f}-{:02.0f}smx.dat'.format(math.floor(lognuenergy),(lognuenergy - math.floor(lognuenergy))*100)
+        myfilestring = '2020/nu2tau-angleC-e{:02.0f}-{:02.0f}sm35-5r.dat'.format(math.floor(lognuenergy),(lognuenergy - math.floor(lognuenergy))*100)
         tauEfrac, tdbeta, cdfvalues = extra_taudist_data(myfilestring)
 
         tauEdset = tedistgrp.create_dataset('TauEFrac', data=tauEfrac, dtype='f')
