@@ -64,13 +64,13 @@ downloaded automatically during setup.
  * C++11 (or higher) compiler
 
 
-### Or clone the Repository (for development)
+### Clone the Repository (for development)
 
 1. `git clone https://github.com/NuSpaceSim/nuSpaceSim.git`
 2. `cd nuSpaceSim`
 3. `python3 -m pip install -e .`
 
-### Direct from GitHub (not for development)
+### or direct from GitHub (not for development)
 
 1. `python3 -m pip install git+https://github.com/NuSpaceSim/nuSpaceSim.git#egg=nuSpaceSim`
 
