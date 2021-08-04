@@ -1,4 +1,5 @@
 import click
+from nuSpaceSim.EAScherGen.Conex.conex_plotter import conex_plotter
 from nuSpaceSim.create_xml import create_xml
 from nuSpaceSim.eas import EAS
 from nuSpaceSim.params import NssConfig
@@ -76,6 +77,19 @@ def create_config(filename, numtrajs, energy):
     Generate a configuration file from the given parameters.
     """
     create_xml(filename, int(numtrajs), energy)
+
+#conex plotter functionality
+@cli.command()
+@click.argument("conex_filename")
+@click.option("-d", "--dataset", type=str, help="name of data set inside file (key)" )
+def conex_sampler(conex_filename, dataset): 
+    """
+    Generate sample plots from data set (key) inside given .h5 file. \n
+    Place the .h5 file here: nuSpaceSim/DataLibraries/ConexOutputData/HDF5_data \n 
+    Sample usage: $nuSpaceSim conex-sampler gamma_EAS_table.h5 --dataset EASdata_22 \n 
+    """
+    conex_plotter(conex_filename, dataset)
+
 
 if __name__ == "__main__":
     cli()
