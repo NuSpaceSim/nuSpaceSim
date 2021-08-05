@@ -15,7 +15,7 @@ def conex_plotter(file_name, data_name):
  
     #plot samples until a certain n_max threshold
     conex_macros.gh_profile_plot(file_name = file_name, data_name = data_name,
-                                  start_row = 20, end_row = 20,
+                                  start_row = 15, end_row = 20,
                                   n_max_cut_threshold = 0.01, x_limit= 10000,
                                   bins = 10000, rebound_plot = True) 
 

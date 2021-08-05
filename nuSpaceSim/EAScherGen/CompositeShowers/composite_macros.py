@@ -1,6 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
+def pad_row(uneven_list, fillval = np.nan):
+    '''
+    > pads an ununiform array with Nans \n
+    https://stackoverflow.com/a/40571482
+    '''
+    lens = np.array([len(item) for item in uneven_list])
+    mask = lens[:,None] > np.arange(lens.max())
+    out = np.full(mask.shape,fillval)
+    out[mask] = np.concatenate(uneven_list)
+    return out  
 
 def padRow(array, fillval=np.nan):
     '''

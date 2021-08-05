@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
-from Conex import gh_macros as plotting_macros 
-from TauDecays import pythia_macros as pyM
+#from Conex import gh_macros as plotting_macros 
+from nuSpaceSim.EAScherGen.Conex import conex_macros
+from nuSpaceSim.EAScherGen.Pythia import pythia_macros
 
 
 #.txt to .h5 
@@ -11,40 +12,19 @@ from TauDecays import pythia_macros as pyM
 
 
 #.h5 to array
-data = h5py.File('TauDecays/HDF5_data/new_tau_100_PeV.h5', 
+data = h5py.File('DataLibraries/PythiaDecayTables/HDF5_data/new_tau_100_PeV.h5', 
                  'r')
 decays = data.get('tau_data')
 decays = np.array(decays)
 
-pionData = []
-kaonData = [] 
-electronData = [] 
-muonData= []
-gammaData = [] 
 
-#read in all data for each particle type 
-for row in range (0, np.shape(decays)[0]):
-    
-    a_pion =  pyM.pythiaReader(decays, row, input_PID = 211) 
-    a_kaon =  pyM.pythiaReader(decays, row,  input_PID = 321)
-    a_electron = pyM.pythiaReader(decays, row, input_PID = 11)
-    a_muon = pyM.pythiaReader(decays, row, input_PID = 14)
-    a_gamma = pyM.pythiaReader(decays, row, input_PID = 22)
-    
-    if a_pion is not None:
-        pionData.append(a_pion)
-        
-    elif a_kaon is not None:
-        kaonData.append(a_kaon)
-        
-    elif a_electron is not None : 
-        electronData.append(a_electron) 
-        
-    elif a_muon is not None: 
-        muonData.append(a_muon)
-        
-    elif a_gamma is not None: 
-        gammaData.append(a_gamma) 
+pions = np.array( [row for row in decays if row[2] == 211 or row[2] == -211 ])
+kaons = np.array( [row for row in decays if row[2] == 321 or row[2] == -321 ])
+electrons = np.array( [row for row in decays if row[2] == 11])
+muons = np.array( [row for row in decays if row[2] == 14 or row[2] == -14 ])
+gammas =  np.array( [row for row in decays if row[2]== 22])
+
+
 
 #%% Count events with one, two, three, four, five+,… gamma rays
 gammaTrimmed = pyM.eventFilter (particleData = gammaData , occurNum = 1, energySum = False,

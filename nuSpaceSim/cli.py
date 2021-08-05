@@ -1,8 +1,10 @@
 import click
+from nuSpaceSim.EAScherGen.Conex.conex_macros import conex_converter
 from nuSpaceSim.EAScherGen.Conex.conex_plotter import conex_plotter
 from nuSpaceSim.create_xml import create_xml
 from nuSpaceSim.eas import EAS
 from nuSpaceSim.params import NssConfig
+from nuSpaceSim.EAScherGen.Pythia.pythia_macros import pythia_converter
 from nuSpaceSim.region_geometry import RegionGeom
 from nuSpaceSim.sim_store import SimStore
 from nuSpaceSim.taus import Taus
@@ -78,15 +80,39 @@ def create_config(filename, numtrajs, energy):
     """
     create_xml(filename, int(numtrajs), energy)
 
+#conex to .hdf5 converter 
+@cli.command()
+@click.argument("conex_filename", type=click.Path(exists=True))
+@click.argument("conex_out_filename", type=str)
+@click.argument("conex_out_dataname", type=str)
+def conex_to_h5 (conex_filename, conex_out_filenam, conex_out_dataname): 
+    """
+    Convert a .txt or .dat Conex output to .hdf5.
+    """
+    conex_converter (conex_filename, conex_out_filenam, conex_out_dataname)
+    
+#pythia tables to .hdf5 converter
+@cli.command()
+@click.argument("pythia_filename", type=click.Path(exists=True))
+@click.argument("pythia_out_filename", type=str)
+@click.argument("pythia_out_dataname", type=str)
+def pythia_to_h5 (pythia_filename, pythia_out_filename, pythia_out_dataname): 
+    """
+    Convert a machine-readable tau decay tables to flattened .hdf5.
+    """
+    pythia_converter (pythia_filename, pythia_out_filename, pythia_out_dataname)
+
 #conex plotter functionality
 @cli.command()
-@click.argument("conex_filename")
+@click.argument("conex_filename", type=click.Path(exists=True))
 @click.option("-d", "--dataset", type=str, help="name of data set inside file (key)" )
 def conex_sampler(conex_filename, dataset): 
     """
-    Generate sample plots from data set (key) inside given .h5 file. \n
-    Place the .h5 file here: nuSpaceSim/DataLibraries/ConexOutputData/HDF5_data \n 
-    Sample usage: $nuSpaceSim conex-sampler gamma_EAS_table.h5 --dataset EASdata_22 \n 
+    Generate sample plots from a key inside given .h5 file path. Currently works for
+    100PeV Conex outputs. \n
+    For sample files: nuSpaceSim/DataLibraries/ConexOutputData/HDF5_data \n
+    Example: \n
+    $nuSpaceSim conex-sampler [relative/or/abs/file/path] --dataset [key_name] \n 
     """
     conex_plotter(conex_filename, dataset)
 

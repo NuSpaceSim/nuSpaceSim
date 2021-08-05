@@ -1,26 +1,35 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import importlib_resources
 import h5py
+import importlib_resources
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+import sys
 np.seterr(all='ignore')
 
-def pad_row(uneven_list, fillval = np.nan):
-    '''
-    > pads an ununiform array with Nans \n
-    https://stackoverflow.com/a/40571482
-    '''
-    lens = np.array([len(item) for item in uneven_list])
-    mask = lens[:,None] > np.arange(lens.max())
-    out = np.full(mask.shape,fillval)
-    out[mask] = np.concatenate(uneven_list)
-    return out  
+ 
+def conex_converter (input_file, output_file = 'converted.h5', output_dataset = 'conex_output'):
+    old_conex =  np.genfromtxt(input_file)
+    new_hdf5 = h5py.File(output_file, 'w')
+    new_hdf5.create_dataset(output_dataset, data = old_conex)
+    print('File written...')
 
-def data_reader (file_name, data_name):
-    ref = importlib_resources.files(
-    'nuSpaceSim.DataLibraries.ConexOutputData.HDF5_data') / file_name
-    with importlib_resources.as_file(ref) as path:
-        data = h5py.File(path, 'r')
-        showers = data.get(data_name)
+# def data_reader (file_name, data_name):
+#     ref = importlib_resources.files(
+#     'nuSpaceSim.DataLibraries.ConexOutputData.HDF5_data') / file_name
+#     with importlib_resources.as_file(ref) as path:
+#         data = h5py.File(path, 'r')
+#         showers = data.get(data_name)
+#         showers = np.array(showers)
+#         return showers
+
+def data_reader (file_path, data_name): 
+    file_path = os.path.abspath(file_path)
+    if not os.path.isfile(file_path):
+        print(f"{file_path} is not a valid path!")
+        sys.exit()
+
+    with h5py.File(file_path, "r") as f:
+        showers = f.get(data_name)
         showers = np.array(showers)
         return showers
 
@@ -130,12 +139,12 @@ def gh_profile_plot(file_name, data_name, start_row, end_row, regular_plot = Non
         
         
         if rebound_plot is not None:
-            print("rebound_plot: " +  str(data_name) + '...')
+            print("rebound_plot: " +  str(data_name) )
             plt.figure(figsize=(8, 5), dpi= 120)
             for row, f, x in zip(rows, fs, xs) : 
                 plt.plot(x, f, label = row)   
             
-            plt.title('Conex G-H Plots | ' + str(file_name) +'/'+ str(data_name) + 
+            plt.title('Conex G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name) + 
                       ' ($ N \leq' + str(n_max_cut_threshold) + '\; Nmax$)' ) 
             plt.yscale('log')
             plt.ylabel('Number of Particles N')
@@ -164,12 +173,12 @@ def gh_profile_plot(file_name, data_name, start_row, end_row, regular_plot = Non
                 rows.append ( 'Row ' + str(row) )   
                 fs.append (f)
                 xs.append (x)
-            print("regular_plot: " +  str(data_name) + '...')    
+            print("regular_plot: " +  str(data_name))    
             plt.figure(figsize=(8, 5), dpi= 120)    
             for row, f, x in zip(rows, fs, xs) : 
                 plt.plot(x, f, label = row) 
 
-            plt.title('Conex G-H Plots | ' + str(file_name) +'/'+ str(data_name))
+            plt.title('Conex G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name))
             plt.ylabel('Number of Particles N')
             plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
             plt.xlim(left = 0 )         
@@ -202,7 +211,7 @@ def gh_profile_plot(file_name, data_name, start_row, end_row, regular_plot = Non
             #to get RMSE where the average is the estimated series
             rms_error = np.sqrt(np.mean( ( average_fs  - fs )**2, axis = 0 ))
 
-            print("average_plot: " +  str(data_name) + '...')
+            print("average_plot: " +  str(data_name))
             plt.figure(figsize=(8, 5), dpi= 120)
             plt.plot(x, average_fs,  '--k' , label = 'Average (Row ' + str (start_row) + 
                      ' to Row ' + str (end_row) + ')')
@@ -211,7 +220,7 @@ def gh_profile_plot(file_name, data_name, start_row, end_row, regular_plot = Non
                              alpha = 0.5, edgecolor='red', facecolor='crimson', 
                              label = 'Error')
             
-            plt.title('Conex G-H Plots | ' + str(file_name) +'/'+ str(data_name))
+            plt.title('Conex G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name))
             plt.ylabel('Number of Particles N')
             plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
             plt.xlim(left = 0 )         
@@ -268,7 +277,7 @@ def parameter_histogram(param, title, x_label, color = 'crimson', hist_type = 'c
                      xy=(0.75, 0.96), xycoords='axes fraction')  
         plt.xlabel(x_label)
         plt.ylabel('Raw Counts')
-    
+        
     
    
     
