@@ -22,3 +22,4 @@ eggs
 *.dylib
 Simulation*.hdf5
 *.whl
+.python-version

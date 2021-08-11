@@ -7,10 +7,23 @@ requires = ["setuptools>=46",
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-local_scheme = ""
+write_to = '_version.py'
+version_scheme = 'post-release'
+local_scheme = 'no-local-version'
+parentdir_prefix_version = 'nupyprop-'
+
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/tests"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64"] #, "universal2", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
 
 [tool.black]
-line-length = 80
+line-length = 88
 skip-string-normalization = false
 exclude = '''
 (
@@ -32,5 +45,5 @@ exclude = '''
 '''
 
 [tool.autopep8]
-max_line_length = 80
+max_line_length = 88
 ignore = "E501,W6"  # or ["E501", "W6"]

@@ -42,36 +42,33 @@ class EAS:
 
         altDec = self.altDec(beta, tauBeta, tauLorentz)
 
+        # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
+        # Default values for dphots and thetaCh
         mask = (altDec < 0.0) | (altDec > 20.0)
         mask |= beta < 0.0
         mask |= beta > 25.0
         mask = ~mask
 
-        dphots = np.zeros_like(beta)
-        thetaCh = np.full(beta.shape, 1.5)
+        # phots and theta arrays with default 0 and 1.5 values.
+        dphots = np.full(beta.shape, np.nan)
+        thetaCh = np.full(beta.shape, np.nan)
 
+        # Run CphotAng on in-bounds events
         dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
 
         numPEs = dphots * showerEnergy * self.config.detAeff * \
             self.config.detQeff
 
         enhanceFactor = numPEs / self.config.detPEthres
-        # logenhanceFactor = np.where(enhanceFactor > 2.0, np.log(enhanceFactor), 0.5)
         logenhanceFactor = np.empty_like(enhanceFactor)
         efMask = enhanceFactor > 2.0
         logenhanceFactor[efMask] = np.log(enhanceFactor[efMask])
         logenhanceFactor[~efMask] = 0.5
 
-        #print (enhanceFactor, logenhanceFactor)
-
         hwfm = np.sqrt(2. * logenhanceFactor)
         thetaChEnh = np.multiply(thetaCh, hwfm)
         thetaChEff = np.where(thetaChEnh >= thetaCh, thetaChEnh, thetaCh)
 
-        #print(thetaCh, thetaChEff)
-
-        #costhetaCh = np.cos(np.degrees(thetaCh))
-        #costhetaCh = np.cos(np.radians(thetaCh))
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
         return numPEs, costhetaChEff
