@@ -15,7 +15,7 @@ class EAS:
 
     def altDec(self, beta, tauBeta, tauLorentz, u=None):
         """
-        altDec
+        alt Decay
         """
 
         u = np.random.uniform(0, 1, len(beta)) if u is None else u

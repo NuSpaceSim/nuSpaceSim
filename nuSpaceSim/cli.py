@@ -44,14 +44,14 @@ def run(config_file, count, evalue):
     store = SimStore(config)
 
     # Run simulation
-    betaArr = geom(config.N)
-    store('geom', ('betaArr'), betaArr)
+    beta_tr = geom(config.N)
+    store('geom', ('betaArr'), beta_tr)
 
-    tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(betaArr)
+    tauBeta, tauLorentz, showerEnergy, tauexitprob = tau(beta_tr)
     store('tau', ('tauBeta', 'tauLorentz', 'showerEnergy', 'tauexitprob'),
             tauBeta, tauLorentz, showerEnergy, tauexitprob)
 
-    numPEs, costhetaChEff = eas(betaArr, tauBeta, tauLorentz, showerEnergy)
+    numPEs, costhetaChEff = eas(beta_tr, tauBeta, tauLorentz, showerEnergy)
     store( 'eas', ('numPEs', 'costhetaChEff'), numPEs, costhetaChEff)
 
     # More modules here
