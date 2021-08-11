@@ -110,7 +110,7 @@ def grammage(z, lower_bound=11, upper_bound=25):
 
 
 def slant_depth(
-    alt,
+    decay_altitude,
     detector_height=c.low_earth_orbit,
     atmosphere_end=c.atmosphere_end,
     sinThetView=None,
@@ -118,21 +118,28 @@ def slant_depth(
     dL=0.1,
 ):
     """
-    slant depth from grammage
+    slant depth from grammage: scalar decay_altitude inputs only.
 
-    scalar alt inputs only.
+    Given a starting decay_altitude, detector_height, and atmosphere_end, compute the
+    grammage at each altitude step, cumulative integral of the derivative of grammage
+    at each step, and the step points were computed.
     """
 
     if sinThetView is None:
-        sinThetView = np.sin(theta_view(alt, detector_height, earth_radius))
+        sinThetView = np.sin(theta_view(decay_altitude, detector_height, earth_radius))
 
-    zsave, _ = zsteps(
-        alt, detector_height, atmosphere_end, sinThetView, earth_radius, dL
+    zs, _ = zsteps(
+        decay_altitude, detector_height, atmosphere_end, sinThetView, earth_radius, dL
     )
-    gramz, rhos = grammage(zsave)
+
+    gramz, rhos = grammage(zs)
 
     delgram_vals = rhos * dL * (1e5)
     gramsum = np.cumsum(delgram_vals)
-    delgram = np.cumsum(delgram_vals[::-1])[::-1]
+    # delgram = np.cumsum(delgram_vals[::-1])[::-1]
 
-    return gramsum, gramz, delgram, zsave
+    return (
+        gramz,
+        gramsum,
+        zs,
+    )  # delgram
