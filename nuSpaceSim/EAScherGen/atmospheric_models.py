@@ -15,6 +15,7 @@ from typing import Iterable
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
 
+
 def rho(z):
     """
     Density parameterized from altitude (z) values
@@ -97,9 +98,11 @@ def slant_depth(
     """
 
     if integrand_f is None:
-        integrand_f = lambda x: slant_depth_integrand(x, theta_tr, earth_radius)
+        integrand_f = slant_depth_integrand
 
-    x_sd, err = scipy.integrate.quad(integrand_f, z_lo, z_hi)
+    f = lambda x: integrand_f(x, theta_tr, earth_radius)
+
+    x_sd, err = scipy.integrate.quad(f, z_lo, z_hi)
 
     return x_sd, err
 
@@ -151,10 +154,12 @@ def slant_depth_steps(
     """
 
     if integrand_f is None:
-        integrand_f = lambda x: slant_depth_integrand(x, theta_tr, earth_radius)
+        integrand_f = slant_depth_integrand
+
+    f = lambda x: integrand_f(x, theta_tr, earth_radius)
 
     zs = np.arange(z_lo, z_hi, dz)
-    xs = scipy.integrate.cumulative_trapezoid(integrand_f(zs), zs)
+    xs = scipy.integrate.cumulative_trapezoid(f(zs), zs)
 
     return xs, zs
 
