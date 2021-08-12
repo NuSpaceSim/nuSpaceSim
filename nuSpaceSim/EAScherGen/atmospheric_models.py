@@ -1,3 +1,13 @@
+"""
+Atmospheric model calculations for upward going showers.
+
+Slant depth and related computations are implementations of equations in
+https://arxiv.org/pdf/2011.09869.pdf by Cummings et. al.
+
+author: Alexander Reustle
+date: 2021 August 12
+"""
+
 import numpy as np
 import scipy.integrate
 from nuSpaceSim import constants as c
