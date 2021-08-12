@@ -49,7 +49,9 @@ def slant_depth_integrand(
     return rho(z) * (
         (z + earth_radius)
         / np.sqrt(
-            earth_radius ** 2 * np.cos(theta_tr) ** 2 + z ** 2 + 2 * z * earth_radius
+            (earth_radius ** 2) * (np.cos(theta_tr) ** 2)
+            + (z ** 2)
+            + (2 * z * earth_radius)
         )
     )
 
