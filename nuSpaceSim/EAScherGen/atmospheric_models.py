@@ -111,8 +111,8 @@ def slant_depth_steps(
     z_lo: float,
     z_hi: float,
     theta_tr: float,
-    earth_radius: float = c.earth_radius,
     dz: float = 0.01,
+    earth_radius: float = c.earth_radius,
     integrand_f=None,
 ):
     """
@@ -201,5 +201,7 @@ def param_b_c(z: float):
 
 
 if __name__ == "__main__":
-    print(*slant_depth_steps(0, 10, 10, dz=0.001), sep="\n")
+
+    print(*slant_depth_steps(0, 10, 10, dz=1e-3), sep="\n")
     print(*slant_depth(0, 10, 10), sep="\n")
+
