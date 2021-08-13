@@ -11,58 +11,57 @@ date: 2021 August 12
 import numpy as np
 import scipy.integrate
 from nuSpaceSim import constants as c
-from typing import Iterable
+from typing import Callable, Union, Tuple
+from numpy.typing import NDArray
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
 
 
-def rho(z):
+def rho(z: Union[float, NDArray[np.float_]]) -> NDArray[np.float_]:
     """
-    Density parameterized from altitude (z) values
+    Density (g/cm^3) parameterized from altitude (z) values
 
     Computation from equation (2) in https://arxiv.org/pdf/2011.09869.pdf
     """
-    z = z if isinstance(z, Iterable) else np.array([z])
 
-    rval = np.empty_like(z)
+    z = np.array([z]) if isinstance(z, float) else z
+    b, c = param_b_c(z)
+    p = b / c
 
     mask = z <= 100
+    p[mask] *= np.exp(-1e5 * z[mask] / c[mask])
 
-    b, c = param_b_c(z[mask])
-    rval[mask] = (b / c) * np.exp(-z / c)
-
-    b, c = param_b_c(z[~mask])
-    rval[~mask] = b / c
-
-    return rval
+    return p
 
 
 def slant_depth_integrand(
-    z,
-    theta_tr: float,
+    z: float,
+    theta_tr: Union[float, NDArray[np.float_]],
     earth_radius: float = c.earth_radius,
-):
+) -> NDArray[np.float_]:
     """
     Integrand for computing slant_depth from input altitude z.
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
     """
-    return rho(z) * (
-        (z + earth_radius)
-        / np.sqrt(
-            (earth_radius ** 2) * (np.cos(theta_tr) ** 2)
-            + (z ** 2)
-            + (2 * z * earth_radius)
-        )
-    )
+
+    theta_tr = np.array([theta_tr]) if isinstance(theta_tr, float) else theta_tr
+
+    i = earth_radius ** 2 * np.cos(theta_tr) ** 2
+    j = (z) ** 2
+    k = 2 * z * earth_radius
+
+    ijk = i[:, None] + j + k
+
+    return 1e5 * rho(z) * ((z + earth_radius) / np.sqrt(ijk))
 
 
 def slant_depth(
     z_lo: float,
     z_hi: float,
-    theta_tr: float,
+    theta_tr: Union[float, NDArray[np.float_]],
     earth_radius: float = c.earth_radius,
-    integrand_f=None,
-):
+    integrand_f: Callable[..., NDArray[np.float_]] = None,
+) -> Tuple:
     """
     Slant-depth integral
 
@@ -70,32 +69,17 @@ def slant_depth(
     using gaussian quadriture, and along a full length using the cumulative_trapezoid
     rule.
 
-          z_hi
-         /
-    X =  |  integrand_f(z, theta_tr, earth_radius) dz
-         /
-         z_lo
-
     Params
     ======
-
         z_lo: (float) starting altitude for slant depth track.
-
         z_hi: (float) stopping altitude for slant depth track.
-
         theta_tr: (float) trajectory angle of track to observer.
-
-        earth_radius: (float) radius of a spherical earth.
-        Default from nuSpaceSim.constants
-
-        integrand_f: (real valued function) the integrand for slant_depth. If None,
-        Default of `slant_depth_integrand()` is used.
+        earth_radius: (float) radius of a spherical earth. Default from nuSpaceSim.constants
+        integrand_f: (real valued function) the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
 
     Returns
     =======
-
         x_sd: (float) X [slant depth].
-
         err: (float) numerical error.
 
     """
@@ -103,55 +87,39 @@ def slant_depth(
     if integrand_f is None:
         integrand_f = slant_depth_integrand
 
-    f = lambda x: integrand_f(x, theta_tr, earth_radius)
+    f = lambda x: integrand_f(x, theta_tr=theta_tr, earth_radius=earth_radius)
 
-    x_sd, err = scipy.integrate.quad(f, z_lo, z_hi)
+    result = scipy.integrate.quad_vec(f, z_lo, z_hi)
 
-    return x_sd, err
+    return result[0], result[1]
 
 
 def slant_depth_steps(
     z_lo: float,
     z_hi: float,
-    theta_tr: float,
+    theta_tr: Union[float, NDArray[np.float_]],
     dz: float = 0.01,
     earth_radius: float = c.earth_radius,
-    integrand_f=None,
-):
+    integrand_f: Callable[..., NDArray[np.float_]] = None,
+) -> Tuple:
     """
     Slant-depth integral approximated along path.
 
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
     along a full length using the cumulative_trapezoid rule.
 
-          z_hi
-         /
-    X =  |  integrand_f(z, theta_tr, earth_radius) dz
-         /
-         z_lo
-
     Params
     ======
-
         z_lo: (float) starting altitude for slant depth track.
-
         z_hi: (float) stopping altitude for slant depth track.
-
         theta_tr: (float) trajectory angle of track to observer.
-
-        earth_radius: (float) radius of a spherical earth.
-        Default from nuSpaceSim.constants
-
+        earth_radius: (float) radius of a spherical earth. Default from nuSpaceSim.constants
         dz: (float) static step size for sampling points in range [z_lo, z_hi]
-
-        integrand_f: (real valued function) the integrand for slant_depth. If None,
-        Default of `slant_depth_integrand()` is used.
+        integrand_f: (real valued function) the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
 
     Returns
     =======
-
         xs: (float) slant depth at each altitude along track.
-
         zs: (float) altitudes at which slant_depth was evaluated.
 
     """
@@ -167,43 +135,58 @@ def slant_depth_steps(
     return xs, zs
 
 
-def param_b_c(z: float):
+def param_b_c(
+    z: Union[float, NDArray[np.float_]]
+) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     """rho parameterization table from https://arxiv.org/pdf/2011.09869.pdf"""
 
-    bins = np.array(
-        [
-            # 0.0,
-            4.0,
-            10.0,
-            40.0,
-            100.0,
-        ]
-    )
-    b = np.array(
-        [
-            1222.6562,
-            1144.9069,
-            1305.5948,
-            540.1778,
-            1.0,
-        ]
-    )
-    c = np.array(
-        [
-            994186.38,
-            878153.55,
-            636143.04,
-            772170.16,
-            1e9,
-        ]
-    )
+    bins = np.array([4.0, 10.0, 40.0, 100.0])
+    b = np.array([1222.6562, 1144.9069, 1305.5948, 540.1778, 1.0])
+    c = np.array([994186.38, 878153.55, 636143.04, 772170.16, 1e9])
 
     idxs = np.searchsorted(bins, z)
-
     return b[idxs], c[idxs]
 
 
 if __name__ == "__main__":
 
-    print(*slant_depth_steps(0, 10, 10, dz=1e-3), sep="\n")
-    print(*slant_depth(0, 10, 10), sep="\n")
+    kms = np.arange(0, 88, 2)
+    ps = rho(kms)
+    print("Density (g/cm^3)", *[f"{a}\t {b:.4e}" for a, b in zip(kms, ps)], sep="\n")
+
+    X = slant_depth(0, 100, np.pi / 4)
+    print(f"Slant Depth: {X[0]}", sep="\n")
+
+    theta_tr = np.linspace(-np.pi / 2, np.pi / 2, 100)
+    Y = slant_depth_steps(0, 100, theta_tr)
+    print(f"Slant Depth steps: {Y[0]}", sep="\n")
+
+    sds = [slant_depth(z_lo, 100, theta_tr)[0] for z_lo in (0, 1, 2, 5, 10)]
+    tds = [
+        slant_depth_steps(z_lo, 100, theta_tr)[0][:, -1] for z_lo in (0, 1, 2, 5, 10)
+    ]
+    labs = [f"z: [{z_lo}, 100] km" for z_lo in (0, 1, 2, 5, 10)]
+
+    import matplotlib.pyplot as plt
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, squeeze=True)
+    coloridx = np.linspace(0, 1, len(sds))
+    for i, s, t, l in zip(coloridx, sds, tds, labs):
+        ax1.plot(theta_tr, s, alpha=0.5, label=l, color=plt.cm.jet(i))
+        ax1.plot(theta_tr, t, ":", label=l + "trap", color=plt.cm.jet(i))
+    ax1.set_ylabel(r"slant depth ($\frac{g}{cm^2}$)")
+    ax1.grid()
+    ax1.legend()
+    ax1.set_ylim([0, 4e4])
+    for i, s, t, l in zip(coloridx, sds, tds, labs):
+        ax2.semilogy(theta_tr, s, alpha=0.5, label=l, color=plt.cm.jet(i))
+        ax2.semilogy(theta_tr, t, ":", label=l + "trap", color=plt.cm.jet(i))
+    ax2.set_ylabel(r"slant depth (log $\frac{g}{cm^2}$)")
+    ax2.grid()
+    ax2.legend()
+    ax2.set_ylim([7e1, 4e4])
+    ax2.set_xlabel(r"$\theta_{tr}$ (radians)")
+    fig.suptitle(
+        r"Slant Depth over $\theta_{tr}\in\left(\frac{-\pi}{2}, \frac{\pi}{2}\right)$"
+    )
+    plt.show()
