@@ -51,7 +51,8 @@ def run(config_file, count, evalue):
     store('tau', ('tauBeta', 'tauLorentz', 'showerEnergy', 'tauexitprob'),
             tauBeta, tauLorentz, showerEnergy, tauexitprob)
 
-    numPEs, costhetaChEff = eas(beta_tr, tauBeta, tauLorentz, showerEnergy)
+    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz)
+    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy)
     store( 'eas', ('numPEs', 'costhetaChEff'), numPEs, costhetaChEff)
 
     # More modules here

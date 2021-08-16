@@ -35,12 +35,10 @@ class EAS:
 
         return altDec
 
-    def __call__(self, beta, tauBeta, tauLorentz, showerEnergy):
+    def __call__(self, beta, altDec, showerEnergy):
         """
         Electromagnetic Air Shower operation.
         """
-
-        altDec = self.altDec(beta, tauBeta, tauLorentz)
 
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
