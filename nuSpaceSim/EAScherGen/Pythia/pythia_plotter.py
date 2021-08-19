@@ -4,27 +4,46 @@ import h5py
 #from Conex import gh_macros as plotting_macros 
 from nuSpaceSim.EAScherGen.Conex import conex_macros
 from nuSpaceSim.EAScherGen.Pythia import pythia_macros
+import sys
+#under works
+def pythia_plotter (file_name, data_name, particle_id, table_energy_pev, num_occurance = 'all',
+                    cross_filter = None, color = None ):
+    #can add sum energy
+    # decays = conex_macros.data_reader('DataLibraries/PythiaDecayTables/HDF5_data/new_tau_100_PeV.h5',
+    #                                 'tau_data') 
+    decays = conex_macros.data_reader(file_name, data_name) 
+    raw_particle_id = particle_id
+    try: 
+        if '/' in particle_id:
 
+            particle_id = int(''.join(filter(str.isdigit, particle_id)))
 
-#.txt to .h5 
-
-#pyM.decayTabletoHDF5('TauDecays/tau_100_PeV_07192021_machine.txt', 'new_tau_100_PeV.h5', 'tau_data')   
-
-
-#.h5 to array
-data = h5py.File('DataLibraries/PythiaDecayTables/HDF5_data/new_tau_100_PeV.h5', 
-                 'r')
-decays = data.get('tau_data')
-decays = np.array(decays)
-
-
-pions = np.array( [row for row in decays if row[2] == 211 or row[2] == -211 ])
-kaons = np.array( [row for row in decays if row[2] == 321 or row[2] == -321 ])
-electrons = np.array( [row for row in decays if row[2] == 11])
-muons = np.array( [row for row in decays if row[2] == 14 or row[2] == -14 ])
-gammas =  np.array( [row for row in decays if row[2]== 22])
-
-
+            one_type = np.array([row for row in decays if row[2] == particle_id \
+                                 or row[2] == -particle_id])
+        else: 
+            particle_id = int(particle_id)
+            one_type = np.array([row for row in decays if row[2] == particle_id ])
+    except: 
+        print('Please enter a valid particle ID') 
+        sys.exit()
+    
+    filtered_one_type = pythia_macros.event_filter(particle_data = one_type, 
+                                                   occurance_number =  num_occurance)
+    
+    param = filtered_one_type * table_energy_pev
+    title = f'Pythia Data PID : {raw_particle_id}| ' + str(file_name.split('/')[-1]) +'/'+ str(data_name)
+    conex_macros.parameter_histogram(param, title, x_label = 'Energy (PeV)')
+    
+    
+    # pions = np.array( [row for row in decays if row[2] == 211 or row[2] == -211 ])
+    # kaons = np.array( [row for row in decays if row[2] == 321 or row[2] == -321 ])
+    # electrons = np.array( [row for row in decays if row[2] == 11])
+    # muons = np.array( [row for row in decays if row[2] == 14 or row[2] == -14 ])
+    # gammas =  np.array( [row for row in decays if row[2]== 22])
+    
+if __name__ == '__main__': 
+    pythia_plotter('DataLibraries/PythiaDecayTables/HDF5_data/new_tau_100_PeV.h5','tau_data', 
+                   '(+/-) 211', 100 )  
 
 #%% Count events with one, two, three, four, five+,… gamma rays
 gammaTrimmed = pyM.eventFilter (particleData = gammaData , occurNum = 1, energySum = False,

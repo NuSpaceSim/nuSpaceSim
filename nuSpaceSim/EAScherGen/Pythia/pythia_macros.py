@@ -27,7 +27,7 @@ def pythia_converter (input_file, output_file = 'converted.h5', output_dataset =
     newData = h5py.File(output_file, 'w')
     newData.create_dataset(output_dataset, data = data_array)
     newData.close()
-    print('File written...')
+    print('File written to current directory...')
  
     
  

@@ -11,7 +11,7 @@ def conex_converter (input_file, output_file = 'converted.h5', output_dataset = 
     old_conex =  np.genfromtxt(input_file)
     new_hdf5 = h5py.File(output_file, 'w')
     new_hdf5.create_dataset(output_dataset, data = old_conex)
-    print('File written...')
+    print('File written to current directory...')
 
 # def data_reader (file_name, data_name):
 #     ref = importlib_resources.files(
@@ -158,6 +158,7 @@ def gh_profile_plot(file_name, data_name, start_row, end_row, regular_plot = Non
                 #set n_max_fraction within the given x_limit
                 return float('nan')
             else:
+                #returns true cutoff depth
                 return cutoff_depth           
            
     else: 
@@ -229,7 +230,7 @@ def gh_profile_plot(file_name, data_name, start_row, end_row, regular_plot = Non
     
  
     
-def parameter_histogram(param, title, x_label, color = 'crimson', hist_type = 'counts', 
+def parameter_histogram(param, title, x_label, color = None, hist_type = 'counts', 
                         round_by = 0): 
     '''
     > takes a vector of param values and computes & plots w/ approproiate bins \n  
@@ -249,6 +250,9 @@ def parameter_histogram(param, title, x_label, color = 'crimson', hist_type = 'c
     binwidth = (2*IQR) / ( param.size**(1/3) ) 
     bins = round( ( float (max(param)) - float (min(param)) ) / binwidth )
     
+    if color is None:
+        color = np.random.rand(3,1).T
+        
    
     if hist_type != 'counts': 
         plt.figure(figsize=(8, 5), dpi= 120)
