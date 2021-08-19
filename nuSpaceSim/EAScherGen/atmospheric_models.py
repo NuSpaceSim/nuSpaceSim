@@ -63,24 +63,26 @@ def slant_depth(
     integrand_f: Callable[..., NDArray[np.float_]] = None,
 ) -> Tuple:
     """
-    Slant-depth integral
+    Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
 
-    Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
-    using gaussian quadriture, and along a full length using the cumulative_trapezoid
-    rule.
-
-    Params
-    ======
-        z_lo: (float) starting altitude for slant depth track.
-        z_hi: (float) stopping altitude for slant depth track.
-        theta_tr: (float) trajectory angle of track to observer.
-        earth_radius: (float) radius of a spherical earth. Default from nuSpaceSim.constants
-        integrand_f: (real valued function) the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
+    Parameters
+    ----------
+    z_lo : float
+        Starting altitude for slant depth track.
+    z_hi : float
+        Stopping altitude for slant depth track.
+    theta_tr: float, array_like
+        Trajectory angle in radians between the track and earth zenith.
+    earth_radius: float
+        Radius of a spherical earth. Default from nuSpaceSim.constants
+    integrand_f: callable
+        The integrand for slant_depth. If None, defaults to `slant_depth_integrand()`.
 
     Returns
-    =======
-        x_sd: (float) X [slant depth].
-        err: (float) numerical error.
+    -------
+    x_sd: ndarray
+        slant_depth g/cm^2
+    err: (float) numerical error.
 
     """
 
@@ -150,15 +152,18 @@ def param_b_c(
 
 if __name__ == "__main__":
 
+    # Density 
     kms = np.arange(0, 88, 2)
     ps = rho(kms)
     print("Density (g/cm^3)", *[f"{a}\t {b:.4e}" for a, b in zip(kms, ps)], sep="\n")
 
-    X = slant_depth(0, 100, np.pi / 4)
+    #slant-depth from gaussian quadriture
+    X = slant_depth(1, 100, np.pi / 4)
     print(f"Slant Depth: {X[0]}", sep="\n")
 
+    #slant-depth from trapezoidal rule
     theta_tr = np.linspace(-np.pi / 2, np.pi / 2, 100)
-    Y = slant_depth_steps(0, 100, theta_tr)
+    Y = slant_depth_steps(1, 100, theta_tr)
     print(f"Slant Depth steps: {Y[0]}", sep="\n")
 
     sds = [slant_depth(z_lo, 100, theta_tr)[0] for z_lo in (0, 1, 2, 5, 10)]
