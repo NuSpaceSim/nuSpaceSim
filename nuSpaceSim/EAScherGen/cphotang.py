@@ -17,13 +17,14 @@ from dask.distributed import Client
 
 class CphotAng:
 
-    def __init__(self):
+    def __init__(self, config):
         """
         CphotAng: Cherenkov photon density and angle determination class.
 
         Iterative summation of cherenkov radiation reimplemented in numpy and
         C++.
         """
+        self.config = config
         self.dtype = np.float32
         self.wave1 = np.array([
             200., 225., 250., 275., 300., 325., 350., 375., 400., 425., 450.,
@@ -67,12 +68,14 @@ class CphotAng:
         #                                           assume_sorted=True)
 
         self.dL = self.dtype(0.1)  # parin(1) step size km
-        self.orbit_height = self.dtype(525.0)  # parin(2) orbit height km
+        #self.orbit_height = self.dtype(525.0)  # parin(2) orbit height km
+        self.orbit_height = self.config.detectAlt  # parin(2) orbit height km
         self.hist_bin_size = self.dtype(4.0)  # parin(3) bin size histogram km
         # parin(5) record time dispersion at
         self.time_disp_rec_point = self.dtype(0.5)
         # this radial point (km)
-        self.logE = self.dtype(17.0)  # parin(8) log(E) E in eV
+        #self.logE = self.dtype(17.0)  # parin(8) log(E) E in eV
+        self.logE = self.config.logNuTauEnergy + 9.0  # parin(8) log(E) E in eV
 
         # c  parameters for 1/Beta fit vs wavelength
         # c     5th order polynomial
@@ -133,6 +136,7 @@ class CphotAng:
         """
         Compute theta view from initial betas
         """
+        print(self.zmax, self.logE)
         ThetProp = np.radians(betaE)
         ThetView = self.RadE / (self.RadE + self.zmax)
         ThetView *= np.cos(ThetProp, dtype=self.dtype)

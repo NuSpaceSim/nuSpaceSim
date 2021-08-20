@@ -1,6 +1,8 @@
 import numpy as np
 from nuSpaceSim.EAScherGen.cphotang import CphotAng
+import nuSpaceSim.radio as radio
 
+#import matplotlib.pyplot as plt
 
 class EAS:
     """
@@ -11,11 +13,11 @@ class EAS:
 
     def __init__(self, config):
         self.config = config
-        self.CphotAng = CphotAng()
+        self.CphotAng = CphotAng(config)
 
     def altDec(self, beta, tauBeta, tauLorentz, u=None):
         """
-        altDec
+        get decay altitude
         """
 
         u = np.random.uniform(0, 1, len(beta)) if u is None else u
@@ -33,14 +35,15 @@ class EAS:
 
         altDec -= self.config.EarthRadius
 
-        return altDec
+        return altDec, lenDec
 
-    def __call__(self, beta, tauBeta, tauLorentz, showerEnergy):
+            
+    def call_optical(self, beta, theta, tauBeta, tauLorentz, showerEnergy):
         """
         Electromagnetic Air Shower operation.
         """
 
-        altDec = self.altDec(beta, tauBeta, tauLorentz)
+        altDec, lenDec = self.altDec(beta, tauBeta, tauLorentz)
 
         mask = (altDec < 0.0) | (altDec > 20.0)
         mask |= beta < 0.0
@@ -62,16 +65,79 @@ class EAS:
         logenhanceFactor[efMask] = np.log(enhanceFactor[efMask])
         logenhanceFactor[~efMask] = 0.5
 
-        #print (enhanceFactor, logenhanceFactor)
+        #print(enhanceFactor)
+        #print(logenhanceFactor)
 
         hwfm = np.sqrt(2. * logenhanceFactor)
         thetaChEnh = np.multiply(thetaCh, hwfm)
         thetaChEff = np.where(thetaChEnh >= thetaCh, thetaChEnh, thetaCh)
 
-        #print(thetaCh, thetaChEff)
+        #print(thetaCh)
+        #print(thetaChEff)
 
         #costhetaCh = np.cos(np.degrees(thetaCh))
         #costhetaCh = np.cos(np.radians(thetaCh))
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
         return numPEs, costhetaChEff
+
+    def decay_to_detector_dist(self, beta, altDec, detectAlt):
+        Re = self.config.EarthRadius
+        r1 = detectAlt + Re
+        r2 = altDec + Re
+        exit = np.pi/2. - beta
+        r2squared = r2**2
+        cosexit = np.cos(exit)
+        return np.sqrt(r2squared*cosexit*cosexit - r2squared + r1*r1) - r2*cosexit
+
+    def get_decay_view(self, exitView, losDist, lenDec):
+        '''
+        get view angle from shower to detector
+        '''
+        #sin^2 of our decay view angle
+        s2phi = (losDist*np.sin(exitView))**2.0 / (
+                lenDec * lenDec + losDist * losDist - 2 * losDist * lenDec * np.cos(exitView)
+                )
+        ang = np.arcsin(np.sqrt(s2phi))
+        return ang
+
+    def call_radio(self, beta, theta, pathLen, tauBeta, tauLorentz, showerEnergy):
+        '''
+        EAS radio output from ZHAires lookup tables
+        '''
+        altDec, lenDec = self.altDec(beta, tauBeta, tauLorentz)
+        radioParams = radio.RadioEFieldParams(self.config.detFreqRange)
+        mask = (altDec < 0.0) | (altDec > 10.0) #TODO set a reasonable cut for max shower height
+        mask = ~mask
+        
+        #rudimentary distance scaling TODO investigate that this actually works with zhaires
+        nssDist = self.decay_to_detector_dist(np.deg2rad(beta[mask]), altDec[mask], self.config.detectAlt)
+        zhairesDist = self.decay_to_detector_dist(np.deg2rad(beta[mask]), altDec[mask], 525.0)
+
+        viewAngles = np.zeros_like(theta)
+        viewAngles[mask] = self.get_decay_view(theta[mask], pathLen[mask], lenDec[mask])
+
+        #plt.hist(np.degrees(viewAngles[mask]), label='decay view', bins=100)
+        #plt.hist(np.degrees(theta[mask]), label='decay view', bins=100)
+        #plt.xlabel('angle (deg)')
+        #plt.legend()
+        #plt.yscale('log')
+        #plt.show()
+
+        EFields = np.zeros_like(beta)
+        EFields[mask] = radioParams(90. - beta[mask], np.rad2deg(viewAngles[mask]), altDec[mask])
+
+        #scale by the energy of the shower (all zhaires files are for 10^18 eV shower)
+        #shower energy is in units of 100 PeV, we want in GeV
+        EFields *= showerEnergy/10.
+        distScale = zhairesDist/nssDist
+        EFields[mask] *= distScale
+
+        return EFields, altDec
+    
+    def __call__(self, beta, theta, pathLen, tauBeta, tauLorentz, showerEnergy):
+        if self.config.method == "Radio":
+            return self.call_radio(beta, theta, pathLen, tauBeta, tauLorentz, showerEnergy)
+        if self.config.method == "Optical":
+            return self.call_optical(beta, theta, tauBeta, tauLorentz, showerEnergy)
+

@@ -14,7 +14,9 @@ class NssConfig:
         self.decStart = float(self.detchar["InitialDetectorDeclination"])
         self.detAeff = float(self.detchar["TelescopeEffectiveArea"])
         self.detQeff = float(self.detchar["QuantumEfficiency"])
-        self.detPEthres = float(self.detchar["NPE"])
+        self.detPEthres = 0 if "NPE" not in self.detchar else float(self.detchar["NPE"])
+        lf = 0 if "LowFrequency" not in self.detchar else float(self.detchar["LowFrequency"])
+        hf = 1000 if "HighFrequency" not in self.detchar else float(self.detchar["HighFrequency"])
         self.logNuTauEnergy = float(self.simparams["NuTauEnergy"])
         self.nuTauEnergy = 10**self.logNuTauEnergy
         self.eShowFrac = float(self.simparams["FracETauInShower"])
@@ -26,6 +28,11 @@ class NssConfig:
         self.maxaziang = self.fundcon.pi * \
             (float(self.simparams["AzimuthalAngle"]) / 180.0)
         self.N = int(self.simparams["NumTrajs"])
+        self.method = self.detchar["Method"]
+        self.detSNRthres = 2. if "SNRThreshold" not in self.detchar else float(self.detchar["SNRThreshold"])
+        self.detNant = 1 if "NAntennas" not in self.detchar else int(self.detchar["NAntennas"])
+        self.detGain = 10. if "AntennaGain" not in self.detchar else float(self.detchar["AntennaGain"])
+        self.detFreqRange = (lf, hf)
 
 
 
@@ -56,6 +63,7 @@ def parseXML(xmlfile):
     tree = ET.parse(xmlfile)
     root = tree.getroot()
     eldetchar = root.find("DetectorCharacteristics")
+    fdetchar["Method"] = eldetchar.attrib["Method"]
     if eldetchar.attrib["Method"] == "Optical":
         for node in tree.find("./DetectorCharacteristics"):
             if node.tag == "PhotoElectronThreshold":
@@ -64,6 +72,10 @@ def parseXML(xmlfile):
                     fdetchar["NPE"] = node.find("NPE").text
             else:
                 fdetchar[node.tag] = node.text
+    
+    if eldetchar.attrib["Method"] == "Radio":
+        for node in tree.find("./DetectorCharacteristics"):
+            fdetchar[node.tag] = node.text
 
     elsimparams = root.find("SimulationParameters")
     fsimparams[elsimparams.tag] = elsimparams.attrib["DetectionMode"]

@@ -20,6 +20,7 @@ class RegionGeom(nssgeo.Geom_params):
                          ParamPi=config.fundcon.pi)
         self.config = config
         self.detPEthres = config.detPEthres
+        self.detSNRthres = config.detSNRthres
 
     def throw(self, numtrajs):
         """ Generate Events.  """
@@ -31,18 +32,34 @@ class RegionGeom(nssgeo.Geom_params):
         betaArr = super().evArray["betaTrSubN"][super().evMasknpArray]
 
         return betaArr
-
+    
+    def thetas(self):
+        """ Create array of view angles for valid events.  """
+        thetaArr = super().evArray["thetaTrSubV"][super().evMasknpArray]
+        return thetaArr
+    
+    def pathLens(self):
+        """ Create array of view angles for valid events.  """
+        pathLenArr = super().evArray["losPathLen"][super().evMasknpArray]
+        return pathLenArr
+    
     def __call__(self, numtrajs):
         """ Throw numtrajs events and return valid betas.  """
         self.throw(numtrajs)
-        return self.betas()
+        betas = self.betas()
+        thetas = self.thetas()
+        pathLens = self.pathLens()
+        return betas, thetas, pathLens
 
     def mcintegral(self, numPEs, costhetaCh, tauexitprob):
-        """ Monte Carlo integral.  """
+        """ Monte Carlo integral.  
+            numPEs is actually SNR in the radio case
+        """
         #cossepangle = super().localevent.costhetaTrSubV
         cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
 
-        #print(cossepangle,costhetaCh)
+        #print(cossepangle)
+        #print(costhetaCh)
 
         # Geometry Factors
         mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
@@ -62,7 +79,10 @@ class RegionGeom(nssgeo.Geom_params):
         mcintfactor *= tauexitprob
 
         # PE threshold
-        mcintfactor *= np.where(numPEs - self.detPEthres < 0, 0.0, 1.0)
+        if self.config.method == 'Radio':
+            mcintfactor *= np.where(numPEs - self.detSNRthres < 0, 0.0, 1.0)
+        else:
+            mcintfactor *= np.where(numPEs - self.detPEthres < 0, 0.0, 1.0)
 
         numEvPass = np.count_nonzero(mcintfactor)
 
