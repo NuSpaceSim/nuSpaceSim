@@ -83,7 +83,7 @@ def gh_param_reader (row, x_limit, showers = None, file_name = None , data_name 
     return x, f,  n_max, x_max, x_0,  gh_lambda_at_x_max   
 
 
-def gh_profile_plot(file_name, data_name, start_row, end_row, regular_plot = None, 
+def gh_profile_plot(file_name, data_name, end_row, start_row = 0, regular_plot = None, 
                     average_plot = None, rebound_plot = None, n_max_cut_threshold = None, 
                     x_limit = 2000, bins = 2000):
     '''

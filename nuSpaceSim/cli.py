@@ -106,15 +106,17 @@ def pythia_to_h5 (pythia_filename, pythia_out_filename, pythia_out_dataname):
 @cli.command()
 @click.argument("conex_filename", type=click.Path(exists=True))
 @click.argument("key_name", type=str)
-def conex_sampler(conex_filename, key_name): 
+@click.option("-p", "--plt_type", type=str, default='regular', 
+              help="type of plot: 'regular', 'average', 'rebound', or histograms'")
+def conex_sampler(conex_filename, key_name, plt_type): 
     """
     Generate sample plots from a key inside given .h5 file path. Currently works for
     100PeV Conex outputs. \n
     For sample files: nuSpaceSim/DataLibraries/ConexOutputData/HDF5_data \n
     Example: \n
-    $nuSpaceSim conex-sampler [relative/or/abs/file/path] [key_name] \n 
+    $nuSpaceSim conex-sampler [relative/or/abs/file/path] [key_name] -p [plt_type]\n 
     """
-    conex_plotter(conex_filename, key_name)
+    conex_plotter(conex_filename, key_name, plt_type)
 
 
 if __name__ == "__main__":
