@@ -24,7 +24,6 @@ class CphotAng:
         Iterative summation of cherenkov radiation reimplemented in numpy and
         C++.
         """
-        self.config = config
         self.dtype = np.float32
         self.wave1 = np.array([
             200., 225., 250., 275., 300., 325., 350., 375., 400., 425., 450.,
@@ -69,13 +68,12 @@ class CphotAng:
 
         self.dL = self.dtype(0.1)  # parin(1) step size km
         #self.orbit_height = self.dtype(525.0)  # parin(2) orbit height km
-        self.orbit_height = self.config.detectAlt  # parin(2) orbit height km
+        self.orbit_height = self.dtype(config.detectAlt)  # parin(2) orbit height km
         self.hist_bin_size = self.dtype(4.0)  # parin(3) bin size histogram km
         # parin(5) record time dispersion at
         self.time_disp_rec_point = self.dtype(0.5)
         # this radial point (km)
-        #self.logE = self.dtype(17.0)  # parin(8) log(E) E in eV
-        self.logE = self.config.logNuTauEnergy + 9.0  # parin(8) log(E) E in eV
+        self.logE = self.dtype(17.0)  # parin(8) log(E) E in eV
 
         # c  parameters for 1/Beta fit vs wavelength
         # c     5th order polynomial
@@ -136,7 +134,6 @@ class CphotAng:
         """
         Compute theta view from initial betas
         """
-        print(self.zmax, self.logE)
         ThetProp = np.radians(betaE)
         ThetView = self.RadE / (self.RadE + self.zmax)
         ThetView *= np.cos(ThetProp, dtype=self.dtype)
@@ -526,56 +523,6 @@ class CphotAng:
             client = Client(client_input)
 
         #######################
-        # def batch(seq):
-        #     return [self.run(betaE[x], alt[x]) for x in seq]
-        # result = Parallel(multiprocessing.cpu_count())(
-        #         delayed(batch)(
-        #                 range(i, min(len(alt), i+100))
-        #             ) for i in range(0, len(alt), 100))
-
-        # flat_list = [item for sublist in result for item in sublist]
-
-        # Dphots, Cang = zip(*flat_list)
-        # return np.array(Dphots), np.array(Cang)
-
-        #######################
-        #num_cores = multiprocessing.cpu_count()
-        #result = Parallel(num_cores)(delayed(self.run)(a, b) for b, a in zip(betaE, alt))
-        #Dphots, Cang = zip(*result)
-        #return np.array(Dphots), np.array(Cang)
-
-        #######################
         b = db.from_sequence(zip(betaE, alt), partition_size=100)
         Dphots, Cang = zip(*b.map(lambda x: self.run(*x)).compute())
         return np.asarray(Dphots), np.array(Cang)
-
-        ######################
-        # def batch(seq):
-        #     return [self.run(betaE[x], alt[x]) for x in seq]
-        # result = []
-        # for i in range(0, len(alt), 100):
-        #     result_batches = dask.delayed(batch)(range(i, min(i+100, len(alt))))
-        #     result.append(result_batches)
-        # dask.compute(result)
-        # flat_list = [item for sublist in result for item in sublist]
-        # Dphots, Cang = zip(*flat_list)
-        # return np.array(Dphots), np.array(Cang)
-
-        #####################
-        # result = []
-        # for b, a in zip(betaE, alt):
-        #     result.append(dask.delayed(self.run)(b, a))
-        # dask.visualize(*result)
-        # Dphots, Cang = zip(*dask.compute(*result))
-        # return np.array(Dphots), np.array(Cang)
-
-        #####################
-        # Dphots = np.empty_like(betaE)
-        # Cang = np.empty_like(betaE)
-        # for i in range(len(betaE)):
-        #     Dphots[i], Cang[i] = self.run(betaE[i], alt[i])
-        # return Dphots, Cang
-
-        ######################
-        #Dphots, Cang = zip(*[self.run(b, a) for b, a in zip(betaE, alt)])
-        #return np.array(Dphots), np.array(Cang)
