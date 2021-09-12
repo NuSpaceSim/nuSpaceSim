@@ -3,24 +3,32 @@ from nuSpaceSim.EAScherGen.Conex import conex_macros
 
 
 
-def conex_plotter(file_name, data_name, plt_type): 
+def conex_plotter(file_name, data_name, plt_type, start_row, end_row, x_limit,
+                  bins, n_max_cut_threshold): 
     
 
     #strt
     if plt_type.lower() == 'regular':
         #regular plot some samples
         conex_macros.gh_profile_plot(file_name = file_name, data_name = data_name,
-                                      start_row=0, end_row = 10,  regular_plot = True)
+                                      start_row = start_row, 
+                                      end_row = end_row,
+                                      x_limit = x_limit, 
+                                      regular_plot = True)
     elif plt_type.lower() == 'average':
         #average plot all 
         conex_macros.gh_profile_plot(file_name = file_name, data_name = data_name,
-                                      start_row=0, end_row = 999,  average_plot = True)
+                                      start_row = start_row, 
+                                      end_row = end_row,  
+                                      average_plot = True)
     elif plt_type.lower() == 'rebound':
         #plot samples until a certain n_max threshold
         conex_macros.gh_profile_plot(file_name = file_name, data_name = data_name,
-                                      start_row = 15, end_row = 20,
-                                      n_max_cut_threshold = 0.01, x_limit= 10000,
-                                      bins = 10000, rebound_plot = True) 
+                                      start_row =  
+                                      start_row, end_row = end_row,
+                                      n_max_cut_threshold = n_max_cut_threshold, 
+                                      x_limit = x_limit,
+                                      bins = bins, rebound_plot = True) 
     elif plt_type.lower() == 'histograms':
         #generating histograms
         n_maxs  = [] 
@@ -39,7 +47,7 @@ def conex_plotter(file_name, data_name, plt_type):
                                                          data_name = data_name,
                                                          start_row = row,
                                                          end_row = row,  
-                                                         n_max_cut_threshold = 0.01,
+                                                         n_max_cut_threshold = n_max_cut_threshold,
                                                          bins = 20000,
                                                          x_limit = 30000)        
             n_maxs .append (n_max)
@@ -73,5 +81,6 @@ def conex_plotter(file_name, data_name, plt_type):
     
 
 if __name__ == '__main__': 
+    #conex_plotter()
     conex_plotter('electron_EAS_table.h5', 'EASdata_11', 'regular')
     

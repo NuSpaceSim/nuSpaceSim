@@ -102,21 +102,30 @@ def pythia_to_h5 (pythia_filename, pythia_out_filename, pythia_out_dataname):
     """
     pythia_converter (pythia_filename, pythia_out_filename, pythia_out_dataname)
 
-#conex plotter functionality
+#conex sanpler functionality for CORSIKA/CONEX GH Fit files
 @cli.command()
 @click.argument("conex_filename", type=click.Path(exists=True))
 @click.argument("key_name", type=str)
-@click.option("-p", "--plt_type", type=str, default='regular', 
-              help="type of plot: 'regular', 'average', 'rebound', or histograms'")
-def conex_sampler(conex_filename, key_name, plt_type): 
+@click.option("-p", "--ptype", type=str, default='regular', 
+              help="'regular', 'average', 'rebound', or 'histograms'")
+@click.option("-s", "--start", type=int, default=0, 
+              help="start row from CORSIKA/CONEX GH Fits to sample")
+@click.option("-e", "--end", type=int, default=10, 
+              help="end row from CORSIKA/CONEX GH Fits to sample")
+@click.option("-x", "--xlim", type=int, default=2000, 
+              help="ending slant depth [g/cm^2]")
+@click.option("-b", "--bins", type=int, default=2000, 
+              help="control grammage step, default to 2000 given xlim")
+@click.option("-t", "--threshold", type=float, default=0.01, 
+              help="decimal multiple of Nmax at which to stop rebound")
+
+def conex_sampler(conex_filename, key_name, ptype, start, end, xlim, bins, threshold): 
     """
     Generate sample plots from a key inside given .h5 file path. Currently works for
     100PeV Conex outputs. \n
     For sample files: nuSpaceSim/DataLibraries/ConexOutputData/HDF5_data \n
-    Example: \n
-    $nuSpaceSim conex-sampler [relative/or/abs/file/path] [key_name] -p [plt_type]\n 
     """
-    conex_plotter(conex_filename, key_name, plt_type)
+    conex_plotter(conex_filename, key_name, ptype, start, end, xlim, bins, threshold)
 
 
 if __name__ == "__main__":

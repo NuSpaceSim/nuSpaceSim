@@ -144,8 +144,8 @@ def gh_profile_plot(file_name, data_name, end_row, start_row = 0, regular_plot =
             for row, f, x in zip(rows, fs, xs) : 
                 plt.plot(x, f, label = row)   
             
-            plt.title('Conex G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name) + 
-                      ' ($ N \leq' + str(n_max_cut_threshold) + '\; Nmax$)' ) 
+            plt.title('G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name) + 
+                      ' ($ N_{rebound} \leq' + str(n_max_cut_threshold) + '\; Nmax$)' ) 
             plt.yscale('log')
             plt.ylabel('Number of Particles N')
             plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
@@ -179,7 +179,7 @@ def gh_profile_plot(file_name, data_name, end_row, start_row = 0, regular_plot =
             for row, f, x in zip(rows, fs, xs) : 
                 plt.plot(x, f, label = row) 
 
-            plt.title('Conex G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name))
+            plt.title('G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name))
             plt.ylabel('Number of Particles N')
             plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
             plt.xlim(left = 0 )         
@@ -221,7 +221,7 @@ def gh_profile_plot(file_name, data_name, end_row, start_row = 0, regular_plot =
                              alpha = 0.5, edgecolor='red', facecolor='crimson', 
                              label = 'Error')
             
-            plt.title('Conex G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name))
+            plt.title('G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name))
             plt.ylabel('Number of Particles N')
             plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
             plt.xlim(left = 0 )         
