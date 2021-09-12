@@ -5,6 +5,7 @@ from nuSpaceSim.create_xml import create_xml
 from nuSpaceSim.eas import EAS
 from nuSpaceSim.params import NssConfig
 from nuSpaceSim.EAScherGen.Pythia.pythia_macros import pythia_converter
+from nuSpaceSim.EAScherGen.Pythia.pythia_plotter import pythia_plotter
 from nuSpaceSim.region_geometry import RegionGeom
 from nuSpaceSim.sim_store import SimStore
 from nuSpaceSim.taus import Taus
@@ -102,7 +103,7 @@ def pythia_to_h5 (pythia_filename, pythia_out_filename, pythia_out_dataname):
     """
     pythia_converter (pythia_filename, pythia_out_filename, pythia_out_dataname)
 
-#conex sanpler functionality for CORSIKA/CONEX GH Fit files
+#conex sampler functionality for CORSIKA/CONEX GH Fit files
 @cli.command()
 @click.argument("conex_filename", type=click.Path(exists=True))
 @click.argument("key_name", type=str)
@@ -118,7 +119,6 @@ def pythia_to_h5 (pythia_filename, pythia_out_filename, pythia_out_dataname):
               help="control grammage step, default to 2000 given xlim")
 @click.option("-t", "--threshold", type=float, default=0.01, 
               help="decimal multiple of Nmax at which to stop rebound")
-
 def conex_sampler(conex_filename, key_name, ptype, start, end, xlim, bins, threshold): 
     """
     Generate sample plots from a key inside given .h5 file path. Currently works for
@@ -126,6 +126,29 @@ def conex_sampler(conex_filename, key_name, ptype, start, end, xlim, bins, thres
     For sample files: nuSpaceSim/DataLibraries/ConexOutputData/HDF5_data \n
     """
     conex_plotter(conex_filename, key_name, ptype, start, end, xlim, bins, threshold)
+    
+#tau tables sampler for Pythia8 tau decay tables
+@cli.command()
+@click.argument("pythia_filename", type=click.Path(exists=True))
+@click.argument("data_name", type=str)
+@click.option("-p", "--pid",  
+              help="particle PID to filter (11, +/-211, etc.)")
+@click.option("-e", "--energy", type=float, default= 100., 
+              help="energy of the generated pythia table")
+@click.option("-o", "--occur", default= 'all', 
+              help="number of occurrence per event ('all', 'multiple', 1)")
+@click.option("-x", "--crossfilt", default= None, 
+              help="cross filter with another pid") 
+@click.option("-c", "--color", type=str, default= None, 
+              help="recognized plt color string; random otherwise") 
+def pythia_sampler(pythia_filename, data_name, pid, energy, 
+                   occur, crossfilt, color): 
+    """
+    Generate histograms for energy of selected particle type. \n
+    For sample files: nuSpaceSim/DataLibraries/PythiaDecayTables/HDF5_data \n
+    """
+    pythia_plotter(pythia_filename, data_name, pid, energy, 
+                   occur, crossfilt, color) 
 
 
 if __name__ == "__main__":

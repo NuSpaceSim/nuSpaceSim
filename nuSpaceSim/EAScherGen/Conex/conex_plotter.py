@@ -81,6 +81,6 @@ def conex_plotter(file_name, data_name, plt_type, start_row, end_row, x_limit,
     
 
 if __name__ == '__main__': 
-    #conex_plotter()
-    conex_plotter('electron_EAS_table.h5', 'EASdata_11', 'regular')
+    conex_plotter()
+    #conex_plotter('electron_EAS_table.h5', 'EASdata_11', 'regular')
     

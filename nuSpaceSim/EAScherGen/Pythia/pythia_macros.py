@@ -51,7 +51,7 @@ def event_filter (particle_data, occurance_number,
     #return event numbers with this many instances using various filters
     try:
         if 0 < occurance_number < 5:
-            event_number_match = [event for (event, instances) in unique_counts  \
+            event_number_match = [event for (event, instances) in unique_counts \
                                    if instances == occurance_number]
                 
         elif occurance_number >= 5:
@@ -60,12 +60,15 @@ def event_filter (particle_data, occurance_number,
             
     except:
         if occurance_number.lower() == 'all': 
-            event_number_match = [event for (event, instances) in unique_counts  \
+            event_number_match = [event for (event, instances) in unique_counts \
                                     if instances >= 1]
             
-        else: 
-            event_number_match = [event for (event, instances) in unique_counts  \
+        elif occurance_number.lower() == 'multiple': 
+            event_number_match = [event for (event, instances) in unique_counts \
                                   if instances > 1 ]
+                
+        else: 
+            print('Enter a valid occurance number.')
 
     #return the original data array but only the ones with specific number of instances,
     #as established by the zipped dictionary
