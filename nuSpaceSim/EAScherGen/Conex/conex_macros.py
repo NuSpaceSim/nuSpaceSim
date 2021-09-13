@@ -241,7 +241,8 @@ def parameter_histogram(param, title, x_label, color = None, hist_type = 'counts
     color = string of known colors  \n
     histype = if True, probability on the y axis, else, raw counts on the y axis  \n          
     '''
-    print("parameter_histogram: " +  title)
+    
+    print('parameter_histogram:',  title)
     param = [param for param in param if str(param) != 'nan']
     param = np.array(param) 
     #Diaconis Rule 
@@ -252,7 +253,6 @@ def parameter_histogram(param, title, x_label, color = None, hist_type = 'counts
     
     if color is None:
         color = np.random.rand(3,1).T
-        
    
     if hist_type != 'counts': 
         plt.figure(figsize=(8, 5), dpi= 120)
@@ -268,7 +268,6 @@ def parameter_histogram(param, title, x_label, color = None, hist_type = 'counts
         
         plt.xlabel(x_label)
         plt.ylabel('Probability')
-        
         
     else:
         plt.figure(figsize=(8, 5), dpi= 120)

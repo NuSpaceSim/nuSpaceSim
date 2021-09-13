@@ -50,23 +50,30 @@ def event_filter (particle_data, occurance_number,
     
     #return event numbers with this many instances using various filters
     try:
+        occurance_number = int(occurance_number)
         if 0 < occurance_number < 5:
             event_number_match = [event for (event, instances) in unique_counts \
                                    if instances == occurance_number]
-                
+            print ('There are', len(event_number_match ), 'events that have', 
+                   occurance_number, 'occurances of this partcle...')
         elif occurance_number >= 5:
+            
             event_number_match = [event for (event, instances) in unique_counts \
                                     if instances >= 5]
+            print ('There are', len(event_number_match ), 'events that have 5+', 
+                   'occurances of this partcle...')
             
     except:
         if occurance_number.lower() == 'all': 
             event_number_match = [event for (event, instances) in unique_counts \
                                     if instances >= 1]
-            
+            print ('There are', len(event_number_match ), 'events that have', 
+                   occurance_number, 'occurances of this partcle...')            
         elif occurance_number.lower() == 'multiple': 
             event_number_match = [event for (event, instances) in unique_counts \
                                   if instances > 1 ]
-                
+            print ('There are', len(event_number_match ), 'events that have', 
+                   occurance_number, 'occurances of this partcle...')                
         else: 
             print('Enter a valid occurance number.')
 
@@ -86,6 +93,8 @@ def event_filter (particle_data, occurance_number,
                                               intersection(filter_event_number_match)) ) )
         #array containing events that pass both filters
         trimmed_data = data[np.isin (data [:,0], common_events)] 
+        print ('With cross filter, there are', len(common_events), 'events that have', 
+               occurance_number, 'occurances of this partcle and any amount of the filter particle...') 
            
     if sum_energy is not None:
         #sums all energy per event 

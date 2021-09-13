@@ -131,24 +131,34 @@ def conex_sampler(conex_filename, key_name, ptype, start, end, xlim, bins, thres
 @cli.command()
 @click.argument("pythia_filename", type=click.Path(exists=True))
 @click.argument("data_name", type=str)
-@click.option("-p", "--pid",  
+@click.option("-p", "--pid", 
               help="particle PID to filter (11, +/-211, etc.)")
-@click.option("-e", "--energy", type=float, default= 100., 
+@click.option("-e", "--energy", type=float, default=100., 
               help="energy of the generated pythia table")
-@click.option("-o", "--occur", default= 'all', 
+@click.option("-o", "--occur", default='all', 
               help="number of occurrence per event ('all', 'multiple', 1)")
 @click.option("-x", "--crossfilt", default= None, 
               help="cross filter with another pid") 
 @click.option("-c", "--color", type=str, default= None, 
               help="recognized plt color string; random otherwise") 
-def pythia_sampler(pythia_filename, data_name, pid, energy, 
-                   occur, crossfilt, color): 
+def pythia_sampler(pythia_filename, 
+                   data_name, 
+                   pid, 
+                   energy, 
+                   occur, 
+                   crossfilt, 
+                   color): 
     """
     Generate histograms for energy of selected particle type. \n
     For sample files: nuSpaceSim/DataLibraries/PythiaDecayTables/HDF5_data \n
     """
-    pythia_plotter(pythia_filename, data_name, pid, energy, 
-                   occur, crossfilt, color) 
+    pythia_plotter(file_name=pythia_filename, 
+                   data_name=data_name, 
+                   particle_id=pid, 
+                   table_energy_pev=energy, 
+                   num_occurance=occur, 
+                   cross_filter=crossfilt, 
+                   color=color) 
 
 
 if __name__ == "__main__":
