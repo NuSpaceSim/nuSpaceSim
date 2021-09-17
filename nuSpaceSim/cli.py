@@ -55,14 +55,22 @@ def run(config_file):
 
     if config.method == 'Radio':
         EFields, decay_h = eas(betaArr, thetaArr, pathLenArr, tauBeta, tauLorentz, showerEnergy)
-        #store( 'eas', ('EFields', 'decayHeight'), EFields, decay_h)
+        E_sigsum = EFields.sum(axis=1)
+        E_noise = radio_antenna.noise_efield_from_range(config.detFreqRange, config.detectAlt)
         snrs = radio_antenna.calculate_snr(EFields, config.detFreqRange, config.detectAlt, config.detNant, config.detGain)
-        #print(EFields[snrs>5.0].min())
-        #print(snrs, snrs.mean())
-        #store( 'ant', ('snrs'), snrs)
         costhetaArr = np.cos(thetaArr)
         mcintegral, mcintegralgeoonly, numEvPass = geom.mcintegral(snrs, 
                                                         costhetaArr, tauexitprob)
+    if config.method == 'Both':
+        npe_ef, costhetaChEff = eas(betaArr, thetaArr, pathLenArr, tauBeta, tauLorentz, showerEnergy)
+        numPEs = npe_ef[0]
+        EFields = npe_ef[1]
+        E_noise = radio_antenna.noise_efield_from_range(config.detFreqRange, config.detectAlt)
+        snrs = radio_antenna.calculate_snr(EFields, config.detFreqRange, config.detectAlt, config.detNant, config.detGain)
+        trigger_conds = [numPEs, snrs]
+        mcintegral, mcintegralgeoonly, numEvPass = geom.mcintegral(trigger_conds, 
+                                                        [costhetaChEff, np.cos(thetaArr)], tauexitprob)
+
 
     print("Geom. Only MC Integral:", mcintegralgeoonly)
     print("MC integral:", mcintegral)

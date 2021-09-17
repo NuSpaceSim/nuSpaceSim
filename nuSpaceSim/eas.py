@@ -81,13 +81,18 @@ class EAS:
 
         return numPEs, costhetaChEff
 
-    def decay_to_detector_dist(self, beta, altDec, detectAlt):
+    def decay_to_detector_dist(self, beta, altDec, detectAlt, lenDec, viewAngle):
         Re = self.config.EarthRadius
         r1 = detectAlt + Re
         r2 = altDec + Re
         exit = np.pi/2. - beta
         r2squared = r2**2
-        cosexit = np.cos(exit)
+        thetaE = (Re**2 + (Re + altDec)**2 - lenDec**2)/(2*Re*(Re+altDec))
+        thetaE[thetaE<0] = 0
+        thetaE[thetaE>1] = 1
+        thetaE = np.arccos(thetaE)
+        thetaRel = exit - thetaE + viewAngle
+        cosexit = np.cos(thetaRel)
         return np.sqrt(r2squared*cosexit*cosexit - r2squared + r1*r1) - r2*cosexit
 
     def get_decay_view(self, exitView, losDist, lenDec):
@@ -110,12 +115,12 @@ class EAS:
         mask = (altDec < 0.0) | (altDec > 10.0) #TODO set a reasonable cut for max shower height
         mask = ~mask
         
-        #rudimentary distance scaling TODO investigate that this actually works with zhaires
-        nssDist = self.decay_to_detector_dist(np.deg2rad(beta[mask]), altDec[mask], self.config.detectAlt)
-        zhairesDist = self.decay_to_detector_dist(np.deg2rad(beta[mask]), altDec[mask], 525.0)
-
         viewAngles = np.zeros_like(theta)
         viewAngles[mask] = self.get_decay_view(theta[mask], pathLen[mask], lenDec[mask])
+        
+        #rudimentary distance scaling TODO investigate that this actually works with zhaires
+        nssDist = self.decay_to_detector_dist(np.deg2rad(beta[mask]), altDec[mask], self.config.detectAlt, lenDec[mask], viewAngles[mask])
+        zhairesDist = self.decay_to_detector_dist(np.deg2rad(beta[mask]), altDec[mask], 525.0, lenDec[mask], viewAngles[mask])
 
         #plt.hist(np.degrees(viewAngles[mask]), label='decay view', bins=100)
         #plt.hist(np.degrees(theta[mask]), label='decay view', bins=100)
@@ -124,14 +129,24 @@ class EAS:
         #plt.yscale('log')
         #plt.show()
 
+        #EFields = np.zeros_like(beta).astype(float)
+        #EFields[mask] = radioParams(90. - beta[mask], np.rad2deg(viewAngles[mask]), altDec[mask])
         EFields = np.zeros_like(beta)
-        EFields[mask] = radioParams(90. - beta[mask], np.rad2deg(viewAngles[mask]), altDec[mask])
+        EFields = radioParams(90. - beta, np.rad2deg(viewAngles), altDec)
+        EFields = (EFields.T * mask).T
 
         #scale by the energy of the shower (all zhaires files are for 10^18 eV shower)
         #shower energy is in units of 100 PeV, we want in GeV
-        EFields *= showerEnergy/10.
+        EFields[mask] = (EFields[mask].T * showerEnergy[mask]/10.).T
         distScale = zhairesDist/nssDist
-        EFields[mask] *= distScale
+        EFields[mask] = (EFields[mask].T * distScale).T
+        if self.config.modelIonosphere:
+            if self.config.TEC < 0:
+                print("TEC should be positive!! continuing without ionospheric dispersion")
+            else:
+                ionosphere = radio.IonosphereParams(self.config.detFreqRange, self.config.TECerr)
+                ionosphereScaling = ionosphere(self.config.TEC, EFields[mask])
+                EFields[mask] *= ionosphereScaling
 
         return EFields, altDec
     
@@ -140,4 +155,9 @@ class EAS:
             return self.call_radio(beta, theta, pathLen, tauBeta, tauLorentz, showerEnergy)
         if self.config.method == "Optical":
             return self.call_optical(beta, theta, tauBeta, tauLorentz, showerEnergy)
+        if self.config.method == "Both":
+            NPE, costhetaChEff = self.call_optical(beta,theta,tauBeta,tauLorentz,showerEnergy)
+            EFields, altDec = self.call_radio(beta,theta,pathLen,tauBeta,tauLorentz,showerEnergy)
+            return [NPE, EFields], costhetaChEff
+
 

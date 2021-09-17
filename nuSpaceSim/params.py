@@ -15,8 +15,6 @@ class NssConfig:
         self.detAeff = float(self.detchar["TelescopeEffectiveArea"])
         self.detQeff = float(self.detchar["QuantumEfficiency"])
         self.detPEthres = 0 if "NPE" not in self.detchar else float(self.detchar["NPE"])
-        lf = 0 if "LowFrequency" not in self.detchar else float(self.detchar["LowFrequency"])
-        hf = 1000 if "HighFrequency" not in self.detchar else float(self.detchar["HighFrequency"])
         self.logNuTauEnergy = float(self.simparams["NuTauEnergy"])
         self.nuTauEnergy = 10**self.logNuTauEnergy
         self.eShowFrac = float(self.simparams["FracETauInShower"])
@@ -29,10 +27,16 @@ class NssConfig:
             (float(self.simparams["AzimuthalAngle"]) / 180.0)
         self.N = int(self.simparams["NumTrajs"])
         self.method = self.detchar["Method"]
+        #this is all radio stuff
+        lf = 30 if "LowFrequency" not in self.detchar else float(self.detchar["LowFrequency"])
+        hf = 1000 if "HighFrequency" not in self.detchar else float(self.detchar["HighFrequency"])
         self.detSNRthres = 2. if "SNRThreshold" not in self.detchar else float(self.detchar["SNRThreshold"])
         self.detNant = 1 if "NAntennas" not in self.detchar else int(self.detchar["NAntennas"])
         self.detGain = 10. if "AntennaGain" not in self.detchar else float(self.detchar["AntennaGain"])
         self.detFreqRange = (lf, hf)
+        self.modelIonosphere = True if "ModelIonosphere" not in self.simparams else bool(int(self.simparams["ModelIonosphere"]))
+        self.TEC = 10. if "TEC" not in self.simparams else float(self.simparams["TEC"])
+        self.TECerr = 0.1 if "TECErr" not in self.simparams else np.abs(float(self.simparams["TECErr"]))
 
 
 
@@ -64,17 +68,12 @@ def parseXML(xmlfile):
     root = tree.getroot()
     eldetchar = root.find("DetectorCharacteristics")
     fdetchar["Method"] = eldetchar.attrib["Method"]
-    if eldetchar.attrib["Method"] == "Optical":
-        for node in tree.find("./DetectorCharacteristics"):
-            if node.tag == "PhotoElectronThreshold":
-                fdetchar[node.tag] = node.attrib["Preset"]
-                if node.attrib["Preset"] == "True":
-                    fdetchar["NPE"] = node.find("NPE").text
-            else:
-                fdetchar[node.tag] = node.text
-    
-    if eldetchar.attrib["Method"] == "Radio":
-        for node in tree.find("./DetectorCharacteristics"):
+    for node in tree.find("./DetectorCharacteristics"):
+        if node.tag == "PhotoElectronThreshold":
+            fdetchar[node.tag] = node.attrib["Preset"]
+            if node.attrib["Preset"] == "True":
+                fdetchar["NPE"] = node.find("NPE").text
+        else:
             fdetchar[node.tag] = node.text
 
     elsimparams = root.find("SimulationParameters")

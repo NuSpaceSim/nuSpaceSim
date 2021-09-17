@@ -55,37 +55,76 @@ class RegionGeom(nssgeo.Geom_params):
         """ Monte Carlo integral.  
             numPEs is actually SNR in the radio case
         """
-        #cossepangle = super().localevent.costhetaTrSubV
-        cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
+        if self.config.method == 'Radio' or self.config.method == 'Optical':
+            #cossepangle = super().localevent.costhetaTrSubV
+            cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
 
-        #print(cossepangle)
-        #print(costhetaCh)
+            #print(cossepangle)
+            #print(costhetaCh)
 
-        # Geometry Factors
-        mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
-        mcintfactor = np.multiply(
-            mcintfactor,
-            super().evArray["costhetaTrSubN"][super().evMasknpArray])
-        mcintfactor = np.divide(
-            mcintfactor,
-            super().evArray["costhetaNSubV"][super().evMasknpArray])
-        mcintfactor = np.divide(
-            mcintfactor,
-            super().evArray["costhetaTrSubV"][super().evMasknpArray])
+            # Geometry Factors
+            mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
+            mcintfactor = np.multiply(
+                mcintfactor,
+                super().evArray["costhetaTrSubN"][super().evMasknpArray])
+            mcintfactor = np.divide(
+                mcintfactor,
+                super().evArray["costhetaNSubV"][super().evMasknpArray])
+            mcintfactor = np.divide(
+                mcintfactor,
+                super().evArray["costhetaTrSubV"][super().evMasknpArray])
 
-        mcintegralgeoonly = np.mean(mcintfactor) * super().mcnorm
+            mcintegralgeoonly = np.mean(mcintfactor) * super().mcnorm
 
-        # Multiply by tau exit probability
-        mcintfactor *= tauexitprob
+            # Multiply by tau exit probability
+            mcintfactor *= tauexitprob
 
-        # PE threshold
-        if self.config.method == 'Radio':
-            mcintfactor *= np.where(numPEs - self.detSNRthres < 0, 0.0, 1.0)
-        else:
-            mcintfactor *= np.where(numPEs - self.detPEthres < 0, 0.0, 1.0)
+            mcint_notrigger = mcintfactor.copy()
+            # PE threshold
+            if self.config.method == 'Radio':
+                mcintfactor *= np.where(numPEs - self.detSNRthres < 0, 0.0, 1.0)
+            if self.config.method == 'Optical':
+                mcintfactor *= np.where(numPEs - self.detPEthres < 0, 0.0, 1.0)
+        if self.config.method == 'Both':
+            cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
+
+            npe = numPEs[0]
+            snr = numPEs[1]
+            opt_costheta = costhetaCh[0]
+            rad_costheta = costhetaCh[1]
+            # Geometry Factors
+            #Optical first
+            mcintfactor = np.ones(opt_costheta.shape)
+            mcintfactor = np.multiply(
+                mcintfactor,
+                super().evArray["costhetaTrSubN"][super().evMasknpArray])
+            mcintfactor = np.divide(
+                mcintfactor,
+                super().evArray["costhetaNSubV"][super().evMasknpArray])
+            mcintfactor = np.divide(
+                mcintfactor,
+                super().evArray["costhetaTrSubV"][super().evMasknpArray])
+            
+            mcintfactor_opt = np.where(cossepangle - opt_costheta < 0, 0.0, 1.0)
+            mcintfactor_rad = np.where(cossepangle - rad_costheta < 0, 0.0, 1.0)
+            mcintfactor_opt *= mcintfactor
+            mcintfactor_rad *= mcintfactor
+
+            mcintegralgeoonly = np.mean(mcintfactor_rad) * super().mcnorm
+
+            # Multiply by tau exit probability
+            mcintfactor_opt *= tauexitprob
+            mcintfactor_rad *= tauexitprob
+
+            mcint_notrigger = mcintfactor_rad.copy()
+            # PE threshold
+            mcintfactor_opt *= np.where(npe - self.detPEthres < 0, 0.0, 1.0)
+            mcintfactor_rad *= np.where(snr - self.detSNRthres < 0, 0.0, 1.0)
+            mcintfactor = np.where(mcintfactor_opt > mcintfactor_rad, mcintfactor_opt, mcintfactor_rad)
 
         numEvPass = np.count_nonzero(mcintfactor)
 
         mcintegral = np.mean(mcintfactor) * super().mcnorm
 
-        return mcintegral, mcintegralgeoonly, numEvPass
+        #return mcintegral, mcintegralgeoonly, numEvPass, mcint_notrigger, super().mcnorm
+        return mcintegral, mcintegralgeoonly, numEvPass:x

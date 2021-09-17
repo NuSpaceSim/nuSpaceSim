@@ -1,9 +1,8 @@
 import numpy as np
 import os as os
 import importlib_resources
-#from nuSpaceSim.zhaires_nss.wfm_processor import wfmProcessor
-#import scipy.interpolate as interp
-#from supersmoother import SuperSmoother
+import nuSpaceSim.ionosphere.ionospheric_dispersion as iono
+from scipy.interpolate import interp1d
 
 class RadioEFieldParams(object):
     """
@@ -22,15 +21,6 @@ class RadioEFieldParams(object):
         self.heights = f['height']
         self.ps = f['params']
         f.close()
-        #fname = param_dir + "zhs_z_h_viewangle_efield_spline.npz"
-        #f2 = np.load(fname, allow_pickle=True)
-        #self.freqs = f2['freq']
-        #self.interps = f2['interps']
-        #f2.close()
-        #fname = param_dir + "zhaires_smooth.npz"
-        #f2 = np.load(fname, allow_pickle=True)
-        #self.smooths = f2['params']
-        #f2.close()
 
     def __call__(
             self, 
@@ -76,5 +66,36 @@ class RadioEFieldParams(object):
         viewAngle = (peak.T + viewAngle).T
         Efield = E0 * np.exp(-( (viewAngle-peak )**2)/(2.*w*w)) + np.abs(E1) * np.exp(-viewAngle**2/(2.*w2*w2))/2. #this factor of 2 is to make up for how i made this fits in the first place
         return Efield
+
+class IonosphereParams(object):
+    """
+    Parametrization of ionospheric dispersion degradation of overall SNR as a function of TEC
+    """
+    def __init__(self, freqRange, TECerr):
+        """
+        freq range is a 2 float tuple (in MHz) 
+        TECerr is 
+        """
+        self.lowFreq = int(freqRange[0])
+        self.highFreq = int(freqRange[1])
+        self.TECerr = TECerr
+        param_dir = str(importlib_resources.files("nuSpaceSim.ionosphere.tecparams"))
+        fname = param_dir + "/f_{}_{}_TECerr_{}.npz".format(self.lowFreq, self.highFreq, self.TECerr)
+        if not os.path.exists(fname):
+            iono.generate_TEC_files(self.lowFreq,self.highFreq,self.TECerr)
+        f = np.load(fname, allow_pickle=True)
+        self.TECs = f['TEC']
+        self.scaling = f['scaling']
+        f.close()
+    def __call__(self, TEC, EFields):
+        """
+        TEC is the slant depth TEC in TECU
+        """
+        if TEC == 0:
+            return iono.perfect_TEC_disperse(self.lowFreq*1.e6, self.highFreq*1.e6, TEC)/100.
+        ind = np.argmin(np.abs(self.TECs - TEC))
+        TECerr = np.random.uniform(-self.TECerr, self.TECerr, EFields.shape)
+        scale = self.scaling[ind](TEC + TECerr)
+        return scale/100.
         
 
