@@ -127,4 +127,4 @@ class RegionGeom(nssgeo.Geom_params):
         mcintegral = np.mean(mcintfactor) * super().mcnorm
 
         #return mcintegral, mcintegralgeoonly, numEvPass, mcint_notrigger, super().mcnorm
-        return mcintegral, mcintegralgeoonly, numEvPass:x
+        return mcintegral, mcintegralgeoonly, numEvPass
