@@ -95,7 +95,7 @@ class IonosphereParams(object):
             return iono.perfect_TEC_disperse(self.lowFreq*1.e6, self.highFreq*1.e6, TEC)/100.
         ind = np.argmin(np.abs(self.TECs - TEC))
         TECerr = np.random.uniform(-self.TECerr, self.TECerr, EFields.shape)
-        scale = self.scaling[ind](TEC + TECerr)
+        scale = self.scaling[ind](self.TECs[ind] + TECerr)
         return scale/100.
         
 
