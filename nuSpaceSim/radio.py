@@ -1,5 +1,6 @@
 import numpy as np
 import os as os
+import importlib_resources
 #from nuSpaceSim.zhaires_nss.wfm_processor import wfmProcessor
 #import scipy.interpolate as interp
 #from supersmoother import SuperSmoother
@@ -12,8 +13,8 @@ class RadioEFieldParams(object):
         """
         freq range is a 2 float tuple (in MHz) 
         """
-        param_dir = "/home/abl/nuspacesim/nuSpaceSim/zhaires_nss/params/"
-        fname = param_dir + "ZHAireS_params_10MHz_bins.npz"
+        param_dir = str(importlib_resources.files("nuSpaceSim.zhaires_nss.params"))
+        fname = param_dir + "/ZHAireS_params_10MHz_bins.npz"
         f = np.load(fname)
         self.lowFreq = int(freqRange[0])
         self.highFreq = int(freqRange[1])
@@ -63,30 +64,17 @@ class RadioEFieldParams(object):
 
         fcenter = params[:,:,0]
         cut = np.logical_and(fcenter >= self.lowFreq, fcenter <= self.highFreq)
-        E0 = params[:,:, 1] * cut
-        peak = params[:,:, 2]
-        w = params[:,:, 3]
-        E1 = params[:,:, 4] * cut
-        w2 = params[:,:, 5]
+        nrow = np.sum(cut[0])
+        ncol = cut.shape[0]
+
+        E0 = params[:,:, 1][cut].reshape(ncol, nrow)
+        peak = params[:,:, 2][cut].reshape(ncol, nrow)
+        w = params[:,:, 3][cut].reshape(ncol, nrow)
+        E1 = params[:,:, 4][cut].reshape(ncol, nrow)
+        w2 = params[:,:, 5][cut].reshape(ncol, nrow)
        
         viewAngle = (peak.T + viewAngle).T
-        Efield = np.sum(E0 * np.exp(-( (viewAngle-peak )**2)/(2.*w*w)) + np.abs(E1) * np.exp(-viewAngle**2/(2.*w2*w2)), axis=1)/2. #this factor of 2 is to make up for how i made this fits in the first place
-
-        #factor of ~5-10 difference in this (plus its really slow)
-        #cut2 = np.logical_and(self.freqs >= self.lowFreq, self.freqs <= self.highFreq)
-        #Efield2 = np.zeros(Efield.shape)
-        #apply_vectorized = np.vectorize(lambda f, x, y, z: f(x,y,z), otypes=[object])
-        #for i in range(h.shape[0]):
-        #    Efield2[i] = np.abs(np.sum(apply_vectorized(self.interps[cut2], zenith[i], h[i], origView[i])))
-        #Efield2[np.isnan(Efield2)] = 0.
-
-        #smooth
-        #smoothers = self.smooths[j]
-        #cut2 = np.logical_and(smoothers[:,:,0] >= self.lowFreq, smoothers[:,:,0] <= self.highFreq)
-        #Efield2 = np.zeros(Efield.shape)
-        #apply_vectorized = np.vectorize(lambda f, x: f.predict(x), otypes=[object])
-        #for i in range(h.shape[0]):
-        #    Efield2[i] = np.sum(apply_vectorized(smoothers[:,:,1][cut2], origView[i]))
+        Efield = E0 * np.exp(-( (viewAngle-peak )**2)/(2.*w*w)) + np.abs(E1) * np.exp(-viewAngle**2/(2.*w2*w2))/2. #this factor of 2 is to make up for how i made this fits in the first place
         return Efield
         
 
