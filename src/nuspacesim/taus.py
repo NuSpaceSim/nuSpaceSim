@@ -2,6 +2,7 @@ import importlib_resources
 import h5py
 import numpy as np
 from scipy import interpolate
+from nuspacesim import NssConfig
 
 
 def extract_nutau_data(filename, lognuenergy):
@@ -19,26 +20,14 @@ def extract_nutau_data(filename, lognuenergy):
     pegrpbarr = np.array(pegrpbdset)
     pegrplnearr = np.array(pegrplnedset)
 
-    # testring = 'TauEdist_grp_e{:02.0f}_{:02.0f}'.format(np.floor(lognuenergy)
-    # ,(lognuenergy - np.floor(lognuenergy))*100)
-    # if lognuenergy >= 11.0:
-    # Need some kind of exception here
-    # elif:
-
     # lognuebin = float(closestNumber(np.rint(lognuenergy*100),25))/100.
     # If we want to do closest bin rather than histogram bins
     q = int((lognuenergy * 100) / 25.0)
     lognuebin = float((q * 25) / 100.0)
 
-    #print (q, lognuebin)
-    #testring = "TauEdist_grp_e{:02.0f}_{:02.0f}".format(
-    #    np.floor(lognuebin), (lognuenergy - np.floor(lognuebin)) * 100
-    #)
     testring = "TauEdist_grp_e{:02.0f}_{:02.0f}".format(
-      np.floor(lognuebin), (lognuebin - np.floor(lognuebin)) * 100
+        np.floor(lognuebin), (lognuebin - np.floor(lognuebin)) * 100
     )
-
-    #print(testring)
 
     tegrp = f[testring]
     tegrpcdfdset = tegrp["TauEDistCDF"]
@@ -72,29 +61,36 @@ class Taus(object):
     Describe Tau Module HERE!
     """
 
-    def __init__(self, config):
+    def __init__(self, config: NssConfig):
         """
         Intialize the Taus object.
         """
         self.config = config
 
-        ref = importlib_resources.files(
-            'nuSpaceSim.DataLibraries.RenoNu2TauTables') / 'nu2taudata.hdf5'
+        ref = (
+            importlib_resources.files("nuspacesim.DataLibraries.RenoNu2TauTables")
+            / "nu2taudata.hdf5"
+        )
+
         with importlib_resources.as_file(ref) as path:
-            self.pearr, self.pebarr, self.pelnearr, self.tecdfarr, \
-                self.tebarr, self.betaLowBnds, self.betaUppBnds, \
-                self.tetauefracarr = extract_nutau_data(path,
-                                                        config.logNuTauEnergy)
+            (
+                self.pearr,
+                self.pebarr,
+                self.pelnearr,
+                self.tecdfarr,
+                self.tebarr,
+                self.betaLowBnds,
+                self.betaUppBnds,
+                self.tetauefracarr,
+            ) = extract_nutau_data(path, config.simulation.log_nu_tau_energy)
 
         self.peb_rbf = np.tile(self.pebarr, self.pelnearr.shape)
         self.pelne_rbf = np.repeat(self.pelnearr, self.pebarr.shape, 0)
 
         # Interpolating function to be used to find P_exit
-        self.pexitfunc = interpolate.Rbf(self.peb_rbf,
-                                         self.pelne_rbf,
-                                         self.pearr,
-                                         function="cubic",
-                                         smooth=0)
+        self.pexitfunc = interpolate.Rbf(
+            self.peb_rbf, self.pelne_rbf, self.pearr, function="cubic", smooth=0
+        )
 
         # Array of tecdf interpolation functions
         self.tauEFracInterps = [
@@ -102,18 +98,19 @@ class Taus(object):
             for betaind in range(self.tecdfarr.shape[1])
         ]
 
-        self.nuTauEnergy = self.config.nuTauEnergy
+        self.nuTauEnergy = self.config.simulation.nu_tau_energy
 
     def tau_exit_prob(self, betaArr):
         """
         Tau Exit Probability
         """
-        brad = np.radians(betaArr)  # * (self.config.fundcon.pi / 180.0)
+        brad = np.radians(betaArr)
 
         logtauexitprob = self.pexitfunc(
-            brad, np.full(brad.shape, self.config.logNuTauEnergy))
+            brad, np.full(brad.shape, self.config.simulation.log_nu_tau_energy)
+        )
 
-        tauexitprob = 10**logtauexitprob
+        tauexitprob = 10 ** logtauexitprob
 
         return tauexitprob
 
@@ -134,7 +131,7 @@ class Taus(object):
 
         return tauEF * self.nuTauEnergy
 
-    def __call__(self, betaArr):
+    def __call__(self, betaArr, store=None):
         """
         Perform main operation for Taus module.
 
@@ -146,10 +143,16 @@ class Taus(object):
         tauEnergy = self.tau_energy(betaArr)
 
         # in units of 100 PeV
-        showerEnergy = self.config.eShowFrac * tauEnergy / 1.0e8
+        showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1.0e8
 
-        tauLorentz = tauEnergy / self.config.fundcon.massTau
+        tauLorentz = tauEnergy / self.config.constants.massTau
 
-        tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz**2))
+        tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
+
+        if store is not None:
+            store(
+                ["tauBeta", "tauLorentz", "showerEnergy", "tauExitProb"],
+                [tauBeta, tauLorentz, showerEnergy, tauExitProb],
+            )
 
         return tauBeta, tauLorentz, showerEnergy, tauExitProb

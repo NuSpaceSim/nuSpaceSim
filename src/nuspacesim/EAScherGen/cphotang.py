@@ -5,7 +5,7 @@ Cherenkov photon density and angle determination class.
 """
 import numpy as np
 from numpy.polynomial import Polynomial
-from nuSpaceSim.EAScherGen.zsteps import zsteps as cppzsteps
+from nuspacesim.EAScherGen.zsteps import zsteps as cppzsteps
 # from scipy import interpolate
 import dask
 import dask.bag as db
@@ -14,6 +14,7 @@ from dask.distributed import Client
 # import multiprocessing
 # from joblib import Parallel, delayed
 
+__all__ = ["CphotAng"]
 
 class CphotAng:
 

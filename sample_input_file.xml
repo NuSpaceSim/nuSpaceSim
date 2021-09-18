@@ -3,7 +3,7 @@
   <DetectorCharacteristics Type="Satellite" Method="Optical">
     <QuantumEfficiency>0.2</QuantumEfficiency>
     <TelescopeEffectiveArea Unit="Sq.Meters">2.5</TelescopeEffectiveArea>
-    <PhotoElectronThreshold Preset="True">
+    <PhotoElectronThreshold Preset="true">
       <NPE>10</NPE>
     </PhotoElectronThreshold>
     <DetectorAltitude Unit="km">525.0</DetectorAltitude>
@@ -13,7 +13,7 @@
   <SimulationParameters DetectionMode="Diffuse">
     <MaximumCherenkovAngle Unit="Degrees">3.0</MaximumCherenkovAngle>
     <AngleFromLimb Unit="Degrees">7.0</AngleFromLimb>
-    <TauShowerType Preset="True">
+    <TauShowerType Preset="true">
       <FracETauInShower>0.5</FracETauInShower>
     </TauShowerType>
     <NuTauEnergySpecType SpectrumType="Mono">
