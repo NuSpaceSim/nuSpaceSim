@@ -60,7 +60,7 @@ class Fund_Constants:
     massTau: float
         Tau Lepton mass (eV).
     mean_Tau_life: float
-        Mean Tau Lepton Lifetime (seconds?).
+        Mean Tau Lepton Lifetime (seconds).
     pi: float
         Pi. Default = np.pi
     """
