@@ -31,35 +31,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" NuSpaceSim - Simulate upward-going neutrino showers, interactions, and detections.
-
-    Python package, library, and data tables.
+"""
+docstring for eas_optical
 """
 
-__all__ = [
-    # core
-    "constants",
-    "NssConfig",
-    "DetectorCharacteristics",
-    "SimulationParameters",
-    "Simulation",
-    "simulate",
-    "write_fits",
-    "write_hdf5",
-    # modules
-    "geometry",
-    "eas_optical",
-    "taus",
-    # other
-    "data",
-    "xml",
-    # version
-    "version",
-    "version_tuple",
-]
+__all__ = ["atmospheric_models", "cphotang", "zsteps", "EAS"]
 
-from . import data
-from . import xml
-from .core import *
-from .modules import *
-from ._version import *
+from . import atmospheric_models
+from . import cphotang
+from . import zsteps
+from .eas import *

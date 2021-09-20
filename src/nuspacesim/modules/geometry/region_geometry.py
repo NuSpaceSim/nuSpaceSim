@@ -1,8 +1,9 @@
-import nuspacesim.nssgeometry.nssgeometry as nssgeo
-from nuspacesim.configuration import NssConfig
+from nuspacesim.modules.geometry import nssgeometry as nssgeo
+from nuspacesim.core import NssConfig
 import numpy as np
 
 __all__ = ["RegionGeom"]
+
 
 class RegionGeom(nssgeo.Geom_params):
     """
@@ -11,7 +12,7 @@ class RegionGeom(nssgeo.Geom_params):
     Wrapper of nssgeometry module for easier integration in nuspacesim.
     """
 
-    def __init__(self, config:NssConfig):
+    def __init__(self, config: NssConfig):
         super().__init__(
             radE=config.constants.earth_radius,
             detalt=config.detector.altitude,

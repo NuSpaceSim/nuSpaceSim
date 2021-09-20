@@ -31,35 +31,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" NuSpaceSim - Simulate upward-going neutrino showers, interactions, and detections.
+__all__ = ["nssgeometry", "RegionGeom"]
 
-    Python package, library, and data tables.
-"""
-
-__all__ = [
-    # core
-    "constants",
-    "NssConfig",
-    "DetectorCharacteristics",
-    "SimulationParameters",
-    "Simulation",
-    "simulate",
-    "write_fits",
-    "write_hdf5",
-    # modules
-    "geometry",
-    "eas_optical",
-    "taus",
-    # other
-    "data",
-    "xml",
-    # version
-    "version",
-    "version_tuple",
-]
-
-from . import data
-from . import xml
-from .core import *
-from .modules import *
-from ._version import *
+from . import nssgeometry
+from .region_geometry import RegionGeom

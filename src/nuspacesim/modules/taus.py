@@ -1,13 +1,59 @@
+# The Clear BSD License
+#
+# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted (subject to the limitations in the disclaimer
+# below) provided that the following conditions are met:
+#
+#      * Redistributions of source code must retain the above copyright notice,
+#      this list of conditions and the following disclaimer.
+#
+#      * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#      * Neither the name of the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from this
+#      software without specific prior written permission.
+#
+# NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
+# THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+# CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+"""tau propagation module"""
+
 import importlib_resources
 import h5py
 import numpy as np
 from scipy import interpolate
-from nuspacesim import NssConfig
+from nuspacesim.core import NssConfig
 
 
-def extract_nutau_data(filename, lognuenergy):
-    """
-    Extract RenoNuTau tables into params
+def extract_nutau_data(filename: str, log_nu_energy: float) -> tuple:
+    r"""Extract RenoNuTau tables into Tau params.
+
+    Parameters
+    ----------
+    filename: str
+        Name of RenoNuTau tables file.
+    log_nu_energy: float
+        log of neutrino energy.
+
+    Returns
+    -------
+    tuple
+        Tau parameter data object.
     """
 
     f = h5py.File(filename, "r")
@@ -22,7 +68,7 @@ def extract_nutau_data(filename, lognuenergy):
 
     # lognuebin = float(closestNumber(np.rint(lognuenergy*100),25))/100.
     # If we want to do closest bin rather than histogram bins
-    q = int((lognuenergy * 100) / 25.0)
+    q = int((log_nu_energy * 100) / 25.0)
     lognuebin = float((q * 25) / 100.0)
 
     testring = "TauEdist_grp_e{:02.0f}_{:02.0f}".format(
@@ -68,7 +114,7 @@ class Taus(object):
         self.config = config
 
         ref = (
-            importlib_resources.files("nuspacesim.DataLibraries.RenoNu2TauTables")
+            importlib_resources.files("nuspacesim.data.RenoNu2TauTables")
             / "nu2taudata.hdf5"
         )
 

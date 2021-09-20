@@ -31,35 +31,52 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" NuSpaceSim - Simulate upward-going neutrino showers, interactions, and detections.
+"""nuspacesim module for storing simulation results in diverse file formats."""
 
-    Python package, library, and data tables.
-"""
+from typing import Union
+from nuspacesim.core import Simulation
 
-__all__ = [
-    # core
-    "constants",
-    "NssConfig",
-    "DetectorCharacteristics",
-    "SimulationParameters",
-    "Simulation",
-    "simulate",
-    "write_fits",
-    "write_hdf5",
-    # modules
-    "geometry",
-    "eas_optical",
-    "taus",
-    # other
-    "data",
-    "xml",
-    # version
-    "version",
-    "version_tuple",
-]
+__all__ = ["write_fits", "write_hdf5"]
 
-from . import data
-from . import xml
-from .core import *
-from .modules import *
-from ._version import *
+
+def write_fits(simulation: Simulation, filename: Union[str, None] = None) -> None:
+    r"""Write the simulation results to a FITS file.
+
+    Uses the astropy.table.Table write method of the Simulation base class to write
+    FITS file.
+
+    Parameters
+    ----------
+    simulation: Simulation
+        The simulation results object.
+    filename, {str, None}, optional
+        The filename of the output file. If None, return default with timestamp.
+    """
+
+    simulation.write(
+        f"nuspacesim_run_{simulation.meta['simTime'][0]}.fits"
+        if filename is None
+        else filename,
+        format="fits",
+    )
+
+
+def write_hdf5(simulation: Simulation, filename: Union[str, None] = None) -> None:
+    r"""Write the simulation results to an HDF5 file.
+
+    Uses the astropy.table.Table write method of the Simulation base class to write
+    HDF5 file.
+
+    Parameters
+    ----------
+    simulation: Simulation
+        The simulation results object.
+    filename, {str, None}, optional
+        The filename of the output file. If None, return default with timestamp.
+    """
+    filename = (
+        f"nuspacesim_run_{simulation.meta['simTime'][0]}.h5"
+        if filename is None
+        else filename
+    )
+    simulation.write(filename, format="hdf5", path=filename, serialize_meta=True)

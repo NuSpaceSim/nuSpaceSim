@@ -31,35 +31,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" NuSpaceSim - Simulate upward-going neutrino showers, interactions, and detections.
+r"""nuspacesim core
 
-    Python package, library, and data tables.
+    This package holds core functionality for nuspacesim simulations. Notably
+    configuration, simulation, and storage values.
+
 """
 
 __all__ = [
-    # core
     "constants",
-    "NssConfig",
     "DetectorCharacteristics",
     "SimulationParameters",
+    "NssConfig",
     "Simulation",
     "simulate",
     "write_fits",
     "write_hdf5",
-    # modules
-    "geometry",
-    "eas_optical",
-    "taus",
-    # other
-    "data",
-    "xml",
-    # version
-    "version",
-    "version_tuple",
 ]
 
-from . import data
-from . import xml
-from .core import *
-from .modules import *
-from ._version import *
+from . import constants
+from .config import *
+from .simulate import *
+from .storage import *
