@@ -75,6 +75,7 @@ def conex_plotter(file_name, data_name, plt_type, start_row, end_row, x_limit,
                                           color = 'crimson')
     else: 
         print(plt_type, "is not a valid plot type")
+    
     plt.show() 
  
     
@@ -82,5 +83,5 @@ def conex_plotter(file_name, data_name, plt_type, start_row, end_row, x_limit,
 
 if __name__ == '__main__': 
     conex_plotter()
-    #conex_plotter('electron_EAS_table.h5', 'EASdata_11', 'regular')
+    #conex_plotter('gamma_EAS_table.h5', 'EASdata_22', 'regular', 1,2,5000,5000,.01)
     
