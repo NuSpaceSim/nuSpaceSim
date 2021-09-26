@@ -52,6 +52,7 @@ __all__ = [
     "taus",
     # other
     "data",
+    "utils",
     "xml",
     # version
     "version",
@@ -59,7 +60,9 @@ __all__ = [
 ]
 
 from . import data
+from . import utils
 from . import xml
 from .core import *
 from .modules import *
+# from .utils import *
 from ._version import *

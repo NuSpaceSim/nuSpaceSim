@@ -31,25 +31,44 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" Generalized interpolation functions. """
+"""CDF Sampling Utilities."""
 
+from nuspacesim.utils.grid import NssGrid
 import numpy as np
-from scipy.interpolate import interp1d
-from typing import Callable, Iterable
 
 
-def interp_table(a, v, y, x) -> Iterable:
-    """ """
+def cdf_sample_factory(grid: NssGrid, cdf_ax: int, interpolation_class=None, **kwargs):
+    """CDF sampling function from given grid object."""
 
-    ft = [interp1d(x[:, i], y) for i in range(x.shape[1])]
+    if interpolation_class is None:
+        interpolator = grid.interpolate
+    else:
+        interpolator = interpolation_class(grid.axes, grid.data, **kwargs)
 
-    idxs = np.searchsorted(a, v)
-    r = np.empty_like(v)
+    def sample(*axes, u=None):
 
-    for i in range(a.shape[-1]):
-        mask = idxs == i
-        r[mask] = ft()
+        if len(axes) != grid.ndim - 1:
+            raise ValueError(f"Must provide {grid.ndim - 1} axes")
+
+        u = np.random.uniform(size=axes[0].shape[0]) if u is None else u
+
+        for a in axes:
+            if u.shape != a.shape:
+                raise ValueError(f"axes must have same shape")
+
+        full_axes = list([*axes])
+        full_axes.insert(cdf_ax, u)
+
+        v = np.column_stack(full_axes)
+        return interpolator(v)
+
+    return sample
 
 
-def interp_f(a, v, f: Callable) -> Callable:
-    """ """
+if __name__ == "__main__":
+    g = NssGrid.read("src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.hdf5")
+    g.index_name("log_nu_e")
+    g.index_where_eq("log_nu_e", 7.5)
+    sample = cdf_sample_factory(g[g.index_where_eq("log_nu_e", 7.5), :, :], 0)
+    n = int(1e8)
+    print(sample(np.random.uniform(1, 25, n)))

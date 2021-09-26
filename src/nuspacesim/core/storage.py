@@ -52,13 +52,7 @@ def write_fits(simulation: Simulation, filename: Union[str, None] = None) -> Non
     filename, {str, None}, optional
         The filename of the output file. If None, return default with timestamp.
     """
-
-    simulation.write(
-        f"nuspacesim_run_{simulation.meta['simTime'][0]}.fits"
-        if filename is None
-        else filename,
-        format="fits",
-    )
+    simulation.write(filename, format="fits")
 
 
 def write_hdf5(simulation: Simulation, filename: Union[str, None] = None) -> None:
@@ -74,9 +68,4 @@ def write_hdf5(simulation: Simulation, filename: Union[str, None] = None) -> Non
     filename, {str, None}, optional
         The filename of the output file. If None, return default with timestamp.
     """
-    filename = (
-        f"nuspacesim_run_{simulation.meta['simTime'][0]}.h5"
-        if filename is None
-        else filename
-    )
-    simulation.write(filename, format="hdf5", path=filename, serialize_meta=True)
+    simulation.write(filename, format="hdf5")

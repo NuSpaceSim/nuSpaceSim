@@ -36,7 +36,7 @@
 from astropy.table import Table as AstropyTable
 import datetime
 from numpy.typing import NDArray
-from typing import Any, Iterable
+from typing import Any, Iterable, Union
 
 from nuspacesim.core import NssConfig
 from nuspacesim.modules.geometry import RegionGeom
@@ -106,6 +106,50 @@ class Simulation(AstropyTable):
         """
 
         self.meta[name] = (value, comment)
+
+    def write(self, filename: Union[str, None] = None, format: str = "fits") -> None:
+        r"""Write the simulation results to a file.
+
+        Uses the astropy.table.Table write method of the Simulation base class to write
+        FITS file.
+
+        Parameters
+        ----------
+        filename: {str, None}, optional
+            The filename of the output file. If None, return default with timestamp.
+        format: str: {fits, hdf5}, optional
+            Format of output file. Supported values are fits and hdf5. Default is fits.
+
+        Raises
+        ------
+        ValueError:
+            If the input format value is not one of fits or hdf5, an exception is
+            raised.
+
+        """
+
+        if format == "fits":
+
+            filename = (
+                f"nuspacesim_run_{self.meta['simTime'][0]}.fits"
+                if filename is None
+                else filename
+            )
+            super().write(filename, format="fits", overwrite=True)
+
+        elif format == "hdf5":
+
+            filename = (
+                f"nuspacesim_run_{self.meta['simTime'][0]}.hdf5"
+                if filename is None
+                else filename
+            )
+            super().write(
+                filename, format="hdf5", path=".", serialize_meta=True, overwrite=True
+            )
+
+        else:
+            raise ValueError(f"File output format {format} not in [fits, hdf5]!")
 
 
 def simulate(config: NssConfig, verbose: bool = False) -> Simulation:
