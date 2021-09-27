@@ -38,6 +38,7 @@ import numpy as np
 from nuspacesim.core import NssConfig
 from nuspacesim.utils.grid import NssGrid
 from nuspacesim.utils.cdf import cdf_sample_factory
+from nuspacesim.utils.interp import grid_interpolator
 
 
 class Taus(object):
@@ -56,9 +57,10 @@ class Taus(object):
             importlib_resources.files("nuspacesim.data.RenoNu2TauTables")
             / "nu2tau_pexit.hdf5"
         ) as file:
-            self.pexit_grid = NssGrid.read(file, format="hdf5").slc(
+            g = NssGrid.read(file, format="hdf5").slc(
                 "log_nu_e", config.simulation.log_nu_tau_energy, 0
             )
+            self.pexit_interp = grid_interpolator(g)
 
         # grid of tau_cdf tables
         with importlib_resources.as_file(
@@ -76,7 +78,7 @@ class Taus(object):
         """
         Tau Exit Probability
         """
-        logtauexitprob = self.pexit_grid.interpolate(betas)
+        logtauexitprob = self.pexit_interp(betas)
 
         tauexitprob = 10 ** logtauexitprob
 

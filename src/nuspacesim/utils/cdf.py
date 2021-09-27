@@ -34,6 +34,7 @@
 """CDF Sampling Utilities."""
 
 from nuspacesim.utils.grid import NssGrid
+from nuspacesim.utils.interp import grid_interpolator
 import numpy as np
 
 
@@ -41,9 +42,9 @@ def cdf_sample_factory(grid: NssGrid, cdf_ax: int, interpolation_class=None, **k
     """CDF sampling function from given grid object."""
 
     if interpolation_class is None:
-        interpolator = grid.interpolate
-    else:
-        interpolator = interpolation_class(grid.axes, grid.data, **kwargs)
+        interpolation_class = grid_interpolator(grid, **kwargs)
+
+    interpolator = interpolation_class(grid, **kwargs)
 
     def sample(*axes, u=None):
 

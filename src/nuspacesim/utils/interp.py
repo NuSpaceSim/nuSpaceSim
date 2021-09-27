@@ -33,23 +33,41 @@
 
 """ Generalized interpolation functions. """
 
-import numpy as np
-from scipy.interpolate import interp1d
-from typing import Callable, Iterable
+from typing import Callable #, Iterable
+# import numpy as np
+
+from nuspacesim.utils.misc import cartesian_product
 
 
-def interp_table(a, v, y, x) -> Iterable:
-    """ """
+def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
+    """Factory function to return and interpolation function from a grid."""
 
-    ft = [interp1d(x[:, i], y) for i in range(x.shape[1])]
+    if interpolator is None:
+        from scipy.interpolate import RegularGridInterpolator
+        interpolator = RegularGridInterpolator
 
-    idxs = np.searchsorted(a, v)
-    r = np.empty_like(v)
+    interpf = interpolator(grid.axes, grid.data, **kwargs)
+    # bounds_error=False, fill_value=None
 
-    for i in range(a.shape[-1]):
-        mask = idxs == i
-        r[mask] = ft()
+    def interpolate(xi, *args, use_grid=False, **kwargs):
+        xi = cartesian_product(*xi) if use_grid else xi
+        return interpf(xi, *args, **kwargs)
+
+    return interpolate
 
 
-def interp_f(a, v, f: Callable) -> Callable:
-    """ """
+# def interp_table(a, v, y, x) -> Iterable:
+#     """ """
+
+#     ft = [interp1d(x[:, i], y) for i in range(x.shape[1])]
+
+#     idxs = np.searchsorted(a, v)
+#     r = np.empty_like(v)
+
+#     for i in range(a.shape[-1]):
+#         mask = idxs == i
+#         r[mask] = ft()
+
+
+# def interp_f(a, v, f: Callable) -> Callable:
+# """ """

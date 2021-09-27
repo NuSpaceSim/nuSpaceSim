@@ -36,9 +36,11 @@
 import numpy as np
 
 from astropy.table import Table as AstropyTable
-from nuspacesim.data.grid import NssGrid
+from nuspacesim.utils.grid import NssGrid
+from nuspacesim.utils.interp import grid_interpolator
 
 # from typing import Iterable, Union
+
 
 def nu2tau_pexit_from_ascii():
     pexit_file = AstropyTable.read(
@@ -90,8 +92,9 @@ def nu2tau_tauEDistCDF_from_ascii():
 
     full_grids = []
     for g in grids:
+        interp = grid_interpolator(g)
         full_grids.append(
-            g.interpolate(grids[-1].axes, use_grid=True).reshape(grids[-1].shape)
+            interp(grids[-1].axes, use_grid=True).reshape(grids[-1].shape)
         )
 
     return NssGrid(
@@ -99,6 +102,7 @@ def nu2tau_tauEDistCDF_from_ascii():
         [np.arange(7.0, 11.0, 0.25), *grids[-1].axes],
         ["log_nu_e", *grids[-1].axis_names],
     )
+
 
 def make_nu2tau_cdf_from_ascii():
 
@@ -112,8 +116,6 @@ def make_nu2tau_cdf_from_ascii():
     grd3 = NssGrid.read(hname, format="hdf5")
     print(tau_cdf_grid == grd2)
     print(tau_cdf_grid == grd3)
-
-
 
 
 if __name__ == "__main__":

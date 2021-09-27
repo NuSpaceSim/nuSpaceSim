@@ -31,17 +31,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""N-Dimensional Gridded Data class with labeled Axes and Interpolation."""
+"""N-Dimensional Gridded Data class with labeled Axes."""
 
 from astropy.io import fits, registry
 from astropy.io.misc import hdf5
 from astropy.nddata import NDDataArray
 from astropy.table import Table as AstropyTable
-from scipy.interpolate import RegularGridInterpolator
 
 import numpy as np
-
-from nuspacesim.utils.misc import cartesian_product
 
 __all__ = [
     "NssGrid",
@@ -98,13 +95,6 @@ class NssGrid(NDDataArray):
 
         self.meta = {**{f"AXIS{i}": n for i, n in enumerate(self.axis_names)}}
 
-        self.interpolator = RegularGridInterpolator(
-            self.axes, self.data, bounds_error=False, fill_value=None
-        )
-
-    def interpolate(self, xi, *args, use_grid=False, **kwargs):
-        xi = cartesian_product(*xi) if use_grid else xi
-        return self.interpolator(xi, *args, **kwargs)
 
     read = registry.UnifiedReadWriteMethod(NssGridRead)
     write = registry.UnifiedReadWriteMethod(NssGridWrite)
