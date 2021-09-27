@@ -1,4 +1,5 @@
 import click
+from nuSpaceSim.EAScherGen.CompositeShowers.composite_eas import composite_eas
 from nuSpaceSim.EAScherGen.Conex.conex_macros import conex_converter
 from nuSpaceSim.EAScherGen.Conex.conex_plotter import conex_plotter
 from nuSpaceSim.create_xml import create_xml
@@ -159,6 +160,17 @@ def pythia_sampler(pythia_filename,
                    num_occurance=occur, 
                    cross_filter=crossfilt, 
                    color=color) 
+
+#base composite showers
+@cli.command()
+@click.argument("write_to", type=str)
+@click.option("-p","--sample_plt",  is_flag=True)
+def composite_showers(write_to, sample_plt): 
+    """
+    Make composite showers based on sample data.
+    """
+    composite_eas(write_to, sample_plt)
+
 
 
 if __name__ == "__main__":

@@ -70,4 +70,4 @@ def composite_eas (output_data = None, sample_plt = None):
         plt.show() 
 
 if __name__ == '__main__': 
-    composite_eas ()
+    composite_eas (sample_plt=True)

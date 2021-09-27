@@ -65,7 +65,7 @@ def composite_showers_to_h5 (file_name_out:str, composite_showers, composite_dep
     new_hdf5.create_dataset("showers", data = composite_showers)
     new_hdf5.create_dataset("slantdepths", data = composite_depths)
     new_hdf5.close()
-    print('File written to current directory...')
+    print('Data written to', file_name_out)
 
 def greisen_param (conex_showers, row, x_limit, pythia_tables, table_energy = 100e15 ): 
     r"""
