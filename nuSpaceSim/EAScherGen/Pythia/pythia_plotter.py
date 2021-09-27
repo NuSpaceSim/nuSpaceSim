@@ -33,7 +33,8 @@ def pythia_plotter (file_name, data_name, particle_id, table_energy_pev, num_occ
             filtered_one_type = pythia_macros.event_filter(particle_data = one_type, 
                                                            occurance_number =  num_occurance)
             param = filtered_one_type * table_energy_pev
-            title = f'Pythia Data PID: {raw_particle_id} | ' + str(file_name.split('/')[-1])+ '/'+ str(data_name)
+            title = f'Pythia Data PID: {raw_particle_id} | ' + \
+                    str(file_name.split('/')[-1]) + '/' + str(data_name)
             conex_macros.parameter_histogram(param = param, 
                                              title = title, 
                                              x_label = 'Energy (PeV)',
@@ -66,7 +67,7 @@ def pythia_plotter (file_name, data_name, particle_id, table_energy_pev, num_occ
                                                         cross_filter_data = filter_type)
             param = cross_filtered * table_energy_pev
             title = f'Pythia Data PID: {raw_particle_id} | Cross-filter PID: {cross_filter} | ' + \
-                         str(file_name.split('/')[-1]) + '/' + str(data_name)
+                    str(file_name.split('/')[-1]) + '/' + str(data_name)
             conex_macros.parameter_histogram(param = param, 
                                              title = title, 
                                              x_label = 'Energy (PeV)',

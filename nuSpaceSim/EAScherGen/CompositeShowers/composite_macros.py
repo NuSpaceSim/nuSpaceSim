@@ -1,10 +1,51 @@
 import h5py
+import importlib_resources
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 import sys
 
 np.seterr(all='ignore')
+
+def load_sample_hdf5_data ():    
+    r"""Load some sample data.
+    
+    Returns
+    -------
+    List
+        Arrays of sample CORSIKA GH for electron, gamma, and, pion. Also, tau decays. 
+        
+        electron_gh, gamma_gh, pion_gh, tau_decays
+    """
+    electron = importlib_resources.files('nuSpaceSim.DataLibraries.' \
+                                    'ConexOutputData.HDF5_data') / 'electron_EAS_table.h5'
+        
+    gamma = importlib_resources.files('nuSpaceSim.DataLibraries.' \
+                                    'ConexOutputData.HDF5_data') / 'gamma_EAS_table.h5'
+        
+    pion = importlib_resources.files('nuSpaceSim.DataLibraries.' \
+                                'ConexOutputData.HDF5_data') / 'pion_EAS_table.h5'
+        
+    pythia_output = importlib_resources.files('nuSpaceSim.DataLibraries.' \
+                                'PythiaDecayTables.HDF5_data') / 'new_tau_100_PeV.h5'
+        
+    with importlib_resources.as_file(electron) as path:
+        data = h5py.File(path, 'r')
+        electron_gh = np.array(data.get('EASdata_11'))
+        
+    with importlib_resources.as_file(gamma) as path:
+        data = h5py.File(path, 'r')
+        gamma_gh = np.array(data.get('EASdata_22'))
+        
+    with importlib_resources.as_file(pion) as path:
+        data = h5py.File(path, 'r')
+        pion_gh = np.array(data.get('EASdata_211'))
+        
+    with importlib_resources.as_file(pythia_output) as path:
+        data = h5py.File(path, 'r')
+        tau_decays = np.array(data.get('tau_data'))
+        
+    return electron_gh, gamma_gh, pion_gh, tau_decays
 
 def data_reader (file_path, data_name): 
     file_path = os.path.abspath(file_path)
@@ -17,19 +58,21 @@ def data_reader (file_path, data_name):
         data_array = np.array(data_array)
         return data_array
 
-#composite writer to h5
-# new_hdf5 = h5py.File('sample_composite_showers.h5', 'w')
-# new_hdf5.create_dataset("showers", data = composite_showers)
-# new_hdf5.create_dataset("slantdepths", data = composite_bins)
-# new_hdf5.close()
-# print('File written to current directory...')
+def composite_showers_to_h5 (file_name_out:str, composite_showers, composite_depths):
+    r""" Writes out composite showers to .h5.
+    """
+    new_hdf5 = h5py.File(file_name_out, 'w')
+    new_hdf5.create_dataset("showers", data = composite_showers)
+    new_hdf5.create_dataset("slantdepths", data = composite_depths)
+    new_hdf5.close()
+    print('File written to current directory...')
 
 def greisen_param (conex_showers, row, x_limit, pythia_tables, table_energy = 100e15 ): 
-    '''
+    r"""
     > uses the Greisen parametrization 
-    > Cosmic Rays and Particle Physics by Thomas K. Gaisser, eq 15.28
+    > cosmic Rays and Particle Physics by Thomas K. Gaisser, eq 15.28
     > depends solely on electron energies from Pythia Tables 
-    '''
+    """
     gh_n_max = conex_showers[row, 4]  #n_max scaled by y 
     
     #read in Pythia Decays Data
@@ -117,9 +160,19 @@ def composite_gh_param (conex_showers, row, x_limit, pythia_tables, bins = 2000)
     return x, f, event_number, scaled_n_max, y, x_max, x_0, LambdaAtx_max 
 
 
-def composite_eas (conex_showers, pythia_tables, end_row, start_row = 0, bins = 2000, x_limit = 2000, 
-                      sum_content_per_event = None, n_max_cut_threshold = None, rebound_plt = None, 
-                      regular_plt = None, greisen_comparison = None, average_plt = None):
+def composite_eas (conex_showers, 
+                   pythia_tables, 
+                   end_row, 
+                   start_row = 0, 
+                   bins = 2000, 
+                   x_limit = 2000, 
+                   sum_content_per_event = None, 
+                   n_max_cut_threshold = None, 
+                   rebound_plt = None, 
+                   regular_plt = None, 
+                   greisen_comparison = None, 
+                   average_plt = None
+                   ):
     '''
     > plots the profiles based on composite GH parameters \n
     > uses the composite_gh_param function \n
@@ -239,7 +292,7 @@ def composite_eas (conex_showers, pythia_tables, end_row, start_row = 0, bins = 
 
             for event, particleContent in zip(event_labels, summed_content): 
                 #check how to implement the bins, same bins for now
-                plt.plot(x, particleContent, '--', label = "Summed Event " + str (int (event) ) ) 
+                plt.plot(x, particleContent, '--', label = "Decay Event " + str (int (event) ) ) 
        
         if rebound_plt is True:
             
@@ -373,7 +426,7 @@ def composite_eas (conex_showers, pythia_tables, end_row, start_row = 0, bins = 
             
             for event, particleContent, x  in zip(event_labels, summed_content, xs): 
                 
-                plt.plot(x, particleContent,'--', label = "Summed Event " + str (int (event) ) )
+                plt.plot(x, particleContent,'--', label = "Decay Event " + str (int (event) ) )
                 
 
 
@@ -422,7 +475,7 @@ def composite_plotter (start_row, end_row, event_labels, event_bins, particle_co
         for event, event_id, shower_content,slant_depths  in \
                         zip(event_labels[:,0], event_labels[:,1], particle_content, event_bins): 
             
-            plt.plot(slant_depths, shower_content,'-', label = "Summed Event " + str (int (event) ) 
+            plt.plot(slant_depths, shower_content,'-', label = "Decay Event " + str (int (event) ) 
                      + ' (' + str(int(event_id)) + ')' ) 
 
   
