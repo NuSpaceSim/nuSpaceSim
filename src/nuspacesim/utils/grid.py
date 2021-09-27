@@ -197,6 +197,15 @@ class NssGrid(NDDataArray):
         idx = np.where(self.axes[ax] == value)[0][0]
         return idx
 
+    def slc(self, axis_name, axis_val, axis_index):
+        pass
+        none_list = [None] * self.ndim
+        d_slice = slice(*none_list)
+        g_slice = [d_slice] * self.ndim
+        g_slice[axis_index] = self.index_where_eq(axis_name, axis_val)
+        return self[g_slice]
+
+
 
 def fits_nssgrid_reader(filename, **kwargs):
 

@@ -36,14 +36,18 @@ class RegionGeom(nssgeo.Geom_params):
 
         return betaArr
 
+    def beta_rad(self):
+        """Create array of Earth-emergence angles for valid events."""
+        return np.radians(self.betas())
+
     def __call__(self, numtrajs, store=None):
-        """Throw numtrajs events and return valid betas."""
+        """Throw numtrajs events and return valid betas in radians."""
         self.throw(numtrajs)
 
         if store is not None:
-            store(["beta_tr"], [self.betas()])
+            store(["beta_tr"], [self.beta_rad()])
 
-        return self.betas()
+        return self.beta_rad()
 
     def mcintegral(self, numPEs, costhetaCh, tauexitprob, store=None):
         """Monte Carlo integral."""

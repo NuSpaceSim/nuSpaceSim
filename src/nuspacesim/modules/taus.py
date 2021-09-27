@@ -56,45 +56,41 @@ class Taus(object):
             importlib_resources.files("nuspacesim.data.RenoNu2TauTables")
             / "nu2tau_pexit.hdf5"
         ) as file:
-            g = NssGrid.read(file, format="hdf5")
-            self.pexit_grid = g[
-                g.index_where_eq("log_nu_e", config.simulation.log_nu_tau_energy), :
-            ]
+            self.pexit_grid = NssGrid.read(file, format="hdf5").slc(
+                "log_nu_e", config.simulation.log_nu_tau_energy, 0
+            )
 
         # grid of tau_cdf tables
         with importlib_resources.as_file(
             importlib_resources.files("nuspacesim.data.RenoNu2TauTables")
             / "nu2tau_cdf.hdf5"
         ) as file:
-            g = NssGrid.read(file, format="hdf5")
-            self.tau_cdf_grid = g[
-                g.index_where_eq("log_nu_e", config.simulation.log_nu_tau_energy), :, :
-            ]
+            self.tau_cdf_grid = NssGrid.read(file, format="hdf5").slc(
+                "log_nu_e", config.simulation.log_nu_tau_energy, 0
+            )
 
         self.tau_cdf_sample = cdf_sample_factory(self.tau_cdf_grid, 0)
         self.nu_tau_energy = self.config.simulation.nu_tau_energy
 
-    def tau_exit_prob(self, betaArr):
+    def tau_exit_prob(self, betas):
         """
         Tau Exit Probability
         """
-        brad = np.radians(betaArr)
-
-        logtauexitprob = self.pexit_grid.interpolate(brad)
+        logtauexitprob = self.pexit_grid.interpolate(betas)
 
         tauexitprob = 10 ** logtauexitprob
 
         return tauexitprob
 
-    def tau_energy(self, betaArr, u=None):
+    def tau_energy(self, betas, u=None):
         """
-        Tau energies interpolated from teCDF for given beta index.
+        Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
 
-        tauEF = self.tau_cdf_sample(betaArr, u)
+        tauEF = self.tau_cdf_sample(betas, u)
         return tauEF * self.nu_tau_energy
 
-    def __call__(self, betaArr, store=None):
+    def __call__(self, betas, store=None):
         """
         Perform main operation for Taus module.
 
@@ -102,8 +98,8 @@ class Taus(object):
 
         """
 
-        tauExitProb = self.tau_exit_prob(betaArr)
-        tauEnergy = self.tau_energy(betaArr)
+        tauExitProb = self.tau_exit_prob(betas)
+        tauEnergy = self.tau_energy(betas)
 
         # in units of 100 PeV
         showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1.0e8

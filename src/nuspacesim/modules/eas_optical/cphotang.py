@@ -163,11 +163,11 @@ class CphotAng:
         eang = np.arange(self.dtype(1.0), self.Ieang + self.dtype(2))
         self.ehill = np.power(10.0, eang, dtype=self.dtype)
 
-    def theta_view(self, betaE):
+    def theta_view(self, ThetProp):
         """
         Compute theta view from initial betas
         """
-        ThetProp = np.radians(betaE)
+        # ThetProp = np.radians(betaE)
         ThetView = self.RadE / (self.RadE + self.zmax)
         ThetView *= np.cos(ThetProp, dtype=self.dtype)
         ThetView = np.arcsin(ThetView, dtype=self.dtype)
@@ -497,7 +497,9 @@ class CphotAng:
         """ Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
-        betaE = self.dtype(self.dtype(1) if betaE < 1.0 else betaE)
+        betaE = self.dtype(
+            np.radians(self.dtype(1)) if betaE < np.radians(1.0) else betaE
+        )
 
         ThetView = self.theta_view(betaE)
         sinThetView = np.sin(ThetView, dtype=self.dtype)

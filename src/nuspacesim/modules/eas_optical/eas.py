@@ -60,13 +60,10 @@ class EAS:
 
         lenDec = tDec * tauBeta * self.config.constants.c
 
-        # brad = beta * (self.config.fundcon.pi / 180.0)
-        brad = np.radians(beta)
-
         altDec = np.sqrt(
             self.config.constants.earth_radius ** 2
             + lenDec ** 2
-            + 2.0 * self.config.constants.earth_radius * lenDec * np.sin(brad)
+            + 2.0 * self.config.constants.earth_radius * lenDec * np.sin(beta)
         )
 
         altDec -= self.config.constants.earth_radius
@@ -81,8 +78,8 @@ class EAS:
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
         mask = (altDec < 0.0) | (altDec > 20.0)
-        mask |= beta < 0.0
-        mask |= beta > 25.0
+        mask |= beta < np.radians(0.0)
+        mask |= beta > np.radians(25.0)
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.
