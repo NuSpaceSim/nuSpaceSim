@@ -40,9 +40,9 @@ from nuspacesim.utils.misc import cartesian_product
 
 __all__ = [
     "grid_interpolator",
-    "grid_RBFInterpolator",
     "grid_RegularGridInterpolator",
-    "legacy_RBFInterpolator",
+    # "grid_RBFInterpolator",
+    # "legacy_RBFInterpolator",
 ]
 
 
@@ -64,22 +64,24 @@ def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
 def grid_RegularGridInterpolator(grid, **kwargs):
     from scipy.interpolate import RegularGridInterpolator
 
-    # if "bounds_error" not in kwargs:
-    #     kwargs["bounds_error"] = False
-    # if "fill_value" not in kwargs:
-    #     kwargs["fill_value"] = None
+    if "bounds_error" not in kwargs:
+        kwargs["bounds_error"] = False
+    if "fill_value" not in kwargs:
+        kwargs["fill_value"] = None
 
-    return RegularGridInterpolator([grid.axes[1], grid.data], grid.axes[0] **kwargs)
+    return RegularGridInterpolator(grid.axes, grid.data, **kwargs)
 
 
-def grid_RBFInterpolator(grid, **kwargs) -> Callable:
-    from scipy.interpolate import RBFInterpolator
+# def grid_RBFInterpolator(grid, **kwargs) -> Callable:
+#     from scipy.interpolate import RBFInterpolator
 
-    return RBFInterpolator(cartesian_product(*grid.axes), grid.data, **kwargs)
+#     return RBFInterpolator(cartesian_product(*grid.axes), grid.data, **kwargs)
 
 
 def legacy_RBFInterpolator(grid, **kwargs) -> Callable:
     from scipy.interpolate import Rbf
+
+    print(grid)
 
     peb_rbf = np.tile(grid.axes[1], grid.axes[0].shape)
     pelne_rbf = np.repeat(grid.axes[0], grid.axes[1].shape, 0)

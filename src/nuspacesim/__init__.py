@@ -53,7 +53,7 @@ __all__ = [
     # other
     "data",
     "utils",
-    "xml",
+    "xml_config",
     # version
     "version",
     "version_tuple",
@@ -61,7 +61,7 @@ __all__ = [
 
 from . import data
 from . import utils
-from . import xml
+from . import xml_config
 from .core import *
 from .modules import *
 # from .utils import *

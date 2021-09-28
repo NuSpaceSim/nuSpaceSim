@@ -38,6 +38,8 @@ from astropy.io.misc import hdf5
 from astropy.nddata import NDDataArray
 from astropy.table import Table as AstropyTable
 
+from typing import Union, Iterable
+
 import numpy as np
 
 __all__ = [
@@ -193,6 +195,38 @@ class NssGrid(NDDataArray):
         g_slice = [d_slice] * self.ndim
         g_slice[axis_index] = self.index_where_eq(axis_name, axis_val)
         return self[tuple(g_slice)]
+
+
+class NssAxes:
+    r"""Collection of differently sized, named 1D arrays"""
+
+    def __init__(
+        self, values: Union[float, Iterable], names: Union[str, Iterable[str]]
+    ):
+
+        if not isinstance(values, Iterable):
+            values = list([values])
+
+        if not isinstance(names, Iterable):
+            names = [names]
+
+        self.values: list[float] = list(values)
+        self.names: list[str] = list(names)
+
+    def __getitem__(self, item):
+
+        if isinstance(item, str):
+            if item in self.names:
+                i = self.names.index(item)
+                return self.values[i]
+            else:
+                raise ValueError(f"{item} not found in names.")
+
+        if isinstance(item, int):
+            if item < len(self.values):
+                return self.values[item]
+            else:
+                raise IndexError(f"Array index ({item}) out of bounds.")
 
 
 def fits_nssgrid_reader(filename, **kwargs):

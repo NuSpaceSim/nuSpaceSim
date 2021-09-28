@@ -35,43 +35,64 @@
 
 from typing import Callable
 
+from scipy.interpolate import interp1d
 import numpy as np
 
 from nuspacesim.utils.grid import NssGrid
-from nuspacesim.utils.interp import grid_interpolator
+# from nuspacesim.utils.interp import grid_interpolator
 
 
-def cdf_sample_factory(grid: NssGrid, cdf_ax: int, interpolation_class=None, **kwargs):
-    """CDF sampling function from given grid object."""
+# def cdf_sample_factory(grid: NssGrid, cdf_ax: int, interpolation_class=None, **kwargs):
+#     """CDF sampling function from given grid object."""
 
-    if interpolation_class is None:
-        interpolation_class = grid_interpolator
+#     if interpolation_class is None:
+#         interpolation_class = grid_interpolator
 
-    interpolator = interpolation_class(grid, **kwargs)
+#     interpolator = interpolation_class(grid, **kwargs)
 
-    def sample(*xi, u=None):
+#     def sample(*xi, u=None):
 
-        if len(xi) != grid.ndim - 1:
-            raise ValueError(f"Must provide {grid.ndim - 1} axes")
+#         if len(xi) != grid.ndim - 1:
+#             raise ValueError(f"Must provide {grid.ndim - 1} axes")
 
-        u = np.random.uniform(size=xi[0].shape[0]) if u is None else u
+#         u = np.random.uniform(size=xi[cdf_ax].shape[0]) if u is None else u
 
-        for a in xi:
-            print(xi, a)
-            if u.shape != a.shape:
-                raise ValueError(f"All axes must have same shape {u.shape}, {a.shape}")
+#         for a in xi:
+#             print(xi, a)
+#             if u.shape != a.shape:
+#                 raise ValueError(f"All axes must have same shape {u.shape}, {a.shape}")
 
-        points = list([*xi])
-        points.insert(cdf_ax, u)
-        points = np.column_stack(points)
-        print(points)
+#         points = list([*xi])
+#         points.insert(cdf_ax, u)
+#         points = np.column_stack(points)
+#         print(points)
 
-        return interpolator(points)
+#         return interpolator(points)
+
+#     return sample
+
+def cdf_sampler(grid):
+
+    f = interp1d(grid.axes[1], grid.data, axis=1)
+
+    def sample(xs, u=None):
+
+        u = np.random.uniform(size=xs) if u is None else u
+
+        samples = np.empty_like(xs)
+
+        for i, x in enumerate(xs):
+            cdf = f(x)
+            samples[i] = interp1d(cdf, grid.axes[0])(u[i])
+
+        return samples
 
     return sample
 
 
-def legacy_cdf_interp(grid) -> Callable:
+
+
+def legacy_cdf_sample(grid) -> Callable:
     from scipy.interpolate import interp1d
 
     teBetaLowBnds = (grid.axes[1][1:] + grid.axes[1][:-1]) / 2

@@ -44,7 +44,7 @@ from nuspacesim.core.config import (
     DetectorCharacteristics,
     SimulationParameters,
 )
-from nuspacesim.xml import config_xml_schema
+from nuspacesim.xml_config import config_xml_schema
 
 __all__ = [
     "is_valid_xml",

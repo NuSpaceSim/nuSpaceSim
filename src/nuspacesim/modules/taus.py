@@ -37,8 +37,9 @@ from importlib_resources import as_file, files
 import numpy as np
 from nuspacesim.core import NssConfig
 from nuspacesim.utils.grid import NssGrid
-from nuspacesim.utils.cdf import cdf_sample_factory, legacy_cdf_interp
-from nuspacesim.utils.interp import grid_interpolator
+from nuspacesim.utils.cdf import legacy_cdf_sample
+
+from scipy.interpolate import interp1d
 
 
 class Taus(object):
@@ -59,7 +60,7 @@ class Taus(object):
             g = NssGrid.read(file, format="hdf5").slc(
                 "log_nu_e", config.simulation.log_nu_tau_energy, 0
             )
-            self.pexit_interp = grid_interpolator(g)
+            self.pexit_interp = interp1d(g.axes[0], g.data)
 
         # grid of tau_cdf tables
         with as_file(
@@ -70,10 +71,8 @@ class Taus(object):
                 format="hdf5",
                 path=f"/log_nu_e_{self.config.simulation.log_nu_tau_energy}",
             )
-        # .slc("log_nu_e", config.simulation.log_nu_tau_energy, 0)
 
-        self.tau_cdf_sample = cdf_sample_factory(self.tau_cdf_grid, 0)
-        # self.tau_cdf_sample = legacy_cdf_interp(self.tau_cdf_grid)
+        self.tau_cdf_sample = legacy_cdf_sample(self.tau_cdf_grid)
         self.nu_tau_energy = self.config.simulation.nu_tau_energy
 
     def tau_exit_prob(self, betas):
@@ -110,17 +109,10 @@ class Taus(object):
         tauExitProb = self.tau_exit_prob(betas)
         tauEnergy = self.tau_energy(betas)
 
-        mask = tauEnergy == 0.0
-        print(tauEnergy[mask])
-        print(betas[mask])
-        print(np.degrees(betas[mask]))
-        print(np.degrees(betas[betas <= np.amax(betas[mask])]))
-
         # in units of 100 PeV
         showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1.0e8
 
         tauLorentz = tauEnergy / self.config.constants.massTau
-        # print(tauLorentz[np.abs(tauLorentz) <= 1e-2])
 
         tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
 
