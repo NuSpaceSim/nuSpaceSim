@@ -33,12 +33,13 @@
 
 """tau propagation module"""
 
-import importlib_resources
+from importlib_resources import as_file, files
 import numpy as np
 from nuspacesim.core import NssConfig
 from nuspacesim.utils.grid import NssGrid
-from nuspacesim.utils.cdf import cdf_sample_factory
-from nuspacesim.utils.interp import grid_interpolator
+from nuspacesim.utils.cdf import legacy_cdf_sample
+
+from scipy.interpolate import interp1d
 
 
 class Taus(object):
@@ -53,43 +54,48 @@ class Taus(object):
         self.config = config
 
         # grid of pexit table
-        with importlib_resources.as_file(
-            importlib_resources.files("nuspacesim.data.RenoNu2TauTables")
-            / "nu2tau_pexit.hdf5"
+        with as_file(
+            files("nuspacesim.data.RenoNu2TauTables") / "nu2tau_pexit.hdf5"
         ) as file:
             g = NssGrid.read(file, format="hdf5").slc(
                 "log_nu_e", config.simulation.log_nu_tau_energy, 0
             )
-            self.pexit_interp = grid_interpolator(g)
+            self.pexit_interp = interp1d(g.axes[0], g.data)
 
         # grid of tau_cdf tables
-        with importlib_resources.as_file(
-            importlib_resources.files("nuspacesim.data.RenoNu2TauTables")
-            / "nu2tau_cdf.hdf5"
+        with as_file(
+            files("nuspacesim.data.RenoNu2TauTables") / "nu2tau_cdf.hdf5"
         ) as file:
-            self.tau_cdf_grid = NssGrid.read(file, format="hdf5").slc(
-                "log_nu_e", config.simulation.log_nu_tau_energy, 0
+            self.tau_cdf_grid = NssGrid.read(
+                file,
+                format="hdf5",
+                path=f"/log_nu_e_{self.config.simulation.log_nu_tau_energy}",
             )
 
-        self.tau_cdf_sample = cdf_sample_factory(self.tau_cdf_grid, 0)
+        self.tau_cdf_sample = legacy_cdf_sample(self.tau_cdf_grid)
         self.nu_tau_energy = self.config.simulation.nu_tau_energy
 
     def tau_exit_prob(self, betas):
         """
         Tau Exit Probability
         """
-        logtauexitprob = self.pexit_interp(betas)
+        mask = betas >= np.radians(1.0)
+        logtauexitprob = np.full(
+            betas.shape, self.pexit_interp(np.array([np.radians(1.0)]))
+        )
+        logtauexitprob[mask] = self.pexit_interp(betas[mask])
 
         tauexitprob = 10 ** logtauexitprob
 
         return tauexitprob
 
-    def tau_energy(self, betas, u=None):
+    def tau_energy(self, betas):
         """
         Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
-
-        tauEF = self.tau_cdf_sample(betas, u)
+        mask = betas >= np.radians(1.0)
+        tauEF = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
+        tauEF[mask] = self.tau_cdf_sample(betas[mask])
         return tauEF * self.nu_tau_energy
 
     def __call__(self, betas, store=None):

@@ -39,7 +39,7 @@
 import click
 
 from nuspacesim.core import NssConfig, SimulationParameters, simulate, write_fits
-from nuspacesim.xml import config_from_xml, create_xml
+from nuspacesim.xml_config import config_from_xml, create_xml
 
 
 @click.group()

@@ -44,7 +44,7 @@ from nuspacesim.core.config import (
     DetectorCharacteristics,
     SimulationParameters,
 )
-from nuspacesim.xml import config_xml_schema
+from nuspacesim.xml_config import config_xml_schema
 
 __all__ = [
     "is_valid_xml",
@@ -159,7 +159,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
-        nu_tau_energy=10 ** float(simparams["NuTauEnergy"]),
+        nu_tau_energy=float(simparams["NuTauEnergy"]),
         e_shower_frac=float(simparams["FracETauInShower"]),
         ang_from_limb=float(simparams["AngleFromLimb"]),
         max_azimuth_angle=float(simparams["AzimuthalAngle"]),

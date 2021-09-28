@@ -33,37 +33,95 @@
 
 """CDF Sampling Utilities."""
 
-from nuspacesim.utils.grid import NssGrid
-from nuspacesim.utils.interp import grid_interpolator
+from typing import Callable
+
+from scipy.interpolate import interp1d
 import numpy as np
 
+from nuspacesim.utils.grid import NssGrid
+# from nuspacesim.utils.interp import grid_interpolator
 
-def cdf_sample_factory(grid: NssGrid, cdf_ax: int, interpolation_class=None, **kwargs):
-    """CDF sampling function from given grid object."""
 
-    if interpolation_class is None:
-        interpolation_class = grid_interpolator(grid, **kwargs)
+# def cdf_sample_factory(grid: NssGrid, cdf_ax: int, interpolation_class=None, **kwargs):
+#     """CDF sampling function from given grid object."""
 
-    interpolator = interpolation_class(grid, **kwargs)
+#     if interpolation_class is None:
+#         interpolation_class = grid_interpolator
 
-    def sample(*axes, u=None):
+#     interpolator = interpolation_class(grid, **kwargs)
 
-        if len(axes) != grid.ndim - 1:
-            raise ValueError(f"Must provide {grid.ndim - 1} axes")
+#     def sample(*xi, u=None):
 
-        u = np.random.uniform(size=axes[0].shape[0]) if u is None else u
+#         if len(xi) != grid.ndim - 1:
+#             raise ValueError(f"Must provide {grid.ndim - 1} axes")
 
-        for a in axes:
-            if u.shape != a.shape:
-                raise ValueError(f"axes must have same shape")
+#         u = np.random.uniform(size=xi[cdf_ax].shape[0]) if u is None else u
 
-        full_axes = list([*axes])
-        full_axes.insert(cdf_ax, u)
+#         for a in xi:
+#             print(xi, a)
+#             if u.shape != a.shape:
+#                 raise ValueError(f"All axes must have same shape {u.shape}, {a.shape}")
 
-        v = np.column_stack(full_axes)
-        return interpolator(v)
+#         points = list([*xi])
+#         points.insert(cdf_ax, u)
+#         points = np.column_stack(points)
+#         print(points)
+
+#         return interpolator(points)
+
+#     return sample
+
+def cdf_sampler(grid):
+
+    f = interp1d(grid.axes[1], grid.data, axis=1)
+
+    def sample(xs, u=None):
+
+        u = np.random.uniform(size=xs) if u is None else u
+
+        samples = np.empty_like(xs)
+
+        for i, x in enumerate(xs):
+            cdf = f(x)
+            samples[i] = interp1d(cdf, grid.axes[0])(u[i])
+
+        return samples
 
     return sample
+
+
+
+
+def legacy_cdf_sample(grid) -> Callable:
+    from scipy.interpolate import interp1d
+
+    teBetaLowBnds = (grid.axes[1][1:] + grid.axes[1][:-1]) / 2
+    teBetaUppBnds = np.append(teBetaLowBnds, grid.axes[1][-1])
+    teBetaLowBnds = np.insert(teBetaLowBnds, 0, 0.0, axis=0)
+
+    # Array of tecdf interpolation functions
+    interps = [
+        interp1d(grid.data[:, i], grid.axes[0]) for i in range(grid.axes[1].shape[0])
+    ]
+
+    # print("upper:", teBetaLowBnds)
+    # print("lower:", teBetaUppBnds)
+
+    def interpolate(xi, u=None):
+        u = np.random.uniform(size=xi.shape[0]) if u is None else u
+
+        # fast interpolation selection with masking
+        betaIdxs = np.searchsorted(teBetaUppBnds, xi)
+        # print("index:", betaIdxs)
+        tauEF = np.empty_like(xi)
+
+        for i in range(grid.axes[1].shape[0]):
+            mask = betaIdxs == i
+            tauEF[mask] = interps[i](u[mask])
+
+        return tauEF
+
+    return interpolate
 
 
 if __name__ == "__main__":
