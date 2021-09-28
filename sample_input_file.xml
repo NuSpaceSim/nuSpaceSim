@@ -4,22 +4,22 @@
     <QuantumEfficiency>0.2</QuantumEfficiency>
     <TelescopeEffectiveArea Unit="Sq.Meters">2.5</TelescopeEffectiveArea>
     <PhotoElectronThreshold Preset="true">
-      <NPE>10</NPE>
+      <NPE>10.0</NPE>
     </PhotoElectronThreshold>
     <DetectorAltitude Unit="km">525.0</DetectorAltitude>
-    <InitialDetectorRightAscension Unit="Degrees">0.0</InitialDetectorRightAscension>
-    <InitialDetectorDeclination Unit="Degrees">0.0</InitialDetectorDeclination>
+    <InitialDetectorRightAscension Unit="Radians">0.0</InitialDetectorRightAscension>
+    <InitialDetectorDeclination Unit="Radians">0.0</InitialDetectorDeclination>
   </DetectorCharacteristics>
   <SimulationParameters DetectionMode="Diffuse">
-    <MaximumCherenkovAngle Unit="Degrees">3.0</MaximumCherenkovAngle>
-    <AngleFromLimb Unit="Degrees">7.0</AngleFromLimb>
+    <MaximumCherenkovAngle Unit="Radians">0.05235987755982989</MaximumCherenkovAngle>
+    <AngleFromLimb Unit="Radians">0.12217304763960307</AngleFromLimb>
     <TauShowerType Preset="true">
       <FracETauInShower>0.5</FracETauInShower>
     </TauShowerType>
     <NuTauEnergySpecType SpectrumType="Mono">
-      <NuTauEnergy>8.0</NuTauEnergy>
+      <NuTauEnergy>100000000.0</NuTauEnergy>
     </NuTauEnergySpecType>
-    <AzimuthalAngle Unit="Degrees">360.0</AzimuthalAngle>
-    <NumTrajs>10</NumTrajs>
+    <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
+    <NumTrajs>1000</NumTrajs>
   </SimulationParameters>
 </NuSpaceSimParams>

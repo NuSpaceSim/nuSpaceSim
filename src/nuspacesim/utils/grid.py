@@ -95,7 +95,6 @@ class NssGrid(NDDataArray):
 
         self.meta = {**{f"AXIS{i}": n for i, n in enumerate(self.axis_names)}}
 
-
     read = registry.UnifiedReadWriteMethod(NssGridRead)
     write = registry.UnifiedReadWriteMethod(NssGridWrite)
 
@@ -193,8 +192,7 @@ class NssGrid(NDDataArray):
         d_slice = slice(*none_list)
         g_slice = [d_slice] * self.ndim
         g_slice[axis_index] = self.index_where_eq(axis_name, axis_val)
-        return self[g_slice]
-
+        return self[tuple(g_slice)]
 
 
 def fits_nssgrid_reader(filename, **kwargs):
@@ -235,9 +233,9 @@ def hdf5_nssgrid_reader(filename, path="/"):
     pass
 
     with h5py.File(filename, "r") as f:
-        griddata = f[path + "__nss_grid_data__"][()]
-        axis_names = [f.attrs[f"AXIS{i}"] for i in range(griddata.ndim)]
-        axes = [f[path + "__nss_grid_axes__"][name][()] for name in axis_names]
+        griddata = f[path]["__nss_grid_data__"][()]
+        axis_names = [f[path].attrs[f"AXIS{i}"] for i in range(griddata.ndim)]
+        axes = [f[path]["__nss_grid_axes__"][name][()] for name in axis_names]
 
     return NssGrid(griddata, axes=axes, axis_names=axis_names)
 
@@ -250,24 +248,22 @@ def hdf5_nssgrid_writer(grid, filename, path="/", **kwargs):
 
     if "overwrite" in kwargs.keys():
         if kwargs["overwrite"] == False:
-            RuntimeWarning(f"Not overwritting file: {filename}")
-            return
+            mode = "w-"
+        else:
+            mode = "w"
+    else:
+        mode = "a"
 
-    with h5py.File(filename, "w") as f:
+    with h5py.File(filename, mode) as f:
 
-        f.create_dataset(
-            path + "__nss_grid_data__",
-            shape=grid.shape,
-            data=grid.data,
-            compression="gzip",
-            compression_opts=9,
-        )
-        ax = f.create_group(path + "__nss_grid_axes__")
+        grp = f[path] if path in f else f.create_group(path)
+        grp.create_dataset("__nss_grid_data__", shape=grid.shape, data=grid.data)
+        ax = grp.create_group("__nss_grid_axes__")
         for axis, name in zip(grid.axes, grid.axis_names):
             ax.create_dataset(name, data=axis)
 
         for k, v in grid.meta.items():
-            f.attrs[k] = v
+            grp.attrs[k] = v
 
 
 with registry.delay_doc_updates(NssGrid):

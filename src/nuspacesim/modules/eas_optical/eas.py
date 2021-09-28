@@ -49,12 +49,12 @@ class EAS:
         self.config = config
         self.CphotAng = CphotAng()
 
-    def altDec(self, beta, tauBeta, tauLorentz, u=None) -> float:
+    def altDec(self, beta, tauBeta, tauLorentz, u=None):
         """
         alt Decay
         """
 
-        u = np.random.uniform(0, 1, len(beta)) if u is None else u
+        u = np.random.uniform(0.0, 1.0, len(beta)) if u is None else u
 
         tDec = (-1.0 * tauLorentz / self.config.constants.inv_mean_Tau_life) * np.log(u)
 
@@ -78,7 +78,6 @@ class EAS:
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
         mask = (altDec < 0.0) | (altDec > 20.0)
-        mask |= beta < np.radians(0.0)
         mask |= beta > np.radians(25.0)
         mask = ~mask
 

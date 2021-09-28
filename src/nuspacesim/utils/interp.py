@@ -33,21 +33,26 @@
 
 """ Generalized interpolation functions. """
 
-from typing import Callable #, Iterable
-# import numpy as np
+import numpy as np
 
+from typing import Callable
 from nuspacesim.utils.misc import cartesian_product
+
+__all__ = [
+    "grid_interpolator",
+    "grid_RBFInterpolator",
+    "grid_RegularGridInterpolator",
+    "legacy_RBFInterpolator",
+]
 
 
 def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
     """Factory function to return and interpolation function from a grid."""
 
     if interpolator is None:
-        from scipy.interpolate import RegularGridInterpolator
-        interpolator = RegularGridInterpolator
+        interpolator = grid_RegularGridInterpolator
 
-    interpf = interpolator(grid.axes, grid.data, **kwargs)
-    # bounds_error=False, fill_value=None
+    interpf = interpolator(grid, **kwargs)
 
     def interpolate(xi, *args, use_grid=False, **kwargs):
         xi = cartesian_product(*xi) if use_grid else xi
@@ -56,18 +61,27 @@ def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
     return interpolate
 
 
-# def interp_table(a, v, y, x) -> Iterable:
-#     """ """
+def grid_RegularGridInterpolator(grid, **kwargs):
+    from scipy.interpolate import RegularGridInterpolator
 
-#     ft = [interp1d(x[:, i], y) for i in range(x.shape[1])]
+    # if "bounds_error" not in kwargs:
+    #     kwargs["bounds_error"] = False
+    # if "fill_value" not in kwargs:
+    #     kwargs["fill_value"] = None
 
-#     idxs = np.searchsorted(a, v)
-#     r = np.empty_like(v)
-
-#     for i in range(a.shape[-1]):
-#         mask = idxs == i
-#         r[mask] = ft()
+    return RegularGridInterpolator([grid.axes[1], grid.data], grid.axes[0] **kwargs)
 
 
-# def interp_f(a, v, f: Callable) -> Callable:
-# """ """
+def grid_RBFInterpolator(grid, **kwargs) -> Callable:
+    from scipy.interpolate import RBFInterpolator
+
+    return RBFInterpolator(cartesian_product(*grid.axes), grid.data, **kwargs)
+
+
+def legacy_RBFInterpolator(grid, **kwargs) -> Callable:
+    from scipy.interpolate import Rbf
+
+    peb_rbf = np.tile(grid.axes[1], grid.axes[0].shape)
+    pelne_rbf = np.repeat(grid.axes[0], grid.axes[1].shape, 0)
+    return Rbf(peb_rbf, pelne_rbf, grid.data, **kwargs)
+

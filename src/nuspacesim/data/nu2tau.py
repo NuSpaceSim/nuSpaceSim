@@ -87,35 +87,40 @@ def nu2tau_tauEDistCDF_from_ascii():
         tauEfrac = tau_e_file[:, 0]
         tauCDF = tau_e_file[:, 1:]
         grids.append(
-            NssGrid(tauCDF, [tauEfrac, brad], axis_names=["tauEfrac", "beta_rad"])
+            (
+                lognuenergy,
+                NssGrid(tauCDF, [tauEfrac, brad], axis_names=["tauEfrac", "beta_rad"]),
+            )
         )
+    return grids
 
-    full_grids = []
-    for g in grids:
-        interp = grid_interpolator(g)
-        full_grids.append(
-            interp(grids[-1].axes, use_grid=True).reshape(grids[-1].shape)
-        )
+    # full_grids = []
+    # for g in grids:
+    #     interp = grid_interpolator(g)
+    #     full_grids.append(
+    #         interp(grids[-1].axes, use_grid=True).reshape(grids[-1].shape)
+    #     )
 
-    return NssGrid(
-        np.stack(full_grids),
-        [np.arange(7.0, 11.0, 0.25), *grids[-1].axes],
-        ["log_nu_e", *grids[-1].axis_names],
-    )
+    # return NssGrid(
+    #     np.stack(full_grids),
+    #     [np.arange(7.0, 11.0, 0.25), *grids[-1].axes],
+    #     ["log_nu_e", *grids[-1].axis_names],
+    # )
 
 
 def make_nu2tau_cdf_from_ascii():
 
-    tau_cdf_grid = nu2tau_tauEDistCDF_from_ascii()
+    tau_cdf_grids = nu2tau_tauEDistCDF_from_ascii()
 
-    fname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.fits"
+    # fname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.fits"
     hname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.hdf5"
-    tau_cdf_grid.write(fname, overwrite=True, format="fits")
-    tau_cdf_grid.write(hname, overwrite=True, format="hdf5")
-    grd2 = NssGrid.read(fname, format="fits")
-    grd3 = NssGrid.read(hname, format="hdf5")
-    print(tau_cdf_grid == grd2)
-    print(tau_cdf_grid == grd3)
+    for log_nu_e, g in tau_cdf_grids:
+        # g.write(fname, overwrite=True, format="fits")
+        g.write(hname, path=f"/log_nu_e_{log_nu_e}", format="hdf5")
+        # grd2 = NssGrid.read(fname, format="fits")
+        grd3 = NssGrid.read(hname, format="hdf5", path=f"/log_nu_e_{log_nu_e}")
+        # print(tau_cdf_grid == grd2)
+        print(g == grd3)
 
 
 if __name__ == "__main__":
