@@ -31,41 +31,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""nuspacesim module for storing simulation results in diverse file formats."""
-
-from typing import Union
-from nuspacesim.core import Simulation
-
-__all__ = ["write_fits", "write_hdf5"]
+import nuspacesim as nss
+import numpy as np
 
 
-def write_fits(simulation: Simulation, filename: Union[str, None] = None) -> None:
-    r"""Write the simulation results to a FITS file.
+def test_detector_characteristics():
+    dc = nss.DetectorCharacteristics()
+    assert dc.altitude > 0.0
 
-    Uses the astropy.table.Table write method of the Simulation base class to write
-    FITS file.
-
-    Parameters
-    ----------
-    simulation: Simulation
-        The simulation results object.
-    filename, {str, None}, optional
-        The filename of the output file. If None, return default with timestamp.
-    """
-    simulation.write(filename, format="fits")
+    dc = nss.DetectorCharacteristics(altitude=200.1)
+    assert dc.altitude == 200.1
 
 
-def write_hdf5(simulation: Simulation, filename: Union[str, None] = None) -> None:
-    r"""Write the simulation results to an HDF5 file.
+def test_simulation_params():
+    sp = nss.SimulationParameters()
+    assert sp.N > 0
+    assert np.log10(sp.nu_tau_energy) == sp.log_nu_tau_energy
+    assert np.sin(sp.theta_ch_max) == sp.sin_theta_ch_max
 
-    Uses the astropy.table.Table write method of the Simulation base class to write
-    HDF5 file.
 
-    Parameters
-    ----------
-    simulation: Simulation
-        The simulation results object.
-    filename, {str, None}, optional
-        The filename of the output file. If None, return default with timestamp.
-    """
-    simulation.write(filename, format="hdf5")
+def test_nss_config():
+    nc1 = nss.NssConfig()
+    dc = nss.DetectorCharacteristics()
+    sp = nss.SimulationParameters()
+    nc2 = nss.NssConfig(detector=dc, simulation=sp)
+    assert nc1 == nc2

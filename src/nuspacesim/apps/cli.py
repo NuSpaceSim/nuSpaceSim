@@ -38,7 +38,7 @@
 
 import click
 
-from nuspacesim.core import NssConfig, SimulationParameters, simulate, write_fits
+from nuspacesim.core import NssConfig, SimulationParameters, simulate
 from nuspacesim.xml_config import config_from_xml, create_xml
 
 
@@ -91,8 +91,9 @@ def run(config_file: str, count: float, logevalue: float, output: str) -> None:
     config.simulation.nu_tau_energy = 10 ** logevalue
 
     simulation = simulate(config, verbose=True)
-    write_fits(simulation, output)
-    # write_hdf5(simulation)
+    simulation.write(output)
+    # write_fits(simulation, output)
+    # # write_hdf5(simulation)
 
 
 @cli.command()

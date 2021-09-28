@@ -31,22 +31,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""nuspacesim core
+import nuspacesim as nss
+import numpy as np
 
-    This package holds core functionality for nuspacesim simulations. Notably
-    configuration, simulation, and storage values.
-
-"""
-
-__all__ = [
-    "constants",
-    "DetectorCharacteristics",
-    "SimulationParameters",
-    "NssConfig",
-    "Simulation",
-    "simulate",
-]
-
-from . import constants
-from .config import *
-from .simulate import *
+def test_fund_constants():
+    fc = nss.constants.Fund_Constants()
+    assert fc.earth_radius > 0.0
+    assert np.reciprocal(fc.mean_Tau_life) == fc.inv_mean_Tau_life

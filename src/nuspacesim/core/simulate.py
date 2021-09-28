@@ -107,7 +107,7 @@ class Simulation(AstropyTable):
 
         self.meta[name] = (value, comment)
 
-    def write(self, filename: Union[str, None] = None, format: str = "fits") -> None:
+    def write(self, filename: Union[str, None] = None, **kwargs) -> None:
         r"""Write the simulation results to a file.
 
         Uses the astropy.table.Table write method of the Simulation base class to write
@@ -117,8 +117,6 @@ class Simulation(AstropyTable):
         ----------
         filename: {str, None}, optional
             The filename of the output file. If None, return default with timestamp.
-        format: str: {fits, hdf5}, optional
-            Format of output file. Supported values are fits and hdf5. Default is fits.
 
         Raises
         ------
@@ -128,25 +126,33 @@ class Simulation(AstropyTable):
 
         """
 
-        if format == "fits":
+        if "format" not in kwargs:
+            kwargs["format"] = "fits"
+
+        if kwargs["format"] == "fits":
 
             filename = (
                 f"nuspacesim_run_{self.meta['simTime'][0]}.fits"
                 if filename is None
                 else filename
             )
-            super().write(filename, format="fits", overwrite=True)
+            super().write(filename, **kwargs)
 
-        elif format == "hdf5":
+        elif kwargs["format"] == "hdf5":
 
             filename = (
                 f"nuspacesim_run_{self.meta['simTime'][0]}.hdf5"
                 if filename is None
                 else filename
             )
-            super().write(
-                filename, format="hdf5", path=".", serialize_meta=True, overwrite=True
-            )
+
+            if "path" not in kwargs:
+                kwargs["path"] = "/"
+            if "overwrite" not in kwargs:
+                kwargs["overwrite"] = True
+            kwargs["serialize_meta"] = True
+
+            super().write(filename, **kwargs)
 
         else:
             raise ValueError(f"File output format {format} not in [fits, hdf5]!")
