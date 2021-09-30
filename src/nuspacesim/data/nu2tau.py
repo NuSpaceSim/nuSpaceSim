@@ -36,8 +36,8 @@
 import numpy as np
 
 from astropy.table import Table as AstropyTable
-from nuspacesim.utils.grid import NssGrid
-from nuspacesim.utils.interp import grid_interpolator
+from ..utils.grid import NssGrid
+from ..utils.interp import grid_interpolator
 
 # from typing import Iterable, Union
 

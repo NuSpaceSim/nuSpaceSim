@@ -32,8 +32,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from nuspacesim.modules.eas_optical.cphotang import CphotAng
-from nuspacesim.core import NssConfig
+from .cphotang import CphotAng
+from ...core import NssConfig
 
 __all__ = ["EAS"]
 

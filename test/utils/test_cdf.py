@@ -1,10 +1,14 @@
 from nuspacesim.utils import cdf
 # from nuspacesim.utils.interp import grid_interpolator
 
-from importlib_resources import as_file, files
 from nuspacesim.core import NssConfig
 from nuspacesim.utils.grid import NssGrid, NssAxes
 import numpy as np
+
+try:
+    from importlib.resources import as_file, files
+except ImportError:
+    from importlib_resources import as_file, files
 
 # def test_cdf_sample_factory():
 # cdf.cdf_sample_factory

@@ -36,6 +36,13 @@
     Python package, library, and data tables.
 """
 
+from . import data, utils, xml_config
+from .core import *
+from .modules import *
+
+# from .utils import *
+from ._version import *
+
 __all__ = [
     # core
     "constants",
@@ -44,8 +51,6 @@ __all__ = [
     "SimulationParameters",
     "Simulation",
     "simulate",
-    "write_fits",
-    "write_hdf5",
     # modules
     "geometry",
     "eas_optical",
@@ -58,11 +63,3 @@ __all__ = [
     "version",
     "version_tuple",
 ]
-
-from . import data
-from . import utils
-from . import xml_config
-from .core import *
-from .modules import *
-# from .utils import *
-from ._version import *

@@ -38,10 +38,10 @@ import datetime
 from numpy.typing import NDArray
 from typing import Any, Iterable, Union
 
-from nuspacesim.core import NssConfig
-from nuspacesim.modules.geometry import RegionGeom
-from nuspacesim.modules.taus import Taus
-from nuspacesim.modules.eas_optical import EAS
+from .config import NssConfig
+from ..modules.geometry import RegionGeom
+from ..modules.taus import Taus
+from ..modules.eas_optical import EAS
 
 __all__ = ["Simulation", "simulate"]
 
@@ -121,9 +121,7 @@ class Simulation(AstropyTable):
         Raises
         ------
         ValueError:
-            If the input format value is not one of fits or hdf5, an exception is
-            raised.
-
+            If the input format value is not one of fits or hdf5.
         """
 
         if "format" not in kwargs:
@@ -161,8 +159,8 @@ class Simulation(AstropyTable):
 def simulate(config: NssConfig, verbose: bool = False) -> Simulation:
     r"""Simulate an upward going shower.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
     config: NssConfig
         Configuration object.
     verbose: bool, optional

@@ -31,25 +31,48 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""tau propagation module"""
+r"""Tau propagation module. A class for sampling tau attributes from beta angles."""
 
-from importlib_resources import as_file, files
 import numpy as np
-from nuspacesim.core import NssConfig
-from nuspacesim.utils.grid import NssGrid
-from nuspacesim.utils.cdf import legacy_cdf_sample
-
 from scipy.interpolate import interp1d
+
+from ..core import NssConfig
+from ..utils.grid import NssGrid
+from ..utils.cdf import legacy_cdf_sample
+
+try:
+    from importlib.resources import as_file, files
+except ImportError:
+    from importlib_resources import as_file, files
 
 
 class Taus(object):
-    """
-    Describe Tau Module HERE!
+    r"""Tau attributes from beta angles via sampling CDF tables provided by nupyprop.
+
+    Attributes
+    ----------
+    config: NssConfig
+        Configuration object
+    pexit_interp: Callable
+        Interpolation function for tau exit probability.
+    tau_cdf_grid: NssGrid
+        Grid of tau cdf values for the given nu tau energy.
+    tau_cdf_sample: Callable
+        Interpolative sampler of tau_cdf grid, returning random tau energies
+        distributed by the cdf corresponding to a given beta angle.
+
     """
 
     def __init__(self, config: NssConfig):
-        """
-        Intialize the Taus object.
+        r"""Intialize the Taus object.
+
+        Read local nu2tau table files into NssGrid objects, and produce sampling and
+        interpolation functions for local methods.
+
+        Parameters
+        ----------
+        config: NssConfig
+            Configuration object.
         """
         self.config = config
 
@@ -73,7 +96,6 @@ class Taus(object):
             )
 
         self.tau_cdf_sample = legacy_cdf_sample(self.tau_cdf_grid)
-        self.nu_tau_energy = self.config.simulation.nu_tau_energy
 
     def tau_exit_prob(self, betas):
         """
@@ -96,7 +118,7 @@ class Taus(object):
         mask = betas >= np.radians(1.0)
         tauEF = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
         tauEF[mask] = self.tau_cdf_sample(betas[mask])
-        return tauEF * self.nu_tau_energy
+        return tauEF * self.config.simulation.nu_tau_energy
 
     def __call__(self, betas, store=None):
         """

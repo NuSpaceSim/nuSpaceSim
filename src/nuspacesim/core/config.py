@@ -39,7 +39,7 @@ from numpy import radians, log10, sin
 from typing import Union
 from dataclasses import dataclass
 from functools import cached_property
-from nuspacesim.core import constants as const
+from . import constants as const
 
 __all__ = [
     "DetectorCharacteristics",

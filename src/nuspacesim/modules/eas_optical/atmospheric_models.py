@@ -43,9 +43,11 @@ date: 2021 August 12
 
 import numpy as np
 import scipy.integrate
-from nuspacesim.core import constants as const
+
 from typing import Callable, Union, Tuple
 from numpy.typing import NDArray
+
+from ...core import constants as const
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
 
@@ -94,7 +96,7 @@ def slant_depth(
     theta_tr: Union[float, NDArray[np.float_]],
     earth_radius: float = const.earth_radius,
     integrand_f: Callable[..., NDArray[np.float_]] = None,
-) :
+):
     """
     Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
 
@@ -135,25 +137,32 @@ def slant_depth_steps(
     earth_radius: float = const.earth_radius,
     integrand_f: Callable[..., NDArray[np.float_]] = None,
 ) -> Tuple:
-    """
-    Slant-depth integral approximated along path.
+    r""" Slant-depth integral approximated along path.
 
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
     along a full length using the cumulative_trapezoid rule.
 
-    Params
-    ======
-        z_lo: (float) starting altitude for slant depth track.
-        z_hi: (float) stopping altitude for slant depth track.
-        theta_tr: (float) trajectory angle of track to observer.
-        earth_radius: (float) radius of a spherical earth. Default from nuspacesim.constants
-        dz: (float) static step size for sampling points in range [z_lo, z_hi]
-        integrand_f: (real valued function) the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
+    Parameters
+    ----------
+    z_lo: float
+        starting altitude for slant depth track.
+    z_hi: float
+        stopping altitude for slant depth track.
+    theta_tr: float
+        trajectory angle of track to observer.
+    earth_radius: float
+        radius of a spherical earth. Default from nuspacesim.constants
+    dz: float
+        static step size for sampling points in range [z_lo, z_hi]
+    integrand_f: real valued function
+        the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
 
     Returns
-    =======
-        xs: (float) slant depth at each altitude along track.
-        zs: (float) altitudes at which slant_depth was evaluated.
+    -------
+        xs: float
+            slant depth at each altitude along track.
+        zs: float
+            altitudes at which slant_depth was evaluated.
 
     """
 
@@ -199,7 +208,6 @@ if __name__ == "__main__":
     theta_tr = np.linspace(-np.pi / 2, np.pi / 2, 100)
     # Y = slant_depth_steps(1, 100, theta_tr)
     # print(f"Slant Depth steps (-pi/2 to +pi/2): {Y[0]}", sep="\n")
-
 
     # plot over multiple starting heights.
     sds = [slant_depth(z_lo, 100, theta_tr)[0] for z_lo in (0, 1, 2, 5, 10)]

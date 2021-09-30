@@ -38,8 +38,8 @@
 
 import click
 
-from nuspacesim.core import NssConfig, SimulationParameters, simulate
-from nuspacesim.xml_config import config_from_xml, create_xml
+from ..core import NssConfig, SimulationParameters, simulate
+from ..xml_config import config_from_xml, create_xml
 
 
 @click.group()

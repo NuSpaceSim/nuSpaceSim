@@ -38,13 +38,13 @@ Module contains functions for parsing and interacting with XML configuration fil
 import lxml.etree as ET
 import numpy as np
 
-from nuspacesim.core import constants as const
-from nuspacesim.core.config import (
+from ..core import constants as const
+from ..core.config import (
     NssConfig,
     DetectorCharacteristics,
     SimulationParameters,
 )
-from nuspacesim.xml_config import config_xml_schema
+from . import config_xml_schema
 
 __all__ = [
     "is_valid_xml",

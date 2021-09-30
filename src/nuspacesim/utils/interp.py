@@ -36,7 +36,7 @@
 import numpy as np
 
 from typing import Callable
-from nuspacesim.utils.misc import cartesian_product
+from ..utils.misc import cartesian_product
 
 __all__ = [
     "grid_interpolator",

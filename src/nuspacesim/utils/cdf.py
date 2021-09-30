@@ -38,7 +38,7 @@ from typing import Callable
 from scipy.interpolate import interp1d
 import numpy as np
 
-from nuspacesim.utils.grid import NssGrid
+from ..utils.grid import NssGrid
 # from nuspacesim.utils.interp import grid_interpolator
 
 
