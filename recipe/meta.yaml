@@ -10,7 +10,7 @@ source:
   git_url: {{ environ.get('FEEDSTOCK_ROOT', '..') }}
 
 build:
-  skip: true  # [py<39]
+  skip: true  # [py<37]
   skip: true  # [win]
 
   number: {{ build_number }}
@@ -23,23 +23,24 @@ requirements:
     - {{ compiler('cxx') }}
   host:
     - pip
-    - python >=3.9
+    - python >=3.7
     - pybind11>=2.6
     - setuptools >=46
     - setuptools_scm[toml] >=3.4
     - numpy >=1.20
     - wheel
   run:
-    -  astropy
-    -  click
-    -  dask
-    # -  importlib_metadata # [py<38]
-    -  importlib_resources # [py<39]
-    -  h5py
-    -  lxml
-    -  numpy >=1.20
-    -  python >=3.9
-    -  scipy
+    - astropy
+    - cached_property # [py<38]
+    - click
+    - dask
+    - importlib_metadata # [py<38]
+    - importlib_resources # [py<39]
+    - h5py
+    - lxml
+    - numpy >=1.20
+    - python >=3.7
+    - scipy
 
 # Woe is us. We lack tests.
 test:

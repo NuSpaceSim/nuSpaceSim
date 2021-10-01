@@ -35,7 +35,13 @@
     Top level fundimental constants and the Fund_Constants class.
 """
 
-from functools import cached_property
+from __future__ import annotations
+
+try:
+    from functools import cached_property
+except ImportError:
+    from cached_property import cached_property
+
 from dataclasses import dataclass
 import numpy as np
 

@@ -34,11 +34,18 @@
 """Module holding conifiguration class definitions."""
 
 ####
-from numpy import radians, log10, sin
 
+from __future__ import annotations
 from typing import Union
 from dataclasses import dataclass
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from cached_property import cached_property
+
+from numpy import radians, log10, sin
+
 from . import constants as const
 
 __all__ = [
