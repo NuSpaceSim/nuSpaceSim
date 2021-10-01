@@ -35,7 +35,7 @@
 
 from astropy.table import Table as AstropyTable
 import datetime
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from typing import Any, Iterable, Union
 
 from .config import NssConfig
@@ -73,7 +73,7 @@ class Simulation(AstropyTable):
             }
         )
 
-    def __call__(self, col_names: Iterable[str], columns: Iterable[NDArray]) -> None:
+    def __call__(self, col_names: Iterable[str], columns: Iterable[ArrayLike]) -> None:
         r"""Add named columns to the simulation results.
 
         Insert data into the result table, with the names corresponding to the
@@ -83,7 +83,7 @@ class Simulation(AstropyTable):
         ----------
         col_names: Iterable[str]
             List of column names.
-        columns: Iterable[NDArray]
+        columns: Iterable[ArrayLike]
             List of column
         """
 

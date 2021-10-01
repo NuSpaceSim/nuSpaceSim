@@ -45,14 +45,14 @@ import numpy as np
 import scipy.integrate
 
 from typing import Callable, Union, Tuple
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 
 from ...core import constants as const
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
 
 
-def rho(z: Union[float, NDArray[np.float_]]) -> NDArray[np.float_]:
+def rho(z: Union[float, ArrayLike]) -> ArrayLike:
     """
     Density (g/cm^3) parameterized from altitude (z) values
 
@@ -71,9 +71,9 @@ def rho(z: Union[float, NDArray[np.float_]]) -> NDArray[np.float_]:
 
 def slant_depth_integrand(
     z: float,
-    theta_tr: Union[float, NDArray[np.float_]],
+    theta_tr: Union[float, ArrayLike],
     earth_radius: float = const.earth_radius,
-) -> NDArray[np.float_]:
+) -> ArrayLike:
     """
     Integrand for computing slant_depth from input altitude z.
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -93,9 +93,9 @@ def slant_depth_integrand(
 def slant_depth(
     z_lo: float,
     z_hi: float,
-    theta_tr: Union[float, NDArray[np.float_]],
+    theta_tr: Union[float, ArrayLike],
     earth_radius: float = const.earth_radius,
-    integrand_f: Callable[..., NDArray[np.float_]] = None,
+    integrand_f: Callable[..., ArrayLike]=None,
 ):
     """
     Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -132,12 +132,12 @@ def slant_depth(
 def slant_depth_steps(
     z_lo: float,
     z_hi: float,
-    theta_tr: Union[float, NDArray[np.float_]],
+    theta_tr: Union[float, ArrayLike],
     dz: float = 0.01,
     earth_radius: float = const.earth_radius,
-    integrand_f: Callable[..., NDArray[np.float_]] = None,
+    integrand_f: Callable[..., ArrayLike] = None,
 ) -> Tuple:
-    r""" Slant-depth integral approximated along path.
+    r"""Slant-depth integral approximated along path.
 
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
     along a full length using the cumulative_trapezoid rule.
@@ -178,8 +178,8 @@ def slant_depth_steps(
 
 
 def param_b_c(
-    z: Union[float, NDArray[np.float_]]
-) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+    z: Union[float, ArrayLike]
+) -> Tuple[ArrayLike, ArrayLike]:
     """rho parameterization table from https://arxiv.org/pdf/2011.09869.pdf"""
 
     bins = np.array([4.0, 10.0, 40.0, 100.0])

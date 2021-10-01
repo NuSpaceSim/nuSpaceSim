@@ -33,13 +33,13 @@
 
 import numpy as np
 
-from . import nssgeometry as nssgeo
+from .nssgeometry import Geom_params
 from ...core import NssConfig
 
 __all__ = ["RegionGeom"]
 
 
-class RegionGeom(nssgeo.Geom_params):
+class RegionGeom(Geom_params):
     """
     Region Geometry class.
 

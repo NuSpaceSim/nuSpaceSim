@@ -10,7 +10,7 @@ source:
   git_url: {{ environ.get('FEEDSTOCK_ROOT', '..') }}
 
 build:
-  skip: true  # [py<36]
+  skip: true  # [py<39]
   skip: true  # [win]
 
   number: {{ build_number }}
@@ -20,25 +20,26 @@ build:
 
 requirements:
   build:
-    - {{ compiler('fortran') }}
+    - {{ compiler('cxx') }}
   host:
-    - python >=3.6
     - pip
+    - python >=3.9
+    - pybind11>=2.6
     - setuptools >=46
     - setuptools_scm[toml] >=3.4
-    - numpy >=1.17
+    - numpy >=1.20
     - wheel
   run:
-    - astropy
-    - h5py
-    - importlib_resources
-    - matplotlib
-    - numpy >=1.17
-    - python >=3.6
-    - scipy
-    - sympy
-    - pyyaml
-    - tabulate
+    -  astropy
+    -  click
+    -  dask
+    # -  importlib_metadata # [py<38]
+    -  importlib_resources # [py<39]
+    -  h5py
+    -  lxml
+    -  numpy >=1.20
+    -  python >=3.9
+    -  scipy
 
 # Woe is us. We lack tests.
 test:

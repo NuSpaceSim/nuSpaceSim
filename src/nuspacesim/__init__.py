@@ -38,7 +38,7 @@
 
 from . import data, utils, xml_config
 from .core import *
-from .modules import *
+from .modules import geometry, eas_optical, taus
 
 # from .utils import *
 from ._version import *

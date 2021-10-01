@@ -35,9 +35,9 @@
 docstring for eas_optical
 """
 
-__all__ = ["atmospheric_models", "cphotang", "zsteps", "EAS"]
+__all__ = ["atmospheric_models", "CphotAng", "zsteps", "EAS"]
 
 from . import atmospheric_models
-from . import cphotang
-from . import zsteps
+from .zsteps import zsteps
+from .cphotang import CphotAng
 from .eas import *
