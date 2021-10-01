@@ -33,7 +33,7 @@
 
 import numpy as np
 from .cphotang import CphotAng
-from ...core import NssConfig
+from ... import NssConfig
 
 __all__ = ["EAS"]
 

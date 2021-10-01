@@ -38,8 +38,8 @@ Module contains functions for parsing and interacting with XML configuration fil
 import lxml.etree as ET
 import numpy as np
 
-from ..core import constants as const
-from ..core.config import (
+from .. import constants as const
+from ..config import (
     NssConfig,
     DetectorCharacteristics,
     SimulationParameters,

@@ -12,7 +12,7 @@
    :caption: Contents:
    :maxdepth: 3
 
-   API Reference <reference/nuspacesim>
+   API Reference <reference/modules>
 
 
 

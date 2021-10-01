@@ -1,5 +1,5 @@
-.. _nuspacesim:
-
+nuspacesim package
+==================
 
 ####################
 NuSpaceSim Reference
@@ -11,24 +11,60 @@ NuSpaceSim Reference
 This reference manual details functions, modules, and objects
 included in nuSpaceSim, describing what they are and what they do.
 
-
 Subpackages
 -----------
 
 .. toctree::
    :maxdepth: 1
 
-   nuspacesim.core
    nuspacesim.data
-   nuspacesim.modules
    nuspacesim.utils
    nuspacesim.xml_config
+
+Submodules
+----------
+
+nuspacesim.config module
+------------------------
+
+.. automodule:: nuspacesim.config
+   :members:
+   :noindex:
+   :undoc-members:
+   :show-inheritance:
+
+nuspacesim.constants module
+---------------------------
+
+.. automodule:: nuspacesim.constants
+   :members:
+   :noindex:
+   :undoc-members:
+   :show-inheritance:
+
+nuspacesim.results\_table module
+--------------------------------
+
+.. automodule:: nuspacesim.results_table
+   :members:
+   :noindex:
+   :undoc-members:
+   :show-inheritance:
+
+nuspacesim.simulate module
+--------------------------
+
+.. automodule:: nuspacesim.simulate
+   :members:
+   :noindex:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: nuspacesim
-   :noindex:
    :members:
+   :noindex:
    :undoc-members:
    :show-inheritance:

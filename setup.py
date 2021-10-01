@@ -8,11 +8,11 @@ from setuptools import setup
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 nssgeometry = Pybind11Extension(
-    "modules.geometry.nssgeometry",
-    ["src/nuspacesim/modules/geometry/src/nssgeometry.cpp"],
+    "simulation.geometry.nssgeometry",
+    ["src/nuspacesim/simulation/geometry/src/nssgeometry.cpp"],
 )
 zsteps = Pybind11Extension(
-    "modules.eas_optical.zsteps", ["src/nuspacesim/modules/eas_optical/src/zsteps.cpp"]
+    "simulation.eas_optical.zsteps", ["src/nuspacesim/simulation/eas_optical/src/zsteps.cpp"]
 )
 
 setup(

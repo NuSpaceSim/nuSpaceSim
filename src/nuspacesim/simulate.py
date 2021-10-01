@@ -31,22 +31,48 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""nuspacesim core
+"""Simulation Results class and full simulation main function."""
 
-    This package holds core functionality for nuspacesim simulations. Notably
-    configuration, simulation, and storage values.
+from .config import NssConfig
+from .results_table import ResultsTable
+from .simulation.geometry.region_geometry import RegionGeom
+from .simulation.taus import Taus
+from .simulation.eas_optical.eas import EAS
 
-"""
+__all__ = ["simulate"]
 
-__all__ = [
-    "constants",
-    "DetectorCharacteristics",
-    "SimulationParameters",
-    "NssConfig",
-    "Simulation",
-    "simulate",
-]
 
-from . import constants
-from .config import *
-from .simulate import *
+def simulate(config: NssConfig, verbose: bool = False) -> ResultsTable:
+    r"""Simulate an upward going shower.
+
+    Parameters
+    ----------
+    config: NssConfig
+        Configuration object.
+    verbose: bool, optional
+        Flag enabling optional verbose output.
+    """
+
+    sim = ResultsTable(config)
+    geom = RegionGeom(config)
+    tau = Taus(config)
+    eas = EAS(config)
+
+    # Run simulation
+    beta_tr = geom(config.simulation.N, store=sim)
+
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(beta_tr, store=sim)
+
+    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz)
+    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sim)
+
+    mcint, mcintgeo, numEvPass = geom.mcintegral(
+        numPEs, costhetaChEff, tauExitProb, store=sim
+    )
+
+    if verbose:
+        print("Monte Carlo Integral", mcint)
+        print("Monte Carlo Integral, GEO Only", mcintgeo)
+        print("Number of Passing Events", numEvPass)
+
+    return sim

@@ -34,7 +34,7 @@
 import numpy as np
 
 from .nssgeometry import Geom_params
-from ...core import NssConfig
+from ... import NssConfig
 
 __all__ = ["RegionGeom"]
 

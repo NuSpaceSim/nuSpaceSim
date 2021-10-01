@@ -38,7 +38,8 @@
 
 import click
 
-from ..core import NssConfig, SimulationParameters, simulate
+from .. import NssConfig, SimulationParameters
+from ..simulate import simulate
 from ..xml_config import config_from_xml, create_xml
 
 

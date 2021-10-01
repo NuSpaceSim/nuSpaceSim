@@ -47,7 +47,7 @@ import scipy.integrate
 from typing import Callable, Union, Tuple
 from numpy.typing import ArrayLike
 
-from ...core import constants as const
+from ... import constants as const
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
 

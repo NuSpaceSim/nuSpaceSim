@@ -36,20 +36,22 @@
     Python package, library, and data tables.
 """
 
-from . import data, utils, xml_config
-from .core import *
-from .modules import geometry, eas_optical, taus
+from . import constants, data, utils, xml_config
+from .config import NssConfig, DetectorCharacteristics, SimulationParameters
+from .results_table import ResultsTable
+from .simulate import simulate
+from .simulation import geometry, eas_optical, taus
 
 # from .utils import *
 from ._version import *
 
 __all__ = [
-    # core
+    # Core
     "constants",
     "NssConfig",
     "DetectorCharacteristics",
     "SimulationParameters",
-    "Simulation",
+    "ResultsTable",
     "simulate",
     # modules
     "geometry",

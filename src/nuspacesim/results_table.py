@@ -39,23 +39,20 @@ from numpy.typing import ArrayLike
 from typing import Any, Iterable, Union
 
 from .config import NssConfig
-from ..modules.geometry import RegionGeom
-from ..modules.taus import Taus
-from ..modules.eas_optical import EAS
 
-__all__ = ["Simulation", "simulate"]
+__all__ = ["ResultsTable"]
 
 
-class Simulation(AstropyTable):
+class ResultsTable(AstropyTable):
     r"""Results of NuSpaceSim simulation stages.
 
-    Simulation inherits from astropy.table.Table and uses that implementation to manage
+    ResultsTable inherits from astropy.table.Table and uses that implementation to manage
     Result data columns. This enables easy serialization of simulation results to
     output file formats.
     """
 
     def __init__(self, config: NssConfig):
-        r"""Constructor for Simulation class instances.
+        r"""Constructor for ResultsTable class instances.
 
         Parameters
         ----------
@@ -110,7 +107,7 @@ class Simulation(AstropyTable):
     def write(self, filename: Union[str, None] = None, **kwargs) -> None:
         r"""Write the simulation results to a file.
 
-        Uses the astropy.table.Table write method of the Simulation base class to write
+        Uses the astropy.table.Table write method of the ResultsTable base class to write
         FITS file.
 
         Parameters
@@ -154,39 +151,3 @@ class Simulation(AstropyTable):
 
         else:
             raise ValueError(f"File output format {format} not in [fits, hdf5]!")
-
-
-def simulate(config: NssConfig, verbose: bool = False) -> Simulation:
-    r"""Simulate an upward going shower.
-
-    Parameters
-    ----------
-    config: NssConfig
-        Configuration object.
-    verbose: bool, optional
-        Flag enabling optional verbose output.
-    """
-
-    sim = Simulation(config)
-    geom = RegionGeom(config)
-    tau = Taus(config)
-    eas = EAS(config)
-
-    # Run simulation
-    beta_tr = geom(config.simulation.N, store=sim)
-
-    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(beta_tr, store=sim)
-
-    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz)
-    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sim)
-
-    mcint, mcintgeo, numEvPass = geom.mcintegral(
-        numPEs, costhetaChEff, tauExitProb, store=sim
-    )
-
-    if verbose:
-        print("Monte Carlo Integral", mcint)
-        print("Monte Carlo Integral, GEO Only", mcintgeo)
-        print("Number of Passing Events", numEvPass)
-
-    return sim
