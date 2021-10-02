@@ -38,7 +38,7 @@ from scipy.interpolate import interp1d
 
 from .. import NssConfig
 from ..utils.grid import NssGrid
-from ..utils.cdf import legacy_cdf_sample
+from ..utils.cdf import slicing_cdf_sampler
 
 try:
     from importlib.resources import as_file, files
@@ -95,7 +95,7 @@ class Taus(object):
                 path=f"/log_nu_e_{self.config.simulation.log_nu_tau_energy}",
             )
 
-        self.tau_cdf_sample = legacy_cdf_sample(self.tau_cdf_grid)
+        self.tau_cdf_sample = slicing_cdf_sampler(self.tau_cdf_grid)
 
     def tau_exit_prob(self, betas):
         """

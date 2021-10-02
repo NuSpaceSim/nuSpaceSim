@@ -33,17 +33,49 @@
 
 """ Generalized interpolation functions. """
 
+from typing import Callable
+
+from scipy.interpolate import interp1d
 import numpy as np
 
-from typing import Callable
-from ..utils.misc import cartesian_product
+from .grid import NssGrid
+
 
 __all__ = [
     "grid_interpolator",
+    "grid_slice_interp",
     "grid_RegularGridInterpolator",
     # "grid_RBFInterpolator",
     # "legacy_RBFInterpolator",
 ]
+
+
+def grid_slice_interp(grid: NssGrid, value: float, axis: int) -> NssGrid:
+    r"""Continuous grid slice using interpolation.
+
+    Slice the N-Dimensional NssGrid along an axis value that may not exist in the grid.
+    Linearly interpolate other values as necessary, returning an N-1 D NssGrid.
+
+    Parameters
+    ----------
+    grid: NssGrid
+        The grid to be sliced
+    value: float
+        The value at which to slice the grid.
+    axis: int
+        The axis along which to slice.
+
+    Returns
+    -------
+    NssGrid
+        The N-1 resulting Dimensional grid.
+
+    """
+
+    new_data = interp1d(grid.axes[axis], grid.data, axis=axis)(value)
+    new_axes = [ax for i, ax in enumerate(grid.axes) if i != axis]
+    new_names = [n for i, n in enumerate(grid.axis_names) if i != axis]
+    return NssGrid(new_data, new_axes, new_names)
 
 
 def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
@@ -52,13 +84,14 @@ def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
     if interpolator is None:
         interpolator = grid_RegularGridInterpolator
 
-    interpf = interpolator(grid, **kwargs)
+    return interpolator(grid, **kwargs)
 
-    def interpolate(xi, *args, use_grid=False, **kwargs):
-        xi = cartesian_product(*xi) if use_grid else xi
-        return interpf(xi, *args, **kwargs)
+    # interpf = interpolator(grid, **kwargs)
 
-    return interpolate
+    # def interpolate(xi, *args, **kwargs):
+    #     return interpf(xi, *args, **kwargs)
+
+    # return interpolate
 
 
 def grid_RegularGridInterpolator(grid, **kwargs):
@@ -86,4 +119,3 @@ def legacy_RBFInterpolator(grid, **kwargs) -> Callable:
     peb_rbf = np.tile(grid.axes[1], grid.axes[0].shape)
     pelne_rbf = np.repeat(grid.axes[0], grid.axes[1].shape, 0)
     return Rbf(peb_rbf, pelne_rbf, grid.data, **kwargs)
-

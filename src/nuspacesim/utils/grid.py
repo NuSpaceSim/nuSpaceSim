@@ -284,15 +284,23 @@ def hdf5_nssgrid_writer(grid, filename, path="/", **kwargs):
         if kwargs["overwrite"] == False:
             mode = "w-"
         else:
-            mode = "w"
+            mode = "a"
     else:
+        kwargs["overwrite"] = False
         mode = "a"
 
     with h5py.File(filename, mode) as f:
 
         grp = f[path] if path in f else f.create_group(path)
+
+        if kwargs["overwrite"] and "__nss_grid_data__" in grp:
+            del grp["__nss_grid_data__"]
         grp.create_dataset("__nss_grid_data__", shape=grid.shape, data=grid.data)
+
+        if kwargs["overwrite"] and "__nss_grid_axes__" in grp:
+            del grp["__nss_grid_axes__"]
         ax = grp.create_group("__nss_grid_axes__")
+
         for axis, name in zip(grid.axes, grid.axis_names):
             ax.create_dataset(name, data=axis)
 

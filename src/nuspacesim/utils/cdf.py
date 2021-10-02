@@ -35,99 +35,275 @@
 
 from typing import Callable
 
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, RegularGridInterpolator
 import numpy as np
 
-from ..utils.grid import NssGrid
-# from nuspacesim.utils.interp import grid_interpolator
+from nuspacesim.utils.grid import NssGrid
+from nuspacesim.utils.interp import grid_slice_interp
+
+__all__ = ["grid_inverse_sampler", "slicing_cdf_sampler"]
 
 
-# def cdf_sample_factory(grid: NssGrid, cdf_ax: int, interpolation_class=None, **kwargs):
-#     """CDF sampling function from given grid object."""
+def invert_cdf_grid(grid: NssGrid, cdf_axis: int = 1) -> NssGrid:
+    r"""Invert a Taus CDF grid for easier z(E_tau / E_nu) sampling.
 
-#     if interpolation_class is None:
-#         interpolation_class = grid_interpolator
+    Use the CDF values of the given NssGrid to interpolate every measured z point,
+    Then invert the grid such that (beta_rad, z) bins giving CDF values become
+    (beta_rad, cdf) bins giving z values.
 
-#     interpolator = interpolation_class(grid, **kwargs)
+    Parameters
+    ----------
+    grid: NssGrid
+        A 2D CDF grid with (beta_rad, z) bins and CDF values.
+    cdf_axis: int
+        The target axis to store the CDF bins in the result grid.
 
-#     def sample(*xi, u=None):
+    Returns
+    -------
+    NssGrid
+        The inverted grid.
+    """
 
-#         if len(xi) != grid.ndim - 1:
-#             raise ValueError(f"Must provide {grid.ndim - 1} axes")
+    assert grid.ndim == 2
+    assert cdf_axis <= 2
 
-#         u = np.random.uniform(size=xi[cdf_ax].shape[0]) if u is None else u
+    brad_axis = 0 if cdf_axis == 1 else 1
 
-#         for a in xi:
-#             print(xi, a)
-#             if u.shape != a.shape:
-#                 raise ValueError(f"All axes must have same shape {u.shape}, {a.shape}")
+    cdf_vals = np.unique(np.sort(np.ravel(grid.data)))
+    new_shape = list(grid.data.shape)
+    new_shape[cdf_axis] = cdf_vals.size
+    new_data = np.empty(new_shape, dtype=grid.data.dtype)
 
-#         points = list([*xi])
-#         points.insert(cdf_ax, u)
-#         points = np.column_stack(points)
-#         print(points)
+    for i in range(grid.shape[brad_axis]):
 
-#         return interpolator(points)
+        s = np.s_[i, :] if cdf_axis == 1 else np.s_[:, i]
 
-#     return sample
+        new_data[s] = interp1d(
+            grid.data[s], grid.axes[cdf_axis], bounds_error=False, fill_value=(0.0, 1.0)
+        )(cdf_vals)
 
-def cdf_sampler(grid):
+    new_axes = [grid.axes[brad_axis], cdf_vals]
+    new_names = [grid.axis_names[brad_axis], "cdf"]
 
-    f = interp1d(grid.axes[1], grid.data, axis=1)
+    return NssGrid(new_data, new_axes, new_names)
 
-    def sample(xs, u=None):
 
-        u = np.random.uniform(size=xs) if u is None else u
+def grid_inverse_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
+    r"""Sample Tau Energies by inverting the tau cdf grid.
 
-        samples = np.empty_like(xs)
+    Given a log_e_nu value, slice an interpolated 2D tau cdf grid for that log_e_nu.
+    Then invert the grid and sample z values directly from beta angles and the grid.
+    Multiply by 10^log_e_nu to determine the tau energy.
 
-        for i, x in enumerate(xs):
-            cdf = f(x)
-            samples[i] = interp1d(cdf, grid.axes[0])(u[i])
+    Parameters
+    ----------
+    grid: NssGrid
+        The full, 3D tau_cdf grid object.
+    log_e_nu: float
+        The user defined log of the neutrino energy.
 
-        return samples
+    Returns
+    -------
+    sample : Callable
+        A function that will take an array of beta angles in radians and return an
+        array of sampled tau energies.
+    """
+
+    enu_idx = grid.axis_names.index("log_e_nu")
+
+    sliced_grid = grid_slice_interp(grid, log_e_nu, enu_idx)
+
+    z_idx = sliced_grid.axis_names.index("e_tau_frac")
+
+    inv_grid = invert_cdf_grid(sliced_grid, z_idx)
+
+    interpolate = RegularGridInterpolator(inv_grid.axes, inv_grid.data)
+
+    def sample(x, u=None):
+        r"""Sampling function for grid_inverse_sampler.
+
+        Interpolate z (E_tau / E_nu) values from the inverse tau_cdf grid.
+
+        Parameters
+        ----------
+        x: ArrayLike
+            The beta angles (in radians) to sample z values from.
+        u: ArrayLike, Optional
+            Random numbers for CDF interpolation. If 'None' values will be generated.
+        """
+        it = np.nditer(
+            [x, u, None],
+            flags=["external_loop", "buffered"],
+            op_flags=[
+                ["readonly"],
+                ["readwrite", "virtual"] if u is None else ["readonly"],
+                ["writeonly", "allocate", "no_broadcast"],
+            ],
+        )
+        with it:
+            for xi, ui, zi in it:
+                ui = np.random.uniform(0.0, 1.0, size=xi.size) if u is None else ui
+                pts = np.column_stack([xi, ui])
+                zi[...] = interpolate(pts) * (10 ** log_e_nu)
+            return it.operands[2]
 
     return sample
 
 
+def slicing_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
+    r"""Sample Tau Energies by slicing and interpolating the tau_cdf grid.
 
+    Given a log_e_nu value, slice an interpolated 2D tau cdf grid for that log_e_nu.
+    Then sample z values by interpolating cdfs from the grid for given beta angles.
+    Multiply by 10^log_e_nu to determine the tau energy.
 
-def legacy_cdf_sample(grid) -> Callable:
-    from scipy.interpolate import interp1d
+    Parameters
+    ----------
+    grid: NssGrid
+        The full, 3D tau_cdf grid object.
+    log_e_nu: float
+        The user defined base 10 log of the neutrino energy.
 
-    teBetaLowBnds = (grid.axes[1][1:] + grid.axes[1][:-1]) / 2
-    teBetaUppBnds = np.append(teBetaLowBnds, grid.axes[1][-1])
-    teBetaLowBnds = np.insert(teBetaLowBnds, 0, 0.0, axis=0)
+    Returns
+    -------
+    sample : Callable
+        A function that will take an array of beta angles in radians and return an
+        array of sampled tau energies.
+    """
 
-    # Array of tecdf interpolation functions
-    interps = [
-        interp1d(grid.data[:, i], grid.axes[0]) for i in range(grid.axes[1].shape[0])
+    enu_idx = grid.axis_names.index("log_e_nu")
+
+    sliced_grid = grid_slice_interp(grid, log_e_nu, enu_idx)
+
+    bx = sliced_grid.axis_names.index("beta_rad")
+    ex = sliced_grid.axis_names.index("e_tau_frac")
+
+    interp_cdfs = [
+        interp1d(
+            sliced_grid.data[np.s_[i, :] if bx == 0 else np.s_[:, i]],
+            sliced_grid.axes[ex],
+        )
+        for i in range(sliced_grid.data.shape[bx])
     ]
 
-    # print("upper:", teBetaLowBnds)
-    # print("lower:", teBetaUppBnds)
+    teBetaLowBnds = (sliced_grid.axes[bx][1:] + sliced_grid.axes[bx][:-1]) / 2
+    teBetaUppBnds = np.append(teBetaLowBnds, sliced_grid.axes[bx][-1])
 
-    def interpolate(xi, u=None):
-        u = np.random.uniform(size=xi.shape[0]) if u is None else u
+    def sample(x, u=None):
+        r"""Sampling function for slicing_cdf_sampler.
 
-        # fast interpolation selection with masking
-        betaIdxs = np.searchsorted(teBetaUppBnds, xi)
-        # print("index:", betaIdxs)
-        tauEF = np.empty_like(xi)
+        Interpolate cdf values and inverse transfom sample z (E_tau / E_nu) values from
+        the tau_cdf grid.
 
-        for i in range(grid.axes[1].shape[0]):
-            mask = betaIdxs == i
-            tauEF[mask] = interps[i](u[mask])
+        Parameters
+        ----------
+        x: ArrayLike
+            The beta angles (in radians) to sample z values from.
+        u: ArrayLike, Optional
+            Random numbers for CDF interpolation. If 'None' values will be generated.
+        """
+        it = np.nditer(
+            [x, u, None],
+            flags=["external_loop", "buffered"],
+            op_flags=[
+                ["readonly"],
+                ["readwrite", "virtual"] if u is None else ["readonly"],
+                ["writeonly", "allocate", "no_broadcast"],
+            ],
+        )
 
-        return tauEF
+        with it:
+            for xi, ui, zi in it:
+                betaIdxs = np.searchsorted(teBetaUppBnds, xi)
+                ui = np.random.uniform(0.0, 1.0, size=xi.size) if u is None else ui
+                for i, interp in enumerate(interp_cdfs):
+                    mask = betaIdxs == i
+                    zi[...][mask] = interp(ui[mask]) * (10 ** log_e_nu)
+            return it.operands[2]
 
-    return interpolate
+    return sample
+
+
+def cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
+    r"""Sample Tau Energies by interpolating the tau_cdf grid.
+
+    Given a log_e_nu value, slice an interpolated 2D tau cdf grid for that log_e_nu.
+    Then sample z values by interpolating cdfs from the grid for given beta angles.
+    Multiply by 10^log_e_nu to determine the tau energy.
+
+    Parameters
+    ----------
+    grid: NssGrid
+        The full, 3D tau_cdf grid object.
+    log_e_nu: float
+        The user defined base 10 log of the neutrino energy.
+
+    Returns
+    -------
+    sample : Callable
+        A function that will take an array of beta angles in radians and return an
+        array of sampled tau energies.
+    """
+
+    enu_idx = grid.axis_names.index("log_e_nu")
+
+    sliced_grid = grid_slice_interp(grid, log_e_nu, enu_idx)
+
+    bx = sliced_grid.axis_names.index("beta_rad")
+    ex = sliced_grid.axis_names.index("e_tau_frac")
+
+    interp_cdfs = interp1d(sliced_grid.axes[bx], sliced_grid.data, axis=bx)
+
+    def sample(x, u=None):
+        r"""Sampling function for slicing_cdf_sampler.
+
+        Interpolate cdf values and inverse transfom sample z (E_tau / E_nu) values from
+        the tau_cdf grid.
+
+        Parameters
+        ----------
+        x: ArrayLike
+            The beta angles (in radians) to sample z values from.
+        u: ArrayLike, Optional
+            Random numbers for CDF interpolation. If 'None' values will be generated.
+        """
+        it = np.nditer(
+            [x, u, None],
+            flags=["external_loop", "buffered"],
+            op_flags=[
+                ["readonly"],
+                ["readwrite", "virtual"] if u is None else ["readonly"],
+                ["writeonly", "allocate", "no_broadcast"],
+            ],
+        )
+
+        with it:
+            for xi, ui, zi in it:
+                cdfs = interp_cdfs(xi)
+                ui = np.random.uniform(0.0, 1.0, size=xi.size) if u is None else ui
+                print(cdfs.shape)
+                print(ui.shape)
+                # etf = griddata(cdfs, sliced_grid.axes[ex], (ui))
+                # np.searchsorted
+                zi[...] = etf * (10 ** log_e_nu)
+            return it.operands[2]
+
+    return sample
 
 
 if __name__ == "__main__":
-    g = NssGrid.read("src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.hdf5")
-    g.index_name("log_nu_e")
-    g.index_where_eq("log_nu_e", 7.5)
-    sample = cdf_sample_factory(g[g.index_where_eq("log_nu_e", 7.5), :, :], 0)
-    n = int(1e8)
-    print(sample(np.random.uniform(1, 25, n)))
+    np.set_printoptions(linewidth=np.inf)
+    g = NssGrid.read("data/nupyprop_tables/nu2tau_cdf.hdf5")
+    print(g.axis_names)
+    gsampler = grid_inverse_sampler(g, 7.890123456)
+    sampler = slicing_cdf_sampler(g, 7.890123456)
+    N = 1e8
+    x = np.random.uniform(np.radians(1.0), np.radians(42.0), size=int(N))
+    u = np.random.uniform(0.0, 1.0, size=int(N))
+    # # pts = np.column_stack([x, u])
+    # z = sampler(x)
+    # print(z)
+    z = sampler(x, u)
+    print(z)
+    z = gsampler(x, u)
+    print(z)
