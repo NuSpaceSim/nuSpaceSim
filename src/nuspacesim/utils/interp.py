@@ -37,14 +37,16 @@ from typing import Callable
 
 from scipy.interpolate import interp1d
 import numpy as np
+from numpy.typing import ArrayLike
 
-from .grid import NssGrid
+from nuspacesim.utils.grid import NssGrid
 
 
 __all__ = [
     "grid_interpolator",
     "grid_slice_interp",
     "grid_RegularGridInterpolator",
+    "vec_1d_interp",
     # "grid_RBFInterpolator",
     # "legacy_RBFInterpolator",
 ]
@@ -86,13 +88,6 @@ def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
 
     return interpolator(grid, **kwargs)
 
-    # interpf = interpolator(grid, **kwargs)
-
-    # def interpolate(xi, *args, **kwargs):
-    #     return interpf(xi, *args, **kwargs)
-
-    # return interpolate
-
 
 def grid_RegularGridInterpolator(grid, **kwargs):
     from scipy.interpolate import RegularGridInterpolator
@@ -119,3 +114,40 @@ def legacy_RBFInterpolator(grid, **kwargs) -> Callable:
     peb_rbf = np.tile(grid.axes[1], grid.axes[0].shape)
     pelne_rbf = np.repeat(grid.axes[0], grid.axes[1].shape, 0)
     return Rbf(peb_rbf, pelne_rbf, grid.data, **kwargs)
+
+
+def left_shift(arr):
+    result = np.empty_like(arr)
+    result[:, -1:] = True
+    result[:, :-1] = arr[:, 1:]
+    return result
+
+
+def right_shift(arr):
+    result = np.empty_like(arr)
+    result[:, :1] = True
+    result[:, 1:] = arr[:, :-1]
+    return result
+
+
+def vec_1d_interp(xs, ys, x):
+    # mask and index for upper bound
+    hi_msk = xs >= x[:, None]
+    shf_hi = left_shift(hi_msk)
+    hi_m = np.logical_xor(hi_msk, shf_hi)
+    hi = np.where(hi_m)[1]
+
+    # mask and index for lower bound
+    lo_msk = xs < x[:, None]
+    shf_lo = right_shift(lo_msk)
+    lo_m = np.logical_xor(lo_msk, shf_lo)
+    lo = np.where(lo_m)[1]
+
+    y0 = ys[lo]
+    x0 = xs[lo_m]
+    y1 = ys[hi]
+    x1 = xs[hi_m]
+
+    y = y0 + (x - x0) * ((y1 - y0) / (x1 - x0))
+
+    return y
