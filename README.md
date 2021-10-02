@@ -37,7 +37,7 @@
 
 # νSpaceSim
 
-This is the beta release of the *nuSpaceSim* simulator tool!
+This is the beta release of the *nuspacesim* simulator tool!
 
 This package simulates upward-going electromagnetic air showers caused by neutrino
 interactions with the atmosphere. It calculates the tau neutrino acceptance for the
@@ -51,31 +51,21 @@ Tau propagation is interpolated using included data tables from Reno et at.
 This package incorporates compiled sub-packages such as nssgeometry and
 EAScherGen.
 
+# Installation
 
-# Download & Build
+nuspacesim is available through pip and conda
 
-### Requirements
+`python3 -m pip install nuspacesim`
 
-Conda is no longer required to build nuSpaceSim, although it may be desirable
-for downloading compilers. All other build and runtime requirements are 
-downloaded automatically during setup.
+or 
 
- * python3
- * pip
- * C++11 (or higher) compiler
-
-
-### Clone the Repository (for development)
-
-1. `git clone https://github.com/NuSpaceSim/nuSpaceSim.git`
-2. `cd nuSpaceSim`
-3. `python3 -m pip install -e .`
+`conda create -n nuspacesim -c conda-forge -c nuspacesim nuspacesim`
 
 # Usage
 
 ### Create an XML configuration script
 
-`python -m nuspacesim create-config my_config_file.xml`
+`nuspacesim create-config my_config_file.xml`
 
 ### Run simulator
 
@@ -108,3 +98,22 @@ Also works for the subcommands.
 
 `python3 -m pip uninstall nuspacesim`
 
+
+# Download & Build
+
+### Requirements
+
+Conda is no longer required to build nuSpaceSim, although it may be desirable
+for downloading compilers. All other build and runtime requirements are 
+downloaded automatically during setup.
+
+ * python3
+ * pip
+ * C++11 (or higher) compiler
+
+
+### Clone the Repository (for development)
+
+1. `git clone https://github.com/NuSpaceSim/nuSpaceSim.git`
+2. `cd nuSpaceSim`
+3. `python3 -m pip install -e .`
