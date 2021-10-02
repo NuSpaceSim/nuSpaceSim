@@ -24,7 +24,7 @@ if __name__ == "__main__":
             path=f"/log_nu_e_{config.simulation.log_nu_tau_energy}",
         )
 
-    tau_cdf_sample = cdf.cdf_sampler(tau_cdf_grid)
+    tau_cdf_sample = cdf.lerp_cdf_sampler(tau_cdf_grid)
     tau_cdf_legacy = cdf.legacy_cdf_sample(tau_cdf_grid)
 
     points = np.radians(np.array([1, 3, 5]))

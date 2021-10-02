@@ -33,17 +33,51 @@
 
 """ Generalized interpolation functions. """
 
-import numpy as np
-
 from typing import Callable
-from ..utils.misc import cartesian_product
+
+from scipy.interpolate import interp1d
+import numpy as np
+from numpy.typing import ArrayLike
+
+from nuspacesim.utils.grid import NssGrid
+
 
 __all__ = [
     "grid_interpolator",
+    "grid_slice_interp",
     "grid_RegularGridInterpolator",
+    "vec_1d_interp",
     # "grid_RBFInterpolator",
     # "legacy_RBFInterpolator",
 ]
+
+
+def grid_slice_interp(grid: NssGrid, value: float, axis: int) -> NssGrid:
+    r"""Continuous grid slice using interpolation.
+
+    Slice the N-Dimensional NssGrid along an axis value that may not exist in the grid.
+    Linearly interpolate other values as necessary, returning an N-1 D NssGrid.
+
+    Parameters
+    ----------
+    grid: NssGrid
+        The grid to be sliced
+    value: float
+        The value at which to slice the grid.
+    axis: int
+        The axis along which to slice.
+
+    Returns
+    -------
+    NssGrid
+        The N-1 resulting Dimensional grid.
+
+    """
+
+    new_data = interp1d(grid.axes[axis], grid.data, axis=axis)(value)
+    new_axes = [ax for i, ax in enumerate(grid.axes) if i != axis]
+    new_names = [n for i, n in enumerate(grid.axis_names) if i != axis]
+    return NssGrid(new_data, new_axes, new_names)
 
 
 def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
@@ -52,13 +86,7 @@ def grid_interpolator(grid, interpolator=None, **kwargs) -> Callable:
     if interpolator is None:
         interpolator = grid_RegularGridInterpolator
 
-    interpf = interpolator(grid, **kwargs)
-
-    def interpolate(xi, *args, use_grid=False, **kwargs):
-        xi = cartesian_product(*xi) if use_grid else xi
-        return interpf(xi, *args, **kwargs)
-
-    return interpolate
+    return interpolator(grid, **kwargs)
 
 
 def grid_RegularGridInterpolator(grid, **kwargs):
@@ -87,3 +115,39 @@ def legacy_RBFInterpolator(grid, **kwargs) -> Callable:
     pelne_rbf = np.repeat(grid.axes[0], grid.axes[1].shape, 0)
     return Rbf(peb_rbf, pelne_rbf, grid.data, **kwargs)
 
+
+def left_shift(arr):
+    result = np.empty_like(arr)
+    result[:, -1:] = True
+    result[:, :-1] = arr[:, 1:]
+    return result
+
+
+def right_shift(arr):
+    result = np.empty_like(arr)
+    result[:, :1] = True
+    result[:, 1:] = arr[:, :-1]
+    return result
+
+
+def vec_1d_interp(xs, ys, x):
+    # mask and index for upper bound
+    hi_msk = xs >= x[:, None]
+    shf_hi = left_shift(hi_msk)
+    hi_m = np.logical_xor(hi_msk, shf_hi)
+    hi = np.where(hi_m)[1]
+
+    # mask and index for lower bound
+    lo_msk = xs < x[:, None]
+    shf_lo = right_shift(lo_msk)
+    lo_m = np.logical_xor(lo_msk, shf_lo)
+    lo = np.where(lo_m)[1]
+
+    y0 = ys[lo]
+    x0 = xs[lo_m]
+    y1 = ys[hi]
+    x1 = xs[hi_m]
+
+    y = y0 + (x - x0) * ((y1 - y0) / (x1 - x0))
+
+    return y
