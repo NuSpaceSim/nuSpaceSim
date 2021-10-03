@@ -210,5 +210,5 @@ def make_nu2tau_cdf_from_nupyprop_v1():
 
 if __name__ == "__main__":
     # make_nu2tau_pexit_from_ascii()
-    # make_nu2tau_pexit_from_nupyprop_v1()
-    # make_nu2tau_cdf_from_nupyprop_v1()
+    make_nu2tau_pexit_from_nupyprop_v1()
+    make_nu2tau_cdf_from_nupyprop_v1()
