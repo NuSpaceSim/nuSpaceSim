@@ -99,14 +99,12 @@ class Taus(object):
         Tau Exit Probability
         """
         mask = betas >= np.radians(1.0)
-        logtauexitprob = np.full(
+        tau_exit_prob = np.full(
             betas.shape, self.pexit_interp(np.array([np.radians(1.0)]))
         )
-        logtauexitprob[mask] = self.pexit_interp(betas[mask])
+        tau_exit_prob[mask] = self.pexit_interp(betas[mask])
 
-        tauexitprob = 10 ** logtauexitprob
-
-        return tauexitprob
+        return tau_exit_prob
 
     def tau_energy(self, betas):
         """

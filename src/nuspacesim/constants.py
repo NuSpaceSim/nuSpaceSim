@@ -49,8 +49,8 @@ earth_radius = 6371.0  # in KM
 low_earth_orbit = 525.0  # in KM
 atmosphere_end = 65.0  # in KM
 c = 2.9979246e5
-massTau = 1.77686
-mean_Tau_life = 2.903e-13
+massTau = 1.77686 # GeV/c^2
+mean_Tau_life = 2.903e-13 # seconds
 
 
 @dataclass

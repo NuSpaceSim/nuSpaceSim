@@ -20,6 +20,6 @@
       <NuTauEnergy>100000000.0</NuTauEnergy>
     </NuTauEnergySpecType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
-    <NumTrajs>1000</NumTrajs>
+    <NumTrajs>10000</NumTrajs>
   </SimulationParameters>
 </NuSpaceSimParams>

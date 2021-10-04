@@ -58,21 +58,37 @@ def simulate(config: NssConfig, verbose: bool = False) -> ResultsTable:
     tau = Taus(config)
     eas = EAS(config)
 
+    if verbose:
+        print(
+            f"Running Nu Space Simulate with log(E_nu) = "
+            f"{config.simulation.log_nu_tau_energy}"
+        )
+
     # Run simulation
     beta_tr = geom(config.simulation.N, store=sim)
+    if verbose:
+        print(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
 
+    if verbose:
+        print(f"Computing taus.")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(beta_tr, store=sim)
 
+    if verbose:
+        print(f"Computing decay altitudes.")
     altDec = eas.altDec(beta_tr, tauBeta, tauLorentz)
+    if verbose:
+        print(f"Computing EAS Cherenkov light.")
     numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sim)
 
+    if verbose:
+        print(f"Computing Monte Carlo Integral.")
     mcint, mcintgeo, numEvPass = geom.mcintegral(
         numPEs, costhetaChEff, tauExitProb, store=sim
     )
 
     if verbose:
-        print("Monte Carlo Integral", mcint)
-        print("Monte Carlo Integral, GEO Only", mcintgeo)
-        print("Number of Passing Events", numEvPass)
+        print("Monte Carlo Integral:", mcint)
+        print("Monte Carlo Integral, GEO Only:", mcintgeo)
+        print("Number of Passing Events:", numEvPass)
 
     return sim
