@@ -67,6 +67,8 @@ or
 
 `nuspacesim create-config my_config_file.xml`
 
+`conda activate nuspacesim`
+
 ### Run simulator
 
 Simulate neutrino interactions and save the results to a fits file.
