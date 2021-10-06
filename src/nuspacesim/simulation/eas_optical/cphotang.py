@@ -31,11 +31,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""
-cphotang
+"""Cherenkov photon density and angle determination class.  """
 
-Cherenkov photon density and angle determination class.
-"""
 import numpy as np
 from numpy.polynomial import Polynomial
 
@@ -52,9 +49,10 @@ __all__ = ["CphotAng"]
 
 
 class CphotAng:
+    r"""Cherenkov Photon Angle"""
+
     def __init__(self):
-        """
-        CphotAng: Cherenkov photon density and angle determination class.
+        r"""CphotAng: Cherenkov photon density and angle determination class.
 
         Iterative summation of cherenkov radiation reimplemented in numpy and
         C++.

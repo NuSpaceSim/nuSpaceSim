@@ -31,33 +31,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""NuSpaceSim geometry routines.
+r"""NuSpaceSim extensive air shower routines.
 
-.. _simulation:
+.. _eas_optical:
 
-*****************************
-NuSpaceSim Simulation Modules
-*****************************
+***********
+EAS Optical
+***********
 
-.. currentmodule:: nuspacesim.simulation
+.. autosummary::
+   :toctree:
 
-NuSpaceSim provides a collection of modules for simulating various stages of the
-neutrino propagation and interaction.
+    eas
 
 .. autosummary::
    :toctree:
    :recursive:
-   :nosignatures:
 
-   geometry
-   eas_optical
-   taus
-
-
+    atmospheric_models
+    cphotang
 """
 
-__all__ = ["geometry", "taus", "eas_optical"]
+__all__ = ["EAS"]
 
-from . import geometry
-from . import taus
-from . import eas_optical
+from .eas import EAS

@@ -1,24 +1,10 @@
-.. nuspacesim documentation master file.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. _nuspacesim_docs_mainpage:
 
-.. |br| raw:: html
+.. module:: nuspacesim
 
-   <br />
-
-
-.. toctree::
-   :hidden:
-   :caption: Contents:
-   :maxdepth: 3
-
-   API Reference <reference/modules>
-
-
-
-=====================
-Welcome to nuspacesim
-=====================
+========================
+nuSpaceSim Documentation
+========================
 
 νSpaceSim
 
@@ -30,91 +16,79 @@ Optical Cherenkov technique. The simulation is parameterized by an input XML
 configuration file, with settings for detector characteristics and global parameters.
 The package also provides a python3 API for programatic access.
 
-Tau propagation is interpolated using included data tables from Reno et at.
-2019.
+Tau propagation is interpolated using included data tables from nuPyProp.
 
-Use the sidebar on the left to access the documentation for each module.
+.. panels::
+    :card: + intro-card text-center
 
-==========
-Quickstart
-==========
+    ---
+    Getting started
+    ^^^^^^^^^^^^^^^
 
-Install nuspacesim from pypi. This will install needed dependencies along with
-nuspacesim.  ::
+    New to νSpaceSim? Check out the Quickstart guide for help installing and
+    navigating the package.
+    +++
 
-  python3 -m pip install nuspacesim
+    .. link-button:: quickstart
+            :type: ref
+            :text: To the quickstart guide
+            :classes: btn-block btn-secondary stretched-link
 
-----------------------------------
-Read the nuspacesim help docstring
-----------------------------------
-::
+    ---
+    .. :img-top: _static/index_user_guide.png
 
-  python3 -m nuspacesim --help
+    User guide
+    ^^^^^^^^^^
 
-----------------------------------
-Create the XML configuration file
-----------------------------------
+    The user guide provides in-depth information on the
+    key concepts of nuSpaceSim with useful background information and explanation.
 
-Create a configuration file with the ``create-config`` command. This is editable by the
-user for defining different simulation parameters.  ::
+    +++
 
-  nuspacesim create-config my_config_file.xml
+    .. link-button:: tutorial
+            :type: ref
+            :text: To the user guide
+            :classes: btn-block btn-secondary stretched-link
 
------------------
-Run the simulator
------------------
+    ---
+    .. :img-top: _static/index_api.png
 
-Simulate neutrino interactions and save the results to a fits file.  ::
+    API reference
+    ^^^^^^^^^^^^^
 
-  nuspacesim run my_config_file.xml -o my_nss_sim.fits
+    The reference guide contains a detailed description of
+    the nss API. The reference describes how the methods work and which parameters can
+    be used. It assumes that you have an understanding of the key concepts.
 
-Optionally, override the configuration file on the command line.  ::
+    +++
 
-  nuspacesim run my_config_file.xml 1e5 -o my_nss_sim.fits
+    .. link-button:: reference
+            :type: ref
+            :text: To the reference guide
+            :classes: btn-block btn-secondary stretched-link
 
---------------------------
-Explore simulation results
---------------------------
+    ---
+    .. :img-top: _static/index_contribute.png
 
-::
+    Developer guide
+    ^^^^^^^^^^^^^^^
 
-  showtable my_nss_sim.fits
+    Saw a typo in the documentation? Want to improve
+    existing functionalities? The contributing guidelines will guide
+    you through the process of improving nss.
 
-------------------
-Help Documentation
-------------------
+    +++
 
-Use the --help flag for documentation.::
+    .. link-button:: dev
+            :type: ref
+            :text: To the development guide
+            :classes: btn-block btn-secondary stretched-link
 
+.. toctree::
+   :maxdepth: 3
+   :hidden:
 
-  nuspacesim --help
-  Usage: nuspacesim [OPTIONS] COMMAND [ARGS]...
-
-  Options:
-    --debug / --no-debug
-    --help                Show this message and exit.
-
-  Commands:
-    create-config  Generate a configuration file from the given parameters.
-    run            Main Simulator for nuspacesim.
-
-
-Also works for the subcommands.
-
-::
-
-  nuspacesim run --help
-
----------
-Uninstall
----------
-
-``python3 -m pip uninstall nuspacesim``
-
---------------------------------------
-Clone the Repository (for development)
---------------------------------------
-
-1. ``git clone https://github.com/NuSpaceSim/nuSpaceSim.git``
-2. ``cd nuSpaceSim``
-3. ``python3 -m pip install -e .``
+   Getting started <quickstart>
+   User Guide <tutorial/index>
+   API reference <reference/index>
+   Development <dev/index>

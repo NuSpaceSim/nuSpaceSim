@@ -36,10 +36,10 @@ r"""Tau propagation module. A class for sampling tau attributes from beta angles
 import numpy as np
 from scipy.interpolate import interp1d
 
-from .. import NssConfig
-from ..utils.grid import NssGrid
-from ..utils.cdf import grid_inverse_sampler
-from ..utils.interp import grid_slice_interp
+from ... import NssConfig
+from ...utils.grid import NssGrid
+from ...utils.cdf import grid_inverse_sampler
+from ...utils.interp import grid_slice_interp
 
 try:
     from importlib.resources import as_file, files
@@ -116,11 +116,23 @@ class Taus(object):
         return E_tau * self.config.simulation.nu_tau_energy
 
     def __call__(self, betas, store=None):
-        """
-        Perform main operation for Taus module.
+        r"""Perform main operation for Taus module.
 
-        Returns:
+        Parameters
+        ----------
+        betas: array_like
+            beta_tr array of simulated neutrinos.
 
+        Returns
+        -------
+        tauBeta: array_like
+            Tau beta angles.
+        tauLorentz: array_like
+            Non-deterministically sampled tau lorentz factors. tau energy / tau mass.
+        showerEnergy: array_like
+            Non-deterministically sampled shower energies in 100 PeV.
+        tauExitProb: array_like
+            Non-deterministically sampled tau exit probability.
         """
 
         tauExitProb = self.tau_exit_prob(betas)

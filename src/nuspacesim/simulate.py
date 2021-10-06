@@ -31,7 +31,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Simulation Results class and full simulation main function."""
+r"""The main proceedure for performaing a full simulation in nuspacesim.
+
+*********************
+NuSpaceSim Simulation
+*********************
+
+.. currentmodule:: nuspacesim
+
+
+.. autosummary::
+   :toctree:
+
+   simulate
+
+"""
 
 from .config import NssConfig
 from .results_table import ResultsTable
@@ -45,12 +59,44 @@ __all__ = ["simulate"]
 def simulate(config: NssConfig, verbose: bool = False) -> ResultsTable:
     r"""Simulate an upward going shower.
 
+    The main proceedure for performaing a full simulation in nuspacesim.
+    Given a valid NssConfig object, :func:`simulate`, will perform the simulation as
+    follows:
+
+    #. Initialize the ResultsTable object.
+    #. Initialize the appropritate :ref:`simulation modules<simulation>`.
+    #. Compute array of valid beta angle trajectories: beta_tr from :class:`RegionGeom`.
+    #. Compute tau interaction attributes componentwise for each element of beta_tr.
+
+       #. tauBeta
+       #. tauLorentz
+       #. showerEnergy
+       #. tauExitProb
+
+    #. Compute Extensive Air Shower attributes componentwise
+
+       #. Decay Altitude
+       #. Photon Density
+       #. Cherenkov Angle
+
+    #. Compute the Monte Carlo integral for the resulting shower geometries.
+
+    At each stage of the simulation, array results are stored as contiguous columns,
+    and scalar results are stored as attributes, both in the :class:`ResultsTable`
+    object.
+
+
     Parameters
     ----------
     config: NssConfig
         Configuration object.
     verbose: bool, optional
-        Flag enabling optional verbose output.
+        Flag enabling verbose output.
+
+    Returns
+    -------
+    ResultsTable
+        The Table of result valuse from each stage of the simulation.
     """
 
     sim = ResultsTable(config)

@@ -33,31 +33,19 @@
 
 r"""NuSpaceSim geometry routines.
 
-.. _simulation:
+.. _geometry:
 
-*****************************
-NuSpaceSim Simulation Modules
-*****************************
-
-.. currentmodule:: nuspacesim.simulation
-
-NuSpaceSim provides a collection of modules for simulating various stages of the
-neutrino propagation and interaction.
+********
+Geometry
+********
 
 .. autosummary::
    :toctree:
    :recursive:
-   :nosignatures:
 
-   geometry
-   eas_optical
-   taus
-
-
+    RegionGeom
 """
 
-__all__ = ["geometry", "taus", "eas_optical"]
+__all__ = ["RegionGeom"]
 
-from . import geometry
-from . import taus
-from . import eas_optical
+from .region_geometry import RegionGeom

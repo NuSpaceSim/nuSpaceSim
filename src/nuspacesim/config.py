@@ -60,28 +60,20 @@ __all__ = [
 class DetectorCharacteristics:
     r"""Dataclass holding Detector Characteristics.
 
-    Attributes
-    ----------
-    altitude: float
-        Altitude from sea-level. Default = 525 KM
-    ra_start: float
-        Right Ascencion. Default = 0.0
-    dec_start: float
-        Declination. Default = 0.0
-    telescope_effective_area: float
-        Effective area of the detector telescope. Default = 2.5 sq.meters
-    quantum_efficiency: float
-        Quantum Efficiency of the detector telescope. Default = 0.2
-    photo_electron_threshold: float
-        Photo Electron Threshold, Number Photo electrons = 10
     """
 
     altitude: float = 525.0
+    """ Altitude from sea-level. Default = 525 KM """
     ra_start: float = 0.0
+    """ Right Ascencion. Default = 0.0 """
     dec_start: float = 0.0
+    """ Declination. Default = 0.0 """
     telescope_effective_area: float = 2.5
+    '"" Effective area of the detector telescope. Default = 2.5 sq.meters ""'
     quantum_efficiency: float = 0.2
+    """ Quantum Efficiency of the detector telescope. Default = 0.2 """
     photo_electron_threshold: float = 10.0
+    """Photo Electron Threshold, Number Photo electrons = 10"""
 
     def __call__(self) -> dict[str, tuple[float, str]]:
         r"""Dictionary representation of DetectorCharacteristics instance.
@@ -116,29 +108,20 @@ class DetectorCharacteristics:
 @dataclass
 class SimulationParameters:
     r"""Dataclass holding Simulation Parameters.
-
-    Attributes
-    ----------
-    N: int
-        Number of thrown trajectories. Default = 1000
-    theta_ch_max: float
-        Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees).
-    nu_tau_energy: float
-        Energy of the tau neutrinos in GeV. Default = 1e8 GeV.
-    e_shower_frac: float
-        Fraction of ETau in Shower. Default = 0.5.
-    ang_from_limb: float
-        Angle From Limb. Default = π/25.714 radians (7 degrees).
-    max_azimuth_angle: float
-        Maximum Azimuthal Angle. Default = 2π radians (360 degrees).
     """
 
     N: int = 1000
+    """Number of thrown trajectories. Default = 1000"""
     theta_ch_max: float = radians(3.0)
+    """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""
     nu_tau_energy: float = 1e8
+    """Energy of the tau neutrinos in GeV. Default = 1e8 GeV."""
     e_shower_frac: float = 0.5
+    """Fraction of ETau in Shower. Default = 0.5."""
     ang_from_limb: float = radians(7.0)
+    """Angle From Limb. Default = π/25.714 radians (7 degrees)."""
     max_azimuth_angle: float = radians(360.0)
+    """Maximum Azimuthal Angle. Default = 2π radians (360 degrees)."""
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
@@ -177,16 +160,17 @@ class SimulationParameters:
 class NssConfig:
     r"""Necessary Configuration Data for NuSpaceSim.
 
-    Attributes
-    ----------
-    detector: DetectorCharacteristics
-        The Detector Characteristics.
-    simulation: SimulationParameters
-        The Simulation Parameters.
-    constants: Fund_Constants
-        The Fudimental physical constants.
+    An :class:`NssConfig` is a contianer object holding all of the other nuSpaceSim
+    configuration objects for a simplified access API. Instances of :class:`NssConfig`
+    objects can be serialized to XML.
+
+    .. :ref:`XML<xml_config.create_xml>`.
+
     """
 
     detector: DetectorCharacteristics = DetectorCharacteristics()
+    """The Detector Characteristics."""
     simulation: SimulationParameters = SimulationParameters()
+    """The Simulation Parameters."""
     constants: const.Fund_Constants = const.Fund_Constants()
+    """The Fudimental physical constants."""

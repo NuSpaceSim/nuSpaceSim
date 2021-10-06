@@ -139,3 +139,4 @@ xsd = StringIO(
 </xs:schema>
         """
 )
+"""XMLSchema string file. For validating XML configuration files."""

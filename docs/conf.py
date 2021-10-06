@@ -31,28 +31,17 @@ author = 'Alexander Reustle'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinxarg.ext',
-    'sphinx_copybutton',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon',
+    'sphinx.ext.coverage',
+    'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.graphviz',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.mathjax',
+    'sphinx_panels',
+    'numpydoc',
  ]
-
-# Napoleon settings
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
-napoleon_preprocess_types = False
-napoleon_type_aliases = None
-napoleon_attr_annotations = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -78,3 +67,29 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = []
 
 autodoc_mock_imports = [ ]
+
+# ----
+
+# -----------------------------------------------------------------------------
+# Intersphinx configuration
+# -----------------------------------------------------------------------------
+intersphinx_mapping = {
+    'imageio': ('https://imageio.readthedocs.io/en/stable', None),
+    'matplotlib': ('https://matplotlib.org/stable', None),
+    'pytest': ('https://docs.pytest.org/en/stable', None),
+    'python': ('https://docs.python.org/dev', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'scipy-lecture-notes': ('https://scipy-lectures.org', None),
+}
+
+# Make numpydoc to generate plots for example sections
+numpydoc_use_plots = True
+numpydoc_show_class_members = False
+
+# -----------------------------------------------------------------------------
+# Autosummary
+# -----------------------------------------------------------------------------
+
+autosummary_generate = True
+autosummary_generate_overwrite = True
+autosummary_imported_members = False
