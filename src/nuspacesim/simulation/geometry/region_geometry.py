@@ -36,7 +36,7 @@ import numpy as np
 from .nssgeometry import Geom_params
 from ...utils import decorators
 from ... import NssConfig
-from .local_plots import betas_histogram
+from .local_plots import *
 
 __all__ = ["RegionGeom"]
 
@@ -76,8 +76,8 @@ class RegionGeom(Geom_params):
         """Create array of Earth-emergence angles for valid events."""
         return np.radians(self.betas())
 
-    @decorators.nss_result_plot(betas_histogram)
-    @decorators.nss_result_store(["beta_rad"])
+    @decorators.nss_result_plot(geom_beta_tr_hist, geom_beta_tr_hist_red)
+    @decorators.nss_result_store("beta_rad")
     def __call__(self, numtrajs):
         """Throw numtrajs events and return valid betas in radians."""
         self.throw(numtrajs)

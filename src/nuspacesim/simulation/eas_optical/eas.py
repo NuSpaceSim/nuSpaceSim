@@ -34,6 +34,7 @@
 import numpy as np
 from .cphotang import CphotAng
 from ... import NssConfig
+from ...utils import decorators
 
 __all__ = ["EAS"]
 
@@ -49,6 +50,7 @@ class EAS:
         self.config = config
         self.CphotAng = CphotAng()
 
+    @decorators.nss_result_store("altDec")
     def altDec(self, beta, tauBeta, tauLorentz, u=None):
         """
         alt Decay
@@ -70,7 +72,8 @@ class EAS:
 
         return altDec
 
-    def __call__(self, beta, altDec, showerEnergy, store=None) -> tuple:
+    @decorators.nss_result_store("numPEs", "costhetaChEff")
+    def __call__(self, beta, altDec, showerEnergy) -> tuple:
         """
         Electromagnetic Air Shower operation.
         """
@@ -106,10 +109,5 @@ class EAS:
         thetaChEff = np.where(thetaChEnh >= thetaCh, thetaChEnh, thetaCh)
 
         costhetaChEff = np.cos(np.radians(thetaChEff))
-
-        if store is not None:
-            store(
-                ["altDec", "numPEs", "costhetaChEff"], [altDec, numPEs, costhetaChEff]
-            )
 
         return numPEs, costhetaChEff

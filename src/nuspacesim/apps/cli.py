@@ -35,9 +35,7 @@
 
 import click
 
-from .. import NssConfig, SimulationParameters
-from ..simulate import simulate, plotables
-from ..xml_config import config_from_xml, create_xml
+from ..utils.plot_function_registry import registry
 
 
 @click.group()
@@ -50,13 +48,23 @@ def cli():
 
 
 @cli.command()
-@click.option("-o", "--output", type=str, default=None, help="Output file.")
 @click.option(
+    "-o", "--output", type=click.Path(exists=False), default=None, help="Output file."
+)
+@click.option(
+    "-p",
     "--plot",
-    type=click.Choice(plotables, case_sensitive=False),
+    type=click.Choice(registry, case_sensitive=False),
     multiple=True,
     default=[],
-    help="Default results plot.",
+    help="Available plotting functions. Select multiple plots with multiple uses of -p",
+)
+@click.option("--plotall", is_flag=True, help="Show all result plots.")
+@click.option(
+    "-w",
+    "--write-stages",
+    is_flag=True,
+    help="Write intermediate values after each simulation stage.",
 )
 @click.argument(
     "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
@@ -65,7 +73,13 @@ def cli():
 @click.argument("logevalue", type=float, default=8.0)
 # @click.pass_context
 def run(
-    config_file: str, count: float, logevalue: float, output: str, plot: list
+    config_file: str,
+    count: float,
+    logevalue: float,
+    output: str,
+    write_stages: bool,
+    plot: list,
+    plotall: bool,
 ) -> None:
     """Perform the full nuspacesim simulation.
 
@@ -85,7 +99,9 @@ def run(
     output: str, optional
         Name of the output file holding the simulation results.
     plot: list, optional
-        Plot the simulation results
+        Plot the simulation results.
+    plotall: boo, optional
+        Plot all the available the simulation results plots.
 
 
     Examples
@@ -95,12 +111,22 @@ def run(
     nuspacesim run sample_input_file.xml 1e5 8 -o my_sim_results.fits
     """
 
+    from ..simulate import simulate
+    from ..xml_config import config_from_xml
+
     # User Inputs
     config = config_from_xml(config_file)
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
     config.simulation.nu_tau_energy = 10 ** logevalue
-    simulation = simulate(config, verbose=True, to_plot=plot)
-    simulation.write(output)
+    plot = registry if plotall else plot
+    simulation = simulate(
+        config,
+        verbose=True,
+        to_plot=plot,
+        output_file=output,
+        write_stages=write_stages,
+    )
+    simulation.write(output, overwrite=True)
 
 
 @cli.command()
@@ -132,6 +158,8 @@ def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
 
     nuspacesim create_config -n 100000 sample_input_file.xml
     """
+    from .. import NssConfig, SimulationParameters
+    from ..xml_config import create_xml
 
     simulation = SimulationParameters(N=int(numtrajs), nu_tau_energy=(10 ** logenergy))
 

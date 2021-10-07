@@ -47,11 +47,10 @@
 __all__ = ["nss_result_store", "nss_result_store_scalar", "nss_result_plot"]
 
 from functools import wraps
+from typing import Callable, Iterable, Union
 
-from typing import Callable
 
-
-def nss_result_store(names):
+def nss_result_store(*names):
     r"""Store result columns in nuspacesim.ResultsTable
 
     This decorator function allows easy decoration of simulation objects to store
@@ -66,7 +65,7 @@ def nss_result_store(names):
     --------
     In region_geometry.py
 
-    >>> @nss_result_store(["beta_rad"])
+    >>> @nss_result_store("beta_rad")
     >>> def __call__(self, numtrajs):
     >>>     self.throw(numtrajs)
     >>>     return self.beta_rad()
@@ -153,7 +152,7 @@ def nss_result_store_scalar(names, comments):
     return decorator_store_meta
 
 
-def nss_result_plot(plot_f, *pargs, **pkwargs):
+def nss_result_plot(*plot_fs):
     r"""Plot results of function.
 
     This decorator function allows easy decoration of simulation objects to store
@@ -188,15 +187,30 @@ def nss_result_plot(plot_f, *pargs, **pkwargs):
     """
 
     def decorator_plot(func):
+        from .plot_function_registry import registry
+
+        for plotname in map(lambda p: p.__name__, plot_fs):
+            registry.add(plotname)
+
         @wraps(func)
-        def wrapper_f(*fargs, plot=False, **fkwargs):
-
+        def wrapper_f(
+            *fargs, plot: Union[None, str, Iterable, Callable] = None, **fkwargs
+        ):
             values = func(*fargs, **fkwargs)
-
-            if isinstance(plot, Callable):
-                plot(values, *pargs, **pkwargs)
-            elif plot:
-                plot_f(values, *pargs, **pkwargs)
+            if isinstance(plot, str):
+                for plotf in plot_fs:
+                    if plotf.__name__ == plot:
+                        plotf(values)
+            if callable(plot):
+                plot(values)
+            if isinstance(plot, Iterable):
+                if all(isinstance(p, str) for p in plot):
+                    for plotf in plot_fs:
+                        if plotf.__name__ in plot:
+                            plotf(values)
+                if all(callable(p) for p in plot):
+                    for plotf in plot:
+                        plotf(values)
             return values
 
         return wrapper_f

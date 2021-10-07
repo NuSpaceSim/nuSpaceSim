@@ -57,7 +57,11 @@ __all__ = ["simulate"]
 
 
 def simulate(
-    config: NssConfig, verbose: bool = False, to_plot: list = []
+    config: NssConfig,
+    verbose: bool = False,
+    output_file: str = None,
+    to_plot: list = [],
+    write_stages=False,
 ) -> ResultsTable:
     r"""Simulate an upward going shower.
 
@@ -94,6 +98,8 @@ def simulate(
         Configuration object.
     verbose: bool, optional
         Flag enabling verbose output.
+    to_plot: list, optional
+        Call the listed plotting functions as appropritate.
 
     Returns
     -------
@@ -101,47 +107,50 @@ def simulate(
         The Table of result valuse from each stage of the simulation.
     """
 
+    def printv(*args):
+        if verbose:
+            print(*args)
+
     sim = ResultsTable(config)
     geom = RegionGeom(config)
     tau = Taus(config)
     eas = EAS(config)
 
-    if verbose:
-        print(
-            f"Running Nu Space Simulate with log(E_nu) = "
-            f"{config.simulation.log_nu_tau_energy}"
-        )
+    class _stage_writer:
+        def __call__(self, *args, **kwargs):
+            sim(*args, **kwargs)
+            if write_stages:
+                sim.write(output_file, overwrite=True)
+
+        def add_meta(self, *args, **kwargs):
+            sim.add_meta(*args, **kwargs)
+            if write_stages:
+                sim.write(output_file, overwrite=True)
+
+    stage_writer = _stage_writer()
+
+    printv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
 
     # Run simulation
-    beta_tr = geom(
-        config.simulation.N, store=sim, make_plot=("geom.beta_tr" in to_plot)
-    )
-    if verbose:
-        print(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
+    beta_tr = geom(config.simulation.N, store=stage_writer, plot=to_plot)
+    printv(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
 
-    if verbose:
-        print(f"Computing taus.")
-    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(beta_tr, store=sim)
+    printv(f"Computing taus.")
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(beta_tr, store=stage_writer)
 
-    if verbose:
-        print(f"Computing decay altitudes.")
-    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz)
-    if verbose:
-        print(f"Computing EAS Cherenkov light.")
-    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sim)
+    printv(f"Computing decay altitudes.")
+    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=stage_writer)
 
-    if verbose:
-        print(f"Computing Monte Carlo Integral.")
+    printv(f"Computing EAS Cherenkov light.")
+    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=stage_writer)
+
+    printv(f"Computing Monte Carlo Integral.")
     mcint, mcintgeo, numEvPass = geom.mcintegral(
-        numPEs, costhetaChEff, tauExitProb, store=sim
+        numPEs, costhetaChEff, tauExitProb, store=stage_writer
     )
 
-    if verbose:
-        print("Monte Carlo Integral:", mcint)
-        print("Monte Carlo Integral, GEO Only:", mcintgeo)
-        print("Number of Passing Events:", numEvPass)
+    printv("Monte Carlo Integral:", mcint)
+    printv("Monte Carlo Integral, GEO Only:", mcintgeo)
+    printv("Number of Passing Events:", numEvPass)
 
     return sim
-
-
-plotables: list = ["geom.beta_tr", "tau.tauShowerEnergy"]
