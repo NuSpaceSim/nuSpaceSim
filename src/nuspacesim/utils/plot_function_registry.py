@@ -1,2 +1,2 @@
 __all__ = ["registry"]
-registry:set[str] = set()
+registry = set()

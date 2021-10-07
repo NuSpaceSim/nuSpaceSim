@@ -2,7 +2,7 @@ from nuspacesim.utils import cdf
 # from nuspacesim.utils.interp import grid_interpolator
 
 from nuspacesim import NssConfig
-from nuspacesim.utils.grid import NssGrid, NssAxes
+from nuspacesim.utils.grid import NssGrid
 import numpy as np
 
 try:
