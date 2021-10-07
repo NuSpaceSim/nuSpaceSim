@@ -31,13 +31,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" Generalized interpolation functions. """
+""" Special interpolation functions.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   grid_interpolator
+   grid_slice_interp
+   grid_RegularGridInterpolator
+   vec_1d_interp
+
+"""
 
 from typing import Callable
 
 from scipy.interpolate import interp1d
 import numpy as np
-from numpy.typing import ArrayLike
 
 from nuspacesim.utils.grid import NssGrid
 
@@ -47,8 +57,6 @@ __all__ = [
     "grid_slice_interp",
     "grid_RegularGridInterpolator",
     "vec_1d_interp",
-    # "grid_RBFInterpolator",
-    # "legacy_RBFInterpolator",
 ]
 
 
@@ -98,22 +106,6 @@ def grid_RegularGridInterpolator(grid, **kwargs):
         kwargs["fill_value"] = None
 
     return RegularGridInterpolator(grid.axes, grid.data, **kwargs)
-
-
-# def grid_RBFInterpolator(grid, **kwargs) -> Callable:
-#     from scipy.interpolate import RBFInterpolator
-
-#     return RBFInterpolator(cartesian_product(*grid.axes), grid.data, **kwargs)
-
-
-def legacy_RBFInterpolator(grid, **kwargs) -> Callable:
-    from scipy.interpolate import Rbf
-
-    print(grid)
-
-    peb_rbf = np.tile(grid.axes[1], grid.axes[0].shape)
-    pelne_rbf = np.repeat(grid.axes[0], grid.axes[1].shape, 0)
-    return Rbf(peb_rbf, pelne_rbf, grid.data, **kwargs)
 
 
 def left_shift(arr):

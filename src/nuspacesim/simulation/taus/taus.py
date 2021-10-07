@@ -37,6 +37,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from ... import NssConfig
+from ...utils import decorators
 from ...utils.grid import NssGrid
 from ...utils.cdf import grid_inverse_sampler
 from ...utils.interp import grid_slice_interp
@@ -115,7 +116,8 @@ class Taus(object):
         E_tau[mask] = self.tau_cdf_sample(betas[mask])
         return E_tau * self.config.simulation.nu_tau_energy
 
-    def __call__(self, betas, store=None):
+    @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
+    def __call__(self, betas):
         r"""Perform main operation for Taus module.
 
         Parameters
@@ -144,11 +146,5 @@ class Taus(object):
         tauLorentz = tauEnergy / self.config.constants.massTau
 
         tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
-
-        if store is not None:
-            store(
-                ["tauBeta", "tauLorentz", "showerEnergy", "tauExitProb"],
-                [tauBeta, tauLorentz, showerEnergy, tauExitProb],
-            )
 
         return tauBeta, tauLorentz, showerEnergy, tauExitProb

@@ -31,8 +31,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__all__ = ["cdf", "grid", "misc"]
+r""" Utility classes and methods
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+    cdf
+    grid
+    misc
+    decorators
+
+"""
+
+__all__ = ["cdf", "grid", "misc", "decorators"]
 
 from . import cdf
 from . import grid
 from . import misc
+from . import decorators

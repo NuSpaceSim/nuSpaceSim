@@ -1,7 +1,5 @@
 .. _nuspacesim_docs_mainpage:
 
-.. module:: nuspacesim
-
 ========================
 nuSpaceSim Documentation
 ========================
@@ -19,12 +17,14 @@ The package also provides a python3 API for programatic access.
 Tau propagation is interpolated using included data tables from nuPyProp.
 
 .. panels::
+    :container: container-fluid pb-1
+    :column: col-lg-6 col-md-6 col-sm-12 col-xs-12 p-2
     :card: + intro-card text-center
+    :img-top-cls: pl-5 pr-5
 
     ---
-    Getting started
+    :opticon:`rocket` Quickstart
     ^^^^^^^^^^^^^^^
-
     New to νSpaceSim? Check out the Quickstart guide for help installing and
     navigating the package.
     +++
@@ -35,14 +35,10 @@ Tau propagation is interpolated using included data tables from nuPyProp.
             :classes: btn-block btn-secondary stretched-link
 
     ---
-    .. :img-top: _static/index_user_guide.png
-
-    User guide
+    :fa:`book` User guide
     ^^^^^^^^^^
-
     The user guide provides in-depth information on the
     key concepts of nuSpaceSim with useful background information and explanation.
-
     +++
 
     .. link-button:: tutorial
@@ -51,15 +47,10 @@ Tau propagation is interpolated using included data tables from nuPyProp.
             :classes: btn-block btn-secondary stretched-link
 
     ---
-    .. :img-top: _static/index_api.png
-
-    API reference
+    :fa:`cogs` API reference
     ^^^^^^^^^^^^^
-
-    The reference guide contains a detailed description of
-    the nss API. The reference describes how the methods work and which parameters can
-    be used. It assumes that you have an understanding of the key concepts.
-
+    The reference guide contains a detailed description of the how the methods work
+    and which parameters can be used.
     +++
 
     .. link-button:: reference
@@ -68,27 +59,22 @@ Tau propagation is interpolated using included data tables from nuPyProp.
             :classes: btn-block btn-secondary stretched-link
 
     ---
-    .. :img-top: _static/index_contribute.png
-
-    Developer guide
+    :fa:`code` Developer guide
     ^^^^^^^^^^^^^^^
-
-    Saw a typo in the documentation? Want to improve
-    existing functionalities? The contributing guidelines will guide
-    you through the process of improving nss.
-
+    Need to modify or build nuSpaceSim from source? Understand the testing pipeline?
+    Developer guides are here for you!
     +++
 
     .. link-button:: dev
             :type: ref
-            :text: To the development guide
+            :text: To the developer guide
             :classes: btn-block btn-secondary stretched-link
 
 .. toctree::
-   :maxdepth: 3
    :hidden:
 
-   Getting started <quickstart>
+   Quickstart <quickstart>
    User Guide <tutorial/index>
    API reference <reference/index>
    Development <dev/index>
+

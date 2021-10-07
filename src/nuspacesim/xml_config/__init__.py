@@ -31,6 +31,34 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+r"""XML file utilities for configuration objects
+
+--------------------------------------
+NuSpaceSim Configuration XML Interface
+--------------------------------------
+
+Configuration object can be serialized to an XML file, in whole or in part. These
+configuration files can be read back into nuspacesim with
+:func:`config_from_xml<nuspacesim.xml_config.config_from_xml>`. All XML config files
+are validated with an XSD Schema to by
+is_valid_xml ensure correctness.
+:func:`is_valid_xml<nuspacesim.xml_config.is_valid_xml>` ensure correctness.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+   :nosignatures:
+
+   create_xml
+   config_from_xml
+   is_valid_xml
+   parseXML
+   parse_detector_chars
+   parse_simulation_params
+   config_xml_schema
+
+"""
+
 __all__ = [
     "is_valid_xml",
     "parse_config",
