@@ -56,7 +56,9 @@ from .simulation.eas_optical.eas import EAS
 __all__ = ["simulate"]
 
 
-def simulate(config: NssConfig, verbose: bool = False) -> ResultsTable:
+def simulate(
+    config: NssConfig, verbose: bool = False, to_plot: list = []
+) -> ResultsTable:
     r"""Simulate an upward going shower.
 
     The main proceedure for performaing a full simulation in nuspacesim.
@@ -111,7 +113,9 @@ def simulate(config: NssConfig, verbose: bool = False) -> ResultsTable:
         )
 
     # Run simulation
-    beta_tr = geom(config.simulation.N, store=sim)
+    beta_tr = geom(
+        config.simulation.N, store=sim, make_plot=("geom.beta_tr" in to_plot)
+    )
     if verbose:
         print(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
 
@@ -138,3 +142,6 @@ def simulate(config: NssConfig, verbose: bool = False) -> ResultsTable:
         print("Number of Passing Events:", numEvPass)
 
     return sim
+
+
+plotables: list = ["geom.beta_tr", "tau.tauShowerEnergy"]

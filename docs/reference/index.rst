@@ -12,16 +12,7 @@ NuSpaceSim Reference
 This reference manual details functions, modules, and objects
 included in nuSpaceSim, describing what they are and what they do.
 
-
-
-.. toctree::
-   :maxdepth: 1
-
-   configuration
-
 .. autosummary::
-   :toctree: generated/
-   :nosignatures:
+   :toctree: generated
 
-   nuspacesim.simulate
-   nuspacesim.simulation
+   nuspacesim

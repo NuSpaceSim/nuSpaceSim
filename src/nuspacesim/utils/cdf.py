@@ -31,7 +31,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""CDF Sampling Utilities."""
+"""CDF Sampling Utilities.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+    invert_cdf_grid
+    grid_inverse_sampler
+    nearest_cdf_sampler
+    lerp_cdf_sampler
+
+"""
 
 from typing import Callable
 

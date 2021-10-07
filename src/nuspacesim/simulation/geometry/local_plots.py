@@ -31,6 +31,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""Lookup tables and datafiles.
+def betas_histogram(betas):
+    r"""Plot a histgram of beta trajectories."""
+    from matplotlib import pyplot as plt
 
-"""
+    plt.hist(betas, 50, alpha=0.75)
+    plt.xlabel("beta_tr (radians)")
+    plt.ylabel("frequency (counts)")
+    plt.title(f"Histogram of {betas.size} Beta Angles")
+    plt.show()

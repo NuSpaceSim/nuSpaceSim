@@ -31,15 +31,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" nuspacesim
-
-    Command line client source code.
-"""
+""" Command line client source code.  """
 
 import click
 
 from .. import NssConfig, SimulationParameters
-from ..simulate import simulate
+from ..simulate import simulate, plotables
 from ..xml_config import config_from_xml, create_xml
 
 
@@ -54,13 +51,22 @@ def cli():
 
 @cli.command()
 @click.option("-o", "--output", type=str, default=None, help="Output file.")
+@click.option(
+    "--plot",
+    type=click.Choice(plotables, case_sensitive=False),
+    multiple=True,
+    default=[],
+    help="Default results plot.",
+)
 @click.argument(
     "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
 )
 @click.argument("count", type=float, default=0.0)
 @click.argument("logevalue", type=float, default=8.0)
 # @click.pass_context
-def run(config_file: str, count: float, logevalue: float, output: str) -> None:
+def run(
+    config_file: str, count: float, logevalue: float, output: str, plot: list
+) -> None:
     """Perform the full nuspacesim simulation.
 
     Main Simulator for nuspacesim.  Given a XML configuration file, and
@@ -78,23 +84,23 @@ def run(config_file: str, count: float, logevalue: float, output: str) -> None:
         Log of nu tau Energy. Optionally override value in config_file.
     output: str, optional
         Name of the output file holding the simulation results.
+    plot: list, optional
+        Plot the simulation results
+
 
     Examples
     --------
     Command line usage of the run command may work with the following invocation.
 
-    nuspacesim run sample_input_file.xml 100000 8 -o my_sim_results.fits
+    nuspacesim run sample_input_file.xml 1e5 8 -o my_sim_results.fits
     """
 
     # User Inputs
     config = config_from_xml(config_file)
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
     config.simulation.nu_tau_energy = 10 ** logevalue
-
-    simulation = simulate(config, verbose=True)
+    simulation = simulate(config, verbose=True, to_plot=plot)
     simulation.write(output)
-    # write_fits(simulation, output)
-    # # write_hdf5(simulation)
 
 
 @cli.command()

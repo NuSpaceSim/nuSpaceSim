@@ -34,7 +34,9 @@
 import numpy as np
 
 from .nssgeometry import Geom_params
+from ...utils import decorators
 from ... import NssConfig
+from .local_plots import betas_histogram
 
 __all__ = ["RegionGeom"]
 
@@ -74,16 +76,22 @@ class RegionGeom(Geom_params):
         """Create array of Earth-emergence angles for valid events."""
         return np.radians(self.betas())
 
-    def __call__(self, numtrajs, store=None):
+    @decorators.nss_result_plot(betas_histogram)
+    @decorators.nss_result_store(["beta_rad"])
+    def __call__(self, numtrajs):
         """Throw numtrajs events and return valid betas in radians."""
         self.throw(numtrajs)
-
-        if store is not None:
-            store(["beta_tr"], [self.beta_rad()])
-
         return self.beta_rad()
 
-    def mcintegral(self, numPEs, costhetaCh, tauexitprob, store=None):
+    @decorators.nss_result_store_scalar(
+        ["mcint", "mcintgeo", "nEvPass"],
+        [
+            "MonteCarlo Integral",
+            "MonteCarlo Integral, GEO Only",
+            "Number of Passing Events",
+        ],
+    )
+    def mcintegral(self, numPEs, costhetaCh, tauexitprob):
         """Monte Carlo integral."""
         cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
 
@@ -111,12 +119,5 @@ class RegionGeom(Geom_params):
         numEvPass = np.count_nonzero(mcintfactor)
 
         mcintegral = np.mean(mcintfactor) * super().mcnorm
-
-        if store is not None:
-            store.add_meta("mcint", mcintegral, "MonteCarlo Integral")
-            store.add_meta(
-                "mcintgeo", mcintegralgeoonly, "MonteCarlo Integral, GEO Only"
-            )
-            store.add_meta("nEvPass", numEvPass, "Number of Passing Events")
 
         return mcintegral, mcintegralgeoonly, numEvPass
