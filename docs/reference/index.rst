@@ -14,5 +14,6 @@ included in nuSpaceSim, describing what they are and what they do.
 
 .. autosummary::
    :toctree: generated
+   :recursive:
 
    nuspacesim

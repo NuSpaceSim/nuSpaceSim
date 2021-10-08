@@ -116,7 +116,7 @@ def simulate(
     tau = Taus(config)
     eas = EAS(config)
 
-    class _stage_writer:
+    class StagedWriter:
         def __call__(self, *args, **kwargs):
             sim(*args, **kwargs)
             if write_stages:
@@ -127,26 +127,28 @@ def simulate(
             if write_stages:
                 sim.write(output_file, overwrite=True)
 
-    stage_writer = _stage_writer()
+    sw = StagedWriter()
 
     printv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
 
     # Run simulation
-    beta_tr = geom(config.simulation.N, store=stage_writer, plot=to_plot)
+    beta_tr = geom(config.simulation.N, store=sw, plot=to_plot)
     printv(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
 
     printv(f"Computing taus.")
-    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(beta_tr, store=stage_writer)
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
+        beta_tr, store=sw, plot=to_plot
+    )
 
     printv(f"Computing decay altitudes.")
-    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=stage_writer)
+    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
     printv(f"Computing EAS Cherenkov light.")
-    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=stage_writer)
+    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sw, plot=to_plot)
 
     printv(f"Computing Monte Carlo Integral.")
     mcint, mcintgeo, numEvPass = geom.mcintegral(
-        numPEs, costhetaChEff, tauExitProb, store=stage_writer
+        numPEs, costhetaChEff, tauExitProb, store=sw
     )
 
     printv("Monte Carlo Integral:", mcint)

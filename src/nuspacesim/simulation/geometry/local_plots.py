@@ -31,24 +31,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# from ...utils.decorators import register_plot_function
-# @register_plot_function("geom.beta_tr_histogram")
+from matplotlib import pyplot as plt
+import numpy as np
 
-def geom_beta_tr_hist(betas):
+
+def geom_beta_tr_hist(n, betas, *args, **kwargs):
     r"""Plot a histgram of beta trajectories."""
-    from matplotlib import pyplot as plt
 
-    plt.hist(betas, 50, alpha=0.75)
+    plt.hist(np.degrees(betas), 50, alpha=0.75)
     plt.xlabel("beta_tr (radians)")
     plt.ylabel("frequency (counts)")
     plt.title(f"Histogram of {betas.size} Beta Angles")
     plt.show()
 
-def geom_beta_tr_hist_red(betas):
-    r"""Plot a histgram of beta trajectories."""
-    from matplotlib import pyplot as plt
 
-    plt.hist(betas, 50, alpha=0.75, facecolor='r')
+def geom_beta_tr_hist_red(n, betas, *args, **kwargs):
+    r"""Plot a histgram of beta trajectories."""
+
+    plt.hist(np.degrees(betas), 50, alpha=0.75, facecolor="r")
     plt.xlabel("beta_tr (radians)")
     plt.ylabel("frequency (counts)")
     plt.title(f"Histogram of {betas.size} Beta Angles")

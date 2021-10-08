@@ -31,16 +31,40 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r""" Utility classes and methods
+from matplotlib import pyplot as plt
+import numpy as np
 
-.. autosummary::
-   :toctree:
-   :recursive:
-"""
 
-__all__ = ["cdf", "grid", "misc", "decorators"]
+def taus_scatter(inputs, results, *args, **kwargs):
+    r"""Plot some scatterplots"""
 
-from . import cdf
-from . import grid
-from . import misc
-from . import decorators
+    tau_self, betas = inputs
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = results
+
+    color = "c"
+    alpha = 0.5
+
+    fig, ax = plt.subplots(2, 2, sharex=True)
+
+    ax[0, 0].scatter(x=np.degrees(betas), y=tauBeta, c=color, alpha=alpha)
+    ax[0, 0].set_xlabel("β")
+    ax[0, 0].set_ylabel("τ_β")
+    ax[0, 0].set_title("β vs τ_β")
+
+    ax[0, 1].scatter(x=np.degrees(betas), y=tauLorentz, c=color, alpha=alpha)
+    ax[0, 1].set_xlabel("β")
+    ax[0, 1].set_ylabel("τ_Lorentz")
+    ax[0, 1].set_title("β vs τ_Lorentz")
+
+    ax[1, 0].scatter(x=np.degrees(betas), y=showerEnergy, c=color, alpha=alpha)
+    ax[1, 0].set_xlabel("β")
+    ax[1, 0].set_ylabel("E_shower (100 PeV)")
+    ax[1, 0].set_title("β vs E_shower")
+
+    ax[1, 1].scatter(x=np.degrees(betas), y=tauExitProb, c=color, alpha=alpha)
+    ax[1, 1].set_xlabel("β")
+    ax[1, 1].set_ylabel("PExit(τ)")
+    ax[1, 1].set_title("β vs Exit Probability.")
+
+    fig.suptitle("Tau interaction properties vs. β_tr Angles")
+    plt.show()

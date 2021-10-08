@@ -168,7 +168,7 @@ def nss_result_plot(*plot_fs):
     --------
     In region_geometry.py
 
-    >>> def betas_histogram(betas):
+    >>> def betas_histogram(numtrajs, betas):
     >>>     plt.hist(betas, 50, alpha=0.75)
     >>>     plt.xlabel("beta_tr (radians)")
     >>>     plt.ylabel("frequency (counts)")
@@ -194,23 +194,23 @@ def nss_result_plot(*plot_fs):
 
         @wraps(func)
         def wrapper_f(
-            *fargs, plot: Union[None, str, Iterable, Callable] = None, **fkwargs
+            *args, plot: Union[None, str, Iterable, Callable] = None, **kwargs
         ):
-            values = func(*fargs, **fkwargs)
+            values = func(*args, **kwargs)
             if isinstance(plot, str):
                 for plotf in plot_fs:
                     if plotf.__name__ == plot:
-                        plotf(values)
-            if callable(plot):
-                plot(values)
-            if isinstance(plot, Iterable):
+                        plotf(args, values)
+            elif callable(plot):
+                plot(args, values)
+            elif isinstance(plot, Iterable):
                 if all(isinstance(p, str) for p in plot):
                     for plotf in plot_fs:
                         if plotf.__name__ in plot:
-                            plotf(values)
-                if all(callable(p) for p in plot):
+                            plotf(args, values)
+                elif all(callable(p) for p in plot):
                     for plotf in plot:
-                        plotf(values)
+                        plotf(args, values)
             return values
 
         return wrapper_f

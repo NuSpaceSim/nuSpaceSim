@@ -43,6 +43,7 @@ Taus
    :toctree:
 
     Taus
+    local_plots
 
 """
 

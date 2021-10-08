@@ -35,6 +35,7 @@ import numpy as np
 from .cphotang import CphotAng
 from ... import NssConfig
 from ...utils import decorators
+from .local_plots import eas_optical_scatter
 
 __all__ = ["EAS"]
 
@@ -72,6 +73,7 @@ class EAS:
 
         return altDec
 
+    @decorators.nss_result_plot(eas_optical_scatter)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
     def __call__(self, beta, altDec, showerEnergy) -> tuple:
         """

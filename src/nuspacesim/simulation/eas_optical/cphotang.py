@@ -31,18 +31,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Cherenkov photon density and angle determination class.  """
+r"""Cherenkov photon density and angle determination class.
+
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+    CphotAng
+
+"""
 
 import numpy as np
 from numpy.polynomial import Polynomial
-
-# from scipy import interpolate
-import dask
 import dask.bag as db
-from dask.distributed import Client
 
-# import multiprocessing
-# from joblib import Parallel, delayed
 from .zsteps import zsteps as cppzsteps
 
 __all__ = ["CphotAng"]
@@ -58,6 +61,8 @@ class CphotAng:
         C++.
         """
         self.dtype = np.float32
+        """numerical data type"""
+
         self.wave1 = np.array(
             [
                 200.0,
@@ -92,21 +97,25 @@ class CphotAng:
             ],
             dtype=self.dtype,
         )
+        """internal wavelength step array"""
 
         self.OzZeta = np.array(
             [5.35, 10.2, 14.75, 19.15, 23.55, 28.1, 32.8, 37.7, 42.85, 48.25, 100.0],
             dtype=self.dtype,
         )
+        """internal Ozone zeta array"""
 
         self.OzDepth = np.array(
             [15.0, 9.0, 10.0, 31.0, 71.0, 87.2, 57.0, 29.4, 10.9, 3.2, 1.3],
             dtype=self.dtype,
         )
+        """internal Ozone depth array"""
 
         self.OzDsum = np.array(
             [310.0, 301.0, 291.0, 260.0, 189.0, 101.8, 44.8, 15.4, 4.5, 1.3, 0.1],
             dtype=self.dtype,
         )
+        """internal Ozone Dsum array"""
 
         self.aOD55 = np.array(
             [
@@ -143,6 +152,7 @@ class CphotAng:
             ],
             dtype=self.dtype,
         )
+        """internal aOD55 array"""
 
         # self.aOD55_interp = interpolate.interp1d(np.arange(30)+1, self.aOD55,
         #                                          kind='linear',
@@ -157,12 +167,19 @@ class CphotAng:
         #                                           assume_sorted=True)
 
         self.dL = self.dtype(0.1)  # parin(1) step size km
+        """simulation step size in Km"""
+
         self.orbit_height = self.dtype(525.0)  # parin(2) orbit height km
+        """Detector orbital altitude in Km"""
         self.hist_bin_size = self.dtype(4.0)  # parin(3) bin size histogram km
+        """histogram bin size"""
+
         # parin(5) record time dispersion at
         self.time_disp_rec_point = self.dtype(0.5)
+        """record time dispersion point (km)"""
         # this radial point (km)
         self.logE = self.dtype(17.0)  # parin(8) log(E) E in eV
+        """log base 10 of energy in eV"""
 
         # c  parameters for 1/Beta fit vs wavelength
         # c     5th order polynomial
@@ -179,8 +196,10 @@ class CphotAng:
                 dtype=self.dtype,
             )
         )
+        """1/beta fit vs wavelength polynomial"""
 
         self.wmean = self.wave1[:-1] + self.dtype(12.5)
+
         tBetinv = aP(self.wmean)
         self.aBetaF = np.reciprocal(tBetinv, dtype=self.dtype)
         self.aBetaF /= self.dtype(0.158)
@@ -650,7 +669,8 @@ class CphotAng:
         """
 
         if client_input is not None:
-            client = Client(client_input)
+            pass
+            # client = Client(client_input)
 
         #######################
         b = db.from_sequence(zip(betaE, alt), partition_size=100)

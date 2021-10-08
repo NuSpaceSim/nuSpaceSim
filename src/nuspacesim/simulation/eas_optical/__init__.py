@@ -48,6 +48,7 @@ EAS Optical
    :toctree:
    :recursive:
 
+    local_plots
     atmospheric_models
     cphotang
 """

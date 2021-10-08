@@ -46,7 +46,6 @@ is_valid_xml ensure correctness.
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    create_xml

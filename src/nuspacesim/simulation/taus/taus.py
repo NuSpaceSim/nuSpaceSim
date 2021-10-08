@@ -41,6 +41,7 @@ from ...utils import decorators
 from ...utils.grid import NssGrid
 from ...utils.cdf import grid_inverse_sampler
 from ...utils.interp import grid_slice_interp
+from .local_plots import taus_scatter
 
 try:
     from importlib.resources import as_file, files
@@ -116,6 +117,7 @@ class Taus(object):
         E_tau[mask] = self.tau_cdf_sample(betas[mask])
         return E_tau * self.config.simulation.nu_tau_energy
 
+    @decorators.nss_result_plot(taus_scatter)
     @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
     def __call__(self, betas):
         r"""Perform main operation for Taus module.

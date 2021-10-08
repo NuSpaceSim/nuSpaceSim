@@ -44,6 +44,9 @@ Geometry
    :recursive:
 
     RegionGeom
+    local_plots
+    nssgeometry
+
 """
 
 __all__ = ["RegionGeom"]

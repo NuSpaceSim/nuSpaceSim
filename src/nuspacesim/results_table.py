@@ -31,7 +31,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Simulation Results class and full simulation main function."""
+"""Simulation Results class and full simulation main function.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+    ResultsTable
+
+"""
 
 from astropy.table import Table as AstropyTable
 import datetime
@@ -51,7 +59,7 @@ class ResultsTable(AstropyTable):
     output file formats.
     """
 
-    def __init__(self, config: NssConfig):
+    def __init__(self, config: NssConfig=NssConfig()):
         r"""Constructor for ResultsTable class instances.
 
         Parameters
@@ -150,4 +158,4 @@ class ResultsTable(AstropyTable):
             super().write(filename, **kwargs)
 
         else:
-            raise ValueError(f"File output format {format} not in [fits, hdf5]!")
+            raise ValueError(f"File output format {format} not in {{ fits, hdf5 }}!")

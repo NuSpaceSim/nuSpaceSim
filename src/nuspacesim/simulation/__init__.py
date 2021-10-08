@@ -31,7 +31,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""NuSpaceSim geometry routines.
+r"""NuSpaceSim Simulation Modules.
 
 .. _simulation:
 
@@ -50,8 +50,8 @@ neutrino propagation and interaction.
    :nosignatures:
 
    geometry
-   eas_optical
    taus
+   eas_optical
 
 
 """
