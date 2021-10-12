@@ -118,7 +118,7 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
         quantum_efficiency=float(detchar["QuantumEfficiency"]),
         photo_electron_threshold=float(detchar["NPE"]),
         low_freq=float(detchar["LowFrequency"]),
-        high_freq=float(detchar["HighFrequency"]), 
+        high_freq=float(detchar["HighFrequency"]),
         det_SNR_thres=float(detchar["SNRThreshold"]),
         det_Nant=int(detchar["NAntennas"]),
         det_gain=float(detchar["AntennaGain"]),
@@ -269,21 +269,21 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     npe = ET.SubElement(pethres, "NPE")
     npe.text = str(config.detector.photo_electron_threshold)
-    
+
     detlow_freq = ET.SubElement(detchar, "LowFrequency")
     detlow_freq.set("Unit", "MHz")
     detlow_freq.text = str(config.detector.low_freq)
-    
+
     dethigh_freq = ET.SubElement(detchar, "HighFrequency")
     dethigh_freq.set("Unit", "MHz")
     dethigh_freq.text = str(config.detector.high_freq)
-    
+
     detSNRthres = ET.SubElement(detchar, "SNRThreshold")
     detSNRthres.text = str(config.detector.det_SNR_thres)
-    
+
     detNant = ET.SubElement(detchar, "NAntennas")
     detNant.text = str(config.detector.det_Nant)
-    
+
     detGain = ET.SubElement(detchar, "AntennaGain")
     detGain.text = str(config.detector.det_gain)
 
@@ -316,13 +316,13 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     numtrajs = ET.SubElement(simparams, "NumTrajs")
     numtrajs.text = str(config.simulation.N)
-    
+
     ionosphere = ET.SubElement(simparams, "ModelIonosphere")
     ionosphere.text = str(config.simulation.model_ionosphere)
-    
+
     tec = ET.SubElement(simparams, "TEC")
     tec.text = str(config.simulation.TEC)
-    
+
     tecerr = ET.SubElement(simparams, "TECerr")
     tecerr.text = str(config.simulation.TECerr)
 

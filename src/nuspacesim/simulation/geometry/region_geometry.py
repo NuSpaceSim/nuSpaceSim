@@ -73,23 +73,23 @@ class RegionGeom(Geom_params):
         return betaArr
 
     def beta_rad(self):
-        """ Create array of Earth-emergence angles for valid events."""
+        """Create array of Earth-emergence angles for valid events."""
         return np.radians(self.betas())
-    
+
     def thetas(self):
-        """ Create array of view angles for valid events."""
+        """Create array of view angles for valid events."""
         thetaArr = super().evArray["thetaTrSubV"][super().evMasknpArray]
         return thetaArr
-    
+
     def pathLens(self):
-        """ Create array of view angles for valid events."""
+        """Create array of view angles for valid events."""
         pathLenArr = super().evArray["losPathLen"][super().evMasknpArray]
         return pathLenArr
-    
+
     @decorators.nss_result_plot(geom_beta_tr_hist, geom_beta_tr_hist_red)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_lens")
     def __call__(self, numtrajs):
-        """ Throw numtrajs events and return valid betas."""
+        """Throw numtrajs events and return valid betas."""
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
@@ -102,23 +102,26 @@ class RegionGeom(Geom_params):
         ],
     )
     def mcintegral(self, numPEs, costhetaCh, tauexitprob):
-        """ Monte Carlo integral.  
-            numPEs is actually SNR in the radio case
+        """Monte Carlo integral.
+        numPEs is actually SNR in the radio case
         """
-        if self.config.detector.method == 'Radio' or self.config.detector.method == 'Optical':
+        if (
+            self.config.detector.method == "Radio"
+            or self.config.detector.method == "Optical"
+        ):
             cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
 
             # Geometry Factors
             mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
             mcintfactor = np.multiply(
-                mcintfactor,
-                super().evArray["costhetaTrSubN"][super().evMasknpArray])
+                mcintfactor, super().evArray["costhetaTrSubN"][super().evMasknpArray]
+            )
             mcintfactor = np.divide(
-                mcintfactor,
-                super().evArray["costhetaNSubV"][super().evMasknpArray])
+                mcintfactor, super().evArray["costhetaNSubV"][super().evMasknpArray]
+            )
             mcintfactor = np.divide(
-                mcintfactor,
-                super().evArray["costhetaTrSubV"][super().evMasknpArray])
+                mcintfactor, super().evArray["costhetaTrSubV"][super().evMasknpArray]
+            )
 
             mcintegralgeoonly = np.mean(mcintfactor) * super().mcnorm
 
@@ -127,11 +130,15 @@ class RegionGeom(Geom_params):
 
             mcint_notrigger = mcintfactor.copy()
             # PE threshold
-            if self.config.detector.method == 'Radio':
-                mcintfactor *= np.where(numPEs - self.config.detector.det_SNR_thres < 0, 0.0, 1.0)
-            if self.config.detector.method == 'Optical':
-                mcintfactor *= np.where(numPEs - self.config.detector.photo_electron_threshold < 0, 0.0, 1.0)
-        if self.config.detector.method == 'Both':
+            if self.config.detector.method == "Radio":
+                mcintfactor *= np.where(
+                    numPEs - self.config.detector.det_SNR_thres < 0, 0.0, 1.0
+                )
+            if self.config.detector.method == "Optical":
+                mcintfactor *= np.where(
+                    numPEs - self.config.detector.photo_electron_threshold < 0, 0.0, 1.0
+                )
+        if self.config.detector.method == "Both":
             cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
 
             npe = numPEs[0]
@@ -139,18 +146,18 @@ class RegionGeom(Geom_params):
             opt_costheta = costhetaCh[0]
             rad_costheta = costhetaCh[1]
             # Geometry Factors
-            #Optical first
+            # Optical first
             mcintfactor = np.ones(opt_costheta.shape)
             mcintfactor = np.multiply(
-                mcintfactor,
-                super().evArray["costhetaTrSubN"][super().evMasknpArray])
+                mcintfactor, super().evArray["costhetaTrSubN"][super().evMasknpArray]
+            )
             mcintfactor = np.divide(
-                mcintfactor,
-                super().evArray["costhetaNSubV"][super().evMasknpArray])
+                mcintfactor, super().evArray["costhetaNSubV"][super().evMasknpArray]
+            )
             mcintfactor = np.divide(
-                mcintfactor,
-                super().evArray["costhetaTrSubV"][super().evMasknpArray])
-            
+                mcintfactor, super().evArray["costhetaTrSubV"][super().evMasknpArray]
+            )
+
             mcintfactor_opt = np.where(cossepangle - opt_costheta < 0, 0.0, 1.0)
             mcintfactor_rad = np.where(cossepangle - rad_costheta < 0, 0.0, 1.0)
             mcintfactor_opt *= mcintfactor
@@ -164,9 +171,15 @@ class RegionGeom(Geom_params):
 
             mcint_notrigger = mcintfactor_rad.copy()
             # PE threshold
-            mcintfactor_opt *= np.where(npe - self.config.detector.photo_electron_threshold < 0, 0.0, 1.0)
-            mcintfactor_rad *= np.where(snr - self.config.detector.det_SNR_thres < 0, 0.0, 1.0)
-            mcintfactor = np.where(mcintfactor_opt > mcintfactor_rad, mcintfactor_opt, mcintfactor_rad)
+            mcintfactor_opt *= np.where(
+                npe - self.config.detector.photo_electron_threshold < 0, 0.0, 1.0
+            )
+            mcintfactor_rad *= np.where(
+                snr - self.config.detector.det_SNR_thres < 0, 0.0, 1.0
+            )
+            mcintfactor = np.where(
+                mcintfactor_opt > mcintfactor_rad, mcintfactor_opt, mcintfactor_rad
+            )
 
         numEvPass = np.count_nonzero(mcintfactor)
 

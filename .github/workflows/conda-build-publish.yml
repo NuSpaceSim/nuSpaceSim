@@ -45,7 +45,7 @@ jobs:
     - name: Conda build nuspacesim
       run: conda build -c conda-forge recipe
 
-    - name: Conda upload nuspacesim
-      run: |
-        $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload \
-           -u nuspacesim $CONDA/conda-bld/${{ matrix.platform }}/nuspacesim-*
+    # - name: Conda upload nuspacesim
+    #   run: |
+    #     $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload \
+    #        -u nuspacesim $CONDA/conda-bld/${{ matrix.platform }}/nuspacesim-*

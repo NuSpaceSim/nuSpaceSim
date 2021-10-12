@@ -147,44 +147,81 @@ def simulate(
     betaArr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
     printv(f"Threw {config.simulation.N} neutrinos. {betaArr.size} were valid.")
 
-    printv(f"Computing taus.")
-    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(betaArr, store=sw, plot=to_plot)
-    
-    printv(f"Computing decay altitudes.")
+    printv("Computing taus.")
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
+        betaArr, store=sw, plot=to_plot
+    )
+
+    printv("Computing decay altitudes.")
     altDec, lenDec = eas.altDec(betaArr, tauBeta, tauLorentz, store=sw)
 
-    if config.detector.method == 'Optical':
-        printv(f"Computing EAS Cherenkov light.")
-        numPEs, costhetaChEff = eas(betaArr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw, plot=to_plot)
-        printv(f"Computing Monte Carlo Integral.")
+    if config.detector.method == "Optical":
+        printv("Computing EAS Cherenkov light.")
+        numPEs, costhetaChEff = eas(
+            betaArr,
+            altDec,
+            lenDec,
+            thetaArr,
+            pathLenArr,
+            showerEnergy,
+            store=sw,
+            plot=to_plot,
+        )
+        printv("Computing Monte Carlo Integral.")
         mcint, mcintgeo, numEvPass = geom.mcintegral(
             numPEs, costhetaChEff, tauExitProb, store=sw
         )
 
-    if config.detector.method == 'Radio':
-        printv(f"Computing EAS (Radio).")
-        EFields, decay_h = eas(betaArr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw, plot=to_plot)
-        E_sigsum = EFields.sum(axis=1)
-        E_noise = noise_efield_from_range(FreqRange, config.detector.altitude)
-        snrs = calculate_snr(EFields, FreqRange, config.detector.altitude, config.detector.det_Nant, config.detector.det_gain)
-        costhetaArr = np.cos(thetaArr)
-        printv(f"Computing Monte Carlo Integral.")
-        mcint, mcintgeo, numEvPass = geom.mcintegral(snrs,
-            costhetaArr, tauExitProb, store=sw
+    if config.detector.method == "Radio":
+        printv("Computing EAS (Radio).")
+        EFields, _ = eas(
+            betaArr,
+            altDec,
+            lenDec,
+            thetaArr,
+            pathLenArr,
+            showerEnergy,
+            store=sw,
+            plot=to_plot,
         )
-    if config.detector.method == 'Both':
-        printv(f"Computing EAS (Both).")
-        npe_ef, costhetaChEff = eas(betaArr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw, plot=to_plot)
+        snrs = calculate_snr(
+            EFields,
+            FreqRange,
+            config.detector.altitude,
+            config.detector.det_Nant,
+            config.detector.det_gain,
+        )
+        costhetaArr = np.cos(thetaArr)
+        printv("Computing Monte Carlo Integral.")
+        mcint, mcintgeo, numEvPass = geom.mcintegral(
+            snrs, costhetaArr, tauExitProb, store=sw
+        )
+    if config.detector.method == "Both":
+        printv("Computing EAS (Both).")
+        npe_ef, costhetaChEff = eas(
+            betaArr,
+            altDec,
+            lenDec,
+            thetaArr,
+            pathLenArr,
+            showerEnergy,
+            store=sw,
+            plot=to_plot,
+        )
         numPEs = npe_ef[0]
         EFields = npe_ef[1]
-        E_noise = noise_efield_from_range(FreqRange, config.detector.altitude)
-        snrs = calculate_snr(EFields, FreqRange, config.detector.altitude, config.detector.det_Nant, config.detector.det_gain)
-        trigger_conds = [numPEs, snrs]
-        printv(f"Computing Monte Carlo Integral.")
-        mcint, mcintgeo, numEvPass = geom.mcintegral(trigger_conds,
-            [costhetaChEff, np.cos(thetaArr)], tauExitProb, store=sw
+        snrs = calculate_snr(
+            EFields,
+            FreqRange,
+            config.detector.altitude,
+            config.detector.det_Nant,
+            config.detector.det_gain,
         )
-
+        trigger_conds = [numPEs, snrs]
+        printv("Computing Monte Carlo Integral.")
+        mcint, mcintgeo, numEvPass = geom.mcintegral(
+            trigger_conds, [costhetaChEff, np.cos(thetaArr)], tauExitProb, store=sw
+        )
 
     printv("Monte Carlo Integral:", mcint)
     printv("Monte Carlo Integral, GEO Only:", mcintgeo)

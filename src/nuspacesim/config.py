@@ -60,6 +60,8 @@ __all__ = [
 class DetectorCharacteristics:
     r"""Dataclass holding Detector Characteristics."""
 
+    method: str = "Optical"
+    """ Type of detector: Default = Optical """
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
     ra_start: float = 0.0
@@ -72,11 +74,11 @@ class DetectorCharacteristics:
     """ Quantum Efficiency of the detector telescope. Default = 0.2 """
     photo_electron_threshold: float = 10.0
     """Photo Electron Threshold, Number Photo electrons = 10"""
-    low_freq: float = 30.
+    low_freq: float = 30.0
     """ Low end for radio band in MHz: Default = 30 """
-    high_freq: float = 300.
+    high_freq: float = 300.0
     """ High end of radio band in MHz: Default = 300 """
-    det_SNR_thres: float = 5.
+    det_SNR_thres: float = 5.0
     """ SNR threshold for radio triggering: Default = 5 """
     det_Nant: int = 10
     """ Number of radio antennas: Default = 10 """
@@ -138,7 +140,7 @@ class SimulationParameters:
     """Maximum Azimuthal Angle. Default = 2π radians (360 degrees)."""
     model_ionosphere: int = 0
     """Model ionosphere for radio propagation?. Default = 0 (false)."""
-    TEC: float = 10.
+    TEC: float = 10.0
     """Total Electron Content for ionospheric propagation. Default = 10."""
     TECerr: float = 0.1
     """Error for TEC reconstruction. Default = 0.1"""
@@ -173,9 +175,15 @@ class SimulationParameters:
             "eShwFrac": (self.e_shower_frac, "Simulation: Fraction of Etau in Shower"),
             "angLimb": (self.ang_from_limb, "Simulation: Angle From Limb"),
             "maxAzAng": (self.max_azimuth_angle, "Simulation: Maximum Azimuthal Angle"),
-            "ionosph": (self.model_ionosphere, "Simulation: For Radio, model the ionosphere?"),
+            "ionosph": (
+                self.model_ionosphere,
+                "Simulation: For Radio, model the ionosphere?",
+            ),
             "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
-            "TECerr": (self.TECerr, "Simulation: Uniformly distributed error on TEC estimation"),
+            "TECerr": (
+                self.TECerr,
+                "Simulation: Uniformly distributed error on TEC estimation",
+            ),
         }
 
 

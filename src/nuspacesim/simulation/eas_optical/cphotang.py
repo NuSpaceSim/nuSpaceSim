@@ -50,10 +50,10 @@ from .zsteps import zsteps as cppzsteps
 
 __all__ = ["CphotAng"]
 
+
 class CphotAng:
     r"""Cherenkov Photon Angle"""
 
-class CphotAng:
     def __init__(self):
         r"""CphotAng: Cherenkov photon density and angle determination class.
 

@@ -9,10 +9,10 @@
     <DetectorAltitude Unit="km">525.0</DetectorAltitude>
     <InitialDetectorRightAscension Unit="Radians">0.0</InitialDetectorRightAscension>
     <InitialDetectorDeclination Unit="Radians">0.0</InitialDetectorDeclination>
-    <LowFrequency Unit="MHz">300.0</LowFrequency>
-    <HighFrequency Unit="MHz">1000.0</HighFrequency>
-    <SNRThreshold>2.0</SNRThreshold>
-    <NAntennas>100</NAntennas>
+    <LowFrequency Unit="MHz">30.0</LowFrequency>
+    <HighFrequency Unit="MHz">300.0</HighFrequency>
+    <SNRThreshold>5.0</SNRThreshold>
+    <NAntennas>10</NAntennas>
     <AntennaGain>1.8</AntennaGain>
   </DetectorCharacteristics>
   <SimulationParameters DetectionMode="Diffuse">
@@ -22,12 +22,12 @@
       <FracETauInShower>0.5</FracETauInShower>
     </TauShowerType>
     <NuTauEnergySpecType SpectrumType="Mono">
-      <NuTauEnergy>1000000000.0</NuTauEnergy>
+      <NuTauEnergy>100000000.0</NuTauEnergy>
     </NuTauEnergySpecType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
     <NumTrajs>100</NumTrajs>
     <ModelIonosphere>0</ModelIonosphere>
-    <TEC>1.0</TEC>
+    <TEC>10.0</TEC>
     <TECerr>0.1</TECerr>
   </SimulationParameters>
 </NuSpaceSimParams>

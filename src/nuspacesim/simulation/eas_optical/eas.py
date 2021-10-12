@@ -60,19 +60,20 @@ class EAS:
 
         u = np.random.uniform(0, 1, len(beta)) if u is None else u
 
-        tDec = (-1.0 * tauLorentz /
-                self.config.constants.inv_mean_Tau_life) * np.log(u)
+        tDec = (-1.0 * tauLorentz / self.config.constants.inv_mean_Tau_life) * np.log(u)
 
         lenDec = tDec * tauBeta * self.config.constants.c
 
-        altDec = np.sqrt(self.config.constants.earth_radius**2 + lenDec**2 +
-                         2.0 * self.config.constants.earth_radius * lenDec * np.sin(beta))
+        altDec = np.sqrt(
+            self.config.constants.earth_radius ** 2
+            + lenDec ** 2
+            + 2.0 * self.config.constants.earth_radius * lenDec * np.sin(beta)
+        )
 
         altDec -= self.config.constants.earth_radius
 
         return altDec, lenDec
 
-            
     @decorators.nss_result_plot(eas_optical_scatter)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
     def call_optical(self, beta, altDec, lenDec, theta, showerEnergy, store, plot):
@@ -118,71 +119,101 @@ class EAS:
         Re = self.config.constants.earth_radius
         r1 = detectAlt + Re
         r2 = altDec + Re
-        exit = np.pi/2. - beta
-        r2squared = r2**2
-        thetaE = (Re**2 + (Re + altDec)**2 - lenDec**2)/(2*Re*(Re+altDec))
-        thetaE[thetaE<0] = 0
-        thetaE[thetaE>1] = 1
+        exit = np.pi / 2.0 - beta
+        r2squared = r2 ** 2
+        thetaE = (Re ** 2 + (Re + altDec) ** 2 - lenDec ** 2) / (2 * Re * (Re + altDec))
+        thetaE[thetaE < 0] = 0
+        thetaE[thetaE > 1] = 1
         thetaE = np.arccos(thetaE)
         thetaRel = exit - thetaE + viewAngle
         cosexit = np.cos(thetaRel)
-        return np.sqrt(r2squared*cosexit*cosexit - r2squared + r1*r1) - r2*cosexit
+        return (
+            np.sqrt(r2squared * cosexit * cosexit - r2squared + r1 * r1) - r2 * cosexit
+        )
 
     def get_decay_view(self, exitView, losDist, lenDec):
-        '''
+        """
         get view angle from shower to detector
-        '''
-        #sin^2 of our decay view angle
-        s2phi = (losDist*np.sin(exitView))**2.0 / (
-                lenDec * lenDec + losDist * losDist - 2 * losDist * lenDec * np.cos(exitView)
-                )
+        """
+        # sin^2 of our decay view angle
+        s2phi = (losDist * np.sin(exitView)) ** 2.0 / (
+            lenDec * lenDec
+            + losDist * losDist
+            - 2 * losDist * lenDec * np.cos(exitView)
+        )
         ang = np.arcsin(np.sqrt(s2phi))
         return ang
 
     @decorators.nss_result_store("EFields", "altDec")
-    def call_radio(self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot):
-        '''
+    def call_radio(
+        self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot
+    ):
+        """
         EAS radio output from ZHAires lookup tables
-        '''
+        """
         FreqRange = (self.config.detector.low_freq, self.config.detector.high_freq)
         radioParams = RadioEFieldParams(FreqRange)
-        mask = (altDec < 0.0) | (altDec > 10.0) #TODO set a reasonable cut for max shower height
+        mask = (altDec < 0.0) | (
+            altDec > 10.0
+        )  # TODO set a reasonable cut for max shower height
         mask = ~mask
-        
+
         viewAngles = np.zeros_like(theta)
         viewAngles[mask] = self.get_decay_view(theta[mask], pathLen[mask], lenDec[mask])
-        
-        #rudimentary distance scaling TODO investigate that this actually works with zhaires
-        nssDist = self.decay_to_detector_dist(beta[mask], altDec[mask], self.config.detector.altitude, lenDec[mask], viewAngles[mask])
-        zhairesDist = self.decay_to_detector_dist(beta[mask], altDec[mask], 525.0, lenDec[mask], viewAngles[mask])
+
+        # rudimentary distance scaling TODO investigate that this actually works with zhaires
+        nssDist = self.decay_to_detector_dist(
+            beta[mask],
+            altDec[mask],
+            self.config.detector.altitude,
+            lenDec[mask],
+            viewAngles[mask],
+        )
+        zhairesDist = self.decay_to_detector_dist(
+            beta[mask], altDec[mask], 525.0, lenDec[mask], viewAngles[mask]
+        )
 
         EFields = np.zeros_like(beta)
-        EFields = radioParams(np.degrees(np.pi/2. - beta), np.rad2deg(viewAngles), altDec)
+        EFields = radioParams(
+            np.degrees(np.pi / 2.0 - beta), np.rad2deg(viewAngles), altDec
+        )
         EFields = (EFields.T * mask).T
 
-        #scale by the energy of the shower (all zhaires files are for 10^18 eV shower)
-        #shower energy is in units of 100 PeV, we want in GeV
-        EFields[mask] = (EFields[mask].T * showerEnergy[mask]/10.).T
-        distScale = zhairesDist/nssDist
+        # scale by the energy of the shower (all zhaires files are for 10^18 eV shower)
+        # shower energy is in units of 100 PeV, we want in GeV
+        EFields[mask] = (EFields[mask].T * showerEnergy[mask] / 10.0).T
+        distScale = zhairesDist / nssDist
         EFields[mask] = (EFields[mask].T * distScale).T
         if self.config.simulation.model_ionosphere:
             if self.config.simulation.TEC < 0:
-                print("TEC should be positive!! continuing without ionospheric dispersion")
+                print(
+                    "TEC should be positive!! continuing without ionospheric dispersion"
+                )
             else:
-                ionosphere = IonosphereParams(FreqRange, self.config.simulation.TECerr, self.config.simulation.TEC)
+                ionosphere = IonosphereParams(
+                    FreqRange, self.config.simulation.TECerr, self.config.simulation.TEC
+                )
                 ionosphereScaling = ionosphere(EFields[mask])
                 EFields[mask] *= ionosphereScaling
 
         return EFields, altDec
-    
-    def __call__(self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store=None, plot=False):
+
+    def __call__(
+        self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store=None, plot=False
+    ):
         if self.config.detector.method == "Radio":
-            return self.call_radio(beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot)
+            return self.call_radio(
+                beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot
+            )
         if self.config.detector.method == "Optical":
-            return self.call_optical(beta, altDec, lenDec, theta, showerEnergy, store, plot)
+            return self.call_optical(
+                beta, altDec, lenDec, theta, showerEnergy, store, plot
+            )
         if self.config.detector.method == "Both":
-            NPE, costhetaChEff=self.call_optical(beta, altDec, lenDec, theta, showerEnergy, store, plot)
-            EFields, altDec=self.call_radio(beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot)
+            NPE, costhetaChEff = self.call_optical(
+                beta, altDec, lenDec, theta, showerEnergy, store, plot
+            )
+            EFields, altDec = self.call_radio(
+                beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot
+            )
             return [NPE, EFields], costhetaChEff
-
-
