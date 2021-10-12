@@ -79,7 +79,7 @@ def slant_depth_integrand(
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
     """
 
-    theta_tr = np.array([theta_tr]) if isinstance(theta_tr, float) else theta_tr
+    theta_tr = np.asarray(theta_tr)
 
     i = earth_radius ** 2 * np.cos(theta_tr) ** 2
     j = (z) ** 2
@@ -95,7 +95,7 @@ def slant_depth(
     z_hi: float,
     theta_tr: Union[float, ArrayLike],
     earth_radius: float = const.earth_radius,
-    integrand_f: Callable[..., ArrayLike]=None,
+    integrand_f: Callable[..., ArrayLike]=slant_depth_integrand,
 ):
     """
     Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -121,9 +121,6 @@ def slant_depth(
 
     """
 
-    if integrand_f is None:
-        integrand_f = slant_depth_integrand
-
     f = lambda x: integrand_f(x, theta_tr=theta_tr, earth_radius=earth_radius)
 
     return scipy.integrate.quad_vec(f, z_lo, z_hi)
@@ -135,7 +132,7 @@ def slant_depth_steps(
     theta_tr: Union[float, ArrayLike],
     dz: float = 0.01,
     earth_radius: float = const.earth_radius,
-    integrand_f: Callable[..., ArrayLike] = None,
+    integrand_f: Callable[..., ArrayLike] = slant_depth_integrand,
 ) -> Tuple:
     r"""Slant-depth integral approximated along path.
 
@@ -165,9 +162,6 @@ def slant_depth_steps(
             altitudes at which slant_depth was evaluated.
 
     """
-
-    if integrand_f is None:
-        integrand_f = slant_depth_integrand
 
     f = lambda x: integrand_f(x, theta_tr, earth_radius)
 
