@@ -34,15 +34,14 @@ def shower_age(T, param_beta):
     return 3. * T / (T + 2. * param_beta)
 
 
-def greisen_particle_count(T, s, y):
+def greisen_particle_count(T, s, param_beta):
     r"""Particle count as a function of radiation length from atmospheric depth
 
     Hillas 1461 eqn (6)
 
-    N_e(T)
-    y is beta in EASCherGen
+    N_e(T) where y is beta in EASCherGen
     """
-    N_e = (0.31 / np.sqrt(y)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
+    N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
     return N_e
 
 
@@ -174,7 +173,7 @@ def theta_prop(z, sinThetView, z_max, earth_radius):
 
 
 def photon_yeild(thetaC, wavelength):
-    return (2e9 * np.pi * np.sin(thetaC) ** 2) / (137.04 * wavelength)
+    return (2e12 * np.pi * np.sin(thetaC) ** 2) / (137.04 * wavelength)
 
 
 def sokolsky_rayleigh_scatter(dX, wavelength):
@@ -231,72 +230,66 @@ def ozone_losses(z, wavelength):
     return 1.0
 
 
-def scaled_photon_yeild(z, wavelength):
-
-    X = slant_depth_analytic(z, 65)
-    T = rad_len_atm_depth(X)
-    s = shower_age(T, 1)
-
-    pyield = photon_yeild(1, wavelength)
+def scaled_photon_yeild(T, s, AirN, wavelength):
+    thetaC = np.arccos(np.reciprocal(AirN))
+    pyield = photon_yeild(thetaC, wavelength)
     rayleigh_trans = 1.0  # sokolsky_rayleigh_scatter(dx, wavelength)
     ozone_trans = 1.0  # ozone_losses(z, wavelength)
     mie_aerosol_trans = (
         1.0  #  elterman_mie_aerosol_scatter(z, 1, 1, wavelength, 1, 1, 1, 1)
     )
-    RN = greisen_particle_count(T, s, 1)
+    RN = greisen_particle_count(T, s, np.log(10**8/(0.710 / 8.36)))
     return pyield * rayleigh_trans * ozone_trans * mie_aerosol_trans * RN
 
-def dndu(theta, logenergy, s):
+def dndu(theta, logenergy, s, AirN):
 
+    eCthres = np.where((AirN != 0.) & (AirN != 1.), 0.511/np.sqrt(1.-1./AirN**2), 1.e6)
     energy = 10 ** logenergy
 
+
     whill = 2.*(1.-np.cos(theta))*(energy / 21.)**2
-    # print("whill", whill)
     e2hill = (1150. + 454*np.log(s))
-
     vhill = np.where(e2hill > 0. , energy / e2hill, 0.)
-    # print("vhill", vhill)
     w_ave= 0.0054*energy*(1.+vhill) / (1.+13.*vhill + 8.3*vhill**2)
-    # print("w_ave", w_ave)
     uhill = whill / w_ave
-    # print("uhill", uhill)
 
-    zmz0hill = -np.sqrt(uhill)-0.59
-    # print("zmz0hill", zmz0hill)
-    lambdai = np.where(zmz0hill < 0., 0.478, 0.380)
-    # print("lambdai", lambdai)
-    sv2 = 0.777 * np.exp(zmz0hill/lambdai)
-    # print("sv2", sv2)
-    return sv2
-
-import nuspacesim as nss
-# from nuspacesim.eas_optical.atmospheric_models import slant_depth
+    squhill = np.sqrt(uhill)
+    a2hill = np.where(squhill < 0.59, 0.380, 0.478)
+    sv2 = 0.777 * np.exp(-1.*(squhill-0.59)/a2hill)
+    track = fractional_track_length( np.where(energy >= eCthres, energy, eCthres) , s)
+    print("sv2", sv2)
+    print("track", track)
+    return sv2 * track
 
 def intf(x_):
     z = x_[0]
-    # w = x_[1]
-    o = x_[1]
-    e = x_[2]
+    w = x_[1]
+    o = x_[2]
+    e = x_[3]
 
-    print("z", z)
     X = np.empty_like(z)
     for i in range(z.size):
         X[i] = slant_depth_numeric(1., z[i], beta=np.radians(42.))[0]
-    print("X", X)
 
+    X_v = np.empty_like(z)
+    for i in range(z.size):
+        X_v[i] = slant_depth_numeric(z[i], 65., beta=0.0)[0]
+
+    AirN = index_of_refraction_air(X_v)
     T = rad_len_atm_depth(X)
     s = shower_age(T, np.log(10**8/(0.710 / 8.36)))
-    # print("s", s)
-    # print("o", o)
-    # print("e", e)
-    # v1= scaled_photon_yeild(z, w)
-    v1 = 1
-    v2 = dndu(o, e, s)
-    exit(0)
+    print("w", w)
+    v1= scaled_photon_yeild(T, s, AirN, w)
+    print("v1", v1)
+    v2 = dndu(o, e, s, AirN)
+    # exit(0)
     return v1*v2
 
 if __name__ == '__main__':
 
-    print(qp.quad(intf, [1,2.857e-4,1], [65,1.657e-2,10], epsabs=1e-7))
+    # import nuspacesim as nss
+    # print(nss.eas_optical.atmospheric_models.slant_depth(1., 525., [np.radians(42)]))
+    # print(slant_depth_numeric(1., 525., np.radians(42)))
+    print(qp.quad(intf, [1.,200,2.857e-4,1], [65.,900,1.657e-2,10]))
 
 # return qp.quad( lambda x: , )
