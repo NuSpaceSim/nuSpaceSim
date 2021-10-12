@@ -58,11 +58,8 @@ __all__ = [
 
 @dataclass
 class DetectorCharacteristics:
-    r"""Dataclass holding Detector Characteristics.
-    """
-    
-    method: str = 'Optical'
-    """ Type of detector: Default = Optical """
+    r"""Dataclass holding Detector Characteristics."""
+
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
     ra_start: float = 0.0
@@ -124,8 +121,7 @@ class DetectorCharacteristics:
 
 @dataclass
 class SimulationParameters:
-    r"""Dataclass holding Simulation Parameters.
-    """
+    r"""Dataclass holding Simulation Parameters."""
 
     N: int = 1000
     """Number of thrown trajectories. Default = 1000"""

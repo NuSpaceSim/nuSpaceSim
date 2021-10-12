@@ -95,7 +95,7 @@ def slant_depth(
     z_hi: float,
     theta_tr: Union[float, ArrayLike],
     earth_radius: float = const.earth_radius,
-    integrand_f: Callable[..., ArrayLike]=None,
+    integrand_f: Callable[..., ArrayLike] = None,
 ):
     """
     Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -124,7 +124,8 @@ def slant_depth(
     if integrand_f is None:
         integrand_f = slant_depth_integrand
 
-    f = lambda x: integrand_f(x, theta_tr=theta_tr, earth_radius=earth_radius)
+    def f(x):
+        return integrand_f(x, theta_tr=theta_tr, earth_radius=earth_radius)
 
     return scipy.integrate.quad_vec(f, z_lo, z_hi)
 
@@ -169,7 +170,8 @@ def slant_depth_steps(
     if integrand_f is None:
         integrand_f = slant_depth_integrand
 
-    f = lambda x: integrand_f(x, theta_tr, earth_radius)
+    def f(x):
+        return integrand_f(x, theta_tr, earth_radius)
 
     zs = np.arange(z_lo, z_hi, dz)
     xs = scipy.integrate.cumulative_trapezoid(f(zs), zs)
@@ -177,9 +179,7 @@ def slant_depth_steps(
     return xs, zs
 
 
-def param_b_c(
-    z: Union[float, ArrayLike]
-) -> Tuple[ArrayLike, ArrayLike]:
+def param_b_c(z: Union[float, ArrayLike]) -> Tuple[ArrayLike, ArrayLike]:
     """rho parameterization table from https://arxiv.org/pdf/2011.09869.pdf"""
 
     bins = np.array([4.0, 10.0, 40.0, 100.0])
