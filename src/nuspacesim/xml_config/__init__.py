@@ -69,4 +69,11 @@ __all__ = [
 ]
 
 from . import parse_config
-from .parse_config import *
+from .parse_config import (
+    is_valid_xml,
+    parse_detector_chars,
+    parse_simulation_params,
+    parseXML,
+    config_from_xml,
+    create_xml,
+)

@@ -126,18 +126,18 @@ class NssGrid(NDDataArray):
             if axes[i].shape[0] != data.shape[i]:
                 raise ValueError("Axes lengths must correspond to grid dimensions.")
 
-        self.axes:list = axes
+        self.axes: list = axes
         """
         N element list with 1D arrays of different length, corresponding to data
         array dimension size.
         """
 
-        self.axis_names:list = axis_names
+        self.axis_names: list = axis_names
         """
         N element string list holding names of each element dimension.
         """
 
-        self.meta:dict = {**{f"AXIS{i}": n for i, n in enumerate(self.axis_names)}}
+        self.meta: dict = {**{f"AXIS{i}": n for i, n in enumerate(self.axis_names)}}
         """
         scalar value metadata dictionary.
         """
@@ -333,7 +333,7 @@ def hdf5_nssgrid_writer(grid, filename, path="/", **kwargs):
         raise Exception("h5py is required to read and write HDF5 files")
 
     if "overwrite" in kwargs.keys():
-        if kwargs["overwrite"] == False:
+        if not kwargs["overwrite"]:
             mode = "w-"
         else:
             mode = "a"

@@ -142,18 +142,18 @@ def simulate(
     beta_tr = geom(config.simulation.N, store=sw, plot=to_plot)
     printv(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
 
-    printv(f"Computing taus.")
+    printv("Computing taus.")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
         beta_tr, store=sw, plot=to_plot
     )
 
-    printv(f"Computing decay altitudes.")
+    printv("Computing decay altitudes.")
     altDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    printv(f"Computing EAS Cherenkov light.")
+    printv("Computing EAS Cherenkov light.")
     numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sw, plot=to_plot)
 
-    printv(f"Computing Monte Carlo Integral.")
+    printv("Computing Monte Carlo Integral.")
     mcint, mcintgeo, numEvPass = geom.mcintegral(
         numPEs, costhetaChEff, tauExitProb, store=sw
     )

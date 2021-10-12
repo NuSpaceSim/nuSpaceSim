@@ -58,9 +58,7 @@ __all__ = [
 
 @dataclass
 class DetectorCharacteristics:
-    r"""Dataclass holding Detector Characteristics.
-
-    """
+    r"""Dataclass holding Detector Characteristics."""
 
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
@@ -107,8 +105,7 @@ class DetectorCharacteristics:
 
 @dataclass
 class SimulationParameters:
-    r"""Dataclass holding Simulation Parameters.
-    """
+    r"""Dataclass holding Simulation Parameters."""
 
     N: int = 1000
     """Number of thrown trajectories. Default = 1000"""

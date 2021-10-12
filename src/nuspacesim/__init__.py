@@ -145,7 +145,7 @@ from .simulate import simulate
 from .simulation import geometry, eas_optical, taus
 
 # from .utils import *
-from ._version import *
+from ._version import version, version_tuple
 
 __all__ = [
     # Core
