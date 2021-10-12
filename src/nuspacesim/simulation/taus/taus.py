@@ -37,9 +37,11 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from ... import NssConfig
+from ...utils import decorators
 from ...utils.grid import NssGrid
 from ...utils.cdf import grid_inverse_sampler
 from ...utils.interp import grid_slice_interp
+from .local_plots import taus_scatter
 
 try:
     from importlib.resources import as_file, files
@@ -49,6 +51,7 @@ except ImportError:
 
 class Taus(object):
     r"""Tau attributes from beta angles via sampling CDF tables provided by nupyprop.
+
     Attributes
     ----------
     config: NssConfig
@@ -58,12 +61,15 @@ class Taus(object):
     tau_cdf_sample: Callable
         Interpolative sampler of tau_cdf grid, returning random tau energies
         distributed by the cdf corresponding to a given beta angle.
+
     """
 
     def __init__(self, config: NssConfig):
         r"""Intialize the Taus object.
+
         Read local nu2tau table files into NssGrid objects, and produce sampling and
         interpolation functions for local methods.
+
         Parameters
         ----------
         config: NssConfig
@@ -111,10 +117,26 @@ class Taus(object):
         E_tau[mask] = self.tau_cdf_sample(betas[mask])
         return E_tau * self.config.simulation.nu_tau_energy
 
-    def __call__(self, betas, store=None):
-        """
-        Perform main operation for Taus module.
-        Returns:
+    @decorators.nss_result_plot(taus_scatter)
+    @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
+    def __call__(self, betas):
+        r"""Perform main operation for Taus module.
+
+        Parameters
+        ----------
+        betas: array_like
+            beta_tr array of simulated neutrinos.
+
+        Returns
+        -------
+        tauBeta: array_like
+            Tau beta angles.
+        tauLorentz: array_like
+            Non-deterministically sampled tau lorentz factors. tau energy / tau mass.
+        showerEnergy: array_like
+            Non-deterministically sampled shower energies in 100 PeV.
+        tauExitProb: array_like
+            Non-deterministically sampled tau exit probability.
         """
 
         tauExitProb = self.tau_exit_prob(betas)
@@ -126,11 +148,5 @@ class Taus(object):
         tauLorentz = tauEnergy / self.config.constants.massTau
 
         tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
-
-        if store is not None:
-            store(
-                ["tauBeta", "tauLorentz", "showerEnergy", "tauExitProb"],
-                [tauBeta, tauLorentz, showerEnergy, tauExitProb],
-            )
 
         return tauBeta, tauLorentz, showerEnergy, tauExitProb

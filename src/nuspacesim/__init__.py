@@ -31,8 +31,99 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" NuSpaceSim - Simulate upward-going neutrino showers, interactions, and detections.
-    Python package, library, and data tables.
+r"""NuSpaceSim - Simulate upward-going neutrino showers, interactions, and detections.
+
+Python package, library, and data tables.
+
+
+******************
+Simulation Modules
+******************
+
+Scientific modules for performing specific stages of the simulation.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+   :nosignatures:
+
+   nuspacesim.simulation
+
+
+*********************
+Configuration Objects
+*********************
+
+NuSpaceSim provides a structured means of defining configuration parameters for
+your simulations.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+   :nosignatures:
+
+   nuspacesim.NssConfig
+   nuspacesim.DetectorCharacteristics
+   nuspacesim.SimulationParameters
+   nuspacesim.xml_config
+
+*****************
+Simulate Function
+*****************
+
+Perform a full simulation by calling the default nuspacesim.simulate function.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+   :nosignatures:
+
+   nuspacesim.simulate
+
+
+**********************
+Data Interface Objects
+**********************
+
+Classes and Methods for storing and interacting with nuspacesim data.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+   :nosignatures:
+
+   nuspacesim.results_table
+   nuspacesim.utils.grid
+
+
+******************
+Data lookup tables
+******************
+
+Supporting data files such as the nupyprop tau energy CDFs and exit probability tables.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+   :nosignatures:
+
+   nuspacesim.data
+
+
+*****************
+Utility Functions
+*****************
+
+Supporting classes and functions for gridded data, CDF sampling, Interpolation, etc.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+   :nosignatures:
+
+   nuspacesim.utils
+
+
 """
 
 from . import constants, data, utils, xml_config

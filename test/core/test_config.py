@@ -31,16 +31,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r""" Utility classes and methods
+import nuspacesim as nss
+import numpy as np
 
-.. autosummary::
-   :toctree:
-   :recursive:
-"""
 
-__all__ = ["cdf", "grid", "misc", "decorators"]
+def test_detector_characteristics():
+    dc = nss.DetectorCharacteristics()
+    assert dc.altitude > 0.0
 
-from . import cdf
-from . import grid
-from . import misc
-from . import decorators
+    dc = nss.DetectorCharacteristics(altitude=200.1)
+    assert dc.altitude == 200.1
+
+
+def test_simulation_params():
+    sp = nss.SimulationParameters()
+    assert sp.N > 0
+    assert np.log10(sp.nu_tau_energy) == sp.log_nu_tau_energy
+    assert np.sin(sp.theta_ch_max) == sp.sin_theta_ch_max
+
+
+def test_nss_config():
+    nc1 = nss.NssConfig()
+    dc = nss.DetectorCharacteristics()
+    sp = nss.SimulationParameters()
+    nc2 = nss.NssConfig(detector=dc, simulation=sp)
+    assert nc1 == nc2

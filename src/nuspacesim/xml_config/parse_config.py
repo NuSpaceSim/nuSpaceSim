@@ -58,11 +58,14 @@ __all__ = [
 
 def is_valid_xml(xmlfile: str) -> bool:
     r"""Check that the given xml file is valid.
+
     Confirm that the given xml document is valid by validating it with the XMLSchema.
+
     Parameters
     ----------
     xmlfile: str
         The input configuration xml file.
+
     Returns
     -------
     bool
@@ -71,19 +74,17 @@ def is_valid_xml(xmlfile: str) -> bool:
 
     xmlschema_doc = ET.parse(config_xml_schema.xsd)
     xmlschema = ET.XMLSchema(xmlschema_doc)
-    xmlschema.validate(ET.parse(xmlfile))
-    log = xmlschema.error_log
-    error = log.last_error
-    print(error)
     return xmlschema.validate(ET.parse(xmlfile))
 
 
 def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     r"""Parse the XML file into a DetectorCharacteristics object.
+
     Parameters
     ----------
     xmlfile: str
         The input configuration xml file.
+
     Returns
     -------
     DetectorCharacteristics
@@ -126,10 +127,12 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
 
 def parse_simulation_params(xmlfile: str) -> SimulationParameters:
     r"""Parse the XML file into a SimulationParameters object.
+
     Parameters
     ----------
     xmlfile: str
         The input configuration xml file.
+
     Returns
     -------
     SimulationParameters
@@ -174,16 +177,20 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
 
 def parseXML(xmlfile: str) -> tuple:
     r"""Parse the XML file into a pair of configuration objects.
+
     If the xml file is valid, parse the file into a DetectorCharacteristics and
     SimulationParameters tuple.
+
     Parameters
     ----------
     xmlfile: str
         The input configuration xml file.
+
     Returns
     -------
     tuple:
         Tuple of [DetectorCharacteristics, SimulationParameters] objects.
+
     Raises
     ------
     RuntimeError
@@ -200,14 +207,17 @@ def config_from_xml(
     xmlfile: str, fundcon: const.Fund_Constants = const.Fund_Constants()
 ) -> NssConfig:
     r"""Parse the XML file into an NssConfig object.
+
     If the xml file is valid, parse the file into a DetectorCharacteristics and
     SimulationParameters tuple.
+
     Parameters
     ----------
     xmlfile: str
         The input configuration xml file.
     fundcon: Fund_Constants
         A fundimental constants object. Defaults to default constructed object.
+
     Returns
     -------
     NssConfig:
@@ -220,6 +230,7 @@ def config_from_xml(
 
 def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     r"""Create an XML configuration file.
+
     Parameters
     ----------
     filename: str

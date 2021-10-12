@@ -52,6 +52,7 @@ xsd = StringIO(
       </xs:extension>
     </xs:simpleContent>
 </xs:complexType>
+
 <xs:complexType name="AreaType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
@@ -65,6 +66,7 @@ xsd = StringIO(
       </xs:extension>
     </xs:simpleContent>
 </xs:complexType>
+
 <xs:complexType name="DistType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
@@ -78,24 +80,28 @@ xsd = StringIO(
       </xs:extension>
     </xs:simpleContent>
 </xs:complexType>
+
 <xs:complexType name="PETType">
   <xs:sequence>
     <xs:element name="NPE" type="xs:decimal"/>
   </xs:sequence>
   <xs:attribute name="Preset" type="xs:boolean"/>
 </xs:complexType>
+
 <xs:complexType name="TSType">
   <xs:sequence>
     <xs:element name="FracETauInShower" type="xs:decimal"/>
   </xs:sequence>
   <xs:attribute name="Preset" type="xs:boolean"/>
 </xs:complexType>
+
 <xs:complexType name="NTESType">
   <xs:sequence>
     <xs:element name="NuTauEnergy" type="xs:decimal"/>
   </xs:sequence>
   <xs:attribute name="SpectrumType" type="xs:string"/>
 </xs:complexType>
+
 <xs:complexType name="FreqType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
@@ -112,6 +118,7 @@ xsd = StringIO(
       </xs:extension>
     </xs:simpleContent>
 </xs:complexType>
+
 <xs:element name="NuSpaceSimParams">
   <xs:complexType>
     <xs:sequence>
@@ -157,3 +164,4 @@ xsd = StringIO(
 </xs:schema>
         """
 )
+"""XMLSchema string file. For validating XML configuration files."""

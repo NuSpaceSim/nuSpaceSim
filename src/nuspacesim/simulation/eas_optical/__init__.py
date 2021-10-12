@@ -31,16 +31,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r""" Utility classes and methods
+r"""NuSpaceSim extensive air shower routines.
+
+.. _eas_optical:
+
+***********
+EAS Optical
+***********
+
+.. autosummary::
+   :toctree:
+
+    eas
 
 .. autosummary::
    :toctree:
    :recursive:
+
+    local_plots
+    atmospheric_models
+    cphotang
 """
 
-__all__ = ["cdf", "grid", "misc", "decorators"]
+__all__ = ["EAS"]
 
-from . import cdf
-from . import grid
-from . import misc
-from . import decorators
+from .eas import EAS

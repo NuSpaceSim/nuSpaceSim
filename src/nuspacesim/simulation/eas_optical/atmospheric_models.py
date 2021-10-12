@@ -1,3 +1,36 @@
+# The Clear BSD License
+#
+# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted (subject to the limitations in the disclaimer
+# below) provided that the following conditions are met:
+#
+#      * Redistributions of source code must retain the above copyright notice,
+#      this list of conditions and the following disclaimer.
+#
+#      * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#      * Neither the name of the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from this
+#      software without specific prior written permission.
+#
+# NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
+# THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+# CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
 """
 Atmospheric model calculations for upward going showers.
 
@@ -10,14 +43,16 @@ date: 2021 August 12
 
 import numpy as np
 import scipy.integrate
-from nuSpaceSim import constants as c
+
 from typing import Callable, Union, Tuple
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
+
+from ... import constants as const
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
 
 
-def rho(z: Union[float, NDArray[np.float_]]) -> NDArray[np.float_]:
+def rho(z: Union[float, ArrayLike]) -> ArrayLike:
     """
     Density (g/cm^3) parameterized from altitude (z) values
 
@@ -36,9 +71,9 @@ def rho(z: Union[float, NDArray[np.float_]]) -> NDArray[np.float_]:
 
 def slant_depth_integrand(
     z: float,
-    theta_tr: Union[float, NDArray[np.float_]],
-    earth_radius: float = c.earth_radius,
-) -> NDArray[np.float_]:
+    theta_tr: Union[float, ArrayLike],
+    earth_radius: float = const.earth_radius,
+) -> ArrayLike:
     """
     Integrand for computing slant_depth from input altitude z.
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -58,10 +93,10 @@ def slant_depth_integrand(
 def slant_depth(
     z_lo: float,
     z_hi: float,
-    theta_tr: Union[float, NDArray[np.float_]],
-    earth_radius: float = c.earth_radius,
-    integrand_f: Callable[..., NDArray[np.float_]] = None,
-) -> Tuple:
+    theta_tr: Union[float, ArrayLike],
+    earth_radius: float = const.earth_radius,
+    integrand_f: Callable[..., ArrayLike]=None,
+):
     """
     Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
 
@@ -74,7 +109,7 @@ def slant_depth(
     theta_tr: float, array_like
         Trajectory angle in radians between the track and earth zenith.
     earth_radius: float
-        Radius of a spherical earth. Default from nuSpaceSim.constants
+        Radius of a spherical earth. Default from nuspacesim.constants
     integrand_f: callable
         The integrand for slant_depth. If None, defaults to `slant_depth_integrand()`.
 
@@ -91,38 +126,43 @@ def slant_depth(
 
     f = lambda x: integrand_f(x, theta_tr=theta_tr, earth_radius=earth_radius)
 
-    result = scipy.integrate.quad_vec(f, z_lo, z_hi)
-
-    return result[0], result[1]
+    return scipy.integrate.quad_vec(f, z_lo, z_hi)
 
 
 def slant_depth_steps(
     z_lo: float,
     z_hi: float,
-    theta_tr: Union[float, NDArray[np.float_]],
+    theta_tr: Union[float, ArrayLike],
     dz: float = 0.01,
-    earth_radius: float = c.earth_radius,
-    integrand_f: Callable[..., NDArray[np.float_]] = None,
+    earth_radius: float = const.earth_radius,
+    integrand_f: Callable[..., ArrayLike] = None,
 ) -> Tuple:
-    """
-    Slant-depth integral approximated along path.
+    r"""Slant-depth integral approximated along path.
 
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
     along a full length using the cumulative_trapezoid rule.
 
-    Params
-    ======
-        z_lo: (float) starting altitude for slant depth track.
-        z_hi: (float) stopping altitude for slant depth track.
-        theta_tr: (float) trajectory angle of track to observer.
-        earth_radius: (float) radius of a spherical earth. Default from nuSpaceSim.constants
-        dz: (float) static step size for sampling points in range [z_lo, z_hi]
-        integrand_f: (real valued function) the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
+    Parameters
+    ----------
+    z_lo: float
+        starting altitude for slant depth track.
+    z_hi: float
+        stopping altitude for slant depth track.
+    theta_tr: float
+        trajectory angle of track to observer.
+    earth_radius: float
+        radius of a spherical earth. Default from nuspacesim.constants
+    dz: float
+        static step size for sampling points in range [z_lo, z_hi]
+    integrand_f: real valued function
+        the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
 
     Returns
-    =======
-        xs: (float) slant depth at each altitude along track.
-        zs: (float) altitudes at which slant_depth was evaluated.
+    -------
+        xs: float
+            slant depth at each altitude along track.
+        zs: float
+            altitudes at which slant_depth was evaluated.
 
     """
 
@@ -138,8 +178,8 @@ def slant_depth_steps(
 
 
 def param_b_c(
-    z: Union[float, NDArray[np.float_]]
-) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+    z: Union[float, ArrayLike]
+) -> Tuple[ArrayLike, ArrayLike]:
     """rho parameterization table from https://arxiv.org/pdf/2011.09869.pdf"""
 
     bins = np.array([4.0, 10.0, 40.0, 100.0])
@@ -152,27 +192,34 @@ def param_b_c(
 
 if __name__ == "__main__":
 
-    # Density 
-    kms = np.arange(0, 88, 2)
-    ps = rho(kms)
-    print("Density (g/cm^3)", *[f"{a}\t {b:.4e}" for a, b in zip(kms, ps)], sep="\n")
+    # Density
+    # kms = np.arange(0, 88, 2)
+    # ps = rho(kms)
+    # print("Density (g/cm^3)", *[f"{a}\t {b:.4e}" for a, b in zip(kms, ps)], sep="\n")
 
-    #slant-depth from gaussian quadriture
-    X = slant_depth(1, 100, np.pi / 4)
-    print(f"Slant Depth: {X[0]}", sep="\n")
+    # slant-depth from gaussian quadriture
+    X = slant_depth(0, 100, np.pi / 4)
+    print(f"Slant Depth: {X[0][0]}, numerical error: {X[1]}", sep="\n")
 
-    #slant-depth from trapezoidal rule
+    # slant-depth from trapezoidal rule
+    Y = slant_depth_steps(0, 100, np.pi / 4)
+    print(f"Slant Depth steps: {Y[0][:, -1]}", sep="\n")
+
     theta_tr = np.linspace(-np.pi / 2, np.pi / 2, 100)
-    Y = slant_depth_steps(1, 100, theta_tr)
-    print(f"Slant Depth steps: {Y[0]}", sep="\n")
+    # Y = slant_depth_steps(1, 100, theta_tr)
+    # print(f"Slant Depth steps (-pi/2 to +pi/2): {Y[0]}", sep="\n")
 
+    # plot over multiple starting heights.
     sds = [slant_depth(z_lo, 100, theta_tr)[0] for z_lo in (0, 1, 2, 5, 10)]
     tds = [
         slant_depth_steps(z_lo, 100, theta_tr)[0][:, -1] for z_lo in (0, 1, 2, 5, 10)
     ]
     labs = [f"z: [{z_lo}, 100] km" for z_lo in (0, 1, 2, 5, 10)]
 
+    import matplotlib
     import matplotlib.pyplot as plt
+
+    matplotlib.rcParams.update({"font.size": 18})
 
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, squeeze=True)
     coloridx = np.linspace(0, 1, len(sds))

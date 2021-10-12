@@ -31,7 +31,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""CDF Sampling Utilities."""
+"""CDF Sampling Utilities.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   invert_cdf_grid
+   grid_inverse_sampler
+   nearest_cdf_sampler
+   lerp_cdf_sampler
+
+"""
 
 from typing import Callable
 
@@ -46,19 +57,29 @@ __all__ = ["grid_inverse_sampler", "nearest_cdf_sampler", "lerp_cdf_sampler"]
 
 def invert_cdf_grid(grid: NssGrid, cdf_axis: int = 1) -> NssGrid:
     r"""Invert a Taus CDF grid for easier z(E_tau / E_nu) sampling.
+
     Use the CDF values of the given NssGrid to interpolate every measured z point,
     Then invert the grid such that (beta_rad, z) bins giving CDF values become
     (beta_rad, cdf) bins giving z values.
+
     Parameters
     ----------
     grid: NssGrid
         A 2D CDF grid with (beta_rad, z) bins and CDF values.
     cdf_axis: int
         The target axis to store the CDF bins in the result grid.
+
     Returns
     -------
     NssGrid
         The inverted grid.
+
+    Examples
+    --------
+
+    >>> grid = NssGrid.read(file, format="hdf5")
+    >>> igrid = invert_cdf_grid(grid, 0)
+
     """
 
     assert grid.ndim == 2
@@ -87,20 +108,31 @@ def invert_cdf_grid(grid: NssGrid, cdf_axis: int = 1) -> NssGrid:
 
 def grid_inverse_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
     r"""Sample Tau Energies by inverting the tau cdf grid.
+
     Given a log_e_nu value, slice an interpolated 2D tau cdf grid for that log_e_nu.
     Then invert the grid and sample z values directly from beta angles and the grid.
     Multiply by 10^log_e_nu to determine the tau energy.
+
     Parameters
     ----------
     grid: NssGrid
         The full, 3D tau_cdf grid object.
     log_e_nu: float
         The user defined log of the neutrino energy.
+
     Returns
     -------
     sample : Callable
         A function that will take an array of beta angles in radians and return an
         array of sampled tau energies.
+
+    Examples
+    --------
+
+    >>> grid = NssGrid.read(file, format="hdf5")
+    >>> sampler = grid_inverse_sampler(grid, config.simulation.log_nu_tau_energy)
+    >>> samples = sampler(betas)
+
     """
 
     enu_idx = grid.axis_names.index("log_e_nu")
@@ -115,13 +147,26 @@ def grid_inverse_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
 
     def sample(x, u=None):
         r"""Sampling function for grid_inverse_sampler.
+
         Interpolate z (E_tau / E_nu) values from the inverse tau_cdf grid.
+
         Parameters
         ----------
         x: ArrayLike
             The beta angles (in radians) to sample z values from.
         u: ArrayLike, Optional
             Random numbers for CDF interpolation. If 'None' values will be generated.
+
+        Returns
+        -------
+        result : ArrayLike
+            Array of sampled z values parameterized by the interpolated CDFs.
+
+        Examples
+        --------
+
+        >>> sample = sampler(np.random.randn(np.radians(1), np.radians(42)))
+
         """
         it = np.nditer(
             [x, u, None],
@@ -144,15 +189,18 @@ def grid_inverse_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
 
 def nearest_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
     r"""Sample Tau Energies by slicing and interpolating the tau_cdf grid.
+
     Given a log_e_nu value, slice an interpolated 2D tau cdf grid for that log_e_nu.
     Then sample z values by interpolating cdfs from the grid for given beta angles.
     Multiply by 10^log_e_nu to determine the tau energy.
+
     Parameters
     ----------
     grid: NssGrid
         The full, 3D tau_cdf grid object.
     log_e_nu: float
         The user defined base 10 log of the neutrino energy.
+
     Returns
     -------
     sample : Callable
@@ -180,14 +228,27 @@ def nearest_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
 
     def sample(x, u=None):
         r"""Sampling function for nearest_cdf_sampler.
+
         Interpolate cdf values and inverse transfom sample z (E_tau / E_nu) values from
         the tau_cdf grid.
+
         Parameters
         ----------
         x: ArrayLike
             The beta angles (in radians) to sample z values from.
         u: ArrayLike, Optional
             Random numbers for CDF interpolation. If 'None' values will be generated.
+
+        Returns
+        -------
+        result : ArrayLike
+            Array of sampled z values parameterized by the interpolated CDFs.
+
+        Examples
+        --------
+
+        >>> sample = sampler(np.random.randn(np.radians(1), np.radians(42)))
+
         """
         it = np.nditer(
             [x, u, None],
@@ -213,15 +274,18 @@ def nearest_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
 
 def lerp_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
     r"""Sample Tau Energies by interpolating the tau_cdf grid.
+
     Given a log_e_nu value, slice an interpolated 2D tau cdf grid for that log_e_nu.
     Then sample z values by interpolating cdfs from the grid for given beta angles.
     Multiply by 10^log_e_nu to determine the tau energy.
+
     Parameters
     ----------
     grid: NssGrid
         The full, 3D tau_cdf grid object.
     log_e_nu: float
         The user defined base 10 log of the neutrino energy.
+
     Returns
     -------
     sample : Callable
@@ -240,14 +304,27 @@ def lerp_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
 
     def sample(beta, u=None):
         r"""Sampling function for nearest_cdf_sampler.
+
         Interpolate cdf values and inverse transfom sample z (E_tau / E_nu) values from
         the tau_cdf grid.
+
         Parameters
         ----------
         x: ArrayLike
             The beta angles (in radians) to sample z values from.
         u: ArrayLike, Optional
             Random numbers for CDF interpolation. If 'None' values will be generated.
+
+        Returns
+        -------
+        result : ArrayLike
+            Array of sampled z values parameterized by the interpolated CDFs.
+
+        Examples
+        --------
+
+        >>> sample = sampler(np.random.randn(np.radians(1), np.radians(42)))
+
         """
         it = np.nditer(
             [beta, u, None],
@@ -267,25 +344,3 @@ def lerp_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
             return it.operands[2]
 
     return sample
-
-
-if __name__ == "__main__":
-    np.set_printoptions(linewidth=np.inf)
-    g = NssGrid.read("data/nupyprop_tables/nu2tau_cdf.hdf5")
-    print(g.axis_names)
-    gsampler = grid_inverse_sampler(g, 7.890123456)
-    # sampler = nearest_cdf_sampler(g, 7.890123456)
-    # lsampler = lerp_cdf_sampler(g, 7.890123456)
-    N = 1e8
-
-    x = np.random.uniform(np.radians(1.0), np.radians(42.0), size=int(N))
-    u = np.random.uniform(0.0, 1.0, size=int(N))
-
-    # z = sampler(x)
-    # print(z)
-    # z = sampler(x, u)
-    # print(z)
-    z = gsampler(x, u)
-    print(z)
-    # z = lsampler(x, u)
-    # print(z)

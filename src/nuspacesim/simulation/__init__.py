@@ -31,21 +31,29 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""NuSpaceSim geometry routines.
+r"""NuSpaceSim Simulation Modules.
+
 .. _simulation:
+
 *****************************
 NuSpaceSim Simulation Modules
 *****************************
+
 .. currentmodule:: nuspacesim.simulation
+
 NuSpaceSim provides a collection of modules for simulating various stages of the
 neutrino propagation and interaction.
+
 .. autosummary::
    :toctree:
    :recursive:
    :nosignatures:
+
    geometry
    eas_optical
    taus
+
+
 """
 
 __all__ = ["geometry", "taus", "eas_optical", "eas_radio"]

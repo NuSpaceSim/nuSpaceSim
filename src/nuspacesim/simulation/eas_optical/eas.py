@@ -1,9 +1,45 @@
+# The Clear BSD License
+#
+# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted (subject to the limitations in the disclaimer
+# below) provided that the following conditions are met:
+#
+#      * Redistributions of source code must retain the above copyright notice,
+#      this list of conditions and the following disclaimer.
+#
+#      * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#      * Neither the name of the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from this
+#      software without specific prior written permission.
+#
+# NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
+# THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+# CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
 import numpy as np
 from .cphotang import CphotAng
 from ... import NssConfig
+from ...utils import decorators
+from .local_plots import eas_optical_scatter
 from ..eas_radio.radio import RadioEFieldParams, IonosphereParams
 
 __all__ = ["EAS"]
+
 
 class EAS:
     """
@@ -16,6 +52,7 @@ class EAS:
         self.config = config
         self.CphotAng = CphotAng()
 
+    @decorators.nss_result_store("altDec", "lenDec")
     def altDec(self, beta, tauBeta, tauLorentz, u=None):
         """
         get decay altitude
@@ -36,48 +73,44 @@ class EAS:
         return altDec, lenDec
 
             
-    def call_optical(self, beta, altDec, lenDec, theta, showerEnergy, store):
+    @decorators.nss_result_plot(eas_optical_scatter)
+    @decorators.nss_result_store("numPEs", "costhetaChEff")
+    def call_optical(self, beta, altDec, lenDec, theta, showerEnergy, store, plot):
         """
         Electromagnetic Air Shower operation.
         """
 
+        # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
+        # Default values for dphots and thetaCh
         mask = (altDec < 0.0) | (altDec > 20.0)
-        mask |= beta < 0.0
         mask |= beta > np.radians(25.0)
         mask = ~mask
 
-        dphots = np.zeros_like(beta)
-        thetaCh = np.full(beta.shape, 1.5)
+        # phots and theta arrays with default 0 and 1.5 values.
+        dphots = np.full(beta.shape, np.nan)
+        thetaCh = np.full(beta.shape, np.nan)
 
+        # Run CphotAng on in-bounds events
         dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
 
-        numPEs = dphots * showerEnergy * self.config.detector.telescope_effective_area * \
-            self.config.detector.quantum_efficiency
+        numPEs = (
+            dphots
+            * showerEnergy
+            * self.config.detector.telescope_effective_area
+            * self.config.detector.quantum_efficiency
+        )
 
         enhanceFactor = numPEs / self.config.detector.photo_electron_threshold
-        # logenhanceFactor = np.where(enhanceFactor > 2.0, np.log(enhanceFactor), 0.5)
         logenhanceFactor = np.empty_like(enhanceFactor)
         efMask = enhanceFactor > 2.0
         logenhanceFactor[efMask] = np.log(enhanceFactor[efMask])
         logenhanceFactor[~efMask] = 0.5
 
-        #print(enhanceFactor)
-        #print(logenhanceFactor)
-
-        hwfm = np.sqrt(2. * logenhanceFactor)
+        hwfm = np.sqrt(2.0 * logenhanceFactor)
         thetaChEnh = np.multiply(thetaCh, hwfm)
         thetaChEff = np.where(thetaChEnh >= thetaCh, thetaChEnh, thetaCh)
 
-        #print(thetaCh)
-        #print(thetaChEff)
-
-        #costhetaCh = np.cos(np.degrees(thetaCh))
-        #costhetaCh = np.cos(np.radians(thetaCh))
         costhetaChEff = np.cos(np.radians(thetaChEff))
-        if store is not None:
-            store(
-                ["altDec", "numPEs", "costhetaChEff"], [altDec, numPEs, costhetaChEff]
-            )
 
         return numPEs, costhetaChEff
 
@@ -106,7 +139,8 @@ class EAS:
         ang = np.arcsin(np.sqrt(s2phi))
         return ang
 
-    def call_radio(self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store):
+    @decorators.nss_result_store("EFields", "altDec")
+    def call_radio(self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot):
         '''
         EAS radio output from ZHAires lookup tables
         '''
@@ -122,15 +156,6 @@ class EAS:
         nssDist = self.decay_to_detector_dist(beta[mask], altDec[mask], self.config.detector.altitude, lenDec[mask], viewAngles[mask])
         zhairesDist = self.decay_to_detector_dist(beta[mask], altDec[mask], 525.0, lenDec[mask], viewAngles[mask])
 
-        #plt.hist(np.degrees(viewAngles[mask]), label='decay view', bins=100)
-        #plt.hist(np.degrees(theta[mask]), label='decay view', bins=100)
-        #plt.xlabel('angle (deg)')
-        #plt.legend()
-        #plt.yscale('log')
-        #plt.show()
-
-        #EFields = np.zeros_like(beta).astype(float)
-        #EFields[mask] = radioParams(90. - beta[mask], np.rad2deg(viewAngles[mask]), altDec[mask])
         EFields = np.zeros_like(beta)
         EFields = radioParams(np.degrees(np.pi/2. - beta), np.rad2deg(viewAngles), altDec)
         EFields = (EFields.T * mask).T
@@ -147,21 +172,17 @@ class EAS:
                 ionosphere = IonosphereParams(FreqRange, self.config.simulation.TECerr, self.config.simulation.TEC)
                 ionosphereScaling = ionosphere(EFields[mask])
                 EFields[mask] *= ionosphereScaling
-        if store is not None:
-            store(
-                ["altDec", "EFields"], [altDec, EFields]
-            )
 
         return EFields, altDec
     
-    def __call__(self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store=None):
+    def __call__(self, beta, altDec, lenDec, theta, pathLen, showerEnergy, store=None, plot=False):
         if self.config.detector.method == "Radio":
-            return self.call_radio(beta, altDec, lenDec, theta, pathLen, showerEnergy, store)
+            return self.call_radio(beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot)
         if self.config.detector.method == "Optical":
-            return self.call_optical(beta, altDec, lenDec, theta, showerEnergy, store)
+            return self.call_optical(beta, altDec, lenDec, theta, showerEnergy, store, plot)
         if self.config.detector.method == "Both":
-            NPE, costhetaChEff=self.call_optical(beta, altDec, lenDec, theta, showerEnergy, store)
-            EFields, altDec=self.call_radio(beta, altDec, lenDec, theta, pathLen, showerEnergy, store)
+            NPE, costhetaChEff=self.call_optical(beta, altDec, lenDec, theta, showerEnergy, store, plot)
+            EFields, altDec=self.call_radio(beta, altDec, lenDec, theta, pathLen, showerEnergy, store, plot)
             return [NPE, EFields], costhetaChEff
 
 

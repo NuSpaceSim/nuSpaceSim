@@ -31,14 +31,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""N-Dimensional Gridded Data class with labeled Axes."""
+"""N-Dimensional Gridded Data class with labeled Axes.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+    NssGrid
+    NssGridRead
+    NssGridWrite
+    fits_nssgrid_reader
+    fits_nssgrid_writer
+    hdf5_nssgrid_reader
+    hdf5_nssgrid_writer
+
+"""
 
 from astropy.io import fits, registry
 from astropy.io.misc import hdf5
 from astropy.nddata import NDDataArray
 from astropy.table import Table as AstropyTable
 
-from typing import Union, Iterable
+# from typing import Union, Iterable
 
 import numpy as np
 
@@ -70,9 +84,30 @@ class NssGridWrite(registry.UnifiedReadWrite):
 
 
 class NssGrid(NDDataArray):
-    r"""Multidimensional Gridded data object with support for axes."""
+    r"""Multidimensional Gridded data object with support for axes.
+
+    Wraps astropy.nddata.NDDataArray to enable fast, multidimensional data access while
+    adding support for named axes, and dimensional binning values. Useful as an
+    ND Histogram.
+
+    Used to store gridded data tables from data.nupyprop_tables.
+
+    Employs the astropy registrie's unified readwrite interface. Enables serialization
+    to multiple file formats such as fits and HDF5.
+    """
 
     def __init__(self, data, axes, axis_names, *args, **kwargs):
+        r"""Construct a new NssGrid object
+
+        Parameters
+        ----------
+        data : nddata_like
+            NDimensional data array.
+        axes: list[array_like]
+            axis bin values.
+        axis_names: list[str]
+            list of dimension names
+        """
         super().__init__(data, *args, **kwargs)
 
         if len(axes) != len(axis_names):
@@ -91,14 +126,30 @@ class NssGrid(NDDataArray):
             if axes[i].shape[0] != data.shape[i]:
                 raise ValueError("Axes lengths must correspond to grid dimensions.")
 
-        self.axes = axes
+        self.axes:list = axes
+        """
+        N element list with 1D arrays of different length, corresponding to data
+        array dimension size.
+        """
 
-        self.axis_names = axis_names
+        self.axis_names:list = axis_names
+        """
+        N element string list holding names of each element dimension.
+        """
 
-        self.meta = {**{f"AXIS{i}": n for i, n in enumerate(self.axis_names)}}
+        self.meta:dict = {**{f"AXIS{i}": n for i, n in enumerate(self.axis_names)}}
+        """
+        scalar value metadata dictionary.
+        """
 
     read = registry.UnifiedReadWriteMethod(NssGridRead)
+    """
+    astropy UnifiedReadWriteMethod for reading files into NssGrid objects.
+    """
     write = registry.UnifiedReadWriteMethod(NssGridWrite)
+    """
+    astropy UnifiedReadWriteMethod for writing NssGrid objects to files.
+    """
 
     def __repr__(self):
         rep = "NssGrid {\n"
@@ -131,10 +182,12 @@ class NssGrid(NDDataArray):
 
     def _slice(self, item):
         """Collects the sliced attributes and passes them back as `dict`.
+
         Parameters
         ----------
         item : slice
             The slice passed to ``__getitem__``.
+
         Returns
         -------
         dict :
@@ -187,6 +240,7 @@ class NssGrid(NDDataArray):
         return idx
 
     def slc(self, axis_name, axis_val, axis_index):
+        """Slicing method"""
         pass
         none_list = [None] * self.ndim
         d_slice = slice(*none_list)
@@ -195,36 +249,36 @@ class NssGrid(NDDataArray):
         return self[tuple(g_slice)]
 
 
-class NssAxes:
-    r"""Collection of differently sized, named 1D arrays"""
+# class NssAxes:
+#     r"""Collection of differently sized, named 1D arrays"""
 
-    def __init__(
-        self, values: Union[float, Iterable], names: Union[str, Iterable[str]]
-    ):
+#     def __init__(
+#         self, values: Union[float, Iterable], names: Union[str, Iterable[str]]
+#     ):
 
-        if not isinstance(values, Iterable):
-            values = list([values])
+#         if not isinstance(values, Iterable):
+#             values = list([values])
 
-        if not isinstance(names, Iterable):
-            names = [names]
+#         if not isinstance(names, Iterable):
+#             names = [names]
 
-        self.values: list[float] = list(values)
-        self.names: list[str] = list(names)
+#         self.values: list[float] = list(values)
+#         self.names: list[str] = list(names)
 
-    def __getitem__(self, item):
+#     def __getitem__(self, item):
 
-        if isinstance(item, str):
-            if item in self.names:
-                i = self.names.index(item)
-                return self.values[i]
-            else:
-                raise ValueError(f"{item} not found in names.")
+#         if isinstance(item, str):
+#             if item in self.names:
+#                 i = self.names.index(item)
+#                 return self.values[i]
+#             else:
+#                 raise ValueError(f"{item} not found in names.")
 
-        if isinstance(item, int):
-            if item < len(self.values):
-                return self.values[item]
-            else:
-                raise IndexError(f"Array index ({item}) out of bounds.")
+#         if isinstance(item, int):
+#             if item < len(self.values):
+#                 return self.values[item]
+#             else:
+#                 raise IndexError(f"Array index ({item}) out of bounds.")
 
 
 def fits_nssgrid_reader(filename, **kwargs):

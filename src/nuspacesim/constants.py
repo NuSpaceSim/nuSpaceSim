@@ -56,6 +56,7 @@ mean_Tau_life = 2.903e-13 # seconds
 @dataclass
 class Fund_Constants:
     r"""Fundimental constants used in nuspacesim simulations.
+
     Attributes
     ----------
     earth_radius: float
@@ -83,10 +84,12 @@ class Fund_Constants:
 
     def __call__(self) -> dict[str, tuple[float, str]]:
         r"""Dictionary representation of Fundimental Constants instance.
+
         Groups the data member values with descriptive comments in a tuple. Adds
         keyword names no longer than eight characters. This is useful for setting the
         FITS Header Keywords in the simulation ouput file. Descriptive comments are
         shorter than 80 characters, so as to conform to FITS standards.
+
         Returns
         -------
         dict

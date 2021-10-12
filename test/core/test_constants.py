@@ -31,16 +31,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r""" Utility classes and methods
+import nuspacesim as nss
+import numpy as np
 
-.. autosummary::
-   :toctree:
-   :recursive:
-"""
-
-__all__ = ["cdf", "grid", "misc", "decorators"]
-
-from . import cdf
-from . import grid
-from . import misc
-from . import decorators
+def test_fund_constants():
+    fc = nss.constants.Fund_Constants()
+    assert fc.earth_radius > 0.0
+    assert np.reciprocal(fc.mean_Tau_life) == fc.inv_mean_Tau_life

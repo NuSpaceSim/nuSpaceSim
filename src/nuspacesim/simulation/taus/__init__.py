@@ -32,13 +32,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 r"""NuSpaceSim taus class and routines.
+
 .. _taus:
+
 ****
 Taus
 ****
+
 .. autosummary::
    :toctree:
+
     Taus
+    local_plots
+
 """
 
 __all__ = ["Taus"]

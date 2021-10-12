@@ -32,14 +32,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 r"""NuSpaceSim geometry routines.
+
 .. _geometry:
+
 ********
 Geometry
 ********
+
 .. autosummary::
    :toctree:
    :recursive:
+
     RegionGeom
+    local_plots
+    nssgeometry
+
 """
 
 __all__ = ["RegionGeom"]
