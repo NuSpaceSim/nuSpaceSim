@@ -98,16 +98,21 @@ def simulate(
         Configuration object.
     verbose: bool, optional
         Flag enabling verbose output.
+    output_file: str, optional
+        Name of file to write intermediate stages
     to_plot: list, optional
         Call the listed plotting functions as appropritate.
+    write_stages: bool, optional
+        Enable writing intermediate results to the output_file.
 
     Returns
     -------
     ResultsTable
-        The Table of result valuse from each stage of the simulation.
+        The Table of result values from each stage of the simulation.
     """
 
     def printv(*args):
+        """optionally print descriptive messages."""
         if verbose:
             print(*args)
 
@@ -117,6 +122,8 @@ def simulate(
     eas = EAS(config)
 
     class StagedWriter:
+        """Optionally write intermediate values to file"""
+
         def __call__(self, *args, **kwargs):
             sim(*args, **kwargs)
             if write_stages:
