@@ -53,6 +53,7 @@ from .results_table import ResultsTable
 from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.taus.taus import Taus
 from .simulation.eas_optical.eas import EAS
+from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import noise_efield_from_range, calculate_snr
 
 __all__ = ["simulate"]
@@ -124,6 +125,7 @@ def simulate(
     geom = RegionGeom(config)
     tau = Taus(config)
     eas = EAS(config)
+    eas_radio = EASRadio(config)
 
     class StagedWriter:
         """Optionally write intermediate values to file"""
@@ -160,9 +162,6 @@ def simulate(
         numPEs, costhetaChEff = eas(
             betaArr,
             altDec,
-            lenDec,
-            thetaArr,
-            pathLenArr,
             showerEnergy,
             store=sw,
             plot=to_plot,
@@ -174,7 +173,7 @@ def simulate(
 
     if config.detector.method == "Radio":
         printv("Computing EAS (Radio).")
-        EFields, _ = eas(
+        EFields = eas_radio(
             betaArr,
             altDec,
             lenDec,
@@ -182,7 +181,6 @@ def simulate(
             pathLenArr,
             showerEnergy,
             store=sw,
-            plot=to_plot,
         )
         snrs = calculate_snr(
             EFields,
@@ -197,8 +195,16 @@ def simulate(
             snrs, costhetaArr, tauExitProb, store=sw
         )
     if config.detector.method == "Both":
-        printv("Computing EAS (Both).")
-        npe_ef, costhetaChEff = eas(
+        printv("Computing EAS Cherenkov light.")
+        numPEs, costhetaChEff = eas(
+            betaArr,
+            altDec,
+            showerEnergy,
+            store=sw,
+            plot=to_plot,
+        )
+        printv("Computing EAS (Radio).")
+        EFields = eas_radio(
             betaArr,
             altDec,
             lenDec,
@@ -206,10 +212,7 @@ def simulate(
             pathLenArr,
             showerEnergy,
             store=sw,
-            plot=to_plot,
         )
-        numPEs = npe_ef[0]
-        EFields = npe_ef[1]
         snrs = calculate_snr(
             EFields,
             FreqRange,
