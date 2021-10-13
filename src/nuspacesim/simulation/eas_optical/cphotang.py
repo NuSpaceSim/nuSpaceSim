@@ -45,6 +45,7 @@ r"""Cherenkov photon density and angle determination class.
 import numpy as np
 from numpy.polynomial import Polynomial
 import dask.bag as db
+from dask.diagnostics import ProgressBar
 
 from .zsteps import zsteps as cppzsteps
 
@@ -662,17 +663,14 @@ class CphotAng:
 
         return photonDen, Cang
 
-    def __call__(self, betaE, alt, client_input=None):
+    def __call__(self, betaE, alt):
         """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
         """
 
-        if client_input is not None:
-            pass
-            # client = Client(client_input)
-
         #######################
         b = db.from_sequence(zip(betaE, alt), partition_size=100)
-        Dphots, Cang = zip(*b.map(lambda x: self.run(*x)).compute())
+        with ProgressBar():
+            Dphots, Cang = zip(*b.map(lambda x: self.run(*x)).compute())
         return np.asarray(Dphots), np.array(Cang)

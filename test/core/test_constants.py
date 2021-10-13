@@ -34,6 +34,7 @@
 import nuspacesim as nss
 import numpy as np
 
+
 def test_fund_constants():
     fc = nss.constants.Fund_Constants()
     assert fc.earth_radius > 0.0

@@ -35,6 +35,18 @@ r"""NuSpaceSim - Simulate upward-going neutrino showers, interactions, and detec
 
 Python package, library, and data tables.
 
+************************
+Command Line Application
+************************
+
+Command line client application
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   nuspacesim.apps.cli
+
 
 ******************
 Simulation Modules
@@ -133,7 +145,7 @@ from .simulate import simulate
 from .simulation import geometry, eas_optical, taus
 
 # from .utils import *
-from ._version import *
+from ._version import version, version_tuple
 
 __all__ = [
     # Core

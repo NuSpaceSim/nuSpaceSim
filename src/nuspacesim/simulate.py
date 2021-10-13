@@ -46,6 +46,7 @@ NuSpaceSim Simulation
    simulate
 
 """
+from rich.console import Console
 
 from .config import NssConfig
 from .results_table import ResultsTable
@@ -98,18 +99,28 @@ def simulate(
         Configuration object.
     verbose: bool, optional
         Flag enabling verbose output.
+    output_file: str, optional
+        Name of file to write intermediate stages
     to_plot: list, optional
         Call the listed plotting functions as appropritate.
+    write_stages: bool, optional
+        Enable writing intermediate results to the output_file.
 
     Returns
     -------
     ResultsTable
-        The Table of result valuse from each stage of the simulation.
+        The Table of result values from each stage of the simulation.
     """
 
-    def printv(*args):
+    console = Console(width=80, log_path=False)
+
+    def logv(*args):
+        """optionally print descriptive messages."""
         if verbose:
-            print(*args)
+            console.log(*args)
+
+    if verbose:
+        console.rule("[bold blue] NuSpaceSim")
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
@@ -117,6 +128,8 @@ def simulate(
     eas = EAS(config)
 
     class StagedWriter:
+        """Optionally write intermediate values to file"""
+
         def __call__(self, *args, **kwargs):
             sim(*args, **kwargs)
             if write_stages:
@@ -129,30 +142,33 @@ def simulate(
 
     sw = StagedWriter()
 
-    printv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
+    logv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
 
     # Run simulation
+    logv("Computing [green] geometries.[/]")
     beta_tr = geom(config.simulation.N, store=sw, plot=to_plot)
-    printv(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
+    logv(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
 
-    printv(f"Computing taus.")
+    logv("Computing [green] taus.[/]")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
         beta_tr, store=sw, plot=to_plot
     )
 
-    printv(f"Computing decay altitudes.")
+    logv("Computing [green] decay altitudes.[/]")
     altDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    printv(f"Computing EAS Cherenkov light.")
+    logv("Computing [green] EAS Optical Cherenkov light.[/]")
     numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sw, plot=to_plot)
 
-    printv(f"Computing Monte Carlo Integral.")
+    logv("Computing [green] Monte Carlo Integral.[/]")
     mcint, mcintgeo, numEvPass = geom.mcintegral(
         numPEs, costhetaChEff, tauExitProb, store=sw
     )
 
-    printv("Monte Carlo Integral:", mcint)
-    printv("Monte Carlo Integral, GEO Only:", mcintgeo)
-    printv("Number of Passing Events:", numEvPass)
+    logv("Monte Carlo Integral:", mcint)
+    logv("Monte Carlo Integral, GEO Only:", mcintgeo)
+    logv("Number of Passing Events:", numEvPass)
+
+    logv("\n :sparkles: [cyan]Done[/] :sparkles:")
 
     return sim

@@ -34,4 +34,5 @@
 """ nuspacesim - Main command-line application mode.  """
 
 from .apps import cli
+
 cli.cli()
