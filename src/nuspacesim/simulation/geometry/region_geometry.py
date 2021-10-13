@@ -138,6 +138,9 @@ class RegionGeom(Geom_params):
                 mcintfactor *= np.where(
                     numPEs - self.config.detector.photo_electron_threshold < 0, 0.0, 1.0
                 )
+            numEvPass = np.count_nonzero(mcintfactor)
+
+            mcintegral = np.mean(mcintfactor) * super().mcnorm
         if self.config.detector.method == "Both":
             cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
 
@@ -163,7 +166,7 @@ class RegionGeom(Geom_params):
             mcintfactor_opt *= mcintfactor
             mcintfactor_rad *= mcintfactor
 
-            mcintegralgeoonly = np.mean(mcintfactor_rad) * super().mcnorm
+            mcintegralgeoonly = [np.mean(mcintfactor_opt) * super().mcnorm, np.mean(mcintfactor_rad) * super().mcnorm]
 
             # Multiply by tau exit probability
             mcintfactor_opt *= tauexitprob
@@ -181,8 +184,8 @@ class RegionGeom(Geom_params):
                 mcintfactor_opt > mcintfactor_rad, mcintfactor_opt, mcintfactor_rad
             )
 
-        numEvPass = np.count_nonzero(mcintfactor)
+            numEvPass = [np.count_nonzero(mcintfactor_opt), np.count_nonzero(mcintfactor_rad), np.count_nonzero(mcintfactor)]
 
-        mcintegral = np.mean(mcintfactor) * super().mcnorm
+            mcintegral = [np.mean(mcintfactor_opt) * super().mcnorm, np.mean(mcintfactor_rad) * super().mcnorm, np.mean(mcintfactor) * super().mcnorm]
 
         return mcintegral, mcintegralgeoonly, numEvPass

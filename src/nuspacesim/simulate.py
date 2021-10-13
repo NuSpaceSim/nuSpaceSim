@@ -170,6 +170,9 @@ def simulate(
         mcint, mcintgeo, numEvPass = geom.mcintegral(
             numPEs, costhetaChEff, tauExitProb, store=sw
         )
+        printv("Monte Carlo Integral:", mcint)
+        printv("Monte Carlo Integral, GEO Only:", mcintgeo)
+        printv("Number of Passing Events:", numEvPass)
 
     if config.detector.method == "Radio":
         printv("Computing EAS (Radio).")
@@ -194,6 +197,10 @@ def simulate(
         mcint, mcintgeo, numEvPass = geom.mcintegral(
             snrs, costhetaArr, tauExitProb, store=sw
         )
+        printv("Monte Carlo Integral:", mcint)
+        printv("Monte Carlo Integral, GEO Only:", mcintgeo)
+        printv("Number of Passing Events:", numEvPass)
+
     if config.detector.method == "Both":
         printv("Computing EAS Cherenkov light.")
         numPEs, costhetaChEff = eas(
@@ -225,9 +232,12 @@ def simulate(
         mcint, mcintgeo, numEvPass = geom.mcintegral(
             trigger_conds, [costhetaChEff, np.cos(thetaArr)], tauExitProb, store=sw
         )
+        mcint_opt, mcint_rad, mcint_tot = mcint
+        mcintgeo_opt, mcintgeo_rad = mcintgeo
+        numEvPass_opt, numEvPass_rad, numEvPass_tot = numEvPass
 
-    printv("Monte Carlo Integral:", mcint)
-    printv("Monte Carlo Integral, GEO Only:", mcintgeo)
-    printv("Number of Passing Events:", numEvPass)
+        printv("Monte Carlo Integral (optical only, radio only, both ):", mcint)
+        printv("Monte Carlo Integral, GEO Only (optical, radio):", mcintgeo)
+        printv("Number of Passing Events (optical only, radio only, both):", numEvPass)
 
     return sim
