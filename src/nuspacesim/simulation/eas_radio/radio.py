@@ -11,11 +11,12 @@ try:
 except ImportError:
     from importlib_resources import files
 
+
 class EASRadio:
     """
     Extensive Air Shower for radio emission
     """
-    
+
     def __init__(self, config: NssConfig):
         self.config = config
 
@@ -49,9 +50,7 @@ class EASRadio:
         return ang
 
     @decorators.nss_result_store("EFields")
-    def __call__(
-        self, beta, altDec, lenDec, theta, pathLen, showerEnergy
-    ):
+    def __call__(self, beta, altDec, lenDec, theta, pathLen, showerEnergy):
         """
         EAS radio output from ZHAires lookup tables
         """
@@ -183,16 +182,15 @@ class IonosphereParams(object):
         param_dir = str(files("nuspacesim.data.radio_params"))
         fname = param_dir + "/ionosphere_params.hdf5"
         f = hf.read_table_hdf5(fname)
-        freqs = np.array(f['freqs']).astype(str)
-        tecs = np.array(f['TEC'])
-        params = np.array(f['params'])
-        desired_freqs = 'f_{}_{}'.format(int(self.lowFreq), int(self.highFreq))
-        desiredParams = (self.lowFreq, self.highFreq, self.TECerr)
+        freqs = np.array(f["freqs"]).astype(str)
+        tecs = np.array(f["TEC"])
+        params = np.array(f["params"])
+        desired_freqs = "f_{}_{}".format(int(self.lowFreq), int(self.highFreq))
         if desired_freqs not in freqs:
             self.params_exist = False
         if TEC not in tecs:
             self.params_exist = False
-        if TECerr > 10.:
+        if TECerr > 10.0:
             self.params_exist = False
         if not self.params_exist:
             print(
@@ -221,6 +219,13 @@ class IonosphereParams(object):
         # if TEC == 0:
         #    return perfect_TEC_disperse(self.lowFreq*1.e6, self.highFreq*1.e6, TEC)/100.
         TECerr = np.random.uniform(-self.TECerr, self.TECerr, EFields.shape)
-        #i fit all of these with gaussians
-        scale = self.params[0] * np.exp(-(self.TEC+TECerr - self.params[1])**2/(2.*self.params[2]**2)) + self.params[3]
+        # i fit all of these with gaussians
+        scale = (
+            self.params[0]
+            * np.exp(
+                -((self.TEC + TECerr - self.params[1]) ** 2)
+                / (2.0 * self.params[2] ** 2)
+            )
+            + self.params[3]
+        )
         return scale / 100.0
