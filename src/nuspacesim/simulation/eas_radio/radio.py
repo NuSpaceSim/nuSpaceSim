@@ -1,4 +1,6 @@
 import numpy as np
+import astropy.io.misc.hdf5 as hf
+import astropy.table
 
 try:
     from importlib.resources import files
@@ -15,15 +17,14 @@ class RadioEFieldParams(object):
         """
         freq range is a 2 float tuple (in MHz)
         """
-        param_dir = str(files("nuspacesim.simulation.eas_radio.zhaires.params"))
-        fname = param_dir + "/ZHAireS_params_10MHz_bins.npz"
-        f = np.load(fname)
+        param_dir = str(files("nuspacesim.data.radio_params"))
+        fname = param_dir + "/waveform_params.hdf5"
+        f = hf.read_table_hdf5(fname)
         self.lowFreq = int(freqRange[0])
         self.highFreq = int(freqRange[1])
-        self.zeniths = f["zenith"]
-        self.heights = f["height"]
-        self.ps = f["params"]
-        f.close()
+        self.zeniths = np.array(f["zenith"])
+        self.heights = np.array(f["height"])
+        self.ps = np.array(f["params"])
 
     def __call__(
         self, zenith: np.ndarray, viewAngle: np.ndarray, h: np.ndarray
@@ -84,35 +85,37 @@ class IonosphereParams(object):
         self.highFreq = int(freqRange[1])
         self.TECerr = TECerr
         self.params_exist = True
-        param_dir = str(files("nuspacesim.simulation.eas_radio.ionosphere.tecparams"))
-        fname = param_dir + "/tecparams.npz"
-        f = np.load(fname, allow_pickle=True)
-        d = f["freqTecErr"].item()
+        param_dir = str(files("nuspacesim.data.radio_params"))
+        fname = param_dir + "/ionosphere_params.hdf5"
+        f = hf.read_table_hdf5(fname)
+        freqs = np.array(f['freqs']).astype(str)
+        tecs = np.array(f['TEC'])
+        params = np.array(f['params'])
+        desired_freqs = 'f_{}_{}'.format(int(self.lowFreq), int(self.highFreq))
         desiredParams = (self.lowFreq, self.highFreq, self.TECerr)
-        if desiredParams not in d.keys():
+        if desired_freqs not in freqs:
             self.params_exist = False
-        else:
-            if TEC not in d[desiredParams]["TEC"]:
-                self.params_exist = False
+        if TEC not in tecs:
+            self.params_exist = False
+        if TECerr > 10.:
+            self.params_exist = False
         if not self.params_exist:
             print(
                 "",
                 "***** WARNING *****",
                 "The only supported parameters for ionospheric dispersion are:",
                 "frequency ranges of 30-80 MHz, 30-300 MHz, 300-1000 MHz",
-                "TECerrs of 0.001, 0.01, 0.1, 1",
                 "TEC values of 1, 5, 10, 50, 100, 150",
+                "and TECerr values of < 10.",
                 "Arbitrary values of these parameters will eventually be enabled, but not yet !!",
                 "No scaling will be applied",
                 "",
                 sep="\n",
             )
-            f.close()
         else:
-            ind = np.argmin(np.abs(d[desiredParams]["TEC"] - TEC))
-            self.TEC = d[desiredParams]["TEC"][ind]
-            self.scaling = d[desiredParams]["scaling"][ind]
-            f.close()
+            cut = np.logical_and(freqs == desired_freqs, tecs == TEC)
+            self.TEC = tecs[cut][0]
+            self.params = params[cut][0]
 
     def __call__(self, EFields):
         """
@@ -123,5 +126,6 @@ class IonosphereParams(object):
         # if TEC == 0:
         #    return perfect_TEC_disperse(self.lowFreq*1.e6, self.highFreq*1.e6, TEC)/100.
         TECerr = np.random.uniform(-self.TECerr, self.TECerr, EFields.shape)
-        scale = self.scaling(self.TEC + TECerr)
+        #i fit all of these with gaussians
+        scale = self.params[0] * np.exp(-(self.TEC+TECerr - self.params[1])**2/(2.*self.params[2]**2)) + self.params[3]
         return scale / 100.0

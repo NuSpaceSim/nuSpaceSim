@@ -2,6 +2,7 @@ import numpy as np
 import os as os
 from scipy import signal
 from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
 
 try:
     from importlib.resources import files
@@ -458,7 +459,7 @@ def ionospheric_dispersion(flow=30.0e6, fhigh=300.0e6, TEC=10.0, Bcos_theta=50.0
 
 def generate_TEC_files(f1, f2, TECerr):
     print("generating TEC file for {}-{} MHz and {} TEC error".format(f1, f2, TECerr))
-    ntimes = 5
+    ntimes = 10
     ns = 51
     dt = (2.0 * TECerr) / float(ns)
     funcs = np.array([])
@@ -489,6 +490,8 @@ def generate_TEC_files(f1, f2, TECerr):
                 )
                 v2 += vv2
         v2 /= float(ntimes)
+        plt.plot(teclist, v2)
+        plt.show()
         func = interp1d(teclist, v2)
         tecs = np.append(tecs, TECu)
         funcs = np.append(funcs, func)
