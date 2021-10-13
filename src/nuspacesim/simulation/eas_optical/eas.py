@@ -113,4 +113,3 @@ class EAS:
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
         return numPEs, costhetaChEff
-

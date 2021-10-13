@@ -37,7 +37,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, Any
 from dataclasses import dataclass
 
 try:
@@ -85,7 +85,7 @@ class DetectorCharacteristics:
     det_gain: float = 1.8
     """ Antenna gain in dB: Default = 1.8 """
 
-    def __call__(self) -> dict[str, tuple[float, str]]:
+    def __call__(self) -> dict[str, tuple[Any, str]]:
         r"""Dictionary representation of DetectorCharacteristics instance.
 
         Groups the data member values with descriptive comments in a tuple. Adds
@@ -180,10 +180,7 @@ class SimulationParameters:
                 "Simulation: For Radio, model the ionosphere?",
             ),
             "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
-            "TECerr": (
-                self.TECerr,
-                "Simulation: Uniformly distributed error on TEC estimation",
-            ),
+            "TECerr": (self.TECerr, "Simulation: Uniform distr. err: TEC est."),
         }
 
 

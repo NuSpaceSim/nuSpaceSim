@@ -87,7 +87,7 @@ class RegionGeom(Geom_params):
         return pathLenArr
 
     @decorators.nss_result_plot(geom_beta_tr_hist, geom_beta_tr_hist_red)
-    @decorators.nss_result_store("beta_rad", "theta_rad", "path_lens")
+    @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")
     def __call__(self, numtrajs):
         """Throw numtrajs events and return valid betas."""
         self.throw(numtrajs)
@@ -128,7 +128,7 @@ class RegionGeom(Geom_params):
             # Multiply by tau exit probability
             mcintfactor *= tauexitprob
 
-            mcint_notrigger = mcintfactor.copy()
+            # mcint_notrigger = mcintfactor.copy()
             # PE threshold
             if self.config.detector.method == "Radio":
                 mcintfactor *= np.where(
@@ -166,13 +166,16 @@ class RegionGeom(Geom_params):
             mcintfactor_opt *= mcintfactor
             mcintfactor_rad *= mcintfactor
 
-            mcintegralgeoonly = [np.mean(mcintfactor_opt) * super().mcnorm, np.mean(mcintfactor_rad) * super().mcnorm]
+            mcintegralgeoonly = [
+                np.mean(mcintfactor_opt) * super().mcnorm,
+                np.mean(mcintfactor_rad) * super().mcnorm,
+            ]
 
             # Multiply by tau exit probability
             mcintfactor_opt *= tauexitprob
             mcintfactor_rad *= tauexitprob
 
-            mcint_notrigger = mcintfactor_rad.copy()
+            # mcint_notrigger = mcintfactor_rad.copy()
             # PE threshold
             mcintfactor_opt *= np.where(
                 npe - self.config.detector.photo_electron_threshold < 0, 0.0, 1.0
@@ -184,8 +187,16 @@ class RegionGeom(Geom_params):
                 mcintfactor_opt > mcintfactor_rad, mcintfactor_opt, mcintfactor_rad
             )
 
-            numEvPass = [np.count_nonzero(mcintfactor_opt), np.count_nonzero(mcintfactor_rad), np.count_nonzero(mcintfactor)]
+            numEvPass = [
+                np.count_nonzero(mcintfactor_opt),
+                np.count_nonzero(mcintfactor_rad),
+                np.count_nonzero(mcintfactor),
+            ]
 
-            mcintegral = [np.mean(mcintfactor_opt) * super().mcnorm, np.mean(mcintfactor_rad) * super().mcnorm, np.mean(mcintfactor) * super().mcnorm]
+            mcintegral = [
+                np.mean(mcintfactor_opt) * super().mcnorm,
+                np.mean(mcintfactor_rad) * super().mcnorm,
+                np.mean(mcintfactor) * super().mcnorm,
+            ]
 
         return mcintegral, mcintegralgeoonly, numEvPass
