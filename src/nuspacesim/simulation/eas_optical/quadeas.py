@@ -31,7 +31,7 @@ def shower_age(T, param_beta):
 
     s = 3 * T / (T + 2 * beta)
     """
-    return 3. * T / (T + 2. * param_beta)
+    return 3.0 * T / (T + 2.0 * param_beta)
 
 
 def greisen_particle_count(T, s, y):
@@ -114,19 +114,19 @@ def shibata_density(z):
 def slant_depth_numeric(z, z_max=np.inf, beta=0, atm_density_model=shibata_density):
 
     earth_radius = 6378.14
-    # def intf(h):
-    #     i = earth_radius ** 2 * np.cos(theta_tr) ** 2
-    #     j = (h) ** 2
-    #     k = 2 * h * earth_radius
+    return qp.quad(
+        lambda h: 1e5
+        * atm_density_model(h)
+        * (h + earth_radius)
+        / np.sqrt(
+            (earth_radius ** 2 * np.cos(beta) ** 2) + (h ** 2) + (2 * h * earth_radius)
+        ),
+        z,
+        z_max,
+    )
 
-    #     ijk = i + j + k
 
-    #     return 1e5 * atm_density_model(h) * ((h + earth_radius) / np.sqrt(ijk))
-
-    return qp.quad(lambda h: 1e5 * atm_density_model(h) * (h + earth_radius)/np.sqrt((earth_radius**2 * np.cos(beta)**2)+(h**2)+(2*h*earth_radius)), z, z_max)
-
-
-def slant_depth_analytic(z, z_max, beta, earth_radius):
+def slant_depth_analytic(z, z_max, beta):
 
     z = np.asarray(z)
     z_max = np.asarray(z_max)
@@ -139,24 +139,39 @@ def slant_depth_analytic(z, z_max, beta, earth_radius):
     mask3 = z >= 25
 
     def sd_11(z):
-        return 122.610146005993*(1 - 0.02255299954894*z)**4.26315789473684*np.sqrt(earth_radius**2*np.cos(beta)**2 + 2*earth_radius*z + z**2)
+        return (
+            122.610146005993
+            * z
+            * z
+            * (1 - 0.02255299954894 * z) ** 4.26315789473684
+            * np.cos(beta)
+        )
 
-    # def sd_25(z):
-    #     return -0.0130852542368147 * np.exp(-0.157728706624606 * z)
+    def sd_25(z):
+        return (
+            206.392022662692
+            * (-6.34 * z - 40.1956)
+            * np.exp(-0.157728706624606 * z)
+            * np.cos(beta)
+        )
 
-    # def sd_oo(z):
-    #     return -10.2581707567323 * np.exp(
-    #         -5.3777318638995 * np.sqrt(1 + 0.115629322268326 * z)
-    #     )
+    def sd_oo(z):
+        x = np.sqrt(0.115629322268326 * z + 1)
+        return (
+            -318938.577439959
+            * (3.21634680855233 * z + 10.3448867928848 * x + 1.92365239745953)
+            * np.exp(-5.3777318638995 * x)
+            * np.cos(beta)
+        )
 
-    # sd = np.zeros_like(z_max)
-    # sd += sd_11(np.minimum(z_max, 11.)) - sd_11(np.minimum(z, 11.))
-
-    # sd += sd_25(np.where((z_max >= 11.) & (z_max < 25.), z_max, np.where(z_max < 11., 11., 25.))) - sd_25(
-    #     np.where(mask2, z, np.where(mask1, 11., 25.))
-    # )
-
-    # sd += sd_oo(np.maximum(z_max, 25.)) - sd_oo(np.where(mask3, z, 25.))
+    sd = np.zeros_like(z_max)
+    sd += sd_11(np.minimum(z_max, 11.0)) - sd_11(np.minimum(z, 11.0))
+    sd += sd_25(
+        np.where(
+            (z_max >= 11.0) & (z_max < 25.0), z_max, np.where(z_max < 11.0, 11.0, 25.0)
+        )
+    ) - sd_25(np.where(mask2, z, np.where(mask1, 11.0, 25.0)))
+    sd += sd_oo(np.maximum(z_max, 25.0)) - sd_oo(np.where(mask3, z, 25.0))
 
     return sd
 
@@ -232,45 +247,48 @@ def ozone_losses(z, wavelength):
 
 
 def scaled_photon_yeild(z, wavelength):
+    pass
 
-    X = slant_depth_analytic(z, 65)
-    T = rad_len_atm_depth(X)
-    s = shower_age(T, 1)
+    # X = slant_depth_analytic(z, 65)
+    # T = rad_len_atm_depth(X)
+    # s = shower_age(T, 1)
 
-    pyield = photon_yeild(1, wavelength)
-    rayleigh_trans = 1.0  # sokolsky_rayleigh_scatter(dx, wavelength)
-    ozone_trans = 1.0  # ozone_losses(z, wavelength)
-    mie_aerosol_trans = (
-        1.0  #  elterman_mie_aerosol_scatter(z, 1, 1, wavelength, 1, 1, 1, 1)
-    )
-    RN = greisen_particle_count(T, s, 1)
-    return pyield * rayleigh_trans * ozone_trans * mie_aerosol_trans * RN
+    # pyield = photon_yeild(1, wavelength)
+    # rayleigh_trans = 1.0  # sokolsky_rayleigh_scatter(dx, wavelength)
+    # ozone_trans = 1.0  # ozone_losses(z, wavelength)
+    # mie_aerosol_trans = (
+    #     1.0  # elterman_mie_aerosol_scatter(z, 1, 1, wavelength, 1, 1, 1, 1)
+    # )
+    # RN = greisen_particle_count(T, s, 1)
+    # return pyield * rayleigh_trans * ozone_trans * mie_aerosol_trans * RN
+
 
 def dndu(theta, logenergy, s):
 
     energy = 10 ** logenergy
 
-    whill = 2.*(1.-np.cos(theta))*(energy / 21.)**2
+    whill = 2.0 * (1.0 - np.cos(theta)) * (energy / 21.0) ** 2
     # print("whill", whill)
-    e2hill = (1150. + 454*np.log(s))
+    e2hill = 1150.0 + 454 * np.log(s)
 
-    vhill = np.where(e2hill > 0. , energy / e2hill, 0.)
+    vhill = np.where(e2hill > 0.0, energy / e2hill, 0.0)
     # print("vhill", vhill)
-    w_ave= 0.0054*energy*(1.+vhill) / (1.+13.*vhill + 8.3*vhill**2)
+    w_ave = 0.0054 * energy * (1.0 + vhill) / (1.0 + 13.0 * vhill + 8.3 * vhill ** 2)
     # print("w_ave", w_ave)
     uhill = whill / w_ave
     # print("uhill", uhill)
 
-    zmz0hill = -np.sqrt(uhill)-0.59
+    zmz0hill = -np.sqrt(uhill) - 0.59
     # print("zmz0hill", zmz0hill)
-    lambdai = np.where(zmz0hill < 0., 0.478, 0.380)
+    lambdai = np.where(zmz0hill < 0.0, 0.478, 0.380)
     # print("lambdai", lambdai)
-    sv2 = 0.777 * np.exp(zmz0hill/lambdai)
+    sv2 = 0.777 * np.exp(zmz0hill / lambdai)
     # print("sv2", sv2)
     return sv2
 
-import nuspacesim as nss
+
 # from nuspacesim.eas_optical.atmospheric_models import slant_depth
+
 
 def intf(x_):
     z = x_[0]
@@ -281,22 +299,50 @@ def intf(x_):
     print("z", z)
     X = np.empty_like(z)
     for i in range(z.size):
-        X[i] = slant_depth_numeric(1., z[i], beta=np.radians(42.))[0]
+        X[i] = slant_depth_numeric(1.0, z[i], beta=np.radians(42.0))[0]
     print("X", X)
 
     T = rad_len_atm_depth(X)
-    s = shower_age(T, np.log(10**8/(0.710 / 8.36)))
+    s = shower_age(T, np.log(10 ** 8 / (0.710 / 8.36)))
     # print("s", s)
     # print("o", o)
     # print("e", e)
     # v1= scaled_photon_yeild(z, w)
     v1 = 1
     v2 = dndu(o, e, s)
-    exit(0)
-    return v1*v2
+    return v1 * v2
 
-if __name__ == '__main__':
 
-    print(qp.quad(intf, [1,2.857e-4,1], [65,1.657e-2,10], epsabs=1e-7))
+if __name__ == "__main__":
+    import nuspacesim as nss
+
+    nss.eas_optical.atmospheric_models.slant_depth(1.0, 65.0, np.radians(10))
+
+    import timeit
+
+    print(slant_depth_numeric(1.0, 5.0, np.radians(10)))
+    earth_radius = 6378.14
+
+    def f(h):
+        return (
+            1e5
+            * shibata_density(h)
+            * (h + earth_radius)
+            / np.sqrt(
+                (earth_radius ** 2 * np.cos(np.radians(10)) ** 2)
+                + (h ** 2)
+                + (2 * h * earth_radius)
+            )
+        )
+
+    print(
+        timeit.timeit(
+            lambda: qp.quad(f, 1.0, 5.0, epsabs=1e-2, epsrel=1e-2), number=10000
+        )
+    )
+    print(qp.quad(f, 1.0, 5.0, epsabs=1e-2, epsrel=1e-2))
+    # slant_depth_analytic(1., 65., np.radians(10))
+
+    # print(qp.quad(intf, [1,2.857e-4,1], [65,1.657e-2,10], epsabs=1e-7))
 
 # return qp.quad( lambda x: , )

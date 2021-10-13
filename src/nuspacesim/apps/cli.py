@@ -31,7 +31,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" Command line client source code.  """
+r""" Command line client source code.
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   run
+   create_config
+
+
+"""
 
 import click
 
@@ -54,7 +64,7 @@ def cli():
 @click.option(
     "-p",
     "--plot",
-    type=click.Choice(registry, case_sensitive=False),
+    type=click.Choice(list(registry), case_sensitive=False),
     multiple=True,
     default=[],
     help="Available plotting functions. Select multiple plots with multiple uses of -p",
@@ -66,6 +76,12 @@ def cli():
     is_flag=True,
     help="Write intermediate values after each simulation stage.",
 )
+@click.option(
+    "-n",
+    "--no-result-file",
+    is_flag=True,
+    help="Do not save the results to an output file.",
+)
 @click.argument(
     "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
 )
@@ -76,10 +92,11 @@ def run(
     config_file: str,
     count: float,
     logevalue: float,
+    no_result_file: bool,
     output: str,
-    write_stages: bool,
     plot: list,
     plotall: bool,
+    write_stages: bool,
 ) -> None:
     """Perform the full nuspacesim simulation.
 
@@ -100,8 +117,10 @@ def run(
         Name of the output file holding the simulation results.
     plot: list, optional
         Plot the simulation results.
-    plotall: boo, optional
+    plotall: bool, optional
         Plot all the available the simulation results plots.
+    no_result_file: bool, optional
+        Disables writing results to output files.
 
 
     Examples
@@ -118,7 +137,7 @@ def run(
     config = config_from_xml(config_file)
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
     config.simulation.nu_tau_energy = 10 ** logevalue
-    plot = registry if plotall else plot
+    plot = list(registry) if plotall else plot
     simulation = simulate(
         config,
         verbose=True,
@@ -126,7 +145,8 @@ def run(
         output_file=output,
         write_stages=write_stages,
     )
-    simulation.write(output, overwrite=True)
+    if not no_result_file:
+        simulation.write(output, overwrite=True)
 
 
 @cli.command()

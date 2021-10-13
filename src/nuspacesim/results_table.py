@@ -59,7 +59,7 @@ class ResultsTable(AstropyTable):
     output file formats.
     """
 
-    def __init__(self, config: NssConfig=NssConfig()):
+    def __init__(self, config: NssConfig = NssConfig()):
         r"""Constructor for ResultsTable class instances.
 
         Parameters
