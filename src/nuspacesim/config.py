@@ -65,9 +65,9 @@ class DetectorCharacteristics:
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
     ra_start: float = 0.0
-    """ Right Ascencion. Default = 0.0 """
+    """ Right Ascencion (Degrees). Default = 0.0 """
     dec_start: float = 0.0
-    """ Declination. Default = 0.0 """
+    """ Declination (Degrees). Default = 0.0 """
     telescope_effective_area: float = 2.5
     '"" Effective area of the detector telescope. Default = 2.5 sq.meters ""'
     quantum_efficiency: float = 0.2

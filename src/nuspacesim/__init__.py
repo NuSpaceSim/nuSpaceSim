@@ -90,7 +90,7 @@ Perform a full simulation by calling the default nuspacesim.simulate function.
    :recursive:
    :nosignatures:
 
-   nuspacesim.simulate
+   nuspacesim.compute
 
 
 **********************
@@ -141,7 +141,7 @@ Supporting classes and functions for gridded data, CDF sampling, Interpolation, 
 from . import constants, data, utils, xml_config
 from .config import NssConfig, DetectorCharacteristics, SimulationParameters
 from .results_table import ResultsTable
-from .simulate import simulate
+from .compute import compute
 from .simulation import geometry, eas_optical, taus
 
 # from .utils import *
@@ -154,7 +154,7 @@ __all__ = [
     "DetectorCharacteristics",
     "SimulationParameters",
     "ResultsTable",
-    "simulate",
+    "compute",
     # modules
     "geometry",
     "eas_optical",

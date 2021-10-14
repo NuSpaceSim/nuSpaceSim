@@ -106,7 +106,17 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
 
         # Convert Degrees to Radians
         if "Unit" in node.attrib:
-            if node.attrib["Unit"] == "Degrees":
+            if node.tag in [
+                "InitialDetectorRightAscension",
+                "InitialDetectorDeclination",
+            ]:
+                x = float(node.text)
+                detchar[node.tag] = (
+                    x if node.attrib["Unit"] == "Degrees" else np.radians(x)
+                )
+
+                np.degrees(float(node.text))
+            elif node.attrib["Unit"] == "Degrees":
                 detchar[node.tag] = np.radians(float(node.text))
 
     return DetectorCharacteristics(
@@ -260,11 +270,11 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     detalt.text = str(config.detector.altitude)
 
     detra = ET.SubElement(detchar, "InitialDetectorRightAscension")
-    detra.set("Unit", "Radians")
+    detra.set("Unit", "Degrees")
     detra.text = str(config.detector.ra_start)
 
     detdec = ET.SubElement(detchar, "InitialDetectorDeclination")
-    detdec.set("Unit", "Radians")
+    detdec.set("Unit", "Degrees")
     detdec.text = str(config.detector.dec_start)
 
     npe = ET.SubElement(pethres, "NPE")

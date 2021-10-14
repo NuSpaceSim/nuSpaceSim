@@ -130,7 +130,7 @@ def run(
     `nuspacesim run sample_input_file.xml 1e5 8 -o my_sim_results.fits`
     """
 
-    from ..simulate import simulate
+    from ..compute import compute
     from ..xml_config import config_from_xml
 
     # User Inputs
@@ -138,7 +138,7 @@ def run(
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
     config.simulation.nu_tau_energy = 10 ** logevalue
     plot = list(registry) if plotall else plot
-    simulation = simulate(
+    simulation = compute(
         config,
         verbose=True,
         to_plot=plot,
