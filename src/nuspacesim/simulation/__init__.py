@@ -50,14 +50,16 @@ neutrino propagation and interaction.
    :nosignatures:
 
    geometry
-   taus
    eas_optical
+   eas_radio
+   taus
 
 
 """
 
-__all__ = ["geometry", "taus", "eas_optical"]
+__all__ = ["geometry", "taus", "eas_optical", "eas_radio"]
 
 from . import geometry
 from . import taus
 from . import eas_optical
+from . import eas_radio

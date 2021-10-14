@@ -37,7 +37,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, Any
 from dataclasses import dataclass
 
 try:
@@ -60,6 +60,8 @@ __all__ = [
 class DetectorCharacteristics:
     r"""Dataclass holding Detector Characteristics."""
 
+    method: str = "Optical"
+    """ Type of detector: Default = Optical """
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
     ra_start: float = 0.0
@@ -72,8 +74,18 @@ class DetectorCharacteristics:
     """ Quantum Efficiency of the detector telescope. Default = 0.2 """
     photo_electron_threshold: float = 10.0
     """Photo Electron Threshold, Number Photo electrons = 10"""
+    low_freq: float = 30.0
+    """ Low end for radio band in MHz: Default = 30 """
+    high_freq: float = 300.0
+    """ High end of radio band in MHz: Default = 300 """
+    det_SNR_thres: float = 5.0
+    """ SNR threshold for radio triggering: Default = 5 """
+    det_Nant: int = 10
+    """ Number of radio antennas: Default = 10 """
+    det_gain: float = 1.8
+    """ Antenna gain in dB: Default = 1.8 """
 
-    def __call__(self) -> dict[str, tuple[float, str]]:
+    def __call__(self) -> dict[str, tuple[Any, str]]:
         r"""Dictionary representation of DetectorCharacteristics instance.
 
         Groups the data member values with descriptive comments in a tuple. Adds
@@ -88,6 +100,7 @@ class DetectorCharacteristics:
         """
 
         return {
+            "method": (self.method, "Detector: Method (Optical, radio or both"),
             "detAlt": (self.altitude, "Detector: Altitude"),
             "raStart": (self.ra_start, "Detector: Initial Right Ascencion"),
             "decStart": (self.dec_start, "Detector: Initial Declination"),
@@ -100,6 +113,11 @@ class DetectorCharacteristics:
                 self.photo_electron_threshold,
                 "Detector: Photo-Electron Threshold",
             ),
+            "lowFreq": (self.low_freq, "Detector: Antenna Low Frequency"),
+            "highFreq": (self.high_freq, "Detector: Antenna High Frequency"),
+            "SNRthres": (self.det_SNR_thres, "Detector: Radio SNR threshold"),
+            "detNant": (self.det_Nant, "Detector: Number of Antennas"),
+            "detGain": (self.det_gain, "Detector: Antenna Gain"),
         }
 
 
@@ -118,7 +136,14 @@ class SimulationParameters:
     ang_from_limb: float = radians(7.0)
     """Angle From Limb. Default = π/25.714 radians (7 degrees)."""
     max_azimuth_angle: float = radians(360.0)
+    max_azimuth_angle: float = radians(360.0)
     """Maximum Azimuthal Angle. Default = 2π radians (360 degrees)."""
+    model_ionosphere: int = 0
+    """Model ionosphere for radio propagation?. Default = 0 (false)."""
+    TEC: float = 10.0
+    """Total Electron Content for ionospheric propagation. Default = 10."""
+    TECerr: float = 0.1
+    """Error for TEC reconstruction. Default = 0.1"""
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
@@ -150,6 +175,12 @@ class SimulationParameters:
             "eShwFrac": (self.e_shower_frac, "Simulation: Fraction of Etau in Shower"),
             "angLimb": (self.ang_from_limb, "Simulation: Angle From Limb"),
             "maxAzAng": (self.max_azimuth_angle, "Simulation: Maximum Azimuthal Angle"),
+            "ionosph": (
+                self.model_ionosphere,
+                "Simulation: For Radio, model the ionosphere?",
+            ),
+            "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
+            "TECerr": (self.TECerr, "Simulation: Uniform distr. err: TEC est."),
         }
 
 
@@ -157,7 +188,7 @@ class SimulationParameters:
 class NssConfig:
     r"""Necessary Configuration Data for NuSpaceSim.
 
-    An :class:`NssConfig` is a contianer object holding all of the other nuSpaceSim
+    An :class:`NssConfig` is a container object holding all of the other nuSpaceSim
     configuration objects for a simplified access API. Instances of :class:`NssConfig`
     objects can be serialized to XML.
 

@@ -47,11 +47,14 @@ NuSpaceSim Simulation
 
 """
 
+import numpy as np
 from .config import NssConfig
 from .results_table import ResultsTable
 from .simulation.geometry.region_geometry import RegionGeom
-from .simulation.taus import Taus
+from .simulation.taus.taus import Taus
 from .simulation.eas_optical.eas import EAS
+from .simulation.eas_radio.radio import EASRadio
+from .simulation.eas_radio.radio_antenna import noise_efield_from_range, calculate_snr
 
 __all__ = ["simulate"]
 
@@ -111,15 +114,23 @@ def simulate(
         The Table of result values from each stage of the simulation.
     """
 
+    FreqRange = (config.detector.low_freq, config.detector.high_freq)
+
     def printv(*args):
         """optionally print descriptive messages."""
         if verbose:
             print(*args)
 
+    def mc_printv(mcint, mcintgeo, numEvPass, method):
+        printv(f"Monte Carlo Integral [{method}]:", mcint)
+        printv(f"Monte Carlo Integral, GEO Only [{method}]:", mcintgeo)
+        printv(f"Number of Passing Events [{method}]:", numEvPass)
+
     sim = ResultsTable(config)
     geom = RegionGeom(config)
     tau = Taus(config)
     eas = EAS(config)
+    eas_radio = EASRadio(config)
 
     class StagedWriter:
         """Optionally write intermediate values to file"""
@@ -139,7 +150,8 @@ def simulate(
     printv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
 
     # Run simulation
-    beta_tr = geom(config.simulation.N, store=sw, plot=to_plot)
+
+    beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
     printv(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
 
     printv("Computing taus.")
@@ -148,18 +160,58 @@ def simulate(
     )
 
     printv("Computing decay altitudes.")
-    altDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
+    altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    printv("Computing EAS Cherenkov light.")
-    numPEs, costhetaChEff = eas(beta_tr, altDec, showerEnergy, store=sw, plot=to_plot)
+    if config.detector.method == "Optical" or config.detector.method == "Both":
+        printv("Computing EAS Cherenkov light.")
 
-    printv("Computing Monte Carlo Integral.")
-    mcint, mcintgeo, numEvPass = geom.mcintegral(
-        numPEs, costhetaChEff, tauExitProb, store=sw
-    )
+        numPEs, costhetaChEff = eas(
+            beta_tr,
+            altDec,
+            showerEnergy,
+            store=sw,
+            plot=to_plot,
+        )
 
-    printv("Monte Carlo Integral:", mcint)
-    printv("Monte Carlo Integral, GEO Only:", mcintgeo)
-    printv("Number of Passing Events:", numEvPass)
+        mcint, mcintgeo, passEV = geom.mcintegral(
+            numPEs, costhetaChEff, tauExitProb, config.detector.photo_electron_threshold
+        )
+
+        sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
+        sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")
+        sw.add_meta("ONEVPASS", passEV, "Optical Number of Passing Events")
+
+        mc_printv(mcint, mcintgeo, passEV, "Optical")
+
+    if config.detector.method == "Radio" or config.detector.method == "Both":
+        printv("Computing EAS (Radio).")
+
+        EFields = eas_radio(
+            beta_tr,
+            altDec,
+            lenDec,
+            thetaArr,
+            pathLenArr,
+            showerEnergy,
+            store=sw,
+        )
+
+        snrs = calculate_snr(
+            EFields,
+            FreqRange,
+            config.detector.altitude,
+            config.detector.det_Nant,
+            config.detector.det_gain,
+        )
+
+        mcint, mcintgeo, passEV = geom.mcintegral(
+            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres
+        )
+
+        sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
+        sw.add_meta("RMCINTGO", mcintgeo, "Radio MonteCarlo Integral, GEO Only")
+        sw.add_meta("RNEVPASS", passEV, "Radio Number of Passing Events")
+
+        mc_printv(mcint, mcintgeo, passEV, "Radio")
 
     return sim

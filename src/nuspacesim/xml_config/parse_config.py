@@ -95,27 +95,33 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     tree = ET.parse(xmlfile)
     root = tree.getroot()
     eldetchar = root.find("DetectorCharacteristics")
-    if eldetchar.attrib["Method"] == "Optical":
-        for node in tree.find("./DetectorCharacteristics"):
-            if node.tag == "PhotoElectronThreshold":
-                detchar[node.tag] = str(node.attrib["Preset"])
-                if node.attrib["Preset"] == "true":
-                    detchar["NPE"] = str(node.find("NPE").text)
-            else:
-                detchar[node.tag] = str(node.text)
+    detchar["Method"] = eldetchar.attrib["Method"]
+    for node in tree.find("./DetectorCharacteristics"):
+        if node.tag == "PhotoElectronThreshold":
+            detchar[node.tag] = str(node.attrib["Preset"])
+            if node.attrib["Preset"] == "true":
+                detchar["NPE"] = str(node.find("NPE").text)
+        else:
+            detchar[node.tag] = str(node.text)
 
-            # Convert Degrees to Radians
-            if "Unit" in node.attrib:
-                if node.attrib["Unit"] == "Degrees":
-                    detchar[node.tag] = np.radians(float(node.text))
+        # Convert Degrees to Radians
+        if "Unit" in node.attrib:
+            if node.attrib["Unit"] == "Degrees":
+                detchar[node.tag] = np.radians(float(node.text))
 
     return DetectorCharacteristics(
+        method=detchar["Method"],
         altitude=float(detchar["DetectorAltitude"]),
         ra_start=float(detchar["InitialDetectorRightAscension"]),
         dec_start=float(detchar["InitialDetectorDeclination"]),
         telescope_effective_area=float(detchar["TelescopeEffectiveArea"]),
         quantum_efficiency=float(detchar["QuantumEfficiency"]),
         photo_electron_threshold=float(detchar["NPE"]),
+        low_freq=float(detchar["LowFrequency"]),
+        high_freq=float(detchar["HighFrequency"]),
+        det_SNR_thres=float(detchar["SNRThreshold"]),
+        det_Nant=int(detchar["NAntennas"]),
+        det_gain=float(detchar["AntennaGain"]),
     )
 
 
@@ -163,6 +169,9 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         e_shower_frac=float(simparams["FracETauInShower"]),
         ang_from_limb=float(simparams["AngleFromLimb"]),
         max_azimuth_angle=float(simparams["AzimuthalAngle"]),
+        model_ionosphere=bool(int(simparams["ModelIonosphere"])),
+        TEC=float(simparams["TEC"]),
+        TECerr=np.abs(float(simparams["TECerr"])),
     )
 
 
@@ -234,7 +243,7 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     detchar = ET.SubElement(nuspacesimparams, "DetectorCharacteristics")
     detchar.set("Type", "Satellite")
-    detchar.set("Method", "Optical")
+    detchar.set("Method", "Both")
 
     qeff = ET.SubElement(detchar, "QuantumEfficiency")
     qeff.text = str(config.detector.quantum_efficiency)
@@ -260,6 +269,23 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     npe = ET.SubElement(pethres, "NPE")
     npe.text = str(config.detector.photo_electron_threshold)
+
+    detlow_freq = ET.SubElement(detchar, "LowFrequency")
+    detlow_freq.set("Unit", "MHz")
+    detlow_freq.text = str(config.detector.low_freq)
+
+    dethigh_freq = ET.SubElement(detchar, "HighFrequency")
+    dethigh_freq.set("Unit", "MHz")
+    dethigh_freq.text = str(config.detector.high_freq)
+
+    detSNRthres = ET.SubElement(detchar, "SNRThreshold")
+    detSNRthres.text = str(config.detector.det_SNR_thres)
+
+    detNant = ET.SubElement(detchar, "NAntennas")
+    detNant.text = str(config.detector.det_Nant)
+
+    detGain = ET.SubElement(detchar, "AntennaGain")
+    detGain.text = str(config.detector.det_gain)
 
     simparams = ET.SubElement(nuspacesimparams, "SimulationParameters")
     simparams.set("DetectionMode", "Diffuse")
@@ -290,6 +316,15 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     numtrajs = ET.SubElement(simparams, "NumTrajs")
     numtrajs.text = str(config.simulation.N)
+
+    ionosphere = ET.SubElement(simparams, "ModelIonosphere")
+    ionosphere.text = str(config.simulation.model_ionosphere)
+
+    tec = ET.SubElement(simparams, "TEC")
+    tec.text = str(config.simulation.TEC)
+
+    tecerr = ET.SubElement(simparams, "TECerr")
+    tecerr.text = str(config.simulation.TECerr)
 
     def indent(elem, level=0):
         i = "\n" + level * "  "

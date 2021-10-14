@@ -35,8 +35,11 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 
-def geom_beta_tr_hist(n, betas, *args, **kwargs):
+def geom_beta_tr_hist(inputs, results, *args, **kwargs):
     r"""Plot a histgram of beta trajectories."""
+
+    _ = inputs
+    betas, _, _ = results
 
     plt.hist(np.degrees(betas), 50, alpha=0.75)
     plt.xlabel("beta_tr (radians)")
@@ -45,8 +48,11 @@ def geom_beta_tr_hist(n, betas, *args, **kwargs):
     plt.show()
 
 
-def geom_beta_tr_hist_red(n, betas, *args, **kwargs):
+def geom_beta_tr_hist_red(inputs, results, *args, **kwargs):
     r"""Plot a histgram of beta trajectories."""
+
+    _ = inputs
+    betas, _, _ = results
 
     plt.hist(np.degrees(betas), 50, alpha=0.75, facecolor="r")
     plt.xlabel("beta_tr (radians)")

@@ -39,6 +39,7 @@ requirements:
     - h5py
     - lxml
     - numpy >=1.20
+    - matplotlib
     - python >=3.7
     - scipy
 

@@ -102,6 +102,23 @@ xsd = StringIO(
   <xs:attribute name="SpectrumType" type="xs:string"/>
 </xs:complexType>
 
+<xs:complexType name="FreqType">
+    <xs:simpleContent>
+      <xs:extension base="xs:decimal">
+        <xs:attribute name="Unit">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="Hz"/>
+              <xs:enumeration value="kHz"/>
+              <xs:enumeration value="MHz"/>
+              <xs:enumeration value="GHz"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+</xs:complexType>
+
 <xs:element name="NuSpaceSimParams">
   <xs:complexType>
     <xs:sequence>
@@ -114,6 +131,11 @@ xsd = StringIO(
             <xs:element name="DetectorAltitude" type="DistType"/>
             <xs:element name="InitialDetectorRightAscension" type="AngleType"/>
             <xs:element name="InitialDetectorDeclination" type="AngleType"/>
+            <xs:element name="LowFrequency" type="FreqType"/>
+            <xs:element name="HighFrequency" type="FreqType"/>
+            <xs:element name="SNRThreshold" type="xs:decimal"/>
+            <xs:element name="NAntennas" type="xs:integer"/>
+            <xs:element name="AntennaGain" type="xs:decimal"/>
           </xs:sequence>
           <xs:attribute name="Type" type="xs:string"/>
           <xs:attribute name="Method" type="xs:string"/>
@@ -128,6 +150,9 @@ xsd = StringIO(
             <xs:element name="NuTauEnergySpecType" type="NTESType"/>
             <xs:element name="AzimuthalAngle" type="AngleType"/>
             <xs:element name="NumTrajs" type="xs:decimal"/>
+            <xs:element name="ModelIonosphere" type="xs:integer"/>
+            <xs:element name="TEC" type="xs:decimal"/>
+            <xs:element name="TECerr" type="xs:decimal"/>
           </xs:sequence>
           <xs:attribute name="DetectionMode" type="xs:string"/>
           <xs:attribute name="Method" type="xs:string"/>
