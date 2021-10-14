@@ -38,8 +38,9 @@ requirements:
     - importlib_resources # [py<39]
     - h5py
     - lxml
-    - numpy >=1.20
     - matplotlib
+    - numpy >=1.20
+    - rich
     - python >=3.7
     - scipy
 

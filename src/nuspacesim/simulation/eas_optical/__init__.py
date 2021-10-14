@@ -53,6 +53,7 @@ EAS Optical
     cphotang
 """
 
-__all__ = ["EAS"]
+__all__ = ["EAS", "atmospheric_models"]
 
 from .eas import EAS
+from . import atmospheric_models

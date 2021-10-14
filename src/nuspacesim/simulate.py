@@ -46,6 +46,7 @@ NuSpaceSim Simulation
    simulate
 
 """
+from rich.console import Console
 
 import numpy as np
 from .config import NssConfig
@@ -54,7 +55,7 @@ from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.taus.taus import Taus
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
-from .simulation.eas_radio.radio_antenna import noise_efield_from_range, calculate_snr
+from .simulation.eas_radio.radio_antenna import calculate_snr
 
 __all__ = ["simulate"]
 
@@ -114,17 +115,25 @@ def simulate(
         The Table of result values from each stage of the simulation.
     """
 
+    console = Console(width=80, log_path=False)
+
     FreqRange = (config.detector.low_freq, config.detector.high_freq)
 
-    def printv(*args):
+    def logv(*args):
         """optionally print descriptive messages."""
         if verbose:
-            print(*args)
+            console.log(*args)
 
-    def mc_printv(mcint, mcintgeo, numEvPass, method):
-        printv(f"Monte Carlo Integral [{method}]:", mcint)
-        printv(f"Monte Carlo Integral, GEO Only [{method}]:", mcintgeo)
-        printv(f"Number of Passing Events [{method}]:", numEvPass)
+    if verbose:
+        console.rule("[bold blue] NuSpaceSim")
+
+    def mc_logv(mcint, mcintgeo, numEvPass, method):
+        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]:", mcint)
+        logv(
+            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
+            mcintgeo,
+        )
+        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
@@ -147,23 +156,24 @@ def simulate(
 
     sw = StagedWriter()
 
-    printv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
+    logv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
 
-    # Run simulation
-
+    logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
-    printv(f"Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.")
+    logv(
+        f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
+    )
 
-    printv("Computing taus.")
+    logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
         beta_tr, store=sw, plot=to_plot
     )
 
-    printv("Computing decay altitudes.")
+    logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
     if config.detector.method == "Optical" or config.detector.method == "Both":
-        printv("Computing EAS Cherenkov light.")
+        logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
             beta_tr,
@@ -173,6 +183,7 @@ def simulate(
             plot=to_plot,
         )
 
+        logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
             numPEs, costhetaChEff, tauExitProb, config.detector.photo_electron_threshold
         )
@@ -181,19 +192,13 @@ def simulate(
         sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")
         sw.add_meta("ONEVPASS", passEV, "Optical Number of Passing Events")
 
-        mc_printv(mcint, mcintgeo, passEV, "Optical")
+        mc_logv(mcint, mcintgeo, passEV, "Optical")
 
     if config.detector.method == "Radio" or config.detector.method == "Both":
-        printv("Computing EAS (Radio).")
+        logv("Computing [green] EAS Radio signal.[/]")
 
         EFields = eas_radio(
-            beta_tr,
-            altDec,
-            lenDec,
-            thetaArr,
-            pathLenArr,
-            showerEnergy,
-            store=sw,
+            beta_tr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw
         )
 
         snrs = calculate_snr(
@@ -204,6 +209,7 @@ def simulate(
             config.detector.det_gain,
         )
 
+        logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
             snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres
         )
@@ -212,6 +218,8 @@ def simulate(
         sw.add_meta("RMCINTGO", mcintgeo, "Radio MonteCarlo Integral, GEO Only")
         sw.add_meta("RNEVPASS", passEV, "Radio Number of Passing Events")
 
-        mc_printv(mcint, mcintgeo, passEV, "Radio")
+        mc_logv(mcint, mcintgeo, passEV, "Radio")
+
+    logv("\n :sparkles: [cyan]Done[/] :sparkles:")
 
     return sim
