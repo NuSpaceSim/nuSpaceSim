@@ -51,6 +51,7 @@ neutrino propagation and interaction.
 
    geometry
    eas_optical
+   eas_radio
    taus
 
 

@@ -1,6 +1,7 @@
 """
 nuspacesim
 ----------
+
 A Simulator for Space-based Neutrino Detections.
 """
 from setuptools import setup

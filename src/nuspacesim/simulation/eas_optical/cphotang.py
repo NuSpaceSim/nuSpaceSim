@@ -386,7 +386,9 @@ class CphotAng:
     def aerosol_model(self, z, ThetPrpA):
         """
         Put in aerosol model based on 550 nm Elterman results.
+
         Use scipy linear interpolation function initialized in constructor.
+
         z values above 30 (km altitude) return OD filled to 0, this should then
         return aTrans = 1, but in the future masking may be used to further
         optimze for performance by avoiding this computation.

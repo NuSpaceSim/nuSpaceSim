@@ -91,7 +91,7 @@ def run(
     plot: list,
     plotall: bool,
 ) -> None:
-    """Perform the full nuspacesim simulation.
+    r"""Perform the full nuspacesim simulation.
 
     Main Simulator for nuspacesim.  Given a XML configuration file, and
     optionally a count of simulated nutrinos, runs nutrino simulation.
@@ -118,7 +118,7 @@ def run(
     --------
     Command line usage of the run command may work with the following invocation.
 
-    nuspacesim run sample_input_file.xml 1e5 8 -o my_sim_results.fits
+    `nuspacesim run sample_input_file.xml 1e5 8 -o my_sim_results.fits`
     """
 
     from ..simulate import simulate
@@ -149,7 +149,7 @@ def run(
 @click.argument("filename")
 # @click.pass_context
 def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
-    """Generate a configuration file from the given parameters.
+    r"""Generate a configuration file from the given parameters.
 
     \f
 
@@ -161,11 +161,12 @@ def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
         Number of thrown trajectories. Optionally override value in config_file.
     logenergy: float, optional
         Log of nu tau Energy. Optionally override value in config_file.
+
     Examples
     --------
     Command line usage of the create_config command may work with the following invocation.
 
-    nuspacesim create_config -n 100000 sample_input_file.xml
+    `nuspacesim create_config -n 100000 sample_input_file.xml`
     """
     from .. import NssConfig, SimulationParameters
     from ..xml_config import create_xml
