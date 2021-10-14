@@ -7,8 +7,8 @@
       <NPE>10.0</NPE>
     </PhotoElectronThreshold>
     <DetectorAltitude Unit="km">525.0</DetectorAltitude>
-    <InitialDetectorRightAscension Unit="Radians">0.0</InitialDetectorRightAscension>
-    <InitialDetectorDeclination Unit="Radians">0.0</InitialDetectorDeclination>
+    <InitialDetectorRightAscension Unit="Degrees">0.0</InitialDetectorRightAscension>
+    <InitialDetectorDeclination Unit="Degrees">0.0</InitialDetectorDeclination>
     <LowFrequency Unit="MHz">30.0</LowFrequency>
     <HighFrequency Unit="MHz">300.0</HighFrequency>
     <SNRThreshold>5.0</SNRThreshold>

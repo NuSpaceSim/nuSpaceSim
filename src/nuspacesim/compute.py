@@ -43,7 +43,7 @@ NuSpaceSim Simulation
 .. autosummary::
    :toctree:
 
-   simulate
+   compute
 
 """
 from rich.console import Console
@@ -57,10 +57,10 @@ from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
 
-__all__ = ["simulate"]
+__all__ = ["compute"]
 
 
-def simulate(
+def compute(
     config: NssConfig,
     verbose: bool = False,
     output_file: str = None,
@@ -70,7 +70,7 @@ def simulate(
     r"""Simulate an upward going shower.
 
     The main proceedure for performaing a full simulation in nuspacesim.
-    Given a valid NssConfig object, :func:`simulate`, will perform the simulation as
+    Given a valid NssConfig object, :func:`compute`, will perform the simulation as
     follows:
 
     #. Initialize the ResultsTable object.
