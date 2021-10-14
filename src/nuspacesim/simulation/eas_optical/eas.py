@@ -51,13 +51,13 @@ class EAS:
         self.config = config
         self.CphotAng = CphotAng()
 
-    @decorators.nss_result_store("altDec")
+    @decorators.nss_result_store("altDec", "lenDec")
     def altDec(self, beta, tauBeta, tauLorentz, u=None):
         """
-        alt Decay
+        get decay altitude
         """
 
-        u = np.random.uniform(0.0, 1.0, len(beta)) if u is None else u
+        u = np.random.uniform(0, 1, len(beta)) if u is None else u
 
         tDec = (-1.0 * tauLorentz / self.config.constants.inv_mean_Tau_life) * np.log(u)
 
@@ -71,11 +71,11 @@ class EAS:
 
         altDec -= self.config.constants.earth_radius
 
-        return altDec
+        return altDec, lenDec
 
     @decorators.nss_result_plot(eas_optical_scatter)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
-    def __call__(self, beta, altDec, showerEnergy) -> tuple:
+    def __call__(self, beta, altDec, showerEnergy):
         """
         Electromagnetic Air Shower operation.
         """

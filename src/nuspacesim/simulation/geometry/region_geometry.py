@@ -76,27 +76,30 @@ class RegionGeom(Geom_params):
         """Create array of Earth-emergence angles for valid events."""
         return np.radians(self.betas())
 
-    @decorators.nss_result_plot(geom_beta_tr_hist, geom_beta_tr_hist_red)
-    @decorators.nss_result_store("beta_rad")
-    def __call__(self, numtrajs):
-        """Throw numtrajs events and return valid betas in radians."""
-        self.throw(numtrajs)
-        return self.beta_rad()
+    def thetas(self):
+        """Create array of view angles for valid events."""
+        thetaArr = super().evArray["thetaTrSubV"][super().evMasknpArray]
+        return thetaArr
 
-    @decorators.nss_result_store_scalar(
-        ["mcint", "mcintgeo", "nEvPass"],
-        [
-            "MonteCarlo Integral",
-            "MonteCarlo Integral, GEO Only",
-            "Number of Passing Events",
-        ],
-    )
-    def mcintegral(self, numPEs, costhetaCh, tauexitprob):
+    def pathLens(self):
+        """Create array of view angles for valid events."""
+        pathLenArr = super().evArray["losPathLen"][super().evMasknpArray]
+        return pathLenArr
+
+    @decorators.nss_result_plot(geom_beta_tr_hist, geom_beta_tr_hist_red)
+    @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")
+    def __call__(self, numtrajs):
+        """Throw numtrajs events and return valid betas."""
+        self.throw(numtrajs)
+        return self.beta_rad(), self.thetas(), self.pathLens()
+
+    def mcintegral(self, triggers, costheta, tauexitprob, threshold):
         """Monte Carlo integral."""
+
         cossepangle = super().evArray["costhetaTrSubV"][super().evMasknpArray]
 
         # Geometry Factors
-        mcintfactor = np.where(cossepangle - costhetaCh < 0, 0.0, 1.0)
+        mcintfactor = np.where(cossepangle - costheta < 0, 0.0, 1.0)
         mcintfactor = np.multiply(
             mcintfactor, super().evArray["costhetaTrSubN"][super().evMasknpArray]
         )
@@ -106,15 +109,18 @@ class RegionGeom(Geom_params):
         mcintfactor = np.divide(
             mcintfactor, super().evArray["costhetaTrSubV"][super().evMasknpArray]
         )
+
         mcintegralgeoonly = np.mean(mcintfactor) * super().mcnorm
 
         # Multiply by tau exit probability
         mcintfactor *= tauexitprob
 
-        # PE threshold
-        mcintfactor *= np.where(
-            numPEs - self.config.detector.photo_electron_threshold < 0, 0.0, 1.0
-        )
+        # # PE threshold
+        mcintfactor *= np.where(triggers - threshold < 0, 0.0, 1.0)
+
+        # mcintfactor = np.where(
+        #     mcintfactor_opt > mcintfactor_rad, mcintfactor_opt, mcintfactor_rad
+        # )
 
         numEvPass = np.count_nonzero(mcintfactor)
 

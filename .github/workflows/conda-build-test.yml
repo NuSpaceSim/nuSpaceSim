@@ -1,8 +1,16 @@
-name: Conda Build Python 🐍 package, and Publish 🎉.
+name: Conda Build Python 🐍 package
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -34,8 +42,3 @@ jobs:
 
     - name: Conda build nuspacesim
       run: conda build -c conda-forge recipe
-
-    - name: Conda upload nuspacesim
-      run: |
-        $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload \
-           -u nuspacesim $CONDA/conda-bld/${{ matrix.platform }}/nuspacesim-*
