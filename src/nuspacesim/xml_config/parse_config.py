@@ -243,7 +243,7 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     detchar = ET.SubElement(nuspacesimparams, "DetectorCharacteristics")
     detchar.set("Type", "Satellite")
-    detchar.set("Method", "Optical")
+    detchar.set("Method", "Both")
 
     qeff = ET.SubElement(detchar, "QuantumEfficiency")
     qeff.text = str(config.detector.quantum_efficiency)

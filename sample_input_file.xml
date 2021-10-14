@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <NuSpaceSimParams>
-  <DetectorCharacteristics Type="Satellite" Method="Optical">
+  <DetectorCharacteristics Type="Satellite" Method="Both">
     <QuantumEfficiency>0.2</QuantumEfficiency>
     <TelescopeEffectiveArea Unit="Sq.Meters">2.5</TelescopeEffectiveArea>
     <PhotoElectronThreshold Preset="true">
