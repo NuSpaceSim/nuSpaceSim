@@ -271,11 +271,13 @@ def intf(x_):
 if __name__ == "__main__":
     import nuspacesim as nss
 
-    nss.eas_optical.atmospheric_models.slant_depth(1.0, 65.0, np.radians(10))
+    # import timeit
 
-    import timeit
+    zmax = 65.0
+    deg = 1.0
 
-    print(slant_depth_numeric(1.0, 5.0, np.radians(10)))
+    print(nss.eas_optical.atmospheric_models.slant_depth(1.0, zmax, [np.radians(deg)]))
+    print(slant_depth_numeric(1.0, zmax, np.radians(deg)))
     earth_radius = 6378.14
 
     def f(h):
@@ -284,22 +286,22 @@ if __name__ == "__main__":
             * shibata_density(h)
             * (h + earth_radius)
             / np.sqrt(
-                (earth_radius ** 2 * np.cos(np.radians(10)) ** 2)
+                (earth_radius ** 2 * np.cos(np.radians(deg)) ** 2)
                 + (h ** 2)
                 + (2 * h * earth_radius)
             )
         )
 
-    print(
-        timeit.timeit(
-            lambda: qp.quad(f, 1.0, 5.0, epsabs=1e-2, epsrel=1e-2), number=10000
-        )
-    )
-    print(qp.quad(f, 1.0, 5.0, epsabs=1e-2, epsrel=1e-2))
+    # print(
+    #     timeit.timeit(
+    #         lambda: qp.quad(f, 1.0, 5.0, epsabs=1e-2, epsrel=1e-2), number=100
+    #     )
+    # )
+    print(qp.quad(f, 1.0, zmax, epsabs=1e-2, epsrel=1e-2))
 
     # import nuspacesim as nss
     # print(nss.eas_optical.atmospheric_models.slant_depth(1., 525., [np.radians(42)]))
     # print(slant_depth_numeric(1., 525., np.radians(42)))
-    print(qp.quad(intf, [1.0, 200, 2.857e-4, 1], [65.0, 900, 1.657e-2, 10]))
+    # print(qp.quad(intf, [1.0, 200, 2.857e-4, 1], [65.0, 900, 1.657e-2, 10]))
 
 # return qp.quad( lambda x: , )
