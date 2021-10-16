@@ -43,16 +43,14 @@ date: 2021 August 12
 
 import numpy as np
 import scipy.integrate
-
-from typing import Callable, Union, Tuple
-from numpy.typing import ArrayLike
+import quadpy as qp
 
 from ... import constants as const
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
 
 
-def rho(z: Union[float, ArrayLike]) -> ArrayLike:
+def rho(z):
     """
     Density (g/cm^3) parameterized from altitude (z) values
 
@@ -69,11 +67,10 @@ def rho(z: Union[float, ArrayLike]) -> ArrayLike:
     return p
 
 
-def slant_depth_integrand(
-    z: float,
-    theta_tr: Union[float, ArrayLike],
-    earth_radius: float = const.earth_radius,
-) -> ArrayLike:
+# nnn = 0
+
+
+def slant_depth_integrand(z, theta_tr, earth_radius=const.earth_radius):
     """
     Integrand for computing slant_depth from input altitude z.
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -82,20 +79,29 @@ def slant_depth_integrand(
     theta_tr = np.asarray(theta_tr)
 
     i = earth_radius ** 2 * np.cos(theta_tr) ** 2
-    j = (z) ** 2
+    j = z ** 2
     k = 2 * z * earth_radius
 
-    ijk = i[:, None] + j + k
+    ijk = i + j + k
+
+    # global nnn
+    # nnn += 1
+    # print(nnn, z.shape, ijk.shape)
+    # print(z.shape, ijk.shape)
 
     return 1e5 * rho(z) * ((z + earth_radius) / np.sqrt(ijk))
 
 
 def slant_depth(
-    z_lo: float,
-    z_hi: float,
-    theta_tr: Union[float, ArrayLike],
-    earth_radius: float = const.earth_radius,
-    integrand_f: Callable[..., ArrayLike] = slant_depth_integrand,
+    z_lo,
+    z_hi,
+    theta_tr,
+    earth_radius=const.earth_radius,
+    func=slant_depth_integrand,
+    epsabs=1e-2,
+    epsrel=1e-2,
+    *args,
+    **kwargs
 ):
     """
     Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -110,7 +116,7 @@ def slant_depth(
         Trajectory angle in radians between the track and earth zenith.
     earth_radius: float
         Radius of a spherical earth. Default from nuspacesim.constants
-    integrand_f: callable
+    func: callable
         The integrand for slant_depth. If None, defaults to `slant_depth_integrand()`.
 
     Returns
@@ -121,20 +127,25 @@ def slant_depth(
 
     """
 
-    def f(x):
-        return integrand_f(x, theta_tr=theta_tr, earth_radius=earth_radius)
+    theta_tr = np.asarray(theta_tr)
+    thmsk = np.abs(theta_tr - np.pi / 2) < 0.05
+    theta_tr[thmsk] = (np.pi / 2) + 0.05
 
-    return scipy.integrate.quad_vec(f, z_lo, z_hi)
+    def f(x):
+        y = np.multiply.outer(z_hi - z_lo, x).T + z_lo
+        return (func(y, theta_tr, earth_radius) * (z_hi - z_lo)).T
+
+    return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel)
 
 
 def slant_depth_steps(
-    z_lo: float,
-    z_hi: float,
-    theta_tr: Union[float, ArrayLike],
-    dz: float = 0.01,
-    earth_radius: float = const.earth_radius,
-    integrand_f: Callable[..., ArrayLike] = slant_depth_integrand,
-) -> Tuple:
+    z_lo,
+    z_hi,
+    theta_tr,
+    dz=0.01,
+    earth_radius=const.earth_radius,
+    func=slant_depth_integrand,
+):
     r"""Slant-depth integral approximated along path.
 
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -152,7 +163,7 @@ def slant_depth_steps(
         radius of a spherical earth. Default from nuspacesim.constants
     dz: float
         static step size for sampling points in range [z_lo, z_hi]
-    integrand_f: real valued function
+    func: real valued function
         the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
 
     Returns
@@ -165,7 +176,7 @@ def slant_depth_steps(
     """
 
     def f(x):
-        return integrand_f(x, theta_tr, earth_radius)
+        return func(x, theta_tr, earth_radius)
 
     zs = np.arange(z_lo, z_hi, dz)
     xs = scipy.integrate.cumulative_trapezoid(f(zs), zs)
@@ -173,7 +184,7 @@ def slant_depth_steps(
     return xs, zs
 
 
-def param_b_c(z: Union[float, ArrayLike]) -> Tuple[ArrayLike, ArrayLike]:
+def param_b_c(z):
     """rho parameterization table from https://arxiv.org/pdf/2011.09869.pdf"""
 
     bins = np.array([4.0, 10.0, 40.0, 100.0])
@@ -182,57 +193,3 @@ def param_b_c(z: Union[float, ArrayLike]) -> Tuple[ArrayLike, ArrayLike]:
 
     idxs = np.searchsorted(bins, z)
     return b[idxs], c[idxs]
-
-
-if __name__ == "__main__":
-
-    # Density
-    # kms = np.arange(0, 88, 2)
-    # ps = rho(kms)
-    # print("Density (g/cm^3)", *[f"{a}\t {b:.4e}" for a, b in zip(kms, ps)], sep="\n")
-
-    # slant-depth from gaussian quadriture
-    X = slant_depth(0, 100, np.pi / 4)
-    print(f"Slant Depth: {X[0][0]}, numerical error: {X[1]}", sep="\n")
-
-    # slant-depth from trapezoidal rule
-    Y = slant_depth_steps(0, 100, np.pi / 4)
-    print(f"Slant Depth steps: {Y[0][:, -1]}", sep="\n")
-
-    theta_tr = np.linspace(-np.pi / 2, np.pi / 2, 100)
-    # Y = slant_depth_steps(1, 100, theta_tr)
-    # print(f"Slant Depth steps (-pi/2 to +pi/2): {Y[0]}", sep="\n")
-
-    # plot over multiple starting heights.
-    sds = [slant_depth(z_lo, 100, theta_tr)[0] for z_lo in (0, 1, 2, 5, 10)]
-    tds = [
-        slant_depth_steps(z_lo, 100, theta_tr)[0][:, -1] for z_lo in (0, 1, 2, 5, 10)
-    ]
-    labs = [f"z: [{z_lo}, 100] km" for z_lo in (0, 1, 2, 5, 10)]
-
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    matplotlib.rcParams.update({"font.size": 18})
-
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, squeeze=True)
-    coloridx = np.linspace(0, 1, len(sds))
-    for i, s, t, l in zip(coloridx, sds, tds, labs):
-        ax1.plot(theta_tr, s, alpha=0.5, label=l, color=plt.cm.jet(i))
-        ax1.plot(theta_tr, t, ":", label=l + "trap", color=plt.cm.jet(i))
-    ax1.set_ylabel(r"slant depth ($\frac{g}{cm^2}$)")
-    ax1.grid()
-    ax1.legend()
-    ax1.set_ylim([0, 4e4])
-    for i, s, t, l in zip(coloridx, sds, tds, labs):
-        ax2.semilogy(theta_tr, s, alpha=0.5, label=l, color=plt.cm.jet(i))
-        ax2.semilogy(theta_tr, t, ":", label=l + "trap", color=plt.cm.jet(i))
-    ax2.set_ylabel(r"slant depth (log $\frac{g}{cm^2}$)")
-    ax2.grid()
-    ax2.legend()
-    ax2.set_ylim([7e1, 4e4])
-    ax2.set_xlabel(r"$\theta_{tr}$ (radians)")
-    fig.suptitle(
-        r"Slant Depth over $\theta_{tr}\in\left(\frac{-\pi}{2}, \frac{\pi}{2}\right)$"
-    )
-    plt.show()
