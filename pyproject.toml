@@ -3,20 +3,35 @@ requires = ["setuptools>=46",
             "setuptools_scm[toml]>=3.4",
             "wheel",
             "pybind11>=2.6",
+            "numpy>1.17",
            ]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-local_scheme = ""
+write_to = 'src/nuspacesim/_version.py'
+version_scheme = 'post-release'
+local_scheme = 'no-local-version'
+parentdir_prefix_version = 'nuspacesim-'
+
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/test"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64"] #, "universal2", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
 
 [tool.black]
-line-length = 80
+line-length = 88
 skip-string-normalization = false
+include = '\.pyi?$'
 exclude = '''
 (
   /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
+      \.eggs
+    | \.git
     | \.hg
     | \.mypy_cache
     | \.tox
@@ -26,11 +41,9 @@ exclude = '''
     | build
     | dist
   )/
-#  | foo.py           # also separately exclude a file named foo.py in
-#                     # the root of the project
 )
 '''
 
 [tool.autopep8]
-max_line_length = 80
+max_line_length = 88
 ignore = "E501,W6"  # or ["E501", "W6"]

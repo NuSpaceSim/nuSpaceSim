@@ -1,0 +1,73 @@
+{% set name = "nuspacesim" %}
+{% set version = environ.get('GIT_DESCRIBE_TAG', 'untagged')|string|replace('-','_') %}
+{% set build_number = environ.get('GIT_DESCRIBE_NUMBER', '0') %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  git_url: {{ environ.get('FEEDSTOCK_ROOT', '..') }}
+
+build:
+  skip: true  # [py<37]
+  skip: true  # [win]
+
+  number: {{ build_number }}
+  string: {{ [build_number, ('h' + PKG_HASH), environ.get('GIT_DESCRIBE_HASH', '')]|join('_') }}
+
+  script: "{{ PYTHON }} -m pip install --no-deps . -vv"
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+  host:
+    - pip
+    - python >=3.7
+    - pybind11>=2.6
+    - setuptools >=46
+    - setuptools_scm[toml] >=3.4
+    - numpy >=1.20
+    - wheel
+  run:
+    - astropy
+    - cached_property # [py<38]
+    - click
+    - dask
+    - importlib_metadata # [py<38]
+    - importlib_resources # [py<39]
+    - h5py
+    - lxml
+    - matplotlib
+    - numpy >=1.20
+    - rich
+    - python >=3.7
+    - scipy
+
+# Woe is us. We lack tests.
+test:
+  # Some packages might need a `test/commands` key to check CLI.
+  # List all the packages/modules that `run_test.py` imports.
+  imports:
+    - nuspacesim
+  # Run your test commands here
+  commands:
+    - nuspacesim --help
+    - pytest test
+  # declare any test-only requirements here
+  requires:
+    - pytest
+  # copy over any needed test files here
+  source_files:
+    - test/
+
+# Annoying that this is not readable from setup.cfg
+about:
+  home: https://github.com/nuSpaceSim/nuspacesim
+  license: BSD-3-Clause
+  license_family: BSD
+  # license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Alex Reustle

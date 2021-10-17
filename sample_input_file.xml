@@ -1,25 +1,33 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <NuSpaceSimParams>
-  <DetectorCharacteristics Type="Satellite" Method="Optical">
+  <DetectorCharacteristics Type="Satellite" Method="Both">
     <QuantumEfficiency>0.2</QuantumEfficiency>
     <TelescopeEffectiveArea Unit="Sq.Meters">2.5</TelescopeEffectiveArea>
-    <PhotoElectronThreshold Preset="True">
-      <NPE>10</NPE>
+    <PhotoElectronThreshold Preset="true">
+      <NPE>10.0</NPE>
     </PhotoElectronThreshold>
     <DetectorAltitude Unit="km">525.0</DetectorAltitude>
     <InitialDetectorRightAscension Unit="Degrees">0.0</InitialDetectorRightAscension>
     <InitialDetectorDeclination Unit="Degrees">0.0</InitialDetectorDeclination>
+    <LowFrequency Unit="MHz">30.0</LowFrequency>
+    <HighFrequency Unit="MHz">300.0</HighFrequency>
+    <SNRThreshold>5.0</SNRThreshold>
+    <NAntennas>10</NAntennas>
+    <AntennaGain>1.8</AntennaGain>
   </DetectorCharacteristics>
   <SimulationParameters DetectionMode="Diffuse">
-    <MaximumCherenkovAngle Unit="Degrees">3.0</MaximumCherenkovAngle>
-    <AngleFromLimb Unit="Degrees">7.0</AngleFromLimb>
-    <TauShowerType Preset="True">
+    <MaximumCherenkovAngle Unit="Radians">0.05235987755982989</MaximumCherenkovAngle>
+    <AngleFromLimb Unit="Radians">0.12217304763960307</AngleFromLimb>
+    <TauShowerType Preset="true">
       <FracETauInShower>0.5</FracETauInShower>
     </TauShowerType>
     <NuTauEnergySpecType SpectrumType="Mono">
-      <NuTauEnergy>8.0</NuTauEnergy>
+      <NuTauEnergy>100000000.0</NuTauEnergy>
     </NuTauEnergySpecType>
-    <AzimuthalAngle Unit="Degrees">360.0</AzimuthalAngle>
-    <NumTrajs>10</NumTrajs>
+    <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
+    <NumTrajs>100</NumTrajs>
+    <ModelIonosphere>0</ModelIonosphere>
+    <TEC>10.0</TEC>
+    <TECerr>0.1</TECerr>
   </SimulationParameters>
 </NuSpaceSimParams>

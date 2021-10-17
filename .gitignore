@@ -5,6 +5,7 @@ _build
 build/
 dask-worker-space/
 dist/
+docs/reference/generated/
 archive
 a.out
 *.f
@@ -22,3 +23,6 @@ eggs
 *.dylib
 Simulation*.hdf5
 *.whl
+.python-version
+_version.py
+.tox
