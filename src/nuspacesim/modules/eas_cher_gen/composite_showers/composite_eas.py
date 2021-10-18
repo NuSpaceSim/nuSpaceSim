@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from nuSpaceSim.EAScherGen.CompositeShowers import composite_macros
-from nuSpaceSim.EAScherGen.Conex import conex_macros
-from nuSpaceSim.EAScherGen.Pythia import pythia_macros
-import sys
+# from nuSpaceSim.EAScherGen.Conex import conex_macros
+# from nuSpaceSim.EAScherGen.Pythia import pythia_macros
+# import sys
 
 def composite_eas (output_data = None, sample_plt = None):
     
