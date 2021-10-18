@@ -45,6 +45,8 @@ import numpy as np
 import scipy.integrate
 import quadpy as qp
 
+from numpy.polynomial import Polynomial
+
 from ... import constants as const
 
 __all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
@@ -57,20 +59,53 @@ def rho(z):
     Computation from equation (2) in https://arxiv.org/pdf/2011.09869.pdf
     """
 
-    z = np.array([z]) if isinstance(z, float) else z
-    b, c = param_b_c(z)
-    p = b / c
+    z = np.asarray(z)
+    bins = np.array([4.0, 10.0, 40.0, 100.0])
+    b_arr = np.array([1222.6562, 1144.9069, 1305.5948, 540.1778, 1.0])
+    c_arr = np.array([994186.38, 878153.55, 636143.04, 772170.16, 1e9])
+
+    idxs = np.searchsorted(bins, z)
+    b, c = np.asarray(b_arr[idxs]), np.asarray(c_arr[idxs])
+    p = np.asarray(b / c)
 
     mask = z <= 100
     p[mask] *= np.exp(-1e5 * z[mask] / c[mask])
-
     return p
 
 
-# nnn = 0
+_polyrho = Polynomial(
+    [
+        -1.00867666e-07,
+        2.39812768e-06,
+        9.91786255e-05,
+        -3.14065045e-04,
+        -6.30927456e-04,
+        1.70053229e-03,
+        2.61087236e-03,
+        -5.69630760e-03,
+        -2.12098836e-03,
+        5.68074214e-03,
+        6.54893281e-04,
+        -1.98622752e-03,
+    ],
+    domain=[0.0, 100.0],
+)
 
 
-def slant_depth_integrand(z, theta_tr, earth_radius=const.earth_radius):
+def polyrho(z):
+    """
+    Density (g/cm^3) parameterized from altitude (z) values
+
+    Computation is an (11) degree polynomial fit to equation (2)
+    in https://arxiv.org/pdf/2011.09869.pdf
+    Fit performed using numpy.Polynomial.fit
+    """
+
+    p = np.where(z < 100, _polyrho(z), np.reciprocal(1e9))
+    return p
+
+
+def slant_depth_integrand(z, theta_tr, rho=polyrho, earth_radius=const.earth_radius):
     """
     Integrand for computing slant_depth from input altitude z.
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -82,12 +117,7 @@ def slant_depth_integrand(z, theta_tr, earth_radius=const.earth_radius):
     j = z ** 2
     k = 2 * z * earth_radius
 
-    ijk = i + j + k
-
-    # global nnn
-    # nnn += 1
-    # print(nnn, z.shape, ijk.shape)
-    # print(z.shape, ijk.shape)
+    ijk = i + j + k + 1e-12
 
     return 1e5 * rho(z) * ((z + earth_radius) / np.sqrt(ijk))
 
@@ -98,8 +128,8 @@ def slant_depth(
     theta_tr,
     earth_radius=const.earth_radius,
     func=slant_depth_integrand,
-    epsabs=1e-2,
-    epsrel=1e-2,
+    epsabs=1e-1,
+    epsrel=1e-1,
     *args,
     **kwargs
 ):
@@ -127,13 +157,14 @@ def slant_depth(
 
     """
 
+    global nnn
+    nnn = 0
+
     theta_tr = np.asarray(theta_tr)
-    thmsk = np.abs(theta_tr - np.pi / 2) < 0.05
-    theta_tr[thmsk] = (np.pi / 2) + 0.05
 
     def f(x):
         y = np.multiply.outer(z_hi - z_lo, x).T + z_lo
-        return (func(y, theta_tr, earth_radius) * (z_hi - z_lo)).T
+        return (func(y, theta_tr=theta_tr, earth_radius=earth_radius) * (z_hi - z_lo)).T
 
     return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel)
 
@@ -192,4 +223,4 @@ def param_b_c(z):
     c = np.array([994186.38, 878153.55, 636143.04, 772170.16, 1e9])
 
     idxs = np.searchsorted(bins, z)
-    return b[idxs], c[idxs]
+    return np.asarray(b[idxs]), np.asarray(c[idxs])
