@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
-#from nuSpaceSim.EAScherGen.Conex 
-import conex_macros
+from ..conex_gh import conex_macros
 
 
 def conex_plotter(file_name, data_name, plt_type, start_row, end_row, x_limit,

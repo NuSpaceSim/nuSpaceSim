@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-#from nuSpaceSim.EAScherGen.Conex import conex_macros
-#from nuSpaceSim.EAScherGen.Pythia import pythia_macros
-import conex_macros
-import pythia_macros
+from ..conex_gh import conex_macros
+from ..pythia_tau_decays import pythia_macros
 import sys
 
 #can implement summing energy for each event in the future

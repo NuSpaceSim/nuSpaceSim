@@ -31,7 +31,7 @@ def conex_to_h5 (conex_filename, conex_out_filenam, conex_out_dataname):
     r"""
     Convert a .txt or .dat Conex output to .hdf5.
     """
-    from ..modules.eas_cher_gen.conex_gh.conex_macros import conex_converter
+    from ..utils.eas_cher_gen.conex_gh.conex_macros import conex_converter
     
     conex_converter (conex_filename, conex_out_filenam, conex_out_dataname)
     
@@ -45,7 +45,7 @@ def pythia_to_h5 (pythia_filename, pythia_out_filename, pythia_out_dataname):
     r"""
     Convert a machine-readable tau decay tables to flattened .hdf5.
     """
-    from ..modules.eas_cher_gen.pythia_tau_decays.pythia_macros import pythia_converter
+    from ..utils.eas_cher_gen.pythia_tau_decays.pythia_macros import pythia_converter
     
     pythia_converter (pythia_filename, pythia_out_filename, pythia_out_dataname)
 
@@ -72,7 +72,7 @@ def conex_sampler(conex_filename, key_name, ptype, start, end, xlim, bins, thres
     100PeV Conex outputs. 
 
     """
-    from ..modules.eas_cher_gen.conex_gh.conex_plotter import conex_plotter
+    from ..utils.eas_cher_gen.conex_gh.conex_plotter import conex_plotter
     
     conex_plotter(conex_filename, key_name, ptype, start, end, xlim, bins, threshold)
   
@@ -101,7 +101,7 @@ def pythia_sampler(pythia_filename,
     r"""
     Generate histograms for energy of selected particle type. 
     """
-    from ..modules.eas_cher_gen.pythia_tau_decays.pythia_plotter import pythia_plotter
+    from ..utils.eas_cher_gen.pythia_tau_decays.pythia_plotter import pythia_plotter
     
     pythia_plotter(file_name=pythia_filename, 
                    data_name=data_name, 
@@ -120,7 +120,7 @@ def composite_showers(write_to, sample_plt):
     r"""
     Make composite showers based on sample data.
     """
-    from ..modules.eas_cher_gen.composite_showers.composite_eas import composite_eas
+    from ..utils.eas_cher_gen.composite_showers.composite_eas import composite_eas
     
     composite_eas(write_to, sample_plt)
 

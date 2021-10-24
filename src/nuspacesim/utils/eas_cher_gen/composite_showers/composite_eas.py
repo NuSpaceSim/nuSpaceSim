@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from nuSpaceSim.EAScherGen.CompositeShowers import composite_macros
-# from nuSpaceSim.EAScherGen.Conex import conex_macros
-# from nuSpaceSim.EAScherGen.Pythia import pythia_macros
-# import sys
+from ..composite_showers import composite_macros
+
 
 def composite_eas (output_data = None, sample_plt = None):
     
@@ -70,4 +68,4 @@ def composite_eas (output_data = None, sample_plt = None):
         plt.show() 
 
 if __name__ == '__main__': 
-    composite_eas (sample_plt=True)
+    composite_eas ()

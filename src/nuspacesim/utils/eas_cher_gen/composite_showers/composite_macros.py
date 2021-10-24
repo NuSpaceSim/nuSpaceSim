@@ -17,17 +17,13 @@ def load_sample_hdf5_data ():
         
         electron_gh, gamma_gh, pion_gh, tau_decays
     """
-    electron = importlib_resources.files('nuSpaceSim.DataLibraries.' \
-                                    'ConexOutputData.HDF5_data') / 'electron_EAS_table.h5'
+    electron = importlib_resources.files('nuspacesim.data.conex_gh_params') / 'electron_EAS_table.h5'
         
-    gamma = importlib_resources.files('nuSpaceSim.DataLibraries.' \
-                                    'ConexOutputData.HDF5_data') / 'gamma_EAS_table.h5'
+    gamma = importlib_resources.files('nuspacesim.data.conex_gh_params') / 'gamma_EAS_table.h5'
         
-    pion = importlib_resources.files('nuSpaceSim.DataLibraries.' \
-                                'ConexOutputData.HDF5_data') / 'pion_EAS_table.h5'
+    pion = importlib_resources.files('nuspacesim.data.conex_gh_params') / 'pion_EAS_table.h5'
         
-    pythia_output = importlib_resources.files('nuSpaceSim.DataLibraries.' \
-                                'PythiaDecayTables.HDF5_data') / 'new_tau_100_PeV.h5'
+    pythia_output = importlib_resources.files('nuspacesim.data.pythia_tau_decays') / 'new_tau_100_PeV.h5'
         
     with importlib_resources.as_file(electron) as path:
         data = h5py.File(path, 'r')
