@@ -4,7 +4,8 @@ from ..conex_gh import conex_macros
 from ..pythia_tau_decays import pythia_macros
 import sys
 
-#can implement summing energy for each event in the future
+r"""Generate pythia decay histograms, part of nuspacesim-misc."""
+    
 
 def pythia_plotter (file_name, data_name, particle_id, table_energy_pev, num_occurance = 'all',
                     cross_filter = None, color = None ):

@@ -4,7 +4,8 @@ from ..conex_gh import conex_macros
 
 def conex_plotter(file_name, data_name, plt_type, start_row, end_row, x_limit,
                   bins, n_max_cut_threshold): 
-    
+    r"""Generate GH showers and optionally output plots, part of nuspacesim-misc.
+    """
 
     #strt
     if plt_type.lower() == 'regular':

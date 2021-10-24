@@ -4,7 +4,8 @@ from ..composite_showers import composite_macros
 
 
 def composite_eas (output_data = None, sample_plt = None):
-    
+    r"""Generate composite showers and optionally output plots, part of nuspacesim-misc.
+    """
     electron_gh, gamma_gh, pion_gh, tau_decays = composite_macros.load_sample_hdf5_data()
     
     pion_pyth_decay = np.array( [row for row in tau_decays if row[2] == 211 or row[2] == -211 ])

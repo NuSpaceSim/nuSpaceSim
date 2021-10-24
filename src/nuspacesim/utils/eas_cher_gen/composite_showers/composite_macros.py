@@ -65,9 +65,11 @@ def composite_showers_to_h5 (file_name_out:str, composite_showers, composite_dep
 
 def greisen_param (conex_showers, row, x_limit, pythia_tables, table_energy = 100e15 ): 
     r"""
-    > uses the Greisen parametrization 
-    > cosmic Rays and Particle Physics by Thomas K. Gaisser, eq 15.28
-    > depends solely on electron energies from Pythia Tables 
+        Uses the Greisen parametrization 
+        
+        cosmic Rays and Particle Physics by Thomas K. Gaisser, eq 15.28
+        
+        depends solely on electron energies from Pythia Tables 
     """
     gh_n_max = conex_showers[row, 4]  #n_max scaled by y 
     
@@ -99,14 +101,18 @@ def greisen_param (conex_showers, row, x_limit, pythia_tables, table_energy = 10
     return x, f, event_number, n_max
 
 def composite_gh_param (conex_showers, row, x_limit, pythia_tables, bins = 2000): 
-    '''
-    > extracts the G-H parameters from a data set, \n
-    > returns desired values for a given curve (row) in showers \n
+    r"""
+    extracts the G-H parameters from a data set, 
+    returns desired values for a given curve (row) in showers 
+    
     sconex_showers = 2D np array conex with columns to unpack 
-    row = row of the table\n
-    x_limit = bin limit, will be divided into 1000 bins\n
+    
+    row = row of the table
+    
+    x_limit = bin limit, will be divided into 1000 bins
+    
     pythia_tables = pythia tables of that specific particle 
-    '''
+    """
     #read in Conex EAS Data
     pid = conex_showers[row, 0]    #particle ID
     log_e = conex_showers[row, 1]    #log10 of the primary energy in eV
@@ -169,22 +175,32 @@ def composite_eas (conex_showers,
                    greisen_comparison = None, 
                    average_plt = None
                    ):
-    '''
-    > plots the profiles based on composite GH parameters \n
-    > uses the composite_gh_param function \n
-    conex_showers = the data to be plotted; np array \n
-    start_row =  what row to start \n
-    end_row =  what row to end \n
+    r"""Plots the profiles based on composite GH parameters, uses the composite_gh_param function 
+    
+    Parameters
+    ----------
+    conex_showers = the data to be plotted; np array. 
+    
+    start_row =  what row to start. 
+    
+    end_row =  what row to end 
+    
     pythia_tables = where the y scaling values are from, make sure they are the same particle type 
-    as conex_showers \n 
+    as conex_showers 
+    
     n_max_cut_threshold =  graph the profile up until n_max rebounds for that profile after the peak,
-    if empyt just plots until x_limit \n
-    rebound_plt = if true, draw the plots, else just returns cutoff slant depths for histogram \n
-    regular_plt = 0 returns just the data, 1 plots it instead \n
-    greisen_comparison = true, plot the greisen param if regular_plt is also true  \n
+    if empyt just plots until x_limit 
+    
+    rebound_plt = if true, draw the plots, else just returns cutoff slant depths for histogram
+    
+    regular_plt = 0 returns just the data, 1 plots it instead 
+    
+    greisen_comparison = true, plot the greisen param if regular_plt is also true  
+    
     sum_content_per_event = sum that event's composition for ONE type of particle 
-    average_plt = true or false, plots the average w/ rms error of all selected rows \n
-    '''
+    
+    average_plt = true or false, plots the average w/ rms error of all selected rows 
+    """
     
     if n_max_cut_threshold is not None: 
         # stopping in slant depth once the particle content f is n_max_cut_threshold of n_max
@@ -428,18 +444,16 @@ def composite_eas (conex_showers,
 
 def composite_plotter (start_row, end_row, event_labels, event_bins, particle_content,
                       average_plt = None, composite_plt = None ): 
-    '''
-    > a specialized version of composite_eas() used only for average and rms plots as well as
-    composite profiles given event summed data (content_per_event() on how to get composites).\n 
+    r"""
+    > Specialized version of composite_eas() used only for average and rms plots as well as
+    composite profiles given event summed data (content_per_event() on how to get composites). 
     
-    '''
+    """
+    
     event_labels = event_labels [start_row:end_row + 1]
     event_bins = event_bins  [start_row:end_row + 1 ,:]
     particle_content = particle_content [start_row:end_row + 1 ,:]
            
-        
-    
-    
     # returns an average plot  and rms error ONLY given rows of a file for one particle type
     if average_plt is not None:
         #takes mean along the rows 
@@ -477,13 +491,15 @@ def composite_plotter (start_row, end_row, event_labels, event_bins, particle_co
   
 def content_per_event (pythia_decays, just_decay_codes = False, average_bins = None, return_std = None,
                        **kwargs):
-    '''
-    > takes any amount of pre-filtered particle data-- particle content-- and sums them per event,
-    given that they have an event tag in the beginning of each row. \n
-    > if you want decay code only-- no event tags-- (e.g., 300001), set just_decay_codes = True \n
-    > particle_contents = shower contents/ sharged particles as a funtcion of slant depth \n 
-    > slant_depths = corresponding slant depths
-    '''
+    r"""takes any amount of pre-filtered particle data-- particle content-- and sums them per event,
+    given that they have an event tag in the beginning of each row. 
+    
+    if you want decay code only-- no event tags-- (e.g., 300001), set just_decay_codes = True 
+    
+    particle_contents = shower contents/ sharged particles as a funtcion of slant depth  
+    
+    slant_depths = corresponding slant depths
+    """
     particle_fs = kwargs.get('particle_contents')
     master_particle_contents  = np.concatenate((particle_fs), axis = 0)
     master_particle_contents  = master_particle_contents [ np.argsort(master_particle_contents [:,0]) ,: ]
@@ -530,12 +546,14 @@ def content_per_event (pythia_decays, just_decay_codes = False, average_bins = N
 
 
 def bin_nmax_xmax (bins, particle_content):
-    '''
-    > given an array of Slant Depths and Particle Content values for the same particle 
+    r"""
+    given an array of Slant Depths and Particle Content values for the same particle 
     (can be any number of events, but need to be same size), returns the Nmax and Xmax Values 
-    per row (if composite showers and bins are inputted, per event) \n
-    > intended to use for nmax and xmax distribution analysis \n
-    '''
+    
+    per row (if composite showers and bins are inputted, per event) 
+    
+    intended to use for nmax and xmax distribution analysis 
+    """
 
     try:
         bin_nmax = np.amax(particle_content, axis = 1) 
@@ -550,9 +568,9 @@ def bin_nmax_xmax (bins, particle_content):
 
 
 def bin_nmax_xmax_rising (bins, particle_content, n_max_fraction: float): 
-    '''
-    gets the rising edge value of nmax*n_max_fraction and corresponding xmax
-    '''
+    r""" gets the rising edge value of nmax*n_max_fraction and corresponding xmax
+    
+    """
     particle_content = np.copy(particle_content) #copy the data
     
     try:
@@ -587,9 +605,9 @@ def bin_nmax_xmax_rising (bins, particle_content, n_max_fraction: float):
 
 
 def bin_nmax_xmax_falling (bins, particle_content, n_max_fraction: float): 
-    '''
-    gets the falling edge value of nmax*n_max_fraction and corresponding xmax
-    '''
+    r""" gets the falling edge value of nmax*n_max_fraction and corresponding xmax
+    
+    """
     particle_content = np.copy(particle_content) #copy the data
     
     try:
