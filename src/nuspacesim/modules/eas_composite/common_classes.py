@@ -40,7 +40,7 @@ class ParameterReader: #add nmax reader like Generating Histograms from conex pl
         pid = self.data_array[row, 0]    #particle ID
         lgE = self.data_array [row, 1]    #log10 of the primary energy in eV
         zenith = self.data_array [row, 2]     #zenith angle in degree
-        azimuth = self.data_array[row, 3]    #azimuth angle in degree
+        azimuth =    self.data_array[row, 3]    #azimuth angle in degree
         
         n_max = self.data_array[row, 4] #max number of particles
         x_max = self.data_array[row, 5] #shower maximum at this depth
