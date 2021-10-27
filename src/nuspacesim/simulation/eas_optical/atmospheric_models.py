@@ -49,10 +49,14 @@ from numpy.polynomial import Polynomial
 
 from ... import constants as const
 
-__all__ = ["rho", "slant_depth", "slant_depth_integrand", "slant_depth_steps"]
+__all__ = [
+    "cummings_atmospheric_density",
+    "slant_depth",
+    "slant_depth_integrand",
+]
 
 
-def rho(z):
+def cummings_atmospheric_density(z):
     """
     Density (g/cm^3) parameterized from altitude (z) values
 
@@ -73,23 +77,14 @@ def rho(z):
     return p
 
 
+# fmt: off
 _polyrho = Polynomial(
-    [
-        -1.00867666e-07,
-        2.39812768e-06,
-        9.91786255e-05,
-        -3.14065045e-04,
-        -6.30927456e-04,
-        1.70053229e-03,
-        2.61087236e-03,
-        -5.69630760e-03,
-        -2.12098836e-03,
-        5.68074214e-03,
-        6.54893281e-04,
-        -1.98622752e-03,
-    ],
+    [-1.00867666e-07, 2.39812768e-06, 9.91786255e-05, -3.14065045e-04, -6.30927456e-04,
+     1.70053229e-03, 2.61087236e-03, -5.69630760e-03, -2.12098836e-03, 5.68074214e-03,
+     6.54893281e-04, -1.98622752e-03, ],
     domain=[0.0, 100.0],
 )
+# fmt: on
 
 
 def polyrho(z):
@@ -105,6 +100,38 @@ def polyrho(z):
     return p
 
 
+def us_std_atm_density(z, earth_radius=6371):
+    H_b = np.array([0, 11, 20, 32, 47, 51, 71, 84.852])
+    Lm_b = np.array([-6.5, 0.0, 1.0, 2.8, 0.0, -2.8, -2.0, 0.0])
+    T_b = np.array([288.15, 216.65, 216.65, 228.65, 270.65, 270.65, 214.65, 186.946])
+    # fmt: off
+    P_b = 1.01325e5 * np.array(
+        [1.0, 2.233611e-1, 5.403295e-2, 8.5666784e-3, 1.0945601e-3, 6.6063531e-4,
+         3.9046834e-5, 3.68501e-6, ])
+    # fmt: on
+
+    Rstar = 8.31432e3
+    M0 = 28.9644
+    gmr = 34.163195
+
+    z = np.asarray(z)
+
+    h = z * earth_radius / (z + earth_radius)
+    i = np.searchsorted(H_b, h, side="right") - 1
+
+    deltah = h - H_b[i]
+
+    temperature = T_b[i] + Lm_b[i] * deltah
+
+    mask = Lm_b[i] == 0
+    pressure = np.full(z.shape, P_b[i])
+    pressure[mask] *= np.exp(-gmr * deltah[mask] / T_b[i][mask])
+    pressure[~mask] *= (T_b[i][~mask] / temperature[~mask]) ** (gmr / Lm_b[i][~mask])
+
+    density = (pressure * M0) / (Rstar * temperature)  # kg/m^3
+    return 1e-3 * density  # g/cm^3
+
+
 def slant_depth_integrand(z, theta_tr, rho=polyrho, earth_radius=const.earth_radius):
     """
     Integrand for computing slant_depth from input altitude z.
@@ -117,7 +144,7 @@ def slant_depth_integrand(z, theta_tr, rho=polyrho, earth_radius=const.earth_rad
     j = z ** 2
     k = 2 * z * earth_radius
 
-    ijk = i + j + k + 1e-12
+    ijk = i + j + k
 
     return 1e5 * rho(z) * ((z + earth_radius) / np.sqrt(ijk))
 
@@ -128,8 +155,8 @@ def slant_depth(
     theta_tr,
     earth_radius=const.earth_radius,
     func=slant_depth_integrand,
-    epsabs=1e-1,
-    epsrel=1e-1,
+    epsabs=1e-2,
+    epsrel=1e-2,
     *args,
     **kwargs
 ):
@@ -157,70 +184,10 @@ def slant_depth(
 
     """
 
-    global nnn
-    nnn = 0
-
     theta_tr = np.asarray(theta_tr)
 
     def f(x):
         y = np.multiply.outer(z_hi - z_lo, x).T + z_lo
         return (func(y, theta_tr=theta_tr, earth_radius=earth_radius) * (z_hi - z_lo)).T
 
-    return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel)
-
-
-def slant_depth_steps(
-    z_lo,
-    z_hi,
-    theta_tr,
-    dz=0.01,
-    earth_radius=const.earth_radius,
-    func=slant_depth_integrand,
-):
-    r"""Slant-depth integral approximated along path.
-
-    Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
-    along a full length using the cumulative_trapezoid rule.
-
-    Parameters
-    ----------
-    z_lo: float
-        starting altitude for slant depth track.
-    z_hi: float
-        stopping altitude for slant depth track.
-    theta_tr: float
-        trajectory angle of track to observer.
-    earth_radius: float
-        radius of a spherical earth. Default from nuspacesim.constants
-    dz: float
-        static step size for sampling points in range [z_lo, z_hi]
-    func: real valued function
-        the integrand for slant_depth. If None, Default of `slant_depth_integrand()` is used.
-
-    Returns
-    -------
-        xs: float
-            slant depth at each altitude along track.
-        zs: float
-            altitudes at which slant_depth was evaluated.
-
-    """
-
-    def f(x):
-        return func(x, theta_tr, earth_radius)
-
-    zs = np.arange(z_lo, z_hi, dz)
-    xs = scipy.integrate.cumulative_trapezoid(f(zs), zs)
-
-    return xs, zs
-
-
-def param_b_c(z):
-    """rho parameterization table from https://arxiv.org/pdf/2011.09869.pdf"""
-
-    bins = np.array([4.0, 10.0, 40.0, 100.0])
-    b = np.array([1222.6562, 1144.9069, 1305.5948, 540.1778, 1.0])
-    c = np.array([994186.38, 878153.55, 636143.04, 772170.16, 1e9])
-
-    idxs = np.searchsorted(bins, z)
-    return np.asarray(b[idxs]), np.asarray(c[idxs])
+    return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel, **kwargs)

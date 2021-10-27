@@ -1,132 +1,192 @@
-from nuspacesim.simulation.eas_optical.atmospheric_models import (
-    rho,
-    polyrho,
-    slant_depth_integrand,
+from nuspacesim.simulation.eas_optical import atmospheric_models
+from nuspacesim.simulation.eas_optical.quadeas import (
+    ozone,
+    differential_ozone,
+    aerosol_optical_depth,
 )
 
 import numpy as np
 from numpy.polynomial import Polynomial, polynomial
+from scipy.interpolate import splev, splrep
+
 import matplotlib
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import mean_squared_error, r2_score
-from timeit import timeit
 
 
 def atmospheric_density_fit():
     # slant-depth from gaussian quadriture
-    matplotlib.rcParams.update({"font.size": 16})
+    matplotlib.rcParams.update({"font.size": 18})
 
-    N = int(1e5)
-    alt_dec = np.linspace(0.0, 101.0, N)
-    rs = rho(alt_dec)
+    tabz = np.array([0, 0.5, 1, 1.5, 2, 3, 5, 10, 15, 20, 30, 40, 50, 60, 65])
+    # fmt: off
+    tabr = np.array([
+        1.225, 1.1673, 1.1116, 1.0581, 1.0065, 9.0925e-1, 7.3643e-1, 4.1351e-1,
+        1.9476e-1, 8.891e-2, 1.8410e-2, 3.9957e-3, 1.0269e-3, 3.0968e-4, 1.6321e-4
+    ]) * 1e-3
+    # fmt: on
 
-    # polnos = []
+    N = int(1e3)
+    alt_dec = np.linspace(0.0, 65.0, N)
+    c_rhos = atmospheric_models.cummings_atmospheric_density(alt_dec)
+    p_rhos = atmospheric_models.polyrho(alt_dec)
+    us_rho = atmospheric_models.us_std_atm_density(alt_dec)
+
+    spl = splrep(tabz, tabr)
+    s_rho = splev(alt_dec, spl)
+
+    fig, (ax1, ax2) = plt.subplots(2, 2, squeeze=True)
+    ax1[0].plot(alt_dec, us_rho, "b-", label="76 Atmosphere implementation.")
+    ax1[0].plot(alt_dec, c_rhos, "g:", label="Cummings")
+    ax1[0].plot(alt_dec, p_rhos, "c--", label="Degree 10 Polynomial")
+    ax1[0].plot(alt_dec, s_rho, "r-.", label="Spline")
+    ax1[0].plot(tabz, tabr, "b+", markersize=10, label="76 Atmosphere Table Balues")
+    ax1[0].set_ylabel("Density g/cm^3")
+    ax1[0].set_xlabel("Altitude km")
+    ax1[0].grid(True)
+    ax1[0].legend()
+    ax1[0].set_title("Atmospheric Density")
+
+    ax2[0].plot(alt_dec, us_rho, "b-", label="76 Atmosphere implementation.")
+    ax2[0].plot(alt_dec, c_rhos, "g:", label="Cummings")
+    ax2[0].plot(alt_dec, p_rhos, "c--", label="Polynomial")
+    ax2[0].plot(alt_dec, s_rho, "r-.", label="Spline")
+    ax2[0].plot(tabz, tabr, "b+", markersize=10, label="76 Atmosphere Table Balues")
+    ax2[0].set_yscale("log")
+    ax2[0].set_ylabel("Log(Density g/cm^3)")
+    ax2[0].set_xlabel("Altitude km")
+    ax2[0].grid(True)
+
     resids = []
 
-    for i in range(30):
-        popt, rlst = Polynomial.fit(alt_dec, rs, i, full=True)
-        # polnos.append(popt)
-        resids.append(rlst[0])
+    splresid = np.sum((us_rho - s_rho) ** 2)
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, squeeze=True)
-    ax1.plot(resids, ".")
-    ax2.plot(resids, ".")
-    ax2.set_yscale("log")
+    for i in range(30):
+        popt, rlst = Polynomial.fit(alt_dec, us_rho, i, full=True)
+        resids.append(rlst[0])
+        # print(rlst[0])
+
+    ax1[1].plot(resids, ".")
+    ax1[1].set_ylabel("Residual Error")
+    ax1[1].set_xlabel("Degree of polynomial")
+    ax1[1].set_title("Residual error of approximating polynomials.")
+    ax1[1].grid(True)
+    ax1[1].axhline(splresid, c="r", linestyle=":", label="Spline residual error")
+    ax1[1].legend()
+
+    ax2[1].plot(resids, ".")
+    ax2[1].set_ylabel("log(Residual Error)")
+    ax2[1].set_xlabel("Degree of polynomial")
+    ax2[1].set_yscale("log")
+    ax2[1].grid(True)
+    ax2[1].axhline(splresid, c="r", linestyle=":", label="Spline residual error")
+
+    fig.suptitle("Atmospheric Density Models")
+
     plt.show()
 
-    print(Polynomial.fit(alt_dec, rs, 11, domain=[0, 100], full=True))
 
-
-def theta_correction_fit():
+def atmospheric_ozone_fit(index):
     # slant-depth from gaussian quadriture
     matplotlib.rcParams.update({"font.size": 16})
 
-    N = int(1e5)
-    alt_dec = np.linspace(0.0, 101.0, N)
-    rs = rho(alt_dec)
+    N = int(22)
+    M = int(1e5)
+    x = np.linspace(0.0, 100.0, N)
+    z = np.linspace(0.0, 100.0, M)
+    xoz = ozone(x)
+    oz = ozone(z)
+    doz = differential_ozone(z)
 
-    # polnos = []
-    resids = []
+    fig, (ax1, ax2) = plt.subplots(2, 2, sharex=True, squeeze=True)
 
-    for i in range(30):
-        popt, rlst = Polynomial.fit(alt_dec, rs, i, full=True)
-        # polnos.append(popt)
-        resids.append(rlst[0])
+    popt = Polynomial.fit(z, oz, index)
+    spl = splrep(x, xoz)
+    soz = splev(z, spl)
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, squeeze=True)
-    ax1.plot(resids, ".")
-    ax2.plot(resids, ".")
-    ax2.set_yscale("log")
+    ax1[0].plot(z, oz, "b-")
+    ax1[0].plot(z, popt(z), "g:")
+    ax1[0].plot(z, soz, "r--")
+    ax1[0].set_xlabel("Altitude (KM)")
+    ax1[0].set_ylabel("Ozone")
+    ax1[0].set_title("Ozone")
+    ax1[0].legend(["Nimbus", "Polynomial", "Spline"])
+    ax1[0].grid(True)
+
+    ax2[0].plot(z, oz, "b-")
+    ax2[0].plot(z, popt(z), "g:")
+    ax2[0].plot(z, soz, "r--")
+    ax2[0].set_yscale("log")
+    ax2[0].set_xlabel("Altitude (KM)")
+    ax2[0].set_ylabel("Log(Ozone)")
+    ax2[0].grid(True)
+
+    dopt = Polynomial.fit(z, doz, index)
+    dsoz = -splev(z, spl, der=1)
+
+    ax1[1].plot(z, doz, "b-")
+    ax1[1].plot(z, dopt(z), "g:")
+    ax1[1].plot(z, dsoz, "r--")
+    ax1[1].set_xlabel("Altitude (KM)")
+    ax1[1].set_ylabel("d(Ozone)/d altitude")
+    ax1[1].set_title("negative first derivative")
+    ax1[1].legend(["Nimbus", "Polynomial", "Spline"])
+    ax1[1].grid(True)
+
+    ax2[1].plot(z, doz, "b")
+    ax2[1].plot(z, dopt(z), "g:")
+    ax2[1].plot(z, dsoz, "r--")
+    ax2[1].set_yscale("log")
+    ax2[1].set_xlabel("Altitude (KM)")
+    ax2[1].set_ylabel("log(d(Ozone)/d altitude)")
+    ax2[1].grid(True)
+
+    plt.show()
+    return popt, spl
+
+
+def atmospheric_aerosol_fit():
+    matplotlib.rcParams.update({"font.size": 16})
+
+    z = np.append(
+        np.linspace(0.0, 33.0, 34),
+        np.linspace(40, 100.0, 7),
+    )
+    # fmt: off
+    aOD55 = np.array(
+        [0.250, 0.136, 0.086, 0.065, 0.055, 0.049, 0.045, 0.042, 0.038, 0.035, 0.032,
+         0.029, 0.026, 0.023, 0.020, 0.017, 0.015, 0.012, 0.010, 0.007, 0.006, 0.004,
+         0.003, 0.003, 0.002, 0.002, 0.001, 0.001, 0.001, 0.001, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ])
+    """internal aOD55 array"""
+    # fmt: on
+
+    spl = splrep(z, aOD55)
+    zz = np.linspace(0.0, 100.0, 1000)
+
+    fig, (ax1) = plt.subplots(2, 1, sharex=True, squeeze=True)
+
+    ax1[0].plot(zz, splev(zz, spl), "r-", label="Spline")
+    ax1[0].plot(z, aOD55, "b+", markersize=14, label="aOD55")
+    # ax1[0].plot(zz, aerosol_optical_depth(zz), "r:")
+    ax1[0].set_xlabel("Altitude (KM)")
+    ax1[0].set_ylabel("optical depth")
+    ax1[0].set_title("optical depth")
+    ax1[0].grid()
+    ax1[0].legend()
+
+    ax1[1].plot(zz, splev(zz, spl), "r-")
+    ax1[1].plot(z, aOD55, "b+", markersize=14)
+    ax1[1].set_xlabel("Altitude (KM)")
+    ax1[1].set_ylabel("Log(optical depth)")
+    ax1[1].set_yscale("log")
+    ax1[1].grid()
+
     plt.show()
 
-    print(Polynomial.fit(alt_dec, rs, 11, domain=[0, 100], full=True))
-
-
-def multi_poly_fit_slant():
-    def length(z, t):
-        t = np.asarray(t)
-
-        i = 6371.0 ** 2 * np.cos(theta_tr) ** 2
-        j = z ** 2
-        k = 2 * z * 6371
-        ijk = i + j + k
-
-        return (z + 6371) / np.sqrt(ijk)
-
-    N = int(1e4)
-
-    alt_dec = np.random.uniform(0.0, 100.0, N)
-    theta_tr = np.random.uniform(0.0, np.pi / 2, N)
-
-    xy = np.vstack((alt_dec, theta_tr)).T
-    y = length(alt_dec, theta_tr)
-
-    x1 = np.random.uniform(0.0, 65, N)
-    x2 = np.random.uniform(0.0, np.pi / 2, N)
-
-    for i in range(1, 30):
-        model = Pipeline(
-            [("poly", PolynomialFeatures(degree=i)), ("linear", LinearRegression())]
-        )
-        model = model.fit(xy, y)
-        p1 = model.predict(xy)
-
-        z = length(x1, x2)
-        x1x2 = np.vstack((x1, x2)).T
-        p2 = model.predict(x1x2)
-
-        print(i, mean_squared_error(y, p1), mean_squared_error(z, p2))
-
-    model = Pipeline(
-        [
-            ("poly", PolynomialFeatures(degree=6)),
-            ("linear", LinearRegression(fit_intercept=False)),
-        ]
-    )
-
-    model = model.fit(xy, y)
-    print(model.named_steps["linear"].coef_)
-
-    lx = np.linspace(0, 65, 100)
-    ly = np.linspace(0, np.pi / 2, 100)
-
-    X, Y = np.meshgrid(lx, ly)
-    print(X.shape, Y.shape)
-    XY = np.stack((X.ravel(), Y.ravel()), axis=1)
-    print(XY.shape)
-    p1 = model.predict(XY)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-    ax.scatter(alt_dec, theta_tr, y, alpha=0.1)
-    ax.plot_wireframe(
-        X, Y, p1.reshape(100, 100), rcount=10, ccount=10, color="red", alpha=0.6
-    )
-    plt.show()
+    # print(spl)
 
 
 if __name__ == "__main__":
-    pass
+    atmospheric_density_fit()
+    atmospheric_ozone_fit(26)
+    atmospheric_aerosol_fit()

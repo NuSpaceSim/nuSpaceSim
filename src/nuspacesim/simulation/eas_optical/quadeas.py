@@ -1,6 +1,62 @@
+from functools import cache
+
 import numpy as np
+from numpy.polynomial import Polynomial
 
 import quadpy as qp
+
+from .atmospheric_models import slant_depth, slant_depth_integrand
+from scipy.misc import derivative
+from scipy.interpolate import BSpline
+from scipy.optimize import newton
+
+
+def viewing_angle(beta_tr, Zdet, Re):
+    return np.arcsin((Re / (Re + Zdet)) * np.cos(beta_tr))
+
+
+def propagation_angle(beta_tr, z, Re):
+    return np.arccos((Re / (Re + z)) * np.cos(beta_tr))
+
+
+def propagation_theta(beta_tr, z, Re):
+    return propagation_angle(beta_tr, z, Re)
+
+
+def length_along_prop_axis(z_start, z_stop, beta_tr, Re):
+    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
+    L2 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start ** 2
+    L = np.sqrt(L1) - np.sqrt(L2)
+    return L
+
+
+def deriv_length_along_prop_axis(z_stop, beta_tr, Re):
+    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
+    L = (Re + z_stop) / np.sqrt(L1)
+    return L
+
+
+def altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    r1 = Re ** 2
+    r2 = 2 * Re * z_start
+    r3 = z_start ** 2
+    return -Re + np.sqrt(
+        L ** 2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
+    )
+
+
+def deriv_altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    r1 = Re ** 2
+    r2 = 2 * Re * z_start
+    r3 = z_start ** 2
+    r4 = np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3)
+    denom = np.sqrt(L ** 2 + 2 * L * r4 + r1 + r2 + r3)
+    numer = (Re + z_start) * ((L) / r4 + 1)
+    return numer / denom
+
+
+def gain_in_altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    return altitude_along_prop_axis(L, z_start, beta_tr, Re) - z_start
 
 
 def index_of_refraction_air(X_v):
@@ -23,7 +79,7 @@ def rad_len_atm_depth(x, L0=36.66):
     return T
 
 
-def shower_age(T, param_beta):
+def shower_age(T, param_beta=np.log(10 ** 8 / (0.710 / 8.36))):
     r"""Shower age (s) as a function of atmospheric depth in mass units (g/cm^2)
 
 
@@ -43,6 +99,51 @@ def greisen_particle_count(T, s, param_beta):
     """
     N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
     return N_e
+
+
+def shower_age_of_greisen_particle_count(target_count, x0=2):
+
+    # for target_count = 2, shower_age = 1.899901462640018
+
+    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+
+    def rns(s):
+        return (
+            0.31
+            * np.exp((2 * param_beta * s * (1.5 * np.log(s) - 1)) / (s - 3))
+            / np.sqrt(param_beta)
+            - target_count
+        )
+
+    return newton(rns, x0)
+
+
+def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
+    """Altitude as a function of shower age, decay altitude and emergence angle."""
+
+    alt_dec = np.asarray(alt_dec)
+    beta_tr = np.asarray(beta_tr)
+
+    theta_tr = (np.pi / 2) - beta_tr
+    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+
+    # Check that shower age is within bounds
+    X = slant_depth(alt_dec, z_max, theta_tr, epsrel=1e-2)[0]
+    ss = shower_age(rad_len_atm_depth(X))
+
+    mask = ss < s
+
+    X_s = -1.222e19 * param_beta * s / ((10 / 6) * 1e17 * s - 5e17)
+
+    def ff(z):
+        return slant_depth(alt_dec[mask], z, theta_tr[mask], epsrel=1e-2)[0] - X_s
+
+    def df(z):
+        return slant_depth_integrand(z, theta_tr[mask])
+
+    altitude = np.full_like(alt_dec, z_max)
+    altitude[mask] = newton(ff, alt_dec[mask], fprime=df, **kwargs)
+    return altitude
 
 
 def e0(s):
@@ -86,140 +187,203 @@ def shibata_grammage(z):
     return X_v
 
 
-def shibata_density(z):
+def cherenkov_angle(AirN):
+    np.asarray(AirN)
+    thetaC = np.zeros_like(AirN)
+    mask = AirN != 0
+    thetaC[mask] = np.arccos(np.reciprocal(AirN[mask]))
+    return thetaC
+
+
+def cherenkov_threshold(AirN):
+    np.asarray(AirN)
+    eCthres = np.full_like(AirN, 1e6)
+    mask = (AirN != 0) & (AirN != 1)
+    eCthres[mask] = 0.511 / np.sqrt(1 - np.reciprocal(AirN[mask] ** 2))
+    return eCthres
+
+
+def cherenkov_photon_yeild(thetaC, wavelength):
+    return ((2e9 / 137.04) * np.pi * np.sin(thetaC) ** 2) / wavelength ** 2
+
+
+def sokolsky_rayleigh_scatter(X, wavelength):
+    return np.exp(-X / 2974.0 * (400.0 / wavelength) ** 4)
+
+
+_spline_aod = BSpline(
+    # fmt: off
+    np.array([0., 0., 0., 0., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14.,
+              15., 16., 17., 18., 19., 20., 21., 22., 23., 24., 25., 26., 27., 28., 29.,
+              30., 31., 32., 33., 40., 50., 60., 70., 80., 100., 100., 100., 100.]),
+    np.array([2.5e-01, 1.44032618e-01, 8.79347648e-02, 6.34311861e-02, 5.44663855e-02,
+              4.87032719e-02, 4.47205268e-02, 4.24146208e-02, 3.76209899e-02,
+              3.51014195e-02, 3.19733321e-02, 2.90052521e-02, 2.60056594e-02,
+              2.29721102e-02, 2.01058999e-02, 1.66042901e-02, 1.54769396e-02,
+              1.14879516e-02, 1.05712540e-02, 6.22703239e-03, 6.52061645e-03,
+              3.69050182e-03, 2.71737625e-03, 3.43999316e-03, 1.52265111e-03,
+              2.46940239e-03, 5.99739313e-04, 1.13164035e-03, 8.73699276e-04,
+              1.37356254e-03, -3.67949454e-4, 9.82352716e-05, -2.49916324e-5,
+              5.51770388e-05, -3.37867722e-5, 1.03674479e-05, -2.77699498e-6,
+              7.40531994e-07, -4.93687996e-7, 2.46843998e-7, 0.0, 0.0, 0.0, 0.0, 0.0]),
+    # fmt: on
+    3,
+    extrapolate=False,
+)
+""" BSpline approximation. Aerosol Depth at 55 microns."""
+
+
+def aerosol_optical_depth(z):
+    """Aerosol Optical Depth at 55 microns."""
     z = np.asarray(z)
-    # conditional cutoffs
-    mask1 = z < 11
-    mask2 = np.logical_and(z >= 11, z < 25)
-    mask3 = z >= 25
+    # mask = z < 30.0
+    # aod = np.zeros_like(z)
+    # aod[mask] = _spline_aod(z[mask])
+    # return aod
+    return _spline_aod(z)
 
-    # 1 / 0.19
-    r1 = np.reciprocal(0.19)
 
-    # X_v = shibata_grammage(z)
-
-    rho = np.empty_like(z)
-    rho[mask1] = -1.0e-5 * r1 / -11.861 * ((z[mask1] - 44.34) / -11.861) ** (r1 - 1.0)
-    # rho[mask2] = -1e-5 * np.reciprocal(-6.34) * X_v[mask2]
-    rho[mask2] = (1e-5 / 6.34) * np.exp((z[mask2] - 45.5) / -6.34)
-    # rho[mask3] = ((0.5e-5 * 3.344) / np.sqrt(28.920 + 3.344 * z[mask3])) * X_v[mask3]
-    rho[mask3] = ((0.5e-5 * 3.344) / np.sqrt(28.920 + 3.344 * z[mask3])) * np.exp(
-        13.841 - np.sqrt(28.920 + 3.344 * z[mask3])
+aP = Polynomial(
+    np.array(
+        [-1.2971, 0.22046e-01, -0.19505e-04, 0.94394e-08, -0.21938e-11, 0.19390e-15]
     )
-
-    return rho
-
-
-def slant_depth_numeric(
-    z, z_max=np.inf, beta=0, atm_density_model=shibata_density, **kwargs
-):
-
-    earth_radius = 6378.14
-    return qp.quad(
-        lambda h: 1e5
-        * atm_density_model(h)
-        * (h + earth_radius)
-        / np.sqrt(
-            (earth_radius ** 2 * np.cos(beta) ** 2) + (h ** 2) + (2 * h * earth_radius)
-        ),
-        z,
-        z_max,
-        **kwargs
-    )
+)
+"""Degree 5 polynomial fit of 1/beta_aerosol vs wavelength."""
 
 
-def theta_view(beta, z_max, earth_radius):
-    return np.arcsin((earth_radius / (earth_radius + z_max)) * np.cos(beta))
+def aBetaF(w):
+    return np.reciprocal(aP(w)) / 0.158
 
 
-def sin_theta_view(beta, z_max, earth_radius):
-    return np.sin(theta_view(beta, z_max, earth_radius))
+def elterman_mie_aerosol_scatter(z, wavelength, beta_tr, earth_radius):
+    """
+    z values above 30 (km altitude) return OD filled to 0, this should then
+    return aTrans = 1, but in the future masking may be used to further
+    optimze for performance by avoiding this computation.
+    """
 
-
-def theta_prop(z, sinThetView, z_max, earth_radius):
-    return np.arccos(sinThetView * ((earth_radius + z_max) / (earth_radius + z)))
-
-
-def photon_yeild(thetaC, wavelength):
-    return (2e12 * np.pi * np.sin(thetaC) ** 2) / (137.04 * wavelength)
-
-
-def sokolsky_rayleigh_scatter(dX, wavelength):
-    return np.exp(-dX / 2974.0 * (400.0 * wavelength) ** 4)
-
-
-def elterman_mie_aerosol_scatter(
-    z, z_max, beta, wavelength, aOD55, dfaOD55, inv_beta_poly, earth_radius
-):
-
-    aBeta = np.reciprocal(inv_beta_poly(wavelength)) / 0.158
-
-    def aODepth(z):
-        return aOD55[np.int32(z)] - (z - np.int32(z)) * dfaOD55[np.int32(z)] * aBeta
-
-    def tprp(z):
-        return theta_prop(
-            z, sin_theta_view(beta, z_max, earth_radius), z_max, earth_radius
-        )
-
-    aTrans = np.where(z < 30, np.exp(-aODepth(z) / np.pi / (2 - tprp(z))), 1.0)
+    theta = np.sin(propagation_angle(beta_tr, z, earth_radius))
+    aTrans = np.exp(-(aerosol_optical_depth(z) / theta * aBetaF(wavelength)))
     return aTrans
 
 
-def ozone_losses(z, wavelength):
+def ozone(z):
+    OzZeta = np.array(
+        [5.35, 10.2, 14.75, 19.15, 23.55, 28.1, 32.8, 37.7, 42.85, 48.25, 100.0]
+    )
+    OzDepth = np.array(
+        [15.0, 9.0, 10.0, 31.0, 71.0, 87.2, 57.0, 29.4, 10.9, 3.2, 1.3],
+    )
+    OzDsum = np.array(
+        [310.0, 301.0, 291.0, 260.0, 189.0, 101.8, 44.8, 15.4, 4.5, 1.3, 0.1]
+    )
+
+    TotZon = np.where(z < 5.35, 310 + ((5.35 - z) / 5.35) * 15, 0.1)
+
+    msk3 = np.logical_and(z >= 5.35, z < 100)
+    i = np.searchsorted(OzZeta, z[msk3])
+
+    TotZon[msk3] = (
+        OzDsum[i] + ((OzZeta[i] - z[msk3]) / (OzZeta[i] - OzZeta[i - 1])) * OzDepth[i]
+    )
+    return TotZon
+
+
+def differential_ozone(z):
+    return -derivative(ozone, z)
+
+
+def poly_differential_ozone(z):
+    # fmt: off
+    _polydifoz = Polynomial(
+        [1.58730302e-1, -2.28377732e00, 3.88514872e00, -1.00201924e02, 1.25384358e03,
+         -6.07444561e01, -2.55521209e04, 9.95782609e03, 2.89535348e05, -1.68713471e05,
+         -1.88322268e06, 1.28137760e06, 7.56064015e06, -5.30174814e06, -1.99411195e07,
+         1.33214081e07, 3.58159190e07, -2.13788677e07, -4.43222183e07, 2.21324708e07,
+         3.73327083e07, -1.43479612e07, -2.04932327e07, 5.30961778e06, 6.62152119e06,
+         -8.57379855e05, -9.56235193e05, ],
+        domain=[0.0, 100.0],
+    )
+    # fmt: on
+    return _polydifoz(z)
+
+
+ozone_spline = BSpline(
+    # fmt: off
+    np.array(
+        [0.0, 0.0, 0.0, 0.0, 6.89655172, 10.34482759, 13.79310345, 17.24137931,
+         20.68965517, 24.13793103, 27.5862069, 31.03448276, 34.48275862, 37.93103448,
+         41.37931034, 44.82758621, 48.27586207, 51.72413793, 55.17241379, 58.62068966,
+         62.06896552, 65.51724138, 68.96551724, 72.4137931, 75.86206897, 79.31034483,
+         82.75862069, 86.20689655, 89.65517241, 93.10344828, 100.0, 100.0, 100.0,
+         100.0, ]
+    ),
+    np.array(
+        [3.25000000e02, 3.18177024e02, 3.08908644e02, 3.00483582e02, 2.95353477e02,
+         2.76720925e02, 2.38445425e02, 1.80430762e02, 1.06225920e02, 6.45461187e01,
+         3.28591575e01, 1.22379408e01, 7.65516571e00, 2.81772715e00, 1.04250806e00,
+         1.40834257e00, 1.20048349e00, 1.14634515e00, 1.05101746e00, 9.66726427e-01,
+         8.79478129e-01, 7.93022227e-01, 7.06354003e-01, 6.19742671e-01,
+         5.33116094e-01, 4.46493602e-01, 3.59870016e-01, 2.44372291e-01,
+         1.57748887e-01, 1.00000000e-01, 0.00000000e00, 0.00000000e00, 0.00000000e00,
+         0.00000000e00, ]
+    ),
+    3,
+    # fmt: on
+)
+
+
+def spline_differential_ozone(z):
+    return -ozone_spline.derivative(1)(z)
+
+
+def ozone_content(L_n, Lmax, alt_dec, beta_tr, earth_radius, full=False):
+    def f(x):
+        y = np.multiply.outer(Lmax - L_n, x).T + L_n
+        return (
+            spline_differential_ozone(
+                altitude_along_prop_axis(y, alt_dec, beta_tr, earth_radius)
+            )
+            * (Lmax - L_n)
+        ).T
+
+    zonz, err = qp.quad(f, 0.0, 1.0, epsabs=1e-2, epsrel=1e-2, limit=100)
+    return (zonz, err) if full else (zonz)
+
+
+def ozone_losses(ZonZ, wavelength):
     """
-    Calculate ozone losses from altitudes (z) in km.
+    Calculate ozone losses from points along shower axis (l) in km.
 
     ############################
     Implementation needs review.
     ############################
 
     """
-    # OzZeta = np.array(
-    #     [5.35, 10.2, 14.75, 19.15, 23.55, 28.1, 32.8, 37.7, 42.85, 48.25, 100.0]
-    # )
-    # OzDepth = np.array(
-    #     [15.0, 9.0, 10.0, 31.0, 71.0, 87.2, 57.0, 29.4, 10.9, 3.2, 1.3],
-    # )
-    # OzDsum = np.array(
-    #     [310.0, 301.0, 291.0, 260.0, 189.0, 101.8, 44.8, 15.4, 4.5, 1.3, 0.1]
-    # )
 
-    # TotZon = np.where(z < 5.35, 310 + ((5.35 - z) / 5.35) * 15, 0.1)
-
-    # msk3 = np.logical_and(z >= 35, z < 100)
-    # i = np.searchsorted(OzZeta, z[msk3])
-    # Okappa = -1e03 * 10 ** (110.5 - 44.21 * np.log10(wavelength))
-
-    # TotZon[msk3] = (
-    #     OzDsum[i] + ((OzZeta[i] - z[msk3]) / (OzZeta[i] - OzZeta[i - 1])) * OzDepth[i]
-    # )
-    # np.exp(TotZon * Okappa)
-    return 1.0
+    Okappa = 10 ** (110.5 - 44.21 * np.log10(wavelength))
+    return np.exp((-1e-3 * ZonZ * Okappa))
 
 
-def scaled_photon_yeild(z, wavelength):
-    pass
+def scaled_differential_photon_yield(
+    ll, z, w, thetaC, X_ahead, RN, Lmax, alt_dec, beta_tr, earth_radius
+):
 
-    # X = slant_depth_analytic(z, 65)
-    # T = rad_len_atm_depth(X)
-    # s = shower_age(T, 1)
-
-    # pyield = photon_yeild(1, wavelength)
-    # rayleigh_trans = 1.0  # sokolsky_rayleigh_scatter(dx, wavelength)
-    # ozone_trans = 1.0  # ozone_losses(z, wavelength)
-    # mie_aerosol_trans = (
-    #     1.0  # elterman_mie_aerosol_scatter(z, 1, 1, wavelength, 1, 1, 1, 1)
-    # )
-    # RN = greisen_particle_count(T, s, 1)
-    # return pyield * rayleigh_trans * ozone_trans * mie_aerosol_trans * RN
+    pyield = cherenkov_photon_yeild(thetaC, w)
+    ZonZ = ozone_content(ll, Lmax, alt_dec, beta_tr, earth_radius)
+    TrOz = ozone_losses(ZonZ, w)
+    TrRayl = sokolsky_rayleigh_scatter(X_ahead, w)
+    TrAero = elterman_mie_aerosol_scatter(z, w, beta_tr, earth_radius)
+    SPyield = 1000 * pyield * RN * TrOz * TrRayl * TrAero
+    for i, zz in enumerate(z):
+        print(zz, w[i], f"{pyield[i]:e}", SPyield[i], sep="\t")
+    return SPyield
 
 
 def dndu(theta, logenergy, s, AirN):
 
-    eCthres = np.where(
-        (AirN != 0.0) & (AirN != 1.0), 0.511 / np.sqrt(1.0 - 1.0 / AirN ** 2), 1.0e6
-    )
+    eCthres = cherenkov_threshold(AirN)
+
     energy = 10 ** logenergy
 
     whill = 2.0 * (1.0 - np.cos(theta)) * (energy / 21.0) ** 2
@@ -236,72 +400,60 @@ def dndu(theta, logenergy, s, AirN):
     a2hill = np.where(squhill < 0.59, 0.380, 0.478)
     sv2 = 0.777 * np.exp(-1.0 * (squhill - 0.59) / a2hill)
     track = fractional_track_length(np.where(energy >= eCthres, energy, eCthres), s)
-    print("sv2", sv2)
-    print("track", track)
+
     return sv2 * track
 
 
-def intf(x_):
-    z = x_[0]
+def intf(x_, alt_dec, beta_tr, z_max, z_det, earth_radius):
+    ll = x_[0]
     w = x_[1]
-    o = x_[2]
-    e = x_[3]
+    o = x_[2]  # angle fraction between 0 and 1 # no E
+    e = x_[3]  # log energy.
 
-    X = np.empty_like(z)
-    for i in range(z.size):
-        X[i] = slant_depth_numeric(1.0, z[i], beta=np.radians(42.0))[0]
-    print("X", X)
+    theta_tr = (np.pi / 2) - beta_tr
+    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
 
-    X_v = np.empty_like(z)
-    for i in range(z.size):
-        X_v[i] = slant_depth_numeric(z[i], 65.0, beta=0.0)[0]
+    z = altitude_along_prop_axis(ll, alt_dec, beta_tr, earth_radius)
+    Lmax = length_along_prop_axis(alt_dec, z_max, beta_tr, earth_radius)
 
+    X_behind = slant_depth(alt_dec, z, theta_tr, epsrel=1e-4)[0]
+    X_ahead = slant_depth(z, z_max, theta_tr, epsrel=1e-4)[0]
+
+    T = rad_len_atm_depth(X_behind)
+    s = shower_age(T, param_beta)
+    RN = greisen_particle_count(T, s, param_beta)
+
+    X_v = shibata_grammage(z)
     AirN = index_of_refraction_air(X_v)
-    T = rad_len_atm_depth(X)
-    s = shower_age(T, np.log(10 ** 8 / (0.710 / 8.36)))
-    # print("s", s)
-    # print("o", o)
-    # print("e", e)
-    v1 = scaled_photon_yeild(z, w)
-    v1 = 1
-    v2 = dndu(o, e, s, AirN)
-    return v1 * v2
+    thetaC = cherenkov_angle(AirN)
+
+    # print("z", z, "thetaC", f"{thetaC:e}")
+    SPyield = scaled_differential_photon_yield(
+        ll, z, w, thetaC, X_ahead, RN, Lmax, alt_dec, beta_tr, earth_radius
+    )
+
+    return SPyield
+
+    frac_thetaC = o * thetaC
+    result_dndu = dndu(frac_thetaC, e, s, AirN)
+    # print(result_dndu.shape)
+    return SPyield * result_dndu
 
 
-if __name__ == "__main__":
-    import nuspacesim as nss
+def photon_density(alt_dec, beta_tr, z_max, z_det, earth_radius):
 
-    # import timeit
+    s0 = 0.079417252568371  # s0 = np.exp(-575/227) <-- e2hill == 0: Shower too young.
+    s1 = 1.899901462640018  # shower age when greisen_particle_count(s) == 1.0.
 
-    zmax = 65.0
-    deg = 1.0
+    z_lo = altitude_at_shower_age(s0, alt_dec, beta_tr)
+    z_hi = altitude_at_shower_age(s1, alt_dec, beta_tr)
+    l_lo = length_along_prop_axis(alt_dec, z_lo, beta_tr, earth_radius)
+    l_hi = length_along_prop_axis(alt_dec, z_hi, beta_tr, earth_radius)
 
-    print(nss.eas_optical.atmospheric_models.slant_depth(1.0, zmax, [np.radians(deg)]))
-    print(slant_depth_numeric(1.0, zmax, np.radians(deg)))
-    earth_radius = 6378.14
-
-    def f(h):
-        return (
-            1e5
-            * shibata_density(h)
-            * (h + earth_radius)
-            / np.sqrt(
-                (earth_radius ** 2 * np.cos(np.radians(deg)) ** 2)
-                + (h ** 2)
-                + (2 * h * earth_radius)
-            )
-        )
-
-    # print(
-    #     timeit.timeit(
-    #         lambda: qp.quad(f, 1.0, 5.0, epsabs=1e-2, epsrel=1e-2), number=100
-    #     )
-    # )
-    print(qp.quad(f, 1.0, zmax, epsabs=1e-2, epsrel=1e-2))
-
-    # import nuspacesim as nss
-    # print(nss.eas_optical.atmospheric_models.slant_depth(1., 525., [np.radians(42)]))
-    # print(slant_depth_numeric(1., 525., np.radians(42)))
-    # print(qp.quad(intf, [1.0, 200, 2.857e-4, 1], [65.0, 900, 1.657e-2, 10]))
-
-# return qp.quad( lambda x: , )
+    return qp.quad(
+        intf,
+        [l_lo, 200, 0, 1],
+        [l_hi, 900, 1, 9],
+        args=(alt_dec, beta_tr, z_max, z_det, earth_radius),
+        epsrel=1e-4,
+    )

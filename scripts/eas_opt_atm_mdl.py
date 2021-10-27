@@ -1,4 +1,5 @@
 from nuspacesim.simulation.eas_optical.atmospheric_models import (
+    rho,
     slant_depth,
     slant_depth_integrand,
 )
@@ -21,13 +22,18 @@ if __name__ == "__main__":
     alt_dec = np.random.uniform(0.0, 10.0, N)
 
     # fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, squeeze=True)
-    fig = plt.figure()
-    ax1 = fig.add_subplot(projection="3d")
-    # ax2 = fig.add_subplot(projection='3d')
-    Xs, ers = slant_depth(alt_dec, 65, theta_tr, epsabs=1e-1, epsrel=1e-1)
+    # fig = plt.figure()
+    # ax1 = fig.add_subplot(projection="3d")
+    # # ax2 = fig.add_subplot(projection='3d')
+    # Xs, ers = slant_depth(0, 65, 0, epsabs=1e-2, epsrel=1e-2, func=sdi)
+    # print(Xs, Xs.shape)
+    # Xs, ers = slant_depth(0, 65, 0, epsabs=1e-2, epsrel=1e-2)
+    # print(Xs, Xs.shape)
     print(
         timeit(
-            lambda: slant_depth(alt_dec, 65, theta_tr, epsabs=1e-1, epsrel=1e-1),
+            lambda: slant_depth(
+                alt_dec, 65, theta_tr, rho=rho, epsabs=1e-7, epsrel=1e-7
+            ),
             number=1,
         )
     )

@@ -82,9 +82,7 @@ class Taus(object):
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_pexit.hdf5"
         ) as file:
             g = NssGrid.read(file, path="pexit_regen", format="hdf5")
-            sg = grid_slice_interp(
-                g, config.simulation.log_nu_tau_energy, g.axis_names.index("log_e_nu")
-            )
+            sg = grid_slice_interp(g, config.simulation.log_nu_tau_energy, "log_e_nu")
             self.pexit_interp = interp1d(sg.axes[0], sg.data)
 
         # grid of tau_cdf tables
