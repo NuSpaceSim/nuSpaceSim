@@ -88,8 +88,7 @@ class ShowerParameterization:
         
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
         #t = (x - x_max)/36.62 #shower stage
-        
-        
+         
         return x, f, self.event_tag
     
     
@@ -98,7 +97,7 @@ class CompositeShowers():
     by sampled tau energies. 
     
     """
-    def __init__(self):  
+    def __init__(self, shower_end: int = 2000, grammage: int = 1):  
         
         with as_file(
                 files('nuspacesim.data.conex_gh_params') / 'electron_EAS_table.h5'
@@ -128,6 +127,10 @@ class CompositeShowers():
         self.gamma_showers = gamma_gh
         self.pion_showers = pion_gh
         self.tau_tables = tau_decays
+        
+        # shower development characterisitics
+        self.shower_end = shower_end
+        self.grammage = grammage
     
     def tau_daughter_energies(self):
         r"""Isolate energy contributions of pion, kaon, electron, and gamma daughters.
@@ -140,24 +143,36 @@ class CompositeShowers():
         gamma_mask = self.tau_tables[:,2] == 22
         gamma_energies = self.tau_tables[gamma_mask ] [:,[0,-1]] 
         
+        # kaons and pions treated the same 
         pion_kaon_mask = ((self.tau_tables[:,2] == 211) | (self.tau_tables[:,2] == -211)) | \
                          ((self.tau_tables[:,2] == 321) | (self.tau_tables[:,2] == -321))
         pion_energies = self.tau_tables[pion_kaon_mask] [:,[0,-1]]
         
+        # each row has [event_num, energy ] 
         return electron_energies, gamma_energies, pion_energies 
     
     def single_particle_showers(self, gh_params, tau_energies): 
         
+        showers = np.empty([ gh_params.shape[0], self.shower_end/ self.grammage]) 
+        depths =  np.empty([ gh_params.shape[0], self.shower_end/ self.grammage]) 
+        
         for row in gh_params:
-            shower = ShowerParameterization (table_decay_e =  tau_energies[row],
-                                             event_tag = tau_energies[row] )
-            depths, shower_content, event_num = shower.gaisser_hillas( n_max = gh_params[row, 4],
-                                                                       x_max = gh_params[row, 5],
-                                                                       x_0 = gh_params[row, 6],
-                                                                       p1 = gh_params[row, 7],
-                                                                       p2 = gh_params[row, 8],
-                                                                       p3 = gh_params[row, 9])
-            return depths
+            shower = ShowerParameterization (
+                table_decay_e =  tau_energies[row],event_tag = tau_energies[row] 
+            )
+            
+            depth, shower_content, event_num = shower.gaisser_hillas(n_max = gh_params[row, 4],
+                                                                      x_max = gh_params[row, 5],
+                                                                      x_0 = gh_params[row, 6],
+                                                                      p1 = gh_params[row, 7],
+                                                                      p2 = gh_params[row, 8],
+                                                                      p3 = gh_params[row, 9],
+                                                                      shower_end = self.shower_end,
+                                                                      grammage = self.shower_end)
+            showers[row,:] = shower_content
+            depths[row,:] = depth 
+            
+        return depth, shower_content, event_num
             
     
     
