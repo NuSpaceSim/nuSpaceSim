@@ -191,3 +191,4 @@ def slant_depth(
         return (func(y, theta_tr=theta_tr, earth_radius=earth_radius) * (z_hi - z_lo)).T
 
     return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel, **kwargs)
+    # return scipy.integrate.nquad(f, [0.0, 1.0], **kwargs)

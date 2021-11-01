@@ -104,4 +104,4 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
 
 if __name__ == "__main__":
 
-    print(shower_age_of_greisen_particle_count(1.0, 1.8))
+    print(shower_age_newton())

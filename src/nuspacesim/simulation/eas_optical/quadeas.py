@@ -121,8 +121,8 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
 def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
     """Altitude as a function of shower age, decay altitude and emergence angle."""
 
-    alt_dec = np.asarray(alt_dec)
-    beta_tr = np.asarray(beta_tr)
+    # alt_dec = np.asarray(alt_dec)
+    # beta_tr = np.asarray(beta_tr)
 
     theta_tr = (np.pi / 2) - beta_tr
     param_beta = np.log(10 ** 8 / (0.710 / 8.36))
@@ -136,13 +136,13 @@ def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
     X_s = -1.222e19 * param_beta * s / ((10 / 6) * 1e17 * s - 5e17)
 
     def ff(z):
-        return slant_depth(alt_dec[mask], z, theta_tr[mask], epsrel=1e-2)[0] - X_s
+        return slant_depth(alt_dec, z, theta_tr, epsrel=1e-2)[0] - X_s
 
     def df(z):
-        return slant_depth_integrand(z, theta_tr[mask])
+        return slant_depth_integrand(z, theta_tr)
 
     altitude = np.full_like(alt_dec, z_max)
-    altitude[mask] = newton(ff, alt_dec[mask], fprime=df, **kwargs)
+    altitude[~mask] = newton(ff, alt_dec, fprime=df, **kwargs)
     return altitude
 
 
@@ -150,22 +150,6 @@ def e0(s):
     r"""Kinetic Energy charged primary of shower particles (MeV)"""
     E0 = np.where(s >= 0.4, 44.0 - 17.0 * (s - 1.46), 26.0)
     return E0
-
-
-def fractional_track_length(E, s, e0=e0):
-    r"""Fractional Track Length in radiation lengths.
-
-    Hillas 1461 eqn (8) variable T(E) =
-    (Total track length of all charged particles with kinetic energy > E)
-    /
-    (Total vertical component of tracks of all charged particles).
-
-    total track length of particles if energy > E in vertical thickness interval dx of
-    the shower is N_e*T(E)*dx.
-
-    """
-    E0 = e0(s)
-    return ((0.89 * E0 - 1.2) / (E0 + E)) ** s * (1.0 + 1.0e-4 * s * E) ** -2
 
 
 def shibata_grammage(z):
@@ -204,11 +188,14 @@ def cherenkov_threshold(AirN):
 
 
 def cherenkov_photon_yeild(thetaC, wavelength):
-    return ((2e9 / 137.04) * np.pi * np.sin(thetaC) ** 2) / wavelength ** 2
+    return np.multiply.outer(
+        1e9 * (2 * np.pi * (1.0 / 137.04) * np.sin(thetaC) ** 2),
+        np.reciprocal(wavelength ** 2),
+    )
 
 
 def sokolsky_rayleigh_scatter(X, wavelength):
-    return np.exp(-X / 2974.0 * (400.0 / wavelength) ** 4)
+    return np.exp(np.multiply.outer(-X / 2974.0, (400.0 / wavelength) ** 4))
 
 
 _spline_aod = BSpline(
@@ -263,7 +250,9 @@ def elterman_mie_aerosol_scatter(z, wavelength, beta_tr, earth_radius):
     """
 
     theta = np.sin(propagation_angle(beta_tr, z, earth_radius))
-    aTrans = np.exp(-(aerosol_optical_depth(z) / theta * aBetaF(wavelength)))
+    aTrans = np.exp(
+        -np.multiply.outer(aerosol_optical_depth(z) / theta, aBetaF(wavelength))
+    )
     return aTrans
 
 
@@ -362,11 +351,11 @@ def ozone_losses(ZonZ, wavelength):
     """
 
     Okappa = 10 ** (110.5 - 44.21 * np.log10(wavelength))
-    return np.exp((-1e-3 * ZonZ * Okappa))
+    return np.exp(-1e-3 * np.multiply.outer(ZonZ, Okappa))
 
 
 def scaled_differential_photon_yield(
-    ll, z, w, thetaC, X_ahead, RN, Lmax, alt_dec, beta_tr, earth_radius
+    w, ll, z, thetaC, X_ahead, RN, Lmax, alt_dec, beta_tr, earth_radius
 ):
 
     pyield = cherenkov_photon_yeild(thetaC, w)
@@ -374,41 +363,61 @@ def scaled_differential_photon_yield(
     TrOz = ozone_losses(ZonZ, w)
     TrRayl = sokolsky_rayleigh_scatter(X_ahead, w)
     TrAero = elterman_mie_aerosol_scatter(z, w, beta_tr, earth_radius)
-    SPyield = 1000 * pyield * RN * TrOz * TrRayl * TrAero
-    for i, zz in enumerate(z):
-        print(zz, w[i], f"{pyield[i]:e}", SPyield[i], sep="\t")
+    SPyield = (pyield * TrOz * TrRayl * TrAero) * (1000 * RN[:, None])
     return SPyield
 
 
-def dndu(theta, logenergy, s, AirN):
+def fractional_track_length(s, E, e0=e0):
+    r"""Fractional Track Length in radiation lengths.
 
-    eCthres = cherenkov_threshold(AirN)
+    Hillas 1461 eqn (8) variable T(E) =
+    (Total track length of all charged particles with kinetic energy > E)
+    /
+    (Total vertical component of tracks of all charged particles).
+
+    total track length of particles if energy > E in vertical thickness interval dx of
+    the shower is N_e*T(E)*dx.
+
+    """
+    # E0 = e0(s)
+    # return ((0.89 * E0 - 1.2) / (E0 + E)) ** s * (1.0 + 1.0e-4 * s * E) ** -2
+
+    E0 = e0(s)
+    pc = ((0.89 * E0 - 1.2)[:, None] / np.add.outer(E0, E)) ** s[:, None]
+    pg = (1.0 + 1.0e-4 * np.multiply.outer(s, E)) ** -2
+
+    return pc * pg
+
+
+def dndu(logenergy, o, s, AirN, thetaC):
+
+    # z, thenergy
+
+    theta = np.multiply.outer(thetaC, o)
+    # eCthres = cherenkov_threshold(AirN)
+    e2hill = 1150.0 + 454 * np.log(s)
 
     energy = 10 ** logenergy
 
-    whill = 2.0 * (1.0 - np.cos(theta)) * (energy / 21.0) ** 2
-    # print("whill", whill)
-    e2hill = 1150.0 + 454 * np.log(s)
-
-    vhill = np.where(e2hill > 0.0, energy / e2hill, 0.0)
-    # print("vhill", vhill)
+    vhill = np.multiply.outer(np.reciprocal(e2hill), energy)
     w_ave = 0.0054 * energy * (1.0 + vhill) / (1.0 + 13.0 * vhill + 8.3 * vhill ** 2)
-    # print("w_ave", w_ave)
+
+    whill = 2.0 * ((energy / 21.0) ** 2) * (1.0 - np.cos(theta))
+
     uhill = whill / w_ave
 
     squhill = np.sqrt(uhill)
     a2hill = np.where(squhill < 0.59, 0.380, 0.478)
-    sv2 = 0.777 * np.exp(-1.0 * (squhill - 0.59) / a2hill)
-    track = fractional_track_length(np.where(energy >= eCthres, energy, eCthres), s)
+    sv2 = 0.777 * np.exp(-(squhill - 0.59) / a2hill)
 
-    return sv2 * track
+    # # track = fractional_track_length(np.where(energy >= eCthres, energy, eCthres), s)
+    # etrack = fractional_track_length(s, energy)
+    # eCtrack = fractional_track_length(s, eCthres)
+
+    return sv2
 
 
-def intf(x_, alt_dec, beta_tr, z_max, z_det, earth_radius):
-    ll = x_[0]
-    w = x_[1]
-    o = x_[2]  # angle fraction between 0 and 1 # no E
-    e = x_[3]  # log energy.
+def intf(ll, alt_dec, beta_tr, z_max, z_det, earth_radius):
 
     theta_tr = (np.pi / 2) - beta_tr
     param_beta = np.log(10 ** 8 / (0.710 / 8.36))
@@ -427,17 +436,21 @@ def intf(x_, alt_dec, beta_tr, z_max, z_det, earth_radius):
     AirN = index_of_refraction_air(X_v)
     thetaC = cherenkov_angle(AirN)
 
-    # print("z", z, "thetaC", f"{thetaC:e}")
-    SPyield = scaled_differential_photon_yield(
-        ll, z, w, thetaC, X_ahead, RN, Lmax, alt_dec, beta_tr, earth_radius
-    )
+    SPyield = qp.quad(
+        lambda w: scaled_differential_photon_yield(
+            w, ll, z, thetaC, X_ahead, RN, Lmax, alt_dec, beta_tr, earth_radius
+        ),
+        200,
+        900,
+        epsabs=1e-4,
+        epsrel=1e-4,
+    )[0]
 
-    return SPyield
+    rect = qp.c2.rectangle_points([0.0, 9.0], [0.0, 1.0])
+    scheme = qp.c2.get_good_scheme(7)
+    val = scheme.integrate(lambda x: dndu(x[0], x[1], s, AirN, thetaC), rect)
 
-    frac_thetaC = o * thetaC
-    result_dndu = dndu(frac_thetaC, e, s, AirN)
-    # print(result_dndu.shape)
-    return SPyield * result_dndu
+    return SPyield * val
 
 
 def photon_density(alt_dec, beta_tr, z_max, z_det, earth_radius):
@@ -450,10 +463,12 @@ def photon_density(alt_dec, beta_tr, z_max, z_det, earth_radius):
     l_lo = length_along_prop_axis(alt_dec, z_lo, beta_tr, earth_radius)
     l_hi = length_along_prop_axis(alt_dec, z_hi, beta_tr, earth_radius)
 
+    print("llow", l_lo, "lhi", l_hi)
+
     return qp.quad(
         intf,
-        [l_lo, 200, 0, 1],
-        [l_hi, 900, 1, 9],
+        l_lo,
+        l_hi,
         args=(alt_dec, beta_tr, z_max, z_det, earth_radius),
-        epsrel=1e-4,
+        epsrel=1e-8,
     )
