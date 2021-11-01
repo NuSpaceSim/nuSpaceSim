@@ -1,37 +1,35 @@
 import h5py 
 import importlib_resources
 import numpy as np 
-
+import time  
 #what is need to create composite
 #shower parameters of each type
 #isolated pythia energies to scale each shower Nmax
 #make scaled showers 
 #sum showers for each event
-
+np.seterr(all='ignore')
 try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
  
 class ShowerParameterization: 
-    def __init__(self, table_decay_e, event_tag):
+    r""" Class calculating particle content per shower for 
+    GH and Greissen parametrizations. 
+    """
+    def __init__(self, table_decay_e, event_tag, decay_tag):
         
         # pythia related params
         self.table_decay_e = table_decay_e
         self.event_tag = event_tag
+        self.decay_tag = decay_tag
         
-    def greisen(self, 
-                shower_end = 2000, 
-                grammage = 1, 
-                table_energy = 100e15):
-    
-        #scaled_gh_n_max = gh_n_max * self.table_decay_e
-        
-        x = np.linspace( 1, shower_end, int(shower_end / grammage))  #slant depths 
-        
-        # source: https://pdg.lbl.gov/2015/AtomicNuclearProperties/HTML/air_dry_1_atm.html
-       
-        # x0 is the radiation length in air ~ 37 g/cm^2
+    def greisen(self, shower_end = 2000, grammage = 1, table_energy = 100e15):
+        #slant depths 
+        x = np.linspace( 1, shower_end, int(shower_end / grammage))  
+      
+        # x0 is the radiation length in air ~ 37 g/cm^2 
+        #(pdg.lbl.gov/2015/AtomicNuclearProperties/HTML/air_dry_1_atm.html
         x_naught = 36.62 
         
         #critical energy for electromagnetic cascades in the air
@@ -55,15 +53,9 @@ class ShowerParameterization:
          
         return x, content, self.event_tag
         
-    def gaisser_hillas(self, 
-                       n_max, 
-                       x_max, 
-                       x_0, 
-                       p1, 
-                       p2, 
-                       p3, 
-                       shower_end = 2000, 
-                       grammage = 1):
+    def gaisser_hillas(
+        self, n_max, x_max, x_0, p1, p2, p3, shower_end = 2000, grammage = 1
+        ):
         
         scaled_n_max = n_max * self.table_decay_e
         
@@ -88,37 +80,85 @@ class ShowerParameterization:
         
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
         #t = (x - x_max)/36.62 #shower stage
-         
-        return x, f, self.event_tag
+        
+        #tag the outputs with the event number
+        x = np.r_[self.event_tag,self.decay_tag,x]
+        f = np.r_[self.event_tag,self.decay_tag,f]
+        return x, f
     
+    # def gaisser_hillas(
+    #     self, n_max, x_max, x_0, p1, p2, p3, shower_end=2000, grammage=1
+    # ):
+
+    #     scaled_n_max = n_max * self.table_decay_e
+
+    #     # constrains starting depths
+    #     x = np.linspace(1, shower_end, shower_end)  # slant depths g/cm^2
+
+    #     # calculating gaisser-hillas function
+    #     print(p1.shape, p2.shape, x.shape, p3.shape)
+    #     v2 = np.multiply.outer(p2, x)
+    #     v3 = np.multiply.outer(p3, x ** 2)
+    #     gh_lambda = p1[:, None] + v2 + v3
+    #     print(gh_lambda.shape)
+
+    #     exp1 = (x_max - x_0)[:, None] / gh_lambda
+
+    #     a1 = x - x_0[:, None]
+    #     a2 = x_max - x_0
+    #     a3 = a1 / a2[:, None]
+    #     a4 = a3 ** exp1
+    #     term1 = scaled_n_max[:, None] * np.nan_to_num(a4)
+
+    #     exp2 = (x_max[:, None] - x) / gh_lambda
+    #     term2 = np.exp(exp2)
+
+    #     f = np.nan_to_num(term1 * term2)
+
+    #     return x, f, self.event_tag
+        
+    # def single_particle_showers(self, gh_params = sefelectron_gh, tau_energies):
+    #     shower = ShowerParameterization(
+    #         table_decay_e=tau_energies, event_tag=tau_energies
+    #     )
+    #     depths, _, _ = shower.gaisser_hillas(
+    #         n_max=gh_params[:, 4],
+    #         x_max=gh_params[:, 5],
+    #         x_0=gh_params[:, 6],
+    #         p1=gh_params[:, 7],
+    #         p2=gh_params[:, 8],
+    #         p3=gh_params[:, 9],
+    #     )
+    #     return depths
+  
     
 class CompositeShowers():    
-    r""" Make composite showers with constituent electrons, gamma, and pions, contributions scaled
-    by sampled tau energies. 
+    r""" Make composite showers with constituent electrons, gamma, and pions, 
+    contributions scaled by sampled tau energies. 
     
     """
     def __init__(self, shower_end: int = 2000, grammage: int = 1):  
         
         with as_file(
-                files('nuspacesim.data.conex_gh_params') / 'electron_EAS_table.h5'
+            files('nuspacesim.data.conex_gh_params') / 'electron_EAS_table.h5'
         ) as path:
             data = h5py.File(path, 'r')
             electron_gh = np.array(data.get('EASdata_11'))
             
         with as_file(
-                files('nuspacesim.data.conex_gh_params') / 'gamma_EAS_table.h5'
+            files('nuspacesim.data.conex_gh_params') / 'gamma_EAS_table.h5'
         ) as path:
             data = h5py.File(path, 'r')
             gamma_gh = np.array(data.get('EASdata_22'))
             
         with as_file(
-                files('nuspacesim.data.conex_gh_params') / 'pion_EAS_table.h5'
+            files('nuspacesim.data.conex_gh_params') / 'pion_EAS_table.h5'
         ) as path:
             data = h5py.File(path, 'r')
             pion_gh = np.array(data.get('EASdata_211'))        
             
         with as_file(
-                files('nuspacesim.data.pythia_tau_decays') / 'new_tau_100_PeV.h5'
+            files('nuspacesim.data.pythia_tau_decays') / 'new_tau_100_PeV.h5'
         ) as path:
             data = h5py.File(path, 'r')
             tau_decays = np.array(data.get('tau_data'))  
@@ -126,74 +166,155 @@ class CompositeShowers():
         self.electron_showers = electron_gh
         self.gamma_showers = gamma_gh
         self.pion_showers = pion_gh
+        
         self.tau_tables = tau_decays
         
         # shower development characterisitics
         self.shower_end = shower_end
         self.grammage = grammage
+        
+    def conex_params(self):
+        r""" Return sampled GH paramters for electrons, pions, and gammas.
+        """
+        return self.electron_showers, self.pion_showers, self.gamma_showers
+        
     
     def tau_daughter_energies(self):
-        r"""Isolate energy contributions of pion, kaon, electron, and gamma daughters.
+        r"""Isolate energy contributions of pion, kaon, electron, 
+        and gamma daughters.
+        
         Used to scale Nmax of respective GH showers.  
         
         """
         electron_mask = self.tau_tables[:,2] == 11
-        electron_energies = self.tau_tables[electron_mask] [:,[0,-1]] 
+        electron_energies = self.tau_tables[electron_mask] [:,[0,1,-1]] 
     
         gamma_mask = self.tau_tables[:,2] == 22
-        gamma_energies = self.tau_tables[gamma_mask ] [:,[0,-1]] 
+        gamma_energies = self.tau_tables[gamma_mask ] [:,[0,1,-1]] 
         
         # kaons and pions treated the same 
         pion_kaon_mask = ((self.tau_tables[:,2] == 211) | (self.tau_tables[:,2] == -211)) | \
                          ((self.tau_tables[:,2] == 321) | (self.tau_tables[:,2] == -321))
-        pion_energies = self.tau_tables[pion_kaon_mask] [:,[0,-1]]
+        pion_energies = self.tau_tables[pion_kaon_mask] [:,[0,1,-1]]
         
         # each row has [event_num, energy ] 
-        return electron_energies, gamma_energies, pion_energies 
-    
-    def single_particle_showers(self, gh_params, tau_energies): 
+        return electron_energies, pion_energies, gamma_energies 
         
-        showers = np.empty([ gh_params.shape[0], self.shower_end/ self.grammage]) 
-        depths =  np.empty([ gh_params.shape[0], self.shower_end/ self.grammage]) 
+    def single_particle_showers(self, tau_energies, gh_params): 
+        r""" Create single particle showers Nmax scaled by pythia energies
+        from same PID.
+        """
         
-        for row in gh_params:
+        # pre-allocate arrays, make room for event tag and decay tag 
+        showers = np.empty([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 2)]) 
+        depths =  np.empty([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 2)]) 
+        
+        for row,(shower_params,tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
+            
             shower = ShowerParameterization (
-                table_decay_e =  tau_energies[row],event_tag = tau_energies[row] 
+                table_decay_e=tau_dec_e[-1], event_tag=tau_dec_e[0], decay_tag=tau_dec_e[1]
             )
             
-            depth, shower_content, event_num = shower.gaisser_hillas(n_max = gh_params[row, 4],
-                                                                      x_max = gh_params[row, 5],
-                                                                      x_0 = gh_params[row, 6],
-                                                                      p1 = gh_params[row, 7],
-                                                                      p2 = gh_params[row, 8],
-                                                                      p3 = gh_params[row, 9],
-                                                                      shower_end = self.shower_end,
-                                                                      grammage = self.shower_end)
+            depth, shower_content= shower.gaisser_hillas(
+                                    n_max = shower_params[4],
+                                    x_max = shower_params[5],
+                                    x_0 = shower_params[6],
+                                    p1 = shower_params[7],
+                                    p2 = shower_params[8],
+                                    p3 = shower_params[9],
+                                    shower_end = self.shower_end,
+                                    grammage = self.shower_end)
+            
             showers[row,:] = shower_content
             depths[row,:] = depth 
             
-        return depth, shower_content, event_num
+        return showers, depths
+    
+    
+    def composite_showers(self, **kwargs):
+        r""" From single particle showers, create composite showers by
+        summing each event. 
+        
+        Returns:
+            Composite Showers in # of Charged Particles with columns 0 and 1
+            being the event number and decay ID, repsectively.
             
+            Uniform bins of the showers, all constrained to be uniform, 
+            set by end_shower and grammage.
     
-    
-    
-    
-    # with importlib_resources.as_file(gamma) as path:
-    #     data = h5py.File(path, 'r')
-    #     gamma_gh = np.array(data.get('EASdata_22'))
+        """
         
-    # with importlib_resources.as_file(pion) as path:
-    #     data = h5py.File(path, 'r')
-    #     pion_gh = np.array(data.get('EASdata_211'))
-        
-    # with importlib_resources.as_file(pythia_output) as path:
-    #     data = h5py.File(path, 'r')
-    #     tau_decays = np.array(data.get('tau_data'))
-        
-    #return electron_gh, gamma_gh, pion_gh, tau_decays
+        # read in all arrays and get a main array containing all of them. 
+        single_showers = kwargs.get('single_showers')
+        single_shower_bins = kwargs.get('shower_bins')
+        single_showers = np.concatenate((single_showers), axis=0) 
+        single_shower_bins = np.concatenate((single_shower_bins), axis=0) 
+        # sort by event number
+        single_showers = single_showers[single_showers[:,0].argsort()]
+        single_shower_bins  = single_shower_bins[single_shower_bins[:,0].argsort()]
+            
+        grps, idx = np.unique(single_showers[:,0], return_index=True, axis=0)
+        unique_event_tags = np.take(single_showers[:,1], idx)
+        counts = np.add.reduceat(single_showers[:, 2:], idx)
+        composite_showers = np.column_stack((grps,unique_event_tags,counts))
+        composite_depths = np.unique(single_shower_bins, axis = 0)
 
-#test1, test2, test3, test4 = load_data()
+        return  composite_showers, composite_depths
+    
+    def __call__ (self):
+        
+        electron_gh, pion_gh, gamma_gh= self.conex_params()
+        electron_e, pion_e, gamma_e = self.tau_daughter_energies()
+        
+        elec_showers, elec_depths = self.single_particle_showers(
+            tau_energies=electron_e, gh_params=electron_gh
+            )
+    
+        pion_showers, pion_depths = self.single_particle_showers(
+            tau_energies=pion_e, gh_params=pion_gh
+            )
+    
+        gamm_showers, gamm_depths = self.single_particle_showers(
+            tau_energies=gamma_e, gh_params=gamma_gh
+            )
+        
+        comp_showers, depths = self.composite_showers( 
+            single_showers = (elec_showers, pion_showers, gamm_showers), 
+            shower_bins = (elec_depths, pion_depths, gamm_depths)
+        )
+            
+        return comp_showers, depths
+
+    
+
+
 
 if __name__ == '__main__': 
+    t0 = time.time()
+    # x = CompositeShowers()
+    # electron_gh, pion_gh, gamma_gh= x.conex_params()
+    # electron_e, pion_e, gamma_e = x.tau_daughter_energies()
+    
+    # elec_showers, elec_depths = x.single_particle_showers(tau_energies=electron_e,  
+    #                                                       gh_params=electron_gh)
+    
+    # pion_showers, pion_depths = x.single_particle_showers(tau_energies=pion_e,  
+    #                                                       gh_params=pion_gh)
+    
+    # gamm_showers, gamm_depths = x.single_particle_showers(tau_energies=gamma_e,   
+    #                                                       gh_params=gamma_gh)
+    
+    # test1, test2 = x.composite_showers(
+    #     single_showers = (elec_showers, pion_showers, gamm_showers), 
+    #     shower_bins = (elec_depths, pion_depths, gamm_depths)
+    #     )
+    
     x = CompositeShowers()
-    electron,gamma,pion = x.tau_daughter_energies()
+    test_1, test_2 = x() 
+    
+    t1 = time.time()
+    
+    total = t1-t0 
+    print(total)
+
+    
