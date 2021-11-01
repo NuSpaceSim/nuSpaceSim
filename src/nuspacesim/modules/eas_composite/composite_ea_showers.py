@@ -316,6 +316,16 @@ def modified_gh (x, n_max, x_max, x_0, p1, p2, p3):
             
     return particles
 
+
+def const_lambda (x, n_max, x_max, x_0, gh_lambda): 
+    
+    particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))                  \
+                                   **((x_max - x_0)/gh_lambda) )  )                    \
+            *                                                                           \
+            ( np.exp((x_max - x)/gh_lambda) )    
+    
+    return  particles
+
 def fit_composites (comp_shower, depth): 
     event_tag =  comp_shower[0]
     decay_tag_num =  comp_shower[1]
@@ -346,7 +356,35 @@ def fit_composites (comp_shower, depth):
     fits = np.array([event_tag, decay_tag_num, fit_n_max, fit_x_max, fit_x_0, fit_p1, fit_p2, fit_p3])
     return fits
     
-  
+def fit_composites_1 (comp_shower, depth): 
+    event_tag =  comp_shower[0]
+    decay_tag_num =  comp_shower[1]
+    
+    comp_shower = comp_shower[2:]
+    depth = depth[2:]
+    
+    nmax, xmax = bin_nmax_xmax(
+        bins=depth, particle_content=comp_shower
+        )
+    
+    fit_params, covariance = optimize.curve_fit(
+                        f=const_lambda, 
+                        xdata=depth, 
+                        ydata=comp_shower,
+                        p0=[nmax,xmax,0,70], 
+                        bounds=([0,0,-np.inf,-np.inf], 
+                                [np.inf,np.inf,np.inf,np.inf])
+                        )
+    
+    fit_n_max = fit_params[0]
+    fit_x_max = fit_params[1]
+    fit_x_0 = fit_params[2]
+    fit_gh_lambda = fit_params[3]
+    # fit_p2 = fit_params[4]
+    # fit_p3 = fit_params[4]
+    
+    fits = np.array([event_tag, decay_tag_num, fit_n_max, fit_x_max, fit_x_0, fit_gh_lambda])
+    return fits  
 
 
 if __name__ == '__main__': 
@@ -355,18 +393,22 @@ if __name__ == '__main__':
     x = CompositeShowers()
     comp_showers, depths = x() 
     
-    fits = np.empty([comp_showers.shape[0], 8]) 
+    fits = np.empty([comp_showers.shape[0], 6]) 
     
+    # do next: lambda with a one percent cut.
+    # show distributions of chi squares. 
+    # constant lambda plots rebounds 
+    # 
     
     for row,(shower, depth) in enumerate(zip(comp_showers, depths)):
         try:
-            shower_fit = fit_composites( comp_shower=shower, depth= depth )
+            shower_fit = fit_composites_1( comp_shower=shower, depth= depth )
         
             fits[row,:] = shower_fit
         except: 
             print("Can't fit shower", row)
-            a = np.empty((0,6))
-            fits[row,:] = a.fill(np.nan)
+            #a = np.empty((0,6))
+            #fits[row,:] = a.fill(np.nan)
     
     
     
