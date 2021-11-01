@@ -2,11 +2,9 @@ import h5py
 import importlib_resources
 import numpy as np 
 import time  
-#what is need to create composite
-#shower parameters of each type
-#isolated pythia energies to scale each shower Nmax
-#make scaled showers 
-#sum showers for each event
+from scipy import optimize
+# from ...utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+
 np.seterr(all='ignore')
 try:
     from importlib.resources import as_file, files
@@ -285,35 +283,95 @@ class CompositeShowers():
             
         return comp_showers, depths
 
-    
 
+
+def bin_nmax_xmax (bins, particle_content):
+    r"""
+    given an array of Slant Depths and Particle Content values for the same particle 
+    (can be any number of events, but need to be same size), returns the Nmax and Xmax Values 
+    
+    per row (if composite showers and bins are inputted, per event) 
+    
+    intended to use for nmax and xmax distribution analysis 
+    """
+
+    try:
+        bin_nmax = np.amax(particle_content, axis = 1) 
+        bin_nmax_pos =  np.nanargmax(particle_content, axis = 1)
+        bin_xmaxs = bins[np.arange(len(bins)), bin_nmax_pos]
+    except: 
+        bin_nmax = np.amax(particle_content) 
+        bin_nmax_pos =  np.nanargmax(particle_content)
+        bin_xmaxs = bins[bin_nmax_pos]
+    
+    return bin_nmax,  bin_xmaxs
+
+
+def modified_gh (x, n_max, x_max, x_0, p1, p2, p3): 
+    
+    particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))                  \
+                                    **( (x_max - x_0)/(p1 + p2*x + p3*(x**2)) )  ) )   \
+            *                                                                           \
+            ( np.exp((x_max - x)/(p1 + p2*x + p3*(x**2))) )
+            
+    return particles
+
+def fit_composites (comp_shower, depth): 
+    event_tag =  comp_shower[0]
+    decay_tag_num =  comp_shower[1]
+    
+    comp_shower = comp_shower[2:]
+    depth = depth[2:]
+    
+    nmax, xmax = bin_nmax_xmax(
+        bins=depth, particle_content=comp_shower
+        )
+    
+    fit_params, covariance = optimize.curve_fit(
+                        f=modified_gh, 
+                        xdata=depth, 
+                        ydata=comp_shower,
+                        p0=[nmax,xmax,0,70,-0.01,1e-05], 
+                        bounds=([0,0,-np.inf,-np.inf,-np.inf,-np.inf], 
+                                [np.inf,np.inf,np.inf,np.inf,np.inf,np.inf])
+                        )
+    
+    fit_n_max = fit_params[0]
+    fit_x_max = fit_params[1]
+    fit_x_0 = fit_params[2]
+    fit_p1 = fit_params[3]
+    fit_p2 = fit_params[4]
+    fit_p3 = fit_params[4]
+    
+    fits = np.array([event_tag, decay_tag_num, fit_n_max, fit_x_max, fit_x_0, fit_p1, fit_p2, fit_p3])
+    return fits
+    
+  
 
 
 if __name__ == '__main__': 
     t0 = time.time()
-    # x = CompositeShowers()
-    # electron_gh, pion_gh, gamma_gh= x.conex_params()
-    # electron_e, pion_e, gamma_e = x.tau_daughter_energies()
-    
-    # elec_showers, elec_depths = x.single_particle_showers(tau_energies=electron_e,  
-    #                                                       gh_params=electron_gh)
-    
-    # pion_showers, pion_depths = x.single_particle_showers(tau_energies=pion_e,  
-    #                                                       gh_params=pion_gh)
-    
-    # gamm_showers, gamm_depths = x.single_particle_showers(tau_energies=gamma_e,   
-    #                                                       gh_params=gamma_gh)
-    
-    # test1, test2 = x.composite_showers(
-    #     single_showers = (elec_showers, pion_showers, gamm_showers), 
-    #     shower_bins = (elec_depths, pion_depths, gamm_depths)
-    #     )
     
     x = CompositeShowers()
-    test_1, test_2 = x() 
+    comp_showers, depths = x() 
+    
+    fits = np.empty([comp_showers.shape[0], 8]) 
+    
+    
+    for row,(shower, depth) in enumerate(zip(comp_showers, depths)):
+        try:
+            shower_fit = fit_composites( comp_shower=shower, depth= depth )
+        
+            fits[row,:] = shower_fit
+        except: 
+            print("Can't fit shower", row)
+            a = np.empty((0,6))
+            fits[row,:] = a.fill(np.nan)
+    
+    
+    
     
     t1 = time.time()
-    
     total = t1-t0 
     print(total)
 
