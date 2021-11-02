@@ -106,7 +106,7 @@ class EASRadio:
 
         Re = self.config.constants.earth_radius
         B_angle = np.ones(altDec[mask].shape)
-        B_angle *= np.pi - np.arccos(
+        B_angle *= np.pi / 2.0 - np.arccos(
             (lenDec[mask] ** 2.0 + (altDec[mask] + Re) ** 2.0 - Re ** 2.0)
             / (2.0 * lenDec[mask] * (altDec[mask] + Re))
         )
