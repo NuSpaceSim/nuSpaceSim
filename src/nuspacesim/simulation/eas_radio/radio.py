@@ -99,6 +99,19 @@ class EASRadio:
                 ionosphereScaling = ionosphere(EFields[mask])
                 EFields[mask] *= ionosphereScaling
 
+        # radio emission from EAS has two components, geomagnetic and Askaryan
+        # Askaryan is ~20% of full strength geomagnetic
+        # geomagnetic is only full strength when perpendicular to Earth B-field
+        # here i apply a scaling for vxB for an orbit close to equatorial
+       
+        Re = self.config.constants.earth_radius
+        B_angle = np.ones(altDec[mask].shape)
+        B_angle *= np.pi - np.arccos((lenDec[mask]**2 + (altDec[mask] + Re)**2 - Re**2)/(2*lenDec[mask]*(altDec[mask]+Re)))
+        bounds = np.radians(30.)
+        B_angle += np.random.uniform(-1*bounds, bounds, altDec[mask].shape)
+        B_angle = np.abs(np.sin(B_angle))
+        EFields[mask] = 1./6. * EFields[mask] + (5./6. * EFields[mask].T * B_angle).T
+
         return EFields
 
 
