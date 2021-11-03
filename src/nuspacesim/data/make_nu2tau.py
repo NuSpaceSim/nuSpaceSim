@@ -44,7 +44,10 @@ np.set_printoptions(linewidth=np.inf)
 
 
 def nu2tau_pexit_from_ascii():
-    pexit_file = AstropyTable.read("RenoNu2TauTables/multi-efix.26", format="ascii")
+    pexit_file = AstropyTable.read(
+        "src/nuspacesim/data/RenoNu2TauTables/multi-efix-v5-sm35-5r-2020.26",
+        format="ascii",
+    )
 
     beta_rad = np.unique(np.radians(pexit_file.columns[0].data))
     log_e_nu = np.unique(np.log10(pexit_file.columns[1].data))
@@ -52,7 +55,7 @@ def nu2tau_pexit_from_ascii():
         np.log10(pexit_file.columns[-1].data), (len(log_e_nu), len(beta_rad))
     )
 
-    del pexit_file
+    # del pexit_file
 
     return NssGrid(pexit_table, [log_e_nu, beta_rad], ["log_e_nu", "beta_rad"])
 
@@ -118,14 +121,15 @@ def make_nu2tau_pexit_from_ascii():
 
     pexit_grid = nu2tau_pexit_from_ascii()
 
-    # fname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_pexit.fits"
-    hname = "RenoNu2TauTables/nu2tau_pexit.hdf5"
-    # pexit_grid.write(fname, overwrite=True, format="fits")
-    pexit_grid.write(hname, overwrite=True, format="hdf5")
-    # grd2 = NssGrid.read(fname, format="fits")
-    grd3 = NssGrid.read(hname, format="hdf5")
-    # print(pexit_grid == grd2)
+    hname = "src/nuspacesim/data/RenoNu2TauTables/reno_nu2tau_pexit.hdf5"
+    pexit_grid.write(hname, path="/", overwrite=True, format="hdf5")
+    grd3 = NssGrid.read(hname, path="/", format="hdf5")
     print(pexit_grid == grd3)
+
+    # fname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_pexit.fits"
+    # pexit_grid.write(fname, overwrite=True, format="fits")
+    # grd2 = NssGrid.read(fname, format="fits")
+    # print(pexit_grid == grd2)
 
 
 def nu2tau_tauEDistCDF_from_ascii():
@@ -209,6 +213,6 @@ def make_nu2tau_cdf_from_nupyprop_v1():
 
 
 if __name__ == "__main__":
-    # make_nu2tau_pexit_from_ascii()
-    make_nu2tau_pexit_from_nupyprop_v1()
-    make_nu2tau_cdf_from_nupyprop_v1()
+    make_nu2tau_pexit_from_ascii()
+    # make_nu2tau_pexit_from_nupyprop_v1()
+    # make_nu2tau_cdf_from_nupyprop_v1()
