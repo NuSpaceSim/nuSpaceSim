@@ -41,7 +41,7 @@ from ...utils import decorators
 from ...utils.grid import NssGrid
 from ...utils.cdf import grid_inverse_sampler
 from ...utils.interp import grid_slice_interp
-from .local_plots import taus_scatter
+from .local_plots import taus_scatter, taus_histogram
 
 try:
     from importlib.resources import as_file, files
@@ -82,8 +82,13 @@ class Taus(object):
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_pexit.hdf5"
         ) as file:
             g = NssGrid.read(file, path="pexit_regen", format="hdf5")
-            sg = grid_slice_interp(g, config.simulation.log_nu_tau_energy, "log_e_nu")
-            self.pexit_interp = interp1d(sg.axes[0], sg.data)
+            self.sliced_tau_cdf_grid = grid_slice_interp(
+                g, config.simulation.log_nu_tau_energy, "log_e_nu"
+            )
+            self.pexit_interp = interp1d(
+                self.sliced_tau_cdf_grid.axes[0],
+                np.log10(self.sliced_tau_cdf_grid.data),
+            )
 
         # grid of tau_cdf tables
         with as_file(
@@ -100,9 +105,9 @@ class Taus(object):
         """
         mask = betas >= np.radians(1.0)
         tau_exit_prob = np.full(
-            betas.shape, self.pexit_interp(np.array([np.radians(1.0)]))
+            betas.shape, 10 ** self.pexit_interp(np.array([np.radians(1.0)]))
         )
-        tau_exit_prob[mask] = self.pexit_interp(betas[mask])
+        tau_exit_prob[mask] = 10 ** self.pexit_interp(betas[mask])
 
         return tau_exit_prob
 
@@ -111,11 +116,17 @@ class Taus(object):
         Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
         mask = betas >= np.radians(1.0)
-        E_tau = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
+        # E_tau = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
+        E_tau = np.empty_like(betas)
         E_tau[mask] = self.tau_cdf_sample(betas[mask])
+        val = (
+            np.full(betas[~mask].shape, self.sliced_tau_cdf_grid["beta_rad"][0])
+            # + 1e-5
+        )
+        E_tau[~mask] = self.tau_cdf_sample(val)
         return E_tau * self.config.simulation.nu_tau_energy
 
-    @decorators.nss_result_plot(taus_scatter)
+    @decorators.nss_result_plot(taus_scatter, taus_histogram)
     @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
     def __call__(self, betas):
         r"""Perform main operation for Taus module.

@@ -46,25 +46,51 @@ def taus_scatter(inputs, results, *args, **kwargs):
 
     fig, ax = plt.subplots(2, 2, sharex=True)
 
-    ax[0, 0].scatter(x=np.degrees(betas), y=tauBeta, c=color, alpha=alpha)
+    ax[0, 0].scatter(x=np.degrees(betas), y=np.log10(tauBeta), c=color, alpha=alpha)
     ax[0, 0].set_xlabel("β")
     ax[0, 0].set_ylabel("τ_β")
     ax[0, 0].set_title("β vs τ_β")
 
-    ax[0, 1].scatter(x=np.degrees(betas), y=tauLorentz, c=color, alpha=alpha)
+    ax[0, 1].scatter(x=np.degrees(betas), y=np.log10(tauLorentz), c=color, alpha=alpha)
     ax[0, 1].set_xlabel("β")
     ax[0, 1].set_ylabel("τ_Lorentz")
     ax[0, 1].set_title("β vs τ_Lorentz")
 
-    ax[1, 0].scatter(x=np.degrees(betas), y=showerEnergy, c=color, alpha=alpha)
+    ax[1, 0].scatter(
+        x=np.degrees(betas), y=np.log10(showerEnergy), c=color, alpha=alpha
+    )
     ax[1, 0].set_xlabel("β")
     ax[1, 0].set_ylabel("E_shower (100 PeV)")
     ax[1, 0].set_title("β vs E_shower")
 
-    ax[1, 1].scatter(x=np.degrees(betas), y=tauExitProb, c=color, alpha=alpha)
+    ax[1, 1].scatter(x=np.degrees(betas), y=np.log10(tauExitProb), c=color, alpha=alpha)
     ax[1, 1].set_xlabel("β")
     ax[1, 1].set_ylabel("PExit(τ)")
     ax[1, 1].set_title("β vs Exit Probability.")
 
     fig.suptitle("Tau interaction properties vs. β_tr Angles")
+    plt.show()
+
+
+def taus_histogram(inputs, results, *args, **kwargs):
+    r"""Plot some histograms"""
+
+    tau_self, betas = inputs
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = results
+
+    color = "c"
+    alpha = 0.5
+
+    fig, ax = plt.subplots(2, 2)
+
+    ax[0, 0].hist(tauBeta, 100, log=True, facecolor=color, alpha=alpha)
+    ax[0, 0].set_xlabel("τ_β")
+    ax[0, 1].hist(tauLorentz, 100, log=True, facecolor=color, alpha=alpha)
+    ax[0, 1].set_xlabel("τ_Lorentz")
+    ax[1, 0].hist(showerEnergy, 100, log=True, facecolor=color, alpha=alpha)
+    ax[1, 0].set_xlabel("showerEnergy")
+    ax[1, 1].hist(tauExitProb, 100, log=True, facecolor=color, alpha=alpha)
+    ax[1, 1].set_xlabel("PExit(τ)")
+
+    fig.suptitle("Tau interaction property Histograms")
     plt.show()
