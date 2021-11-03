@@ -82,21 +82,21 @@ class Taus(object):
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_pexit.hdf5"
         ) as file:
             g = NssGrid.read(file, path="pexit_regen", format="hdf5")
-            self.sliced_tau_cdf_grid = grid_slice_interp(
+            self.sliced_tau_pexit_grid = grid_slice_interp(
                 g, config.simulation.log_nu_tau_energy, "log_e_nu"
             )
             self.pexit_interp = interp1d(
-                self.sliced_tau_cdf_grid.axes[0],
-                np.log10(self.sliced_tau_cdf_grid.data),
+                self.sliced_tau_pexit_grid.axes[0],
+                np.log10(self.sliced_tau_pexit_grid.data),
             )
 
         # grid of tau_cdf tables
         with as_file(
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.hdf5"
         ) as file:
-            tau_cdf_grid = NssGrid.read(file, format="hdf5")
+            self.tau_cdf_grid = NssGrid.read(file, format="hdf5")
             self.tau_cdf_sample = grid_inverse_sampler(
-                tau_cdf_grid, config.simulation.log_nu_tau_energy
+                self.tau_cdf_grid, config.simulation.log_nu_tau_energy
             )
 
     def tau_exit_prob(self, betas):
@@ -119,11 +119,9 @@ class Taus(object):
         # E_tau = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
         E_tau = np.empty_like(betas)
         E_tau[mask] = self.tau_cdf_sample(betas[mask])
-        val = (
-            np.full(betas[~mask].shape, self.sliced_tau_cdf_grid["beta_rad"][0])
-            # + 1e-5
+        E_tau[~mask] = self.tau_cdf_sample(
+            np.full(betas[~mask].shape, self.tau_cdf_grid["beta_rad"][0])
         )
-        E_tau[~mask] = self.tau_cdf_sample(val)
         return E_tau * self.config.simulation.nu_tau_energy
 
     @decorators.nss_result_plot(taus_scatter, taus_histogram)
