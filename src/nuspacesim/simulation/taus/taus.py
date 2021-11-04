@@ -41,7 +41,7 @@ from ...utils import decorators
 from ...utils.grid import NssGrid
 from ...utils.cdf import grid_inverse_sampler
 from ...utils.interp import grid_slice_interp
-from .local_plots import taus_scatter, taus_histogram
+from .local_plots import taus_scatter, taus_histogram, taus_pexit
 
 try:
     from importlib.resources import as_file, files
@@ -108,7 +108,6 @@ class Taus(object):
             betas.shape, 10 ** self.pexit_interp(np.array([np.radians(1.0)]))
         )
         tau_exit_prob[mask] = 10 ** self.pexit_interp(betas[mask])
-
         return tau_exit_prob
 
     def tau_energy(self, betas):
@@ -124,7 +123,7 @@ class Taus(object):
         )
         return E_tau * self.config.simulation.nu_tau_energy
 
-    @decorators.nss_result_plot(taus_scatter, taus_histogram)
+    @decorators.nss_result_plot(taus_scatter, taus_histogram, taus_pexit)
     @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
     def __call__(self, betas):
         r"""Perform main operation for Taus module.

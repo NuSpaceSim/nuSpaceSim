@@ -126,11 +126,6 @@ def make_nu2tau_pexit_from_ascii():
     grd3 = NssGrid.read(hname, path="/", format="hdf5")
     print(pexit_grid == grd3)
 
-    # fname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_pexit.fits"
-    # pexit_grid.write(fname, overwrite=True, format="fits")
-    # grd2 = NssGrid.read(fname, format="fits")
-    # print(pexit_grid == grd2)
-
 
 def nu2tau_tauEDistCDF_from_ascii():
 
@@ -148,7 +143,9 @@ def nu2tau_tauEDistCDF_from_ascii():
         grids.append(
             (
                 lognuenergy,
-                NssGrid(tauCDF, [tauEfrac, brad], axis_names=["tauEfrac", "beta_rad"]),
+                NssGrid(
+                    tauCDF.T, [brad, tauEfrac], axis_names=["beta_rad", "e_tau_frac"]
+                ),
             )
         )
     return grids
@@ -158,14 +155,10 @@ def make_nu2tau_cdf_from_ascii():
 
     tau_cdf_grids = nu2tau_tauEDistCDF_from_ascii()
 
-    # fname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.fits"
     hname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.hdf5"
     for log_e_nu, g in tau_cdf_grids:
-        # g.write(fname, overwrite=True, format="fits")
         g.write(hname, path=f"/log_nu_e_{log_e_nu}", format="hdf5")
-        # grd2 = NssGrid.read(fname, format="fits")
         grd3 = NssGrid.read(hname, format="hdf5", path=f"/log_nu_e_{log_e_nu}")
-        # print(tau_cdf_grid == grd2)
         print(g == grd3)
 
 
@@ -213,6 +206,7 @@ def make_nu2tau_cdf_from_nupyprop_v1():
 
 
 if __name__ == "__main__":
-    make_nu2tau_pexit_from_ascii()
+    # make_nu2tau_pexit_from_ascii()
     # make_nu2tau_pexit_from_nupyprop_v1()
     # make_nu2tau_cdf_from_nupyprop_v1()
+    make_nu2tau_cdf_from_ascii()

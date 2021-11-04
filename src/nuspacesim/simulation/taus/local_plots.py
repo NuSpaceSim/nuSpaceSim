@@ -94,3 +94,32 @@ def taus_histogram(inputs, results, *args, **kwargs):
 
     fig.suptitle("Tau interaction property Histograms")
     plt.show()
+
+
+def taus_pexit(inputs, results, *args, **kwargs):
+    tau_self, betas = inputs
+    tauBeta, tauLorentz, showerEnergy, tauExitProb = results
+
+    color = "c"
+    alpha = 0.5
+
+    fig, ax = plt.subplots(1, 2)
+
+    ax[0].scatter(
+        x=np.degrees(betas),
+        y=np.log10(tauExitProb),
+        s=1,
+        c=color,
+        marker=".",
+        alpha=alpha,
+    )
+    ax[0].set_xlabel("β")
+    ax[0].set_ylabel("log(PExit(τ))")
+    ax[0].set_title("β vs Exit Probability.")
+
+    ax[1].hist(tauExitProb, 100, log=True, facecolor=color)
+    ax[1].set_ylabel("log(frequency)")
+    ax[1].set_xlabel("PExit(τ)")
+
+    fig.suptitle("Tau Pexit")
+    plt.show()

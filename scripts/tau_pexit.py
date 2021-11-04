@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from scipy.interpolate import interp1d
+from scipy.interpolate import splev, splrep
 
 from importlib.resources import as_file, files
 
@@ -129,7 +130,7 @@ def tau_pexit_compare():
     ) as file:
         g = nss.utils.grid.NssGrid.read(file, path="pexit_regen", format="hdf5")
 
-    betas = np.radians(np.linspace(1, 25, 1000))
+    betas = np.radians(np.linspace(1, 35, 1000))
 
     reno = np.empty((16, 1000))
     nupy = np.empty((16, 1000))
@@ -219,7 +220,28 @@ def diff_3d(betas, logenus, nupy, reno):
     plt.show()
 
 
+def spline_fit():
+
+    with as_file(
+        files("nuspacesim.data.nupyprop_tables") / "nu2tau_pexit.hdf5"
+    ) as file:
+        g = nss.utils.grid.NssGrid.read(file, path="pexit_regen", format="hdf5")
+        sg = nss.utils.interp.grid_slice_interp(
+            g, 10.75, g.axis_names.index("log_e_nu")
+        )
+
+    spl = splrep(sg["beta_rad"], np.log10(sg.data))
+    betas = np.linspace(sg["beta_rad"][0], sg["beta_rad"][-1], 1000)
+    s_pexit = splev(betas, spl)
+
+    plt.plot(betas, 10.0 ** s_pexit)
+    plt.show()
+
+    print(spl)
+
+
 if __name__ == "__main__":
-    tau_exit_compare_10_75()
+    # tau_exit_compare_10_75()
     # v = tau_pexit_compare()
     # spinning_surface_plot(*v)
+    spline_fit()
