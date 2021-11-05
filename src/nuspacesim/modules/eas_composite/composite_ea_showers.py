@@ -3,14 +3,16 @@ import importlib_resources
 import numpy as np 
 import time  
 from scipy import optimize
-# from ...utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+#from ...utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+from nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
 
 np.seterr(all='ignore')
 try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
- 
+    
+    
 class ShowerParameterization: 
     r""" Class calculating particle content per shower for 
     GH and Greissen parametrizations. 
@@ -52,7 +54,7 @@ class ShowerParameterization:
         return x, content, self.event_tag
         
     def gaisser_hillas(
-        self, n_max, x_max, x_0, p1, p2, p3, shower_end = 2000, grammage = 1
+        self, n_max, x_max, x_0, p1, p2, p3, shower_end:int = 2000, grammage:int = 1
         ):
         
         scaled_n_max = n_max * self.table_decay_e
@@ -62,7 +64,7 @@ class ShowerParameterization:
         # x = np.linspace( int(x_0), shower_end, bins, endpoint=False) #slant depths g/cm^2 
         
         # constrains starting depths 
-        x = np.linspace( 1, shower_end, shower_end) #slant depths g/cm^2    
+        x = np.linspace( 0, shower_end, int(shower_end/grammage)) #slant depths g/cm^2    
         
         #calculating gaisser-hillas function
         gh_lambda = p1 + p2*x + p3*(x**2) 
@@ -191,8 +193,11 @@ class CompositeShowers():
         gamma_energies = self.tau_tables[gamma_mask ] [:,[0,1,-1]] 
         
         # kaons and pions treated the same 
-        pion_kaon_mask = ((self.tau_tables[:,2] == 211) | (self.tau_tables[:,2] == -211)) | \
-                         ((self.tau_tables[:,2] == 321) | (self.tau_tables[:,2] == -321))
+        pion_kaon_mask = ( (self.tau_tables[:,2] == 211) | (
+            self.tau_tables[:,2] == -211)
+            ) | ( (self.tau_tables[:,2] == 321) | (
+                self.tau_tables[:,2] == -321)
+            )
         pion_energies = self.tau_tables[pion_kaon_mask] [:,[0,1,-1]]
         
         # each row has [event_num, energy ] 
@@ -221,7 +226,7 @@ class CompositeShowers():
                                     p2 = shower_params[8],
                                     p3 = shower_params[9],
                                     shower_end = self.shower_end,
-                                    grammage = self.shower_end)
+                                    grammage = self.grammage)
             
             showers[row,:] = shower_content
             depths[row,:] = depth 
@@ -283,135 +288,110 @@ class CompositeShowers():
             
         return comp_showers, depths
 
-
-
-def bin_nmax_xmax (bins, particle_content):
-    r"""
-    given an array of Slant Depths and Particle Content values for the same particle 
-    (can be any number of events, but need to be same size), returns the Nmax and Xmax Values 
-    
-    per row (if composite showers and bins are inputted, per event) 
-    
-    intended to use for nmax and xmax distribution analysis 
+class FitCompositeShowers():    
+    r""" 
+    a
     """
+    def __init__(self, composite_showers, slant_depths):  
+        self.showers  = composite_showers
+        self.depths = slant_depths
+        
+    def modified_gh (self, x, n_max, x_max, x_0, p1, p2, p3): 
+        
+        particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))                  \
+                                        **( (x_max - x_0)/(p1 + p2*x + p3*(x**2)) )  ) )   \
+                *                                                                           \
+                ( np.exp((x_max - x)/(p1 + p2*x + p3*(x**2))) )
+                
+        return particles
 
-    try:
-        bin_nmax = np.amax(particle_content, axis = 1) 
-        bin_nmax_pos =  np.nanargmax(particle_content, axis = 1)
-        bin_xmaxs = bins[np.arange(len(bins)), bin_nmax_pos]
-    except: 
-        bin_nmax = np.amax(particle_content) 
-        bin_nmax_pos =  np.nanargmax(particle_content)
-        bin_xmaxs = bins[bin_nmax_pos]
+    def giasser_hillas(self, x, n_max, x_max, x_0, gh_lambda): 
+        
+        particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))  \
+                                        **((x_max - x_0)/gh_lambda) )  )   \
+                *                                                           \
+                ( np.exp((x_max - x)/gh_lambda) )    
+        
+        return particles
+
+    # def giasser_hillas (x, n_max, x_max, x_0, gh_lambda): 
+        
+    #     exp_term = (x_max - x_0)/gh_lambda
+    #     exponential = np.exp( (x_max - x) / gh_lambda)
     
-    return bin_nmax,  bin_xmaxs
+    #     base_term = np.nan_to_num ( (x - x_0) / (x_max - x_0) )
+        
+    #     shower_content = n_max * (base_term**exp_term) * exponential
 
-
-def modified_gh (x, n_max, x_max, x_0, p1, p2, p3): 
+    def fit_quad_lambda (self, comp_shower, depth): 
+        event_tag =  comp_shower[0]
+        decay_tag_num =  comp_shower[1]
+        
+        comp_shower = comp_shower[2:]
+        depth = depth[2:]
+        
+        nmax, xmax = bin_nmax_xmax( bins=depth, particle_content=comp_shower)
+        
+        fit_params, covariance = optimize.curve_fit(
+                            f=self.modified_gh, 
+                            xdata=depth, 
+                            ydata=comp_shower,
+                            p0=[nmax,xmax,0,70,-0.01,1e-05], 
+                            bounds=([0,0,-np.inf,-np.inf,-np.inf,-np.inf], 
+                                    [np.inf,np.inf,np.inf,np.inf,np.inf,np.inf])
+                            )
+        
+        fits = np.array([event_tag, decay_tag_num, *fit_params])
+        return fits
     
-    particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))                  \
-                                    **( (x_max - x_0)/(p1 + p2*x + p3*(x**2)) )  ) )   \
-            *                                                                           \
-            ( np.exp((x_max - x)/(p1 + p2*x + p3*(x**2))) )
+    def fit_const_lambda (self, comp_shower, depth): 
+        event_tag =  comp_shower[0]
+        decay_tag_num =  comp_shower[1]
+        
+        comp_shower = comp_shower[2:]
+        depth = depth[2:]
+        
+        nmax, xmax = bin_nmax_xmax(bins=depth, particle_content=comp_shower)
+        
+        fit_params, covariance = optimize.curve_fit(
+                            f=self.giasser_hillas, 
+                            xdata=depth, 
+                            ydata=comp_shower,
+                            p0=[nmax,xmax,0,70], 
+                            bounds=([0,0,-np.inf,-np.inf], 
+                                    [np.inf,np.inf,np.inf,np.inf])
+                            )
+        
+        
+        fits = np.array([event_tag, decay_tag_num, *fit_params])
+        return fits
+    
+    def __call__ (self): 
+        
+        gh_fits = np.empty([self.showers.shape[0], 6]) 
+        
+        for row,(shower, depth) in enumerate(zip(self.showers, self.depths)):
             
-    return particles
-
-
-def const_lambda (x, n_max, x_max, x_0, gh_lambda): 
-    
-    particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))                  \
-                                   **((x_max - x_0)/gh_lambda) )  )                    \
-            *                                                                           \
-            ( np.exp((x_max - x)/gh_lambda) )    
-    
-    return  particles
-
-def fit_composites (comp_shower, depth): 
-    event_tag =  comp_shower[0]
-    decay_tag_num =  comp_shower[1]
-    
-    comp_shower = comp_shower[2:]
-    depth = depth[2:]
-    
-    nmax, xmax = bin_nmax_xmax(
-        bins=depth, particle_content=comp_shower
-        )
-    
-    fit_params, covariance = optimize.curve_fit(
-                        f=modified_gh, 
-                        xdata=depth, 
-                        ydata=comp_shower,
-                        p0=[nmax,xmax,0,70,-0.01,1e-05], 
-                        bounds=([0,0,-np.inf,-np.inf,-np.inf,-np.inf], 
-                                [np.inf,np.inf,np.inf,np.inf,np.inf,np.inf])
-                        )
-    
-    fit_n_max = fit_params[0]
-    fit_x_max = fit_params[1]
-    fit_x_0 = fit_params[2]
-    fit_p1 = fit_params[3]
-    fit_p2 = fit_params[4]
-    fit_p3 = fit_params[4]
-    
-    fits = np.array([event_tag, decay_tag_num, fit_n_max, fit_x_max, fit_x_0, fit_p1, fit_p2, fit_p3])
-    return fits
-    
-def fit_composites_1 (comp_shower, depth): 
-    event_tag =  comp_shower[0]
-    decay_tag_num =  comp_shower[1]
-    
-    comp_shower = comp_shower[2:]
-    depth = depth[2:]
-    
-    nmax, xmax = bin_nmax_xmax(
-        bins=depth, particle_content=comp_shower
-        )
-    
-    fit_params, covariance = optimize.curve_fit(
-                        f=const_lambda, 
-                        xdata=depth, 
-                        ydata=comp_shower,
-                        p0=[nmax,xmax,0,70], 
-                        bounds=([0,0,-np.inf,-np.inf], 
-                                [np.inf,np.inf,np.inf,np.inf])
-                        )
-    
-    fit_n_max = fit_params[0]
-    fit_x_max = fit_params[1]
-    fit_x_0 = fit_params[2]
-    fit_gh_lambda = fit_params[3]
-    # fit_p2 = fit_params[4]
-    # fit_p3 = fit_params[4]
-    
-    fits = np.array([event_tag, decay_tag_num, fit_n_max, fit_x_max, fit_x_0, fit_gh_lambda])
-    return fits  
-
+            shower_fit = self.fit_const_lambda(comp_shower=shower, depth=depth)
+            gh_fits[row,:] = shower_fit
+            print('Fitting', row)
+        return gh_fits
+#%%
 
 if __name__ == '__main__': 
     t0 = time.time()
+    make_composites = CompositeShowers()
+    comp_showers, depths =  make_composites() 
     
-    x = CompositeShowers()
-    comp_showers, depths = x() 
-    
-    fits = np.empty([comp_showers.shape[0], 6]) 
+    get_fits = FitCompositeShowers(comp_showers, depths)
+    fits = get_fits()
     
     # do next: lambda with a one percent cut.
     # show distributions of chi squares. 
     # constant lambda plots rebounds 
-    # 
-    
-    for row,(shower, depth) in enumerate(zip(comp_showers, depths)):
-        try:
-            shower_fit = fit_composites_1( comp_shower=shower, depth= depth )
-        
-            fits[row,:] = shower_fit
-        except: 
-            print("Can't fit shower", row)
-            #a = np.empty((0,6))
-            #fits[row,:] = a.fill(np.nan)
     
     
-    
+   
     
     t1 = time.time()
     total = t1-t0 
