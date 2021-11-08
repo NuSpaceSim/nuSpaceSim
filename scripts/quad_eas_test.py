@@ -27,5 +27,5 @@ if __name__ == "__main__":
     # l_hi = length_along_prop_axis(alt_dec, z_hi, beta_tr, earth_radius)
 
     psum = photon_density(alt_dec, beta_tr, z_max, z_obs, earth_radius)
-    print(f"{psum:e}")
-    # print(f"{psum[0]:e}, {psum[1]:e}")
+    # print(f"{psum:e}")
+    print(f"{psum[0]:e}, {psum[1]:e}")
