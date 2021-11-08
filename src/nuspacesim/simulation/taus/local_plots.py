@@ -42,31 +42,31 @@ def taus_scatter(inputs, results, *args, **kwargs):
     tauBeta, tauLorentz, showerEnergy, tauExitProb = results
 
     color = "c"
-    alpha = 0.5
+    alpha = 0.1 / np.log10(betas.size)
 
-    fig, ax = plt.subplots(2, 2, sharex=True)
+    fig, ax = plt.subplots(2, 2, sharex=True, constrained_layout=True)
 
     ax[0, 0].scatter(x=np.degrees(betas), y=np.log10(tauBeta), c=color, alpha=alpha)
     ax[0, 0].set_xlabel("β")
-    ax[0, 0].set_ylabel("τ_β")
-    ax[0, 0].set_title("β vs τ_β")
+    ax[0, 0].set_ylabel("log(τ_β)")
+    ax[0, 0].set_title("β vs log(τ_β)")
 
     ax[0, 1].scatter(x=np.degrees(betas), y=np.log10(tauLorentz), c=color, alpha=alpha)
     ax[0, 1].set_xlabel("β")
-    ax[0, 1].set_ylabel("τ_Lorentz")
-    ax[0, 1].set_title("β vs τ_Lorentz")
+    ax[0, 1].set_ylabel("log(τ_Lorentz)")
+    ax[0, 1].set_title("β vs log(τ_Lorentz)")
 
     ax[1, 0].scatter(
         x=np.degrees(betas), y=np.log10(showerEnergy), c=color, alpha=alpha
     )
     ax[1, 0].set_xlabel("β")
-    ax[1, 0].set_ylabel("E_shower (100 PeV)")
-    ax[1, 0].set_title("β vs E_shower")
+    ax[1, 0].set_ylabel("log(E_shower (100 PeV))")
+    ax[1, 0].set_title("β vs log(E_shower)")
 
     ax[1, 1].scatter(x=np.degrees(betas), y=np.log10(tauExitProb), c=color, alpha=alpha)
     ax[1, 1].set_xlabel("β")
-    ax[1, 1].set_ylabel("PExit(τ)")
-    ax[1, 1].set_title("β vs Exit Probability.")
+    ax[1, 1].set_ylabel("log(PExit(τ))")
+    ax[1, 1].set_title("β vs log(Exit Probability)")
 
     fig.suptitle("Tau interaction properties vs. β_tr Angles")
     plt.show()
@@ -79,18 +79,18 @@ def taus_histogram(inputs, results, *args, **kwargs):
     tauBeta, tauLorentz, showerEnergy, tauExitProb = results
 
     color = "c"
-    alpha = 0.5
+    alpha = 1
 
-    fig, ax = plt.subplots(2, 2)
+    fig, ax = plt.subplots(2, 2, constrained_layout=True)
 
     ax[0, 0].hist(tauBeta, 100, log=True, facecolor=color, alpha=alpha)
-    ax[0, 0].set_xlabel("τ_β")
+    ax[0, 0].set_xlabel("log(τ_β)")
     ax[0, 1].hist(tauLorentz, 100, log=True, facecolor=color, alpha=alpha)
-    ax[0, 1].set_xlabel("τ_Lorentz")
+    ax[0, 1].set_xlabel("log(τ_Lorentz)")
     ax[1, 0].hist(showerEnergy, 100, log=True, facecolor=color, alpha=alpha)
-    ax[1, 0].set_xlabel("showerEnergy")
+    ax[1, 0].set_xlabel("log(showerEnergy)")
     ax[1, 1].hist(tauExitProb, 100, log=True, facecolor=color, alpha=alpha)
-    ax[1, 1].set_xlabel("PExit(τ)")
+    ax[1, 1].set_xlabel("log(PExit(τ))")
 
     fig.suptitle("Tau interaction property Histograms")
     plt.show()
@@ -101,9 +101,9 @@ def taus_pexit(inputs, results, *args, **kwargs):
     tauBeta, tauLorentz, showerEnergy, tauExitProb = results
 
     color = "c"
-    alpha = 0.5
+    alpha = 0.1 / np.log10(betas.size)
 
-    fig, ax = plt.subplots(1, 2)
+    fig, ax = plt.subplots(1, 2, constrained_layout=True)
 
     ax[0].scatter(
         x=np.degrees(betas),
