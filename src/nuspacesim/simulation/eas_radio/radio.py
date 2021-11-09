@@ -101,6 +101,7 @@ class EASRadio:
 
         # radio emission from EAS has two components, geomagnetic and Askaryan
         # Askaryan is ~20% of full strength geomagnetic
+        # Askaryan and geomagnetic components can have any phase w/r/t one another
         # geomagnetic is only full strength when perpendicular to Earth B-field
         # here i apply a scaling for vxB for an orbit close to equatorial
 
@@ -113,9 +114,12 @@ class EASRadio:
         bounds = np.radians(30.0)
         B_angle += np.random.uniform(-1.0 * bounds, bounds, altDec[mask].shape)
         B_angle = np.abs(np.sin(B_angle))
-        EFields[mask] = (
-            1.0 / 6.0 * EFields[mask] + (5.0 / 6.0 * EFields[mask].T * B_angle).T
+        askaryan_phase = np.sin(
+            np.random.uniform(0.0, -2.0 * np.pi, altDec[mask].shape)
         )
+        EFields[mask] = (1.0 / 6.0 * EFields[mask].T * askaryan_phase).T + (
+            5.0 / 6.0 * EFields[mask].T * B_angle
+        ).T
 
         return EFields
 
