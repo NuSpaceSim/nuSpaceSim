@@ -40,7 +40,6 @@ requirements:
     - lxml
     - matplotlib
     - numpy >=1.20
-    - quadpy
     - rich
     - python >=3.7
     - scipy
