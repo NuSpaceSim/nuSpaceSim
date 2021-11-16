@@ -87,8 +87,8 @@ class EAS:
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.
-        dphots = np.full(beta.shape, np.nan)
-        thetaCh = np.full(beta.shape, np.nan)
+        dphots = np.zeros_like(beta)
+        thetaCh = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
         dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
