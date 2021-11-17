@@ -98,7 +98,7 @@ def run(
     plotall: bool,
     write_stages: bool,
 ) -> None:
-    r"""Perform the full nuspacesim simulation.
+    """Perform the full nuspacesim simulation.
 
     Main Simulator for nuspacesim.  Given a XML configuration file, and
     optionally a count of simulated nutrinos, runs nutrino simulation.

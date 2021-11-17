@@ -44,7 +44,7 @@
 
 """
 
-from typing import Callable
+from typing import Callable, Any
 
 from scipy.interpolate import interp1d
 import numpy as np
@@ -60,7 +60,7 @@ __all__ = [
 ]
 
 
-def grid_slice_interp(grid: NssGrid, value: float, axis: int) -> NssGrid:
+def grid_slice_interp(grid: NssGrid, value: float, axis: Any) -> NssGrid:
     r"""Continuous grid slice using interpolation.
 
     Slice the N-Dimensional NssGrid along an axis value that may not exist in the grid.
@@ -72,7 +72,7 @@ def grid_slice_interp(grid: NssGrid, value: float, axis: int) -> NssGrid:
         The grid to be sliced
     value: float
         The value at which to slice the grid.
-    axis: int
+    axis: int, string
         The axis along which to slice.
 
     Returns
@@ -81,6 +81,8 @@ def grid_slice_interp(grid: NssGrid, value: float, axis: int) -> NssGrid:
         The N-1 resulting Dimensional grid.
 
     """
+
+    axis = grid.axis_names.index(axis) if isinstance(axis, str) else axis
 
     new_data = interp1d(grid.axes[axis], grid.data, axis=axis)(value)
     new_axes = [ax for i, ax in enumerate(grid.axes) if i != axis]

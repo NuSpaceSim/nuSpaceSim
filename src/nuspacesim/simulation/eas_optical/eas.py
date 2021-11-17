@@ -35,7 +35,7 @@ import numpy as np
 from .cphotang import CphotAng
 from ... import NssConfig
 from ...utils import decorators
-from .local_plots import eas_optical_scatter
+from .local_plots import eas_optical_scatter, eas_optical_histogram
 
 __all__ = ["EAS"]
 
@@ -73,7 +73,7 @@ class EAS:
 
         return altDec, lenDec
 
-    @decorators.nss_result_plot(eas_optical_scatter)
+    @decorators.nss_result_plot(eas_optical_scatter, eas_optical_histogram)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
     def __call__(self, beta, altDec, showerEnergy):
         """
@@ -87,8 +87,8 @@ class EAS:
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.
-        dphots = np.full(beta.shape, np.nan)
-        thetaCh = np.full(beta.shape, np.nan)
+        dphots = np.zeros_like(beta)
+        thetaCh = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
         dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])

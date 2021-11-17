@@ -21,8 +21,8 @@ eggs
 *.so
 *.so*
 *.dylib
-Simulation*.hdf5
 *.whl
 .python-version
 _version.py
 .tox
+*.ipynb
