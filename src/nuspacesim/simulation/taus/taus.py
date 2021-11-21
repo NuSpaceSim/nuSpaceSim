@@ -41,7 +41,7 @@ from ...utils import decorators
 from ...utils.grid import NssGrid
 from ...utils.cdf import grid_inverse_sampler
 from ...utils.interp import grid_slice_interp
-from .local_plots import taus_scatter
+from .local_plots import taus_scatter, taus_histogram, taus_pexit
 
 try:
     from importlib.resources import as_file, files
@@ -82,18 +82,21 @@ class Taus(object):
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_pexit.hdf5"
         ) as file:
             g = NssGrid.read(file, path="pexit_regen", format="hdf5")
-            sg = grid_slice_interp(
-                g, config.simulation.log_nu_tau_energy, g.axis_names.index("log_e_nu")
+            self.sliced_tau_pexit_grid = grid_slice_interp(
+                g, config.simulation.log_nu_tau_energy, "log_e_nu"
             )
-            self.pexit_interp = interp1d(sg.axes[0], sg.data)
+            self.pexit_interp = interp1d(
+                self.sliced_tau_pexit_grid.axes[0],
+                np.log10(self.sliced_tau_pexit_grid.data),
+            )
 
         # grid of tau_cdf tables
         with as_file(
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.hdf5"
         ) as file:
-            tau_cdf_grid = NssGrid.read(file, format="hdf5")
+            self.tau_cdf_grid = NssGrid.read(file, format="hdf5")
             self.tau_cdf_sample = grid_inverse_sampler(
-                tau_cdf_grid, config.simulation.log_nu_tau_energy
+                self.tau_cdf_grid, config.simulation.log_nu_tau_energy
             )
 
     def tau_exit_prob(self, betas):
@@ -102,10 +105,9 @@ class Taus(object):
         """
         mask = betas >= np.radians(1.0)
         tau_exit_prob = np.full(
-            betas.shape, self.pexit_interp(np.array([np.radians(1.0)]))
+            betas.shape, 10 ** self.pexit_interp(np.array([np.radians(1.0)]))
         )
-        tau_exit_prob[mask] = self.pexit_interp(betas[mask])
-
+        tau_exit_prob[mask] = 10 ** self.pexit_interp(betas[mask])
         return tau_exit_prob
 
     def tau_energy(self, betas):
@@ -113,11 +115,15 @@ class Taus(object):
         Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
         mask = betas >= np.radians(1.0)
-        E_tau = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
+        # E_tau = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
+        E_tau = np.empty_like(betas)
         E_tau[mask] = self.tau_cdf_sample(betas[mask])
+        E_tau[~mask] = self.tau_cdf_sample(
+            np.full(betas[~mask].shape, self.tau_cdf_grid["beta_rad"][0])
+        )
         return E_tau * self.config.simulation.nu_tau_energy
 
-    @decorators.nss_result_plot(taus_scatter)
+    @decorators.nss_result_plot(taus_scatter, taus_histogram, taus_pexit)
     @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
     def __call__(self, betas):
         r"""Perform main operation for Taus module.

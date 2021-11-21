@@ -55,7 +55,7 @@ from nuspacesim.utils.interp import grid_slice_interp, vec_1d_interp
 __all__ = ["grid_inverse_sampler", "nearest_cdf_sampler", "lerp_cdf_sampler"]
 
 
-def invert_cdf_grid(grid: NssGrid, cdf_axis: int = 1) -> NssGrid:
+def invert_cdf_grid(grid: NssGrid) -> NssGrid:
     r"""Invert a Taus CDF grid for easier z(E_tau / E_nu) sampling.
 
     Use the CDF values of the given NssGrid to interpolate every measured z point,
@@ -66,8 +66,6 @@ def invert_cdf_grid(grid: NssGrid, cdf_axis: int = 1) -> NssGrid:
     ----------
     grid: NssGrid
         A 2D CDF grid with (beta_rad, z) bins and CDF values.
-    cdf_axis: int
-        The target axis to store the CDF bins in the result grid.
 
     Returns
     -------
@@ -78,35 +76,45 @@ def invert_cdf_grid(grid: NssGrid, cdf_axis: int = 1) -> NssGrid:
     --------
 
     >>> grid = NssGrid.read(file, format="hdf5")
-    >>> igrid = invert_cdf_grid(grid, 0)
+    >>> igrid = invert_cdf_grid(grid)
 
     """
 
-    assert grid.ndim == 2
-    assert cdf_axis <= 2
+    if grid.ndim != 2:
+        raise ValueError("Dimensions of grid are invalid for inversion")
 
-    brad_axis = 0 if cdf_axis == 1 else 1
-
-    cdf_vals = np.unique(np.sort(np.ravel(grid.data)))
+    cdf_vals = np.ravel(grid.data)
+    cdf_vals[cdf_vals > 1.0] = 1.0
+    cdf_vals[cdf_vals < 0.0] = 0.0
+    cdf_vals = np.unique(np.sort(cdf_vals))
     new_shape = list(grid.data.shape)
-    new_shape[cdf_axis] = cdf_vals.size
+    new_shape[-1] = cdf_vals.size
     new_data = np.empty(new_shape, dtype=grid.data.dtype)
 
-    for i in range(grid.shape[brad_axis]):
+    for i, _ in enumerate(grid["beta_rad"]):
 
-        s = np.s_[i, :] if cdf_axis == 1 else np.s_[:, i]
+        s = np.s_[i, :]
 
-        new_data[s] = interp1d(
-            grid.data[s], grid.axes[cdf_axis], bounds_error=False, fill_value=(0.0, 1.0)
-        )(cdf_vals)
+        local_cdf = grid[s].data
+        mask = local_cdf < (1.0 - 8 * np.finfo(grid.dtype).eps)
+        first_one = np.argmin(mask)
+        mask[first_one] = True
 
-    new_axes = [grid.axes[brad_axis], cdf_vals]
-    new_names = [grid.axis_names[brad_axis], "cdf"]
+        cdf = np.asarray(local_cdf[mask])
+        etf = np.asarray(grid["e_tau_frac"][mask])
+        cdf[-1] = 1.0
+
+        f = interp1d(cdf, etf)
+        new_data[s] = f(cdf_vals)
+        # , bounds_error=False, fill_value=(0.0, 1.0)
+
+    new_axes = [grid["beta_rad"], cdf_vals]
+    new_names = ["beta_rad", "cdf"]
 
     return NssGrid(new_data, new_axes, new_names)
 
 
-def grid_inverse_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
+def grid_inverse_sampler(grid: NssGrid, log_e_nu: float, sliced=False) -> Callable:
     r"""Sample Tau Energies by inverting the tau cdf grid.
 
     Given a log_e_nu value, slice an interpolated 2D tau cdf grid for that log_e_nu.
@@ -135,13 +143,9 @@ def grid_inverse_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
 
     """
 
-    enu_idx = grid.axis_names.index("log_e_nu")
+    sliced_grid = grid if sliced else grid_slice_interp(grid, log_e_nu, "log_e_nu")
 
-    sliced_grid = grid_slice_interp(grid, log_e_nu, enu_idx)
-
-    z_idx = sliced_grid.axis_names.index("e_tau_frac")
-
-    inv_grid = invert_cdf_grid(sliced_grid, z_idx)
+    inv_grid = invert_cdf_grid(sliced_grid)
 
     interpolate = RegularGridInterpolator(inv_grid.axes, inv_grid.data)
 

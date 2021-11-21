@@ -52,7 +52,7 @@ from astropy.io.misc import hdf5
 from astropy.nddata import NDDataArray
 from astropy.table import Table as AstropyTable
 
-# from typing import Union, Iterable
+from typing import Any, Iterable, Union
 
 import numpy as np
 
@@ -83,6 +83,39 @@ class NssGridWrite(registry.UnifiedReadWrite):
         registry.write(self._instance, *args, **kwargs)
 
 
+class NssAxes:
+    r"""Collection of differently sized, named 1D arrays"""
+
+    def __init__(self, values, names):
+
+        if not isinstance(values, Iterable):
+            values = list([values])
+
+        if not isinstance(names, Iterable):
+            names = [names]
+
+        self.values: list = list(values)
+        """ List of Axis Values """
+
+        self.names: list = list(names)
+        """ List of Axis Names """
+
+    def __getitem__(self, item):
+
+        if isinstance(item, str):
+            if item in self.names:
+                i = self.names.index(item)
+                return self.values[i]
+            else:
+                raise ValueError(f"{item} not found in names.")
+
+        if isinstance(item, int):
+            if item < len(self.values):
+                return self.values[item]
+            else:
+                raise IndexError(f"Array index ({item}) out of bounds.")
+
+
 class NssGrid(NDDataArray):
     r"""Multidimensional Gridded data object with support for axes.
 
@@ -108,6 +141,7 @@ class NssGrid(NDDataArray):
         axis_names: list[str]
             list of dimension names
         """
+
         super().__init__(data, *args, **kwargs)
 
         if len(axes) != len(axis_names):
@@ -126,18 +160,13 @@ class NssGrid(NDDataArray):
             if axes[i].shape[0] != data.shape[i]:
                 raise ValueError("Axes lengths must correspond to grid dimensions.")
 
-        self.axes: list = axes
+        self._axes = NssAxes(axes, axis_names)
         """
         N element list with 1D arrays of different length, corresponding to data
         array dimension size.
         """
 
-        self.axis_names: list = axis_names
-        """
-        N element string list holding names of each element dimension.
-        """
-
-        self.meta: dict = {**{f"AXIS{i}": n for i, n in enumerate(self.axis_names)}}
+        self.meta: dict = {**{f"AXIS{i}": n for i, n in enumerate(axis_names)}}
         """
         scalar value metadata dictionary.
         """
@@ -146,19 +175,32 @@ class NssGrid(NDDataArray):
     """
     astropy UnifiedReadWriteMethod for reading files into NssGrid objects.
     """
+
     write = registry.UnifiedReadWriteMethod(NssGridWrite)
     """
     astropy UnifiedReadWriteMethod for writing NssGrid objects to files.
     """
 
+    @property
+    def axes(self):
+        return self._axes.values
+
+    @property
+    def axis_names(self):
+        return self._axes.names
+
     def __repr__(self):
+
         rep = "NssGrid {\n"
         rep += f"meta : {repr(self.meta)}\n"
+
         for axis, name in zip(self.axes, self.axis_names):
             rep += f"{name} ({len(axis)}): {axis}\n"
+
         rep += f"data: {repr(super().data)}\n"
         rep += f"dims: {super().data.shape}\n"
         rep += "}"
+
         return rep
 
     def __str__(self) -> str:
@@ -171,10 +213,13 @@ class NssGrid(NDDataArray):
             and np.all([np.array_equal(s, o) for s, o in zip(self.axes, other.axes)])
         )
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Union[np.ndarray, Any]:
         # Abort slicing if the data is a single scalar.
         if self.data.shape == ():
             raise TypeError("scalars cannot be sliced.")
+
+        if isinstance(item, str) or isinstance(item, int):
+            return self._axes[item]
 
         # Let the other methods handle slicing.
         kwargs = self._slice(item)
@@ -196,89 +241,31 @@ class NssGrid(NDDataArray):
             ``__getitem__``.
         """
         kwargs = {}
-        kwargs["data"] = self.data[item]
-        # Try to slice some attributes
-        kwargs["axes"] = self._slice_axes(item)
-        kwargs["axis_names"] = self._slice_axis_name(item)
+        kwargs["data"] = self.data[item].squeeze()
+        nssax = self._slice_axes(item)
+        kwargs["axes"] = nssax.values
+        kwargs["axis_names"] = nssax.names
         return kwargs
 
     def _slice_axes(self, item):
-        if self.axes is None:
-            return None
+        if self._axes is None:
+            return NssAxes(None, None)
         try:
-            return [self.axes[i][s] for i, s in enumerate(item) if isinstance(s, slice)]
+            v = [
+                self.axes[i][s]
+                for i, s in enumerate(item)
+                if np.count_nonzero(s) > 1 or isinstance(s, slice)
+            ]
+            n = [
+                self.axis_names[i]
+                for i, s in enumerate(item)
+                if np.count_nonzero(s) > 1 or isinstance(s, slice)
+            ]
+            return NssAxes(v, n)
         except TypeError:
             # Catching TypeError in case the object has no __getitem__ method.
             # But let IndexError raise.
             raise RuntimeWarning("Axes object has no __getitem__.")
-
-    def _slice_axis_name(self, item):
-        if self.axis_names is None:
-            return None
-        try:
-            return [
-                self.axis_names[i] for i, s in enumerate(item) if isinstance(s, slice)
-            ]
-        except TypeError:
-            pass
-        return self.axis_names
-
-    def index_name(self, name):
-        r"""Locate the index of axis ``name``."""
-        if name not in self.axis_names:
-            raise ValueError(f"name: {name} not in axis_names {self.axis_names}")
-        return self.axis_names.index(name)
-
-    def index_where_eq(self, name, value):
-        r"""Locate the index in axis ``name`` where element is equal to ``value``."""
-        ax = self.index_name(name)
-        if value not in self.axes[ax]:
-            raise ValueError(
-                f" {value} not in {self.axis_names[ax]} axis: {self.axes[ax]}"
-            )
-        idx = np.where(self.axes[ax] == value)[0][0]
-        return idx
-
-    def slc(self, axis_name, axis_val, axis_index):
-        """Slicing method"""
-        pass
-        none_list = [None] * self.ndim
-        d_slice = slice(*none_list)
-        g_slice = [d_slice] * self.ndim
-        g_slice[axis_index] = self.index_where_eq(axis_name, axis_val)
-        return self[tuple(g_slice)]
-
-
-# class NssAxes:
-#     r"""Collection of differently sized, named 1D arrays"""
-
-#     def __init__(
-#         self, values: Union[float, Iterable], names: Union[str, Iterable[str]]
-#     ):
-
-#         if not isinstance(values, Iterable):
-#             values = list([values])
-
-#         if not isinstance(names, Iterable):
-#             names = [names]
-
-#         self.values: list[float] = list(values)
-#         self.names: list[str] = list(names)
-
-#     def __getitem__(self, item):
-
-#         if isinstance(item, str):
-#             if item in self.names:
-#                 i = self.names.index(item)
-#                 return self.values[i]
-#             else:
-#                 raise ValueError(f"{item} not found in names.")
-
-#         if isinstance(item, int):
-#             if item < len(self.values):
-#                 return self.values[item]
-#             else:
-#                 raise IndexError(f"Array index ({item}) out of bounds.")
 
 
 def fits_nssgrid_reader(filename, **kwargs):
