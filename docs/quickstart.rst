@@ -50,9 +50,7 @@ Optionally, override the configuration file on the command line.  ::
 
 .. raw:: html
 
-    <embed>
     <script src="https://asciinema.org/a/i4gGSkDlQqkYn73AbBxX05lfu.js" id="asciicast-i4gGSkDlQqkYn73AbBxX05lfu" async data-autoplay="true" data-size="big"></script>
-    </embed>
 
 
 --------------------------
