@@ -2,7 +2,7 @@ import numpy as np
     
 class ShowerParameterization: 
     r""" Class calculating particle content per shower for 
-    GH and Greissen parametrizations. 
+         GH and Greissen parametrizations. 
     """
     def __init__(self, table_decay_e, event_tag, decay_tag):
         
@@ -14,14 +14,11 @@ class ShowerParameterization:
     def greisen(self, shower_end = 2000, grammage = 1, table_energy = 100e15):
         #slant depths 
         x = np.linspace( 1, shower_end, int(shower_end / grammage))  
-      
         # x0 is the radiation length in air ~ 37 g/cm^2 
-        #(pdg.lbl.gov/2015/AtomicNuclearProperties/HTML/air_dry_1_atm.html
+        # (pdg.lbl.gov/2015/AtomicNuclearProperties/HTML/air_dry_1_atm.html
         x_naught = 36.62 
-        
-        #critical energy for electromagnetic cascades in the air
+        # critical energy for electromagnetic cascades in the air
         e_c = 87.92e6 
-        
         # energy of photon initiated shower (eV) Gaisser 303 
         e_0 = self.table_decay_e * table_energy
         beta_0 = np.log(e_0 / e_c)
@@ -69,8 +66,11 @@ class ShowerParameterization:
         #t = (x - x_max)/36.62 #shower stage
         
         #tag the outputs with the event number
+        # x = np.r_[self.event_tag,self.decay_tag,x].astype(int)
+        # f = np.r_[self.event_tag,self.decay_tag,f].astype(int)
         x = np.r_[self.event_tag,self.decay_tag,x]
         f = np.r_[self.event_tag,self.decay_tag,f]
+
         return x, f
     
     # def gaisser_hillas(

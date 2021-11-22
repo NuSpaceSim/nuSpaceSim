@@ -1,8 +1,6 @@
 import h5py 
-import importlib_resources
 import numpy as np 
 import time  
-#from ...utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
 from shower_long_profiles import ShowerParameterization
 from fitting_composite_eas import FitCompositeShowers
 
@@ -16,6 +14,19 @@ class CompositeShowers():
     r""" Make composite showers with constituent electrons, gamma, and pions, 
     contributions scaled by sampled tau energies. 
     
+    Parameters
+    ----------
+    shower_end: int
+        where the shower ends, default:2000
+    grammage: int
+        size of slant depth bins in g/cm^2, default: 1
+
+    Returns
+    -------
+    composite_shower: array 
+        Shower content for each generated shower.
+    slant_depths: array
+        Corresponding slant depths to shower contents. 
     """
     def __init__(self, shower_end: int = 2000, grammage: int = 1):  
         
@@ -166,7 +177,16 @@ class CompositeShowers():
             shower_bins = (elec_depths, pion_depths, gamm_depths)
         )
             
-        return comp_showers, depths
+        # filter out showers where the parameterization fails; i.e. > np.inf or 1e20
+        broken_showers_row_idx = np.where( np.any(comp_showers > 1e100, axis = 1) )
+        broken_events = comp_showers[:,0:2][broken_showers_row_idx]
+        comp_showers = np.delete(comp_showers, broken_showers_row_idx, axis=0)
+        depths = np.delete(depths, broken_showers_row_idx, axis=0)
+        
+        print('{} Broken Showers out to {} g/cm^2'.format(len(broken_events), self.shower_end) )
+        np.savetxt('discontinous_events.txt', broken_events, fmt='%1.0f')
+        
+        return comp_showers, depths, broken_events
 
 
 

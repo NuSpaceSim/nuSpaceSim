@@ -157,6 +157,7 @@ __all__ = [
     "compute",
     # modules
     "geometry",
+    "eas_composite",
     "eas_optical",
     "taus",
     # other

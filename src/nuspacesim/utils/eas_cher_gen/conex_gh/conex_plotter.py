@@ -81,7 +81,7 @@ def conex_plotter(file_name, data_name, plt_type, start_row, end_row, x_limit,
     
     
 
-if __name__ == '__main__': 
-    conex_plotter()
-    #conex_plotter('gamma_EAS_table.h5', 'EASdata_22', 'regular', 1,2,5000,5000,.01)
+# if __name__ == '__main__': 
+#     conex_plotter()
+#     #conex_plotter('gamma_EAS_table.h5', 'EASdata_22', 'regular', 1,2,5000,5000,.01)
     

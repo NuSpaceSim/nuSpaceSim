@@ -68,5 +68,5 @@ def composite_eas (output_data = None, sample_plt = None):
         plt.legend()
         plt.show() 
 
-if __name__ == '__main__': 
-    composite_eas ()
+# if __name__ == '__main__': 
+#     composite_eas ()

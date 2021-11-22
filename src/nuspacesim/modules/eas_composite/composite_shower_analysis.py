@@ -1,11 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
-
-make_composites = CompositeShowers(shower_end=30000, grammage=10)
-comp_showers, depths =  make_composites()     
+#%%
+make_composites = CompositeShowers(shower_end=2000, grammage=1)
+comp_showers, depths, test =  make_composites()     
 #%%
 #no_nans =  comp_showers[np.isin (comp_showers [:,0], rebounding_evts)] 
 
@@ -69,11 +68,11 @@ def giasser_hillas( x, n_max, x_max, x_0, gh_lambda):
     return particles
 
 plt.figure(figsize=(8, 5), dpi= 120)
-plt.plot(depths[284,2:], comp_showers[284,2:], label = 'generated composite shower')
-plt.plot(depths[284,2:],giasser_hillas(depths[284,2:], *fits[284,2:]), '--',
-         label ='shower fit, const. lambda, event 337 decay id 300001')
+plt.plot(depths[2,2:], comp_showers[2,2:], label = 'generated composite shower')
+# plt.plot(depths[4,2:],giasser_hillas(depths[4,2:], *fits[284,2:]), '--',
+#          label ='shower fit, const. lambda, event 337 decay id 300001')
 plt.yscale('log')
-plt.ylim(bottom = 1)
+#plt.ylim(bottom = 1)
 plt.legend()
 #plt.draw()
 

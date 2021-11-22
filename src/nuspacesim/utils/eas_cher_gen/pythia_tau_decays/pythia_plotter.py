@@ -77,17 +77,11 @@ def pythia_plotter (file_name, data_name, particle_id, table_energy_pev, num_occ
             print('No particles for this filter were found') 
             sys.exit()        
     
-    # pions = np.array( [row for row in decays if row[2] == 211 or row[2] == -211 ])
-    # kaons = np.array( [row for row in decays if row[2] == 321 or row[2] == -321 ])
-    # electrons = np.array( [row for row in decays if row[2] == 11])
-    # muons = np.array( [row for row in decays if row[2] == 14 or row[2] == -14 ])
-    # gammas =  np.array( [row for row in decays if row[2]== 22])
-    
     plt.show()
   
-if __name__ == '__main__': 
-    # pythia_plotter('DataLibraries/PythiaDecayTables/HDF5_data/new_tau_100_PeV.h5','tau_data', 
-    #                 11, 100,1 )  
-    pythia_plotter()
+# if __name__ == '__main__': 
+#     # pythia_plotter('DataLibraries/PythiaDecayTables/HDF5_data/new_tau_100_PeV.h5','tau_data', 
+#     #                 11, 100,1 )  
+#     pythia_plotter()
 
   
