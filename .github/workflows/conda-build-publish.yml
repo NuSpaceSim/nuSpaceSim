@@ -1,8 +1,8 @@
 name: Conda Build Python 🐍 package, and Publish 🎉.
 
 on:
-  release:
-    types: [published]
+  # release:
+  #   types: [published]
   workflow_dispatch:
 
 jobs:
