@@ -2,6 +2,12 @@
 
 # νSpaceSim
 
+![PyPI](https://img.shields.io/pypi/v/nuspacesim)
+[![Build](https://github.com/NuSpaceSim/nuSpaceSim/actions/workflows/pypi-build-test-publish.yml/badge.svg)](https://github.com/NuSpaceSim/nuSpaceSim/actions/workflows/pypi-build-test-publish.yml)
+[![Documentation](https://readthedocs.org/projects/nuspacesim/badge/?version=latest)](https://nuspacesim.readthedocs.io/en/latest/?badge=latest)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/nuspacesim)
+
+
 This is the beta release of the *nuspacesim* simulator tool!
 
 This package simulates upward-going extensive air showers caused by neutrino
