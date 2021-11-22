@@ -1,4 +1,4 @@
-name: PyPI Build Python 🐍 wheel 🎡, Test 📝, and Publish 🎉.
+name: PyPI 🐍  Wheel 🎡 Publish 🎉.
 
 on:
   release:

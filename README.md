@@ -2,8 +2,8 @@
 
 # νSpaceSim
 
-![PyPI](https://img.shields.io/pypi/v/nuspacesim)
-![PyPI Wheel CI/CD](https://github.com/NuSpaceSim/nuSpaceSim/actions/workflows/pypi-build-test-publish.yml/badge.svg)
+[![PyPI](https://img.shields.io/pypi/v/nuspacesim)](https://pypi.org/project/nuspacesim/)
+[![Build](https://github.com/NuSpaceSim/nuSpaceSim/actions/workflows/pypi-build-test-publish.yml/badge.svg)](https://github.com/NuSpaceSim/nuSpaceSim/actions/workflows/pypi-build-test-publish.yml)
 [![Documentation](https://readthedocs.org/projects/nuspacesim/badge/?version=latest)](https://nuspacesim.readthedocs.io/en/latest/?badge=latest)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/nuspacesim)
 
