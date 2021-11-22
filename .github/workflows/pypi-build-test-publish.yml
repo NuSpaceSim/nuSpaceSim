@@ -1,4 +1,4 @@
-name: PyPI 🐍  Wheel 🎡 Publish 🎉.
+name: PyPI 🐍  Wheel 🎡
 
 on:
   release:

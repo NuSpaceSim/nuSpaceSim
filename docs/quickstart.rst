@@ -48,8 +48,11 @@ Optionally, override the configuration file on the command line.  ::
   nuspacesim run my_config_file.xml 1e5 -o my_nss_sim.fits
 
 
-.. image:: _static/run.svg
-   :alt: NuSpaceSim Run example
+.. raw:: html
+
+    <embed>
+    <script src="https://asciinema.org/a/i4gGSkDlQqkYn73AbBxX05lfu.js" id="asciicast-i4gGSkDlQqkYn73AbBxX05lfu" async data-autoplay="true" data-size="big"></script>
+    </embed>
 
 
 --------------------------

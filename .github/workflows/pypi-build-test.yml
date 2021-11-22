@@ -1,4 +1,4 @@
-name: PyPI Build Python 🐍 wheel 🎡, Test 📝
+name: CI/CD 📝
 
 on:
   push:

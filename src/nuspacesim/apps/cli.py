@@ -86,8 +86,7 @@ def cli():
     "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
 )
 @click.argument("count", type=float, default=0.0)
-@click.argument("logevalue", type=float, default=8.0)
-# @click.pass_context
+@click.argument("logevalue", type=float, default=0.0)
 def run(
     config_file: str,
     count: float,
@@ -136,7 +135,8 @@ def run(
     # User Inputs
     config = config_from_xml(config_file)
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
-    config.simulation.nu_tau_energy = 10 ** logevalue
+    if count != 0.0:
+        config.simulation.nu_tau_energy = 10 ** logevalue
     plot = list(registry) if plotall else plot
     simulation = compute(
         config,
@@ -159,7 +159,7 @@ def run(
 @click.argument("filename")
 # @click.pass_context
 def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
-    r"""Generate a configuration file from the given parameters.
+    """Generate a configuration file from the given parameters.
 
     \f
 
