@@ -1,44 +1,43 @@
-%% ![NuSpaceSim logo](.png)
+![NuSpaceSim logo](https://raw.githubusercontent.com/NuSpaceSim/nuSpaceSim/main/docs/_static/NuSpaceSimLogoBlack.png)
 
 # νSpaceSim
 
 This is the beta release of the *nuspacesim* simulator tool!
 
-This package simulates upward-going electromagnetic air showers caused by neutrino
+This package simulates upward-going extensive air showers caused by neutrino
 interactions with the atmosphere. It calculates the tau neutrino acceptance for the
 Optical Cherenkov technique. The simulation is parameterized by an input XML
 configuration file, with settings for detector characteristics and global parameters.
 The package also provides a python3 API for programatic access.
 
-Tau propagation is interpolated using included data tables from Reno et at.
-2019.
-
-This package incorporates compiled sub-packages such as nssgeometry and
-EAScherGen.
+Tau propagation is interpolated using included data tables from [nupyprop](https://github.com/NuSpaceSim/nupyprop).
 
 # Installation
 
-nuspacesim is available through pip and conda
+nuspacesim is available through [pip](https://pypi.org/project/nuspacesim/).
 
 `python3 -m pip install nuspacesim`
 
-or 
-
-`conda create -n nuspacesim -c conda-forge -c nuspacesim nuspacesim`
+<!-- or `conda create -n nuspacesim -c conda-forge -c nuspacesim nuspacesim`-->
 
 # Usage
+
+![NuSpaceSim Usage](https://raw.githubusercontent.com/NuSpaceSim/nuSpaceSim/main/docs/_static/run.svg)
 
 ### Create an XML configuration script
 
 `nuspacesim create-config my_config_file.xml`
-
-`conda activate nuspacesim`
 
 ### Run simulator
 
 Simulate neutrino interactions and save the results to a fits file.
 
 `nuspacesim run my_config_file.xml 1000 8.0 -o my_nss_sim.fits`
+
+# Documentation
+
+The sphinx documentation is available at [ReadTheDocs](https://nuspacesim.readthedocs.io/en/latest/index.html)
+
 
 ### Help Documentation
 
@@ -65,19 +64,7 @@ Also works for the subcommands.
 
 `python3 -m pip uninstall nuspacesim`
 
-
 # Download & Build
-
-### Requirements
-
-Conda is no longer required to build nuSpaceSim, although it may be desirable
-for downloading compilers. All other build and runtime requirements are 
-downloaded automatically during setup.
-
- * python3
- * pip
- * C++11 (or higher) compiler
-
 
 ### Clone the Repository (for development)
 

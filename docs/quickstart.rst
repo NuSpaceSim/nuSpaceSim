@@ -47,6 +47,11 @@ Optionally, override the configuration file on the command line.  ::
 
   nuspacesim run my_config_file.xml 1e5 -o my_nss_sim.fits
 
+
+.. image:: _static/run.svg
+   :alt: NuSpaceSim Run example
+
+
 --------------------------
 Explore simulation results
 --------------------------
