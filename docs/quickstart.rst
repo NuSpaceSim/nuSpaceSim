@@ -33,15 +33,16 @@ Create the XML configuration file
 Create a configuration file with the ``create-config`` command. This is editable by the
 user for defining different simulation parameters.  ::
 
-  nuspacesim create-config my_config_file.xml
+  nuspacesim create-config --numtrajs 1e6 --logenergy 8.0 my_config_file.xml
 
 -----------------
 Run the simulator
 -----------------
 
-Simulate neutrino interactions and save the results to a fits file.  ::
+Simulate neutrino interactions, and extensive air showers, then save the results to a
+FITS file.  ::
 
-  nuspacesim run my_config_file.xml -o my_nss_sim.fits
+  nuspacesim run my_config_file.xml -output my_nss_sim.fits
 
 Optionally, override the configuration file on the command line.  ::
 
@@ -57,9 +58,12 @@ Optionally, override the configuration file on the command line.  ::
 Explore simulation results
 --------------------------
 
+Quickly overview the generated table with astropy's `showtable`.
+
 ::
 
   showtable my_nss_sim.fits
+
 
 ------------------
 Help Documentation
