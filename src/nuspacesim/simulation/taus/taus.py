@@ -136,7 +136,7 @@ class Taus(object):
         Returns
         -------
         tauBeta: array_like
-            Tau beta angles.
+            Tau beta factor calculated from tauLorentz.
         tauLorentz: array_like
             Non-deterministically sampled tau lorentz factors. tau energy / tau mass.
         showerEnergy: array_like
