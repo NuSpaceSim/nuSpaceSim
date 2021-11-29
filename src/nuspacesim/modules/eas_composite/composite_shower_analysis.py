@@ -3,8 +3,49 @@ import numpy as np
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 #%%
-make_composites = CompositeShowers(shower_end=2000, grammage=1)
-comp_showers, depths, test =  make_composites()     
+make_composites = CompositeShowers(shower_end=3000, grammage=1)
+comp_showers, depths, test, broken_gamm_showers, broken_gamm_depths  =  make_composites()  
+
+#%%
+
+
+
+
+plt.figure(figsize=(8, 5), dpi= 120)
+
+
+plt.plot(broken_gamm_depths[50, 2:3000],
+         broken_gamm_showers[50, 2:3000],   
+            c= 'tab:orange')
+
+# plt.title('% Difference b/w Mean of Generated Composites and Mean of Composite Fits')
+# plt.ylabel('% Difference')
+# plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
+# plt.xlim(left = 0 )         
+# plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+plt.yscale('log')
+
+   #%%
+   
+def modified_gh(x, n_max, x_max, x_0, p1, p2, p3): 
+ 
+ particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))                  \
+                                 **( (x_max - x_0)/(p1 + p2*x + p3*(x**2)) )  ) )   \
+         *                                                                           \
+         ( np.exp((x_max - x)/(p1 + p2*x + p3*(x**2))) )
+         
+ return particles
+
+test_bin = np.linspace(0,30000,3000)
+test_shower = modified_gh (test_bin, 
+                           8.0913e+07,
+                           7.2860e+02,
+                           -8.9570e+01, 
+                           4.7265e+01, -5.7572e-03,  2.8993e-06,
+                           )
+plt.plot(test_bin ,
+         test_shower,   
+            c= 'tab:red')
 #%%
 #no_nans =  comp_showers[np.isin (comp_showers [:,0], rebounding_evts)] 
 

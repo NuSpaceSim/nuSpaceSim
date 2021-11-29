@@ -118,7 +118,7 @@ class FitCompositeShowers():
         """
         Loop through the array of showers and slant depths and find parameters.
         """
-        gh_fits = np.empty([self.showers.shape[0], 6]) 
+        gh_fits = np.full([self.showers.shape[0], 6], fill_value = -1) 
         
         print('Generating Fits... ')
         

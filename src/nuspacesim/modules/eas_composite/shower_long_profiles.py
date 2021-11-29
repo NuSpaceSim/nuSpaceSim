@@ -55,12 +55,12 @@ class ShowerParameterization:
         
         exp1 = (x_max - x_0) / gh_lambda
        
-        term1 = scaled_n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0)) **exp1 )
+        term1 = scaled_n_max *  ((x - x_0) / (x_max - x_0)) **exp1 
         
         exp2 = (x_max - x) / gh_lambda
         term2 = np.exp(exp2) 
         
-        f = np.nan_to_num (term1 * term2) 
+        f = term1 * term2
         
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
         #t = (x - x_max)/36.62 #shower stage
