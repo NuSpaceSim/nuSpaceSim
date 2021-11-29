@@ -41,6 +41,7 @@ Taus
 
 .. autosummary::
    :toctree:
+   :recursive:
 
     Taus
     local_plots

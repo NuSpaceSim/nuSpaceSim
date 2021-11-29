@@ -36,6 +36,13 @@ r""" Utility classes and methods
 .. autosummary::
    :toctree:
    :recursive:
+
+   cdf
+   decorators
+   grid
+   interp
+   misc
+
 """
 
 __all__ = ["cdf", "grid", "interp", "misc", "decorators"]

@@ -36,7 +36,7 @@ r"""Tau propagation module. A class for sampling tau attributes from beta angles
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ... import NssConfig
+from ...config import NssConfig
 from ...utils import decorators
 from ...utils.grid import NssGrid
 from ...utils.cdf import grid_inverse_sampler

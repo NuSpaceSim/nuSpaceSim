@@ -41,7 +41,6 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.mathjax",
     "sphinx_panels",
-    "numpydoc",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -83,10 +82,6 @@ intersphinx_mapping = {
     "scipy-lecture-notes": ("https://scipy-lectures.org", None),
 }
 
-# Make numpydoc to generate plots for example sections
-numpydoc_use_plots = True
-numpydoc_show_class_members = False
-
 # -----------------------------------------------------------------------------
 # Autosummary
 # -----------------------------------------------------------------------------
@@ -94,3 +89,15 @@ numpydoc_show_class_members = False
 autosummary_generate = True
 autosummary_generate_overwrite = True
 autosummary_imported_members = False
+autosummary_mock_imports = [
+    "astropy",
+    "click",
+    "dask",
+    "h5py",
+    "lxml",
+    "matplotlib",
+    "numpy",
+    "quadpy",
+    "rich",
+    "scipy",
+]
