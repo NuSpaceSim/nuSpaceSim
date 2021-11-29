@@ -1,5 +1,8 @@
 .. _nuspacesim_docs_mainpage:
 
+.. image:: _static/NuSpaceSimLogoBlack.png
+   :alt: NuSpaceSim Logo Black
+
 ========================
 nuSpaceSim Documentation
 ========================
