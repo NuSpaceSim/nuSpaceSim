@@ -12,21 +12,27 @@ class Geo:
         maxsepangle = config.simulation.theta_ch_max
         delAziAng = config.simulation.max_azimuth_angle
 
-        self.earth_radius = radE
-        self.earth_rad_2 = self.earth_radius * self.earth_radius
+        self.earth_radius = np.float32(radE)
+        self.earth_rad_2 = np.float32(self.earth_radius ** 2)
 
-        self.detAlt = detalt
-        self.radEplusDetAlt = self.earth_radius + self.detAlt
-        self.radEplusDetAltSqrd = self.radEplusDetAlt * self.radEplusDetAlt
+        self.detAlt = np.float32(detalt)
+        self.radEplusDetAlt = np.float32(self.earth_radius + self.detAlt)
+        self.radEplusDetAltSqrd = np.float32(self.radEplusDetAlt * self.radEplusDetAlt)
 
-        self.detRA = np.radians(detra)
-        self.detDec = np.radians(detdec)
+        self.detRA = np.radians(detra, dtype=np.float32)
+        self.detDec = np.radians(detdec, dtype=np.float32)
 
-        alphaHorizon = 0.5 * np.pi - np.arccos(self.earth_radius / self.radEplusDetAlt)
-        alphaMin = alphaHorizon - delAlpha
-        minChordLen = 2.0 * np.sqrt(
-            self.earth_rad_2
-            - self.radEplusDetAltSqrd * np.sin(alphaMin) * np.sin(alphaMin)
+        alphaHorizon = np.float32(0.5 * np.pi) - np.arccos(
+            self.earth_radius / self.radEplusDetAlt, dtype=np.float32
+        )
+        alphaMin = np.subtract(alphaHorizon, delAlpha, dtype=np.float32)
+        minChordLen = np.multiply(
+            2.0,
+            np.sqrt(
+                self.earth_rad_2 - self.radEplusDetAltSqrd * np.sin(alphaMin) ** 2,
+                dtype=np.float32,
+            ),
+            dtype=np.float32,
         )
 
         self.minLOSpathLen = self.radEplusDetAlt * np.cos(alphaMin) - 0.5 * minChordLen
@@ -75,8 +81,10 @@ class Geo:
         u4 = u[:, 3]
         N = u.shape[0]
 
-        self.thetaTrSubV = np.arcsin(self.sinOfMaxThetaTrSubV * np.sqrt(u1))
-        costhetaTrSubV = np.cos(self.thetaTrSubV)
+        self.thetaTrSubV = np.arcsin(
+            self.sinOfMaxThetaTrSubV * np.sqrt(u1, dtype=np.float32), dtype=np.float32
+        )
+        costhetaTrSubV = np.cos(self.thetaTrSubV, dtype=np.float32)
         phiTrSubV = 2.0 * np.pi * u2
         phiS = (self.maxPhiS - self.minPhiS) * u3 + self.minPhiS
 
@@ -96,10 +104,24 @@ class Geo:
             + 0.5 * b * u4
         )
 
-        psi = np.arccos(r / np.sqrt(-1.0 * q * q * q))
-        v1 = 2.0 * np.sqrt(-1.0 * q) * np.cos(psi / 3.0)
-        v2 = 2.0 * np.sqrt(-1.0 * q) * np.cos((psi + 2.0 * np.pi) / 3.0)
-        v3 = 2.0 * np.sqrt(-1.0 * q) * np.cos((psi + 4.0 * np.pi) / 3.0)
+        psi = np.arccos(
+            r / np.sqrt(-1.0 * q * q * q, dtype=np.float32), dtype=np.float32
+        )
+        v1 = (
+            2
+            * np.sqrt(-1.0 * q, dtype=np.float32)
+            * np.cos(psi / 3.0, dtype=np.float32)
+        )
+        v2 = (
+            2
+            * np.sqrt(-1.0 * q, dtype=np.float32)
+            * np.cos((psi + 2.0 * np.pi) / 3.0, dtype=np.float32)
+        )
+        v3 = (
+            2
+            * np.sqrt(-1.0 * q, dtype=np.float32)
+            * np.cos((psi + 4.0 * np.pi) / 3.0, dtype=np.float32)
+        )
 
         dscr = q * q * q + r * r
 

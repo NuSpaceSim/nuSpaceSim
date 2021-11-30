@@ -19,9 +19,9 @@ def test_rg():
     Rmsk = R.evMasknpArray
     Tmsk = T.event_mask
 
-    # d = np.abs(R.evArray["betaTrSubN"][Rmsk]- T.betaTrSubN[Tmsk])
-    # i = np.argmax(d)
-    # print(d[i], R.evArray["betaTrSubN"][Rmsk][i], T.betaTrSubN[Tmsk][i])
+    d = np.abs(R.evArray["betaTrSubN"][Rmsk] - T.betaTrSubN[Tmsk])
+    i = np.argmax(d)
+    print(d[i], R.evArray["betaTrSubN"][Rmsk][i], T.betaTrSubN[Tmsk][i])
     assert np.allclose(
         R.evArray["betaTrSubN"][Rmsk], T.betaTrSubN[Tmsk], rtol=1e-2, atol=1e-2
     )
