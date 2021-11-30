@@ -45,7 +45,7 @@ Command line client application
    :toctree:
    :recursive:
 
-   nuspacesim.apps.cli
+   nuspacesim.apps
 
 
 ******************
