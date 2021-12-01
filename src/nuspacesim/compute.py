@@ -52,6 +52,7 @@ import numpy as np
 from .config import NssConfig
 from .results_table import ResultsTable
 from .simulation.geometry.region_geometry import RegionGeom
+from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
@@ -137,6 +138,7 @@ def compute(
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
+    spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
     eas_radio = EASRadio(config)
@@ -156,17 +158,22 @@ def compute(
 
     sw = StagedWriter()
 
-    logv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
+    logv(
+        "Running NuSpaceSim with Energy Spectrum "
+        f"({config.simulation.spectrum_type}:{config.simulation.spectrum_param})"
+    )
 
     logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
+    logv("Computing [green] Energy Spectra.[/]")
+    log_e_nu = spec(beta_tr.shape[0], store=sw, plot=to_plot)
 
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
-        beta_tr, store=sw, plot=to_plot
+        beta_tr, log_e_nu, store=sw, plot=to_plot
     )
 
     logv("Computing [green] Decay Altitudes.[/]")

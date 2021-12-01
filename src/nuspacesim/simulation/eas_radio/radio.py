@@ -50,7 +50,9 @@ class EASRadio:
         return ang
 
     @decorators.nss_result_store("EFields")
-    def __call__(self, beta, altDec, lenDec, theta, pathLen, showerEnergy):
+    def __call__(
+        self, beta, altDec, lenDec, theta, pathLen, showerEnergy, *args, **kwargs
+    ):
         """
         EAS radio output from ZHAires lookup tables
         """

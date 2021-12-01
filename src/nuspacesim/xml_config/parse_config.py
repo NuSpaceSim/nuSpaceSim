@@ -163,7 +163,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         elif node.tag == "NuTauEnergySpecType":
             simparams[node.tag] = node.attrib["SpectrumType"]
             if node.attrib["SpectrumType"] == "Mono":
-                simparams["NuTauEnergy"] = str(node.find("NuTauEnergy").text)
+                simparams["SpectrumParam"] = str(node.find("SpectrumParam").text)
         else:
             simparams[node.tag] = str(node.text)
 
@@ -175,7 +175,8 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
-        nu_tau_energy=float(simparams["NuTauEnergy"]),
+        spectrum_type=str(simparams["SpectrumType"]),
+        spectrum_param=float(simparams["SpectrumParam"]),
         e_shower_frac=float(simparams["FracETauInShower"]),
         ang_from_limb=float(simparams["AngleFromLimb"]),
         max_azimuth_angle=float(simparams["AzimuthalAngle"]),
@@ -315,10 +316,10 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     fraceshow.text = str(config.simulation.e_shower_frac)
 
     nutauspectype = ET.SubElement(simparams, "NuTauEnergySpecType")
-    nutauspectype.set("SpectrumType", "Mono")
+    nutauspectype.set("SpectrumType", config.simulation.spectrum_type)
 
-    nutauen = ET.SubElement(nutauspectype, "NuTauEnergy")
-    nutauen.text = str(config.simulation.nu_tau_energy)
+    nutauen = ET.SubElement(nutauspectype, "SpectrumParam")
+    nutauen.text = str(config.simulation.spectrum_param)
 
     azimuthang = ET.SubElement(simparams, "AzimuthalAngle")
     azimuthang.set("Unit", "Radians")

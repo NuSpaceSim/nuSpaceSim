@@ -22,7 +22,7 @@
       <FracETauInShower>0.5</FracETauInShower>
     </TauShowerType>
     <NuTauEnergySpecType SpectrumType="Mono">
-      <NuTauEnergy>100000000.0</NuTauEnergy>
+      <SpectrumParam>8.0</SpectrumParam>
     </NuTauEnergySpecType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
     <NumTrajs>100</NumTrajs>

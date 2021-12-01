@@ -91,6 +91,7 @@ class RegionGeom:
         """Throw N events with 4 * u random numbers"""
 
         if isinstance(u, int):
+            # fix to make closed in [0,1]
             u = np.random.rand(4, u)
 
         if u is None:
@@ -142,10 +143,14 @@ class RegionGeom:
         self.losPathLen[dmsk & v2_msk] = v2[dmsk & v2_msk]
         self.losPathLen[dmsk & v3_msk] = v3[dmsk & v3_msk]
 
-        self.losPathLen[~dmsk] = np.sum(
-            np.cbrt(r[~dmsk] + np.multiply.outer([1, -1], np.sqrt(dscr[~dmsk]))),
-            axis=0,
-        )
+        s = np.cbrt(r[~dmsk] + np.sqrt(dscr[~dmsk]))
+        t = np.cbrt(r[~dmsk] - np.sqrt(dscr[~dmsk]))
+        self.losPathLen[~dmsk] = s + t
+
+        # self.losPathLen[~dmsk] = np.sum(
+        #     np.cbrt(r[~dmsk] + np.multiply.outer([1, -1], np.sqrt(dscr[~dmsk]))),
+        #     axis=0,
+        # )
 
         rvsqrd = self.losPathLen * self.losPathLen
         costhetaS = (self.core_alt ** 2 + self.earth_rad_2 - rvsqrd) / (
@@ -203,14 +208,6 @@ class RegionGeom:
 
         self.event_mask = self.costhetaTrSubN >= 0
 
-        # Why is geom_factor never used?
-        # N = u.shape[-1]
-        # good = self.costhetaTrSubV >= np.cos(np.radians(1.5))
-        # self.geom_factor = np.sum(
-        #     self.costhetaTrSubN / (self.costhetaNSubV * self.costhetaTrSubV),
-        #     where=(self.event_mask & good),
-        # ) * np.reciprocal(N) * self.mcnorm
-
     def betas(self):
         """Earth-emergence angles for valid events."""
         return self.betaTrSubN[self.event_mask]
@@ -240,12 +237,12 @@ class RegionGeom:
 
     @decorators.nss_result_plot(geom_beta_tr_hist, geom_beta_tr_hist_red)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")
-    def __call__(self, numtrajs):
+    def __call__(self, numtrajs, *args, **kwargs):
         """Throw numtrajs events and return valid betas."""
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
-    def mcintegral(self, triggers, costheta, tauexitprob, threshold):
+    def mcintegral(self, triggers, costheta, tauexitprob, threshold, type):
         """Monte Carlo integral."""
 
         cossepangle = self.costhetaTrSubV[self.event_mask]
@@ -256,16 +253,18 @@ class RegionGeom:
             / self.valid_costhetaTrSubV()
         )
 
+        mcnorm = self.mcnorm
+
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0
-        mcintegralgeoonly = np.mean(mcintfactor) * self.mcnorm
+        mcintegralgeoonly = np.mean(mcintfactor) * mcnorm
 
         # Multiply by tau exit probability
         mcintfactor *= tauexitprob
 
         # # PE threshold
         mcintfactor[triggers < threshold] = 0
-        mcintegral = np.mean(mcintfactor) * self.mcnorm
+        mcintegral = np.mean(mcintfactor) * mcnorm
 
         numEvPass = np.count_nonzero(mcintfactor)
 

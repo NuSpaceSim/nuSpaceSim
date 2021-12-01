@@ -85,11 +85,13 @@ def cli():
     "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
 )
 @click.argument("count", type=float, default=0.0)
-@click.argument("logevalue", type=float, default=0.0)
+@click.argument("spectrum_type", type=str, default="")
+@click.argument("spectrum_param", type=float, default=0.0)
 def run(
     config_file: str,
     count: float,
-    logevalue: float,
+    spectrum_type: str,
+    spectrum_param: float,
     no_result_file: bool,
     output: str,
     plot: list,
@@ -109,8 +111,8 @@ def run(
         XML configuration file for particular simulation particular.
     count : int, optional
         Number of thrown trajectories. Optionally override value in config_file.
-    logevalue: float, optional
-        Log of nu tau Energy. Optionally override value in config_file.
+    spectrum_type : str, optional
+        Type of
     output: str, optional
         Name of the output file holding the simulation results.
     plot: list, optional
@@ -133,10 +135,15 @@ def run(
 
     # User Inputs
     config = config_from_xml(config_file)
+
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
-    if count != 0.0:
-        config.simulation.nu_tau_energy = 10 ** logevalue
+
+    if spectrum_type != "" and spectrum_param != 0:
+        config.simulation.spectrum_type = spectrum_type
+        config.simulation.spectrum_param = 10 ** spectrum_param
+
     plot = list(registry) if plotall else plot
+
     simulation = compute(
         config,
         verbose=True,
@@ -144,6 +151,7 @@ def run(
         output_file=output,
         write_stages=write_stages,
     )
+
     if not no_result_file:
         simulation.write(output, overwrite=True)
 
@@ -152,12 +160,18 @@ def run(
 @click.option(
     "-n", "--numtrajs", type=float, default=100, help="number of trajectories."
 )
+@click.option("--spectrum", type=str, default="Mono", help="type of nu_tau energy.")
 @click.option(
-    "-l", "--logenergy", type=float, default=8.0, help="log10(nu_tau_energy) in GeV"
+    "--specparam",
+    type=float,
+    default=8.0,
+    help="Parameter of energy spectrum. Defauts to log10(nu_tau_energy) in GeV",
 )
 @click.argument("filename")
 # @click.pass_context
-def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
+def create_config(
+    filename: str, numtrajs: float, spectrum: str, specparam: float
+) -> None:
     """Generate a configuration file from the given parameters.
 
     \f
@@ -168,19 +182,23 @@ def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
         Name of output xml configuration file.
     numtrajs: float, optional
         Number of thrown trajectories. Optionally override value in config_file.
-    logenergy: float, optional
-        Log of nu tau Energy. Optionally override value in config_file.
+    spectrum: str, optional
+        Type of nu_tau energy spectrum. Optionally override value in config_file.
+    specparam: float, optional
+        Parameter of nu_tau energy spectrum. Optionally override value in config_file.
 
     Examples
     --------
     Command line usage of the create_config command may work with the following invocation.
 
-    `nuspacesim create_config -n 100000 sample_input_file.xml`
+    `nuspacesim create_config -n 1e5 sample_input_file.xml`
     """
     from .. import NssConfig, SimulationParameters
     from ..xml_config import create_xml
 
-    simulation = SimulationParameters(N=int(numtrajs), nu_tau_energy=(10 ** logenergy))
+    simulation = SimulationParameters(
+        N=int(numtrajs), spectrum_type=spectrum, spectrum_param=specparam
+    )
 
     create_xml(filename, NssConfig(simulation=simulation))
 

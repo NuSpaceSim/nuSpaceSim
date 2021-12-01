@@ -45,7 +45,7 @@ try:
 except ImportError:
     from cached_property import cached_property
 
-from numpy import radians, log10, sin
+from numpy import radians, log10, sin, nan
 
 from . import constants as const
 
@@ -123,14 +123,16 @@ class DetectorCharacteristics:
 
 @dataclass
 class SimulationParameters:
-    r"""Dataclass holding Simulation Parameters."""
+    """Dataclass holding Simulation Parameters."""
 
     N: int = 1000
     """Number of thrown trajectories. Default = 1000"""
     theta_ch_max: float = radians(3.0)
     """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""
-    nu_tau_energy: float = 1e8
-    """Energy of the tau neutrinos in GeV. Default = 1e8 GeV."""
+    spectrum_type: str = "Mono"
+    """Distribution from which to draw nu_tau energies."""
+    spectrum_param: float = 8.0
+    """Log Energy of the tau neutrinos in GeV. Default = log10(1e8) GeV."""
     e_shower_frac: float = 0.5
     """Fraction of ETau in Shower. Default = 0.5."""
     ang_from_limb: float = radians(7.0)
@@ -147,15 +149,26 @@ class SimulationParameters:
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
-        """log base 10 of nu_tau_energy."""
-        return log10(self.nu_tau_energy)
+        """log10 of nu_tau_energy."""
+        if self.spectrum_type == "Mono":
+            return self.spectrum_param
+        else:
+            return nan
+
+    @cached_property
+    def nu_tau_energy(self) -> float:
+        """10 ^ log_nu_tau_energy."""
+        if self.spectrum_type == "Mono":
+            return 10 ** self.nu_tau_energy()
+        else:
+            return nan
 
     @cached_property
     def sin_theta_ch_max(self) -> float:
         """sin of theta_ch_max."""
         return sin(self.theta_ch_max)
 
-    def __call__(self) -> dict[str, tuple[Union[int, float], str]]:
+    def __call__(self) -> dict[str, tuple[Union[int, float, str], str]]:
         r"""Dictionary representation of SimulationParameters instance.
 
         Groups the data member values with descriptive comments in a tuple. Adds
@@ -171,7 +184,9 @@ class SimulationParameters:
         return {
             "N": (self.N, "Simulation: thrown neutrinos"),
             "thChMax": (self.theta_ch_max, "Simulation: Maximum Cherenkov Angle"),
-            "nuTauEn": (self.nu_tau_energy, "Simulation: nutau energy (GeV)"),
+            "specType": (self.spectrum_type, "Simulation: nutau energy spectrum"),
+            "specPara": (self.spectrum_param, "Simulation: spectrum parameter"),
+            "specUnit": ("log(GeV)", "Simulation: Energy spectrum units"),
             "eShwFrac": (self.e_shower_frac, "Simulation: Fraction of Etau in Shower"),
             "angLimb": (self.ang_from_limb, "Simulation: Angle From Limb"),
             "maxAzAng": (self.max_azimuth_angle, "Simulation: Maximum Azimuthal Angle"),

@@ -97,7 +97,7 @@ xsd = StringIO(
 
 <xs:complexType name="NTESType">
   <xs:sequence>
-    <xs:element name="NuTauEnergy" type="xs:decimal"/>
+    <xs:element name="SpectrumParam" type="xs:decimal"/>
   </xs:sequence>
   <xs:attribute name="SpectrumType" type="xs:string"/>
 </xs:complexType>

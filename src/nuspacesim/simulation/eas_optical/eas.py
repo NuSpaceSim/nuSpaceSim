@@ -52,7 +52,7 @@ class EAS:
         self.CphotAng = CphotAng()
 
     @decorators.nss_result_store("altDec", "lenDec")
-    def altDec(self, beta, tauBeta, tauLorentz, u=None):
+    def altDec(self, beta, tauBeta, tauLorentz, u=None, *args, **kwargs):
         """
         get decay altitude
         """
@@ -75,7 +75,7 @@ class EAS:
 
     @decorators.nss_result_plot(eas_optical_scatter, eas_optical_histogram)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
-    def __call__(self, beta, altDec, showerEnergy):
+    def __call__(self, beta, altDec, showerEnergy, *args, **kwargs):
         """
         Electromagnetic Air Shower operation.
         """

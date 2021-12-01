@@ -31,28 +31,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import nuspacesim as nss
-import numpy as np
+from matplotlib import pyplot as plt
 
 
-def test_detector_characteristics():
-    dc = nss.DetectorCharacteristics()
-    assert dc.altitude > 0.0
+def spectra_histogram(inputs, results, *args, **kwargs):
+    r"""Plot some histograms"""
 
-    dc = nss.DetectorCharacteristics(altitude=200.1)
-    assert dc.altitude == 200.1
+    N = inputs
+    log_e_nu = results
 
+    color = "g"
+    fig, ax = plt.subplots(1, constrained_layout=True)
+    ax.hist(log_e_nu, 100, log=False, facecolor=color)
+    ax.set_xlabel(f"log(E_nu) of {N} events")
 
-def test_simulation_params():
-    sp = nss.SimulationParameters()
-    assert sp.N > 0
-    assert np.log10(sp.nu_tau_energy()) == sp.log_nu_tau_energy
-    assert np.sin(sp.theta_ch_max) == sp.sin_theta_ch_max
-
-
-def test_nss_config():
-    nc1 = nss.NssConfig()
-    dc = nss.DetectorCharacteristics()
-    sp = nss.SimulationParameters()
-    nc2 = nss.NssConfig(detector=dc, simulation=sp)
-    assert nc1 == nc2
+    fig.suptitle("Energy Spectra Histogram, Log(E_nu)")
+    plt.show()

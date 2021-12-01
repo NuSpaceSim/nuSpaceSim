@@ -34,12 +34,12 @@
 r"""Tau propagation module. A class for sampling tau attributes from beta angles."""
 
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, RegularGridInterpolator
 
 from ...config import NssConfig
 from ...utils import decorators
 from ...utils.grid import NssGrid
-from ...utils.cdf import grid_inverse_sampler
+from ...utils.cdf import grid_inverse_sampler, grid_cdf_sampler
 from ...utils.interp import grid_slice_interp
 from .local_plots import taus_scatter, taus_histogram, taus_pexit
 
@@ -81,51 +81,73 @@ class Taus(object):
         with as_file(
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_pexit.hdf5"
         ) as file:
-            g = NssGrid.read(file, path="pexit_regen", format="hdf5")
-            self.sliced_tau_pexit_grid = grid_slice_interp(
-                g, config.simulation.log_nu_tau_energy, "log_e_nu"
-            )
-            self.pexit_interp = interp1d(
-                self.sliced_tau_pexit_grid.axes[0],
-                np.log10(self.sliced_tau_pexit_grid.data),
-            )
+            self.pexit_grid = NssGrid.read(file, path="pexit_regen", format="hdf5")
 
         # grid of tau_cdf tables
         with as_file(
             files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.hdf5"
         ) as file:
             self.tau_cdf_grid = NssGrid.read(file, format="hdf5")
-            self.tau_cdf_sample = grid_inverse_sampler(
-                self.tau_cdf_grid, config.simulation.log_nu_tau_energy
-            )
 
-    def tau_exit_prob(self, betas):
+    def tau_exit_prob(self, betas, log_e_nu):
         """
         Tau Exit Probability
         """
         mask = betas >= np.radians(1.0)
-        tau_exit_prob = np.full(
-            betas.shape, 10 ** self.pexit_interp(np.array([np.radians(1.0)]))
-        )
-        tau_exit_prob[mask] = 10 ** self.pexit_interp(betas[mask])
-        return tau_exit_prob
 
-    def tau_energy(self, betas):
+        if isinstance(log_e_nu, (int, float)):
+            sliced_tau_pexit_grid = grid_slice_interp(
+                self.pexit_grid, log_e_nu, "log_e_nu"
+            )
+            pexit_interp = interp1d(
+                sliced_tau_pexit_grid.axes[0],
+                np.log10(sliced_tau_pexit_grid.data),
+            )
+            Pexit = np.full(
+                betas.shape, 10 ** pexit_interp(np.array([np.radians(1.0)]))
+            )
+            Pexit[mask] = 10 ** pexit_interp(betas[mask])
+        elif hasattr(log_e_nu, "__getitem__"):
+            pexit_interp = RegularGridInterpolator(
+                self.pexit_grid.axes, np.log10(self.pexit_grid.data)
+            )
+            Pexit = np.empty_like(betas)
+            Pexit[mask] = 10 ** pexit_interp((log_e_nu[mask], betas[mask]))
+            Pexit[~mask] = 10 ** pexit_interp((log_e_nu[~mask], np.radians(1.0)))
+        else:
+            raise RuntimeError(f"log_e_nu type not recognized: {type(log_e_nu)}")
+
+        return Pexit
+
+    def tau_energy(self, betas, log_e_nu):
         """
         Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
+
         mask = betas >= np.radians(1.0)
-        # E_tau = np.full(betas.shape, self.tau_cdf_sample(np.array([np.radians(1.0)])))
         E_tau = np.empty_like(betas)
-        E_tau[mask] = self.tau_cdf_sample(betas[mask])
-        E_tau[~mask] = self.tau_cdf_sample(
-            np.full(betas[~mask].shape, self.tau_cdf_grid["beta_rad"][0])
-        )
-        return E_tau * self.config.simulation.nu_tau_energy
+
+        if isinstance(log_e_nu, (int, float)):
+            tau_cdf_sample = grid_inverse_sampler(self.tau_cdf_grid, log_e_nu)
+            E_tau[mask] = tau_cdf_sample(betas[mask])
+            E_tau[~mask] = tau_cdf_sample(
+                np.full(betas[~mask].shape, self.tau_cdf_grid["beta_rad"][0])
+            )
+        elif hasattr(log_e_nu, "__getitem__"):
+            tau_cdf_sample = grid_cdf_sampler(self.tau_cdf_grid)
+            E_tau[mask] = tau_cdf_sample(log_e_nu[mask], betas[mask])
+            E_tau[~mask] = tau_cdf_sample(
+                log_e_nu[~mask],
+                np.full(betas[~mask].shape, self.tau_cdf_grid["beta_rad"][0]),
+            )
+        else:
+            raise RuntimeError(f"log_e_nu type not recognized: {type(log_e_nu)}")
+
+        return E_tau * 10 ** log_e_nu
 
     @decorators.nss_result_plot(taus_scatter, taus_histogram, taus_pexit)
     @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
-    def __call__(self, betas):
+    def __call__(self, betas, log_e_nu, *args, **kwargs):
         r"""Perform main operation for Taus module.
 
         Parameters
@@ -145,8 +167,8 @@ class Taus(object):
             Non-deterministically sampled tau exit probability.
         """
 
-        tauExitProb = self.tau_exit_prob(betas)
-        tauEnergy = self.tau_energy(betas)
+        tauExitProb = self.tau_exit_prob(betas, log_e_nu)
+        tauEnergy = self.tau_energy(betas, log_e_nu)
 
         # in units of 100 PeV
         showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1e8

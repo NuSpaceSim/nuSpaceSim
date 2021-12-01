@@ -31,28 +31,55 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import nuspacesim as nss
+from typing import Any, Callable, Union
+
 import numpy as np
+from numpy.typing import NDArray
+
+from ...config import NssConfig
+from ...utils import decorators
+from .local_plots import spectra_histogram
 
 
-def test_detector_characteristics():
-    dc = nss.DetectorCharacteristics()
-    assert dc.altitude > 0.0
-
-    dc = nss.DetectorCharacteristics(altitude=200.1)
-    assert dc.altitude == 200.1
-
-
-def test_simulation_params():
-    sp = nss.SimulationParameters()
-    assert sp.N > 0
-    assert np.log10(sp.nu_tau_energy()) == sp.log_nu_tau_energy
-    assert np.sin(sp.theta_ch_max) == sp.sin_theta_ch_max
+def spectra_distributions(generator=np.random.default_rng) -> dict:
+    return {
+        "Mono": lambda param, size: np.full(shape=(size), fill_value=param),
+        "power": lambda low, hi, a, size: (hi - low) * generator().power(a, size) + low,
+    }
 
 
-def test_nss_config():
-    nc1 = nss.NssConfig()
-    dc = nss.DetectorCharacteristics()
-    sp = nss.SimulationParameters()
-    nc2 = nss.NssConfig(detector=dc, simulation=sp)
-    assert nc1 == nc2
+@decorators.nss_result_plot(spectra_histogram)
+@decorators.nss_result_store("log_e_nu")
+def energy_spectra(
+    N: int,
+    spectra: Union[str, Callable],
+    param,
+    *args,
+    **kwargs,
+) -> NDArray[Any]:
+    """Energy Spectra of thrown Neutrinos"""
+
+    if isinstance(spectra, str):
+        gen = kwargs["generator"] if "generator" in kwargs else np.random.default_rng
+        dist = spectra_distributions(gen)[spectra]
+        return dist(param, *args, size=N, **kwargs)
+    elif isinstance(spectra, Callable):
+        return spectra(param, *args, size=N, **kwargs)
+    else:
+        raise RuntimeError(f"Parameter type not recognized {type(param)}")
+
+
+class Spectra:
+    """Energy Spectra of thrown Neutrinos"""
+
+    def __init__(self, config: NssConfig):
+        self.config = config
+
+    def __call__(self, N, *args, **kwargs):
+        return energy_spectra(
+            N,
+            self.config.simulation.spectrum_type,
+            self.config.simulation.spectrum_param,
+            *args,
+            **kwargs,
+        )
