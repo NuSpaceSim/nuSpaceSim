@@ -33,7 +33,7 @@ Create the XML configuration file
 Create a configuration file with the ``create-config`` command. This is editable by the
 user for defining different simulation parameters.  ::
 
-  nuspacesim create-config --numtrajs 1e6 --logenergy 8.0 my_config_file.xml
+  nuspacesim create-config --numtrajs 1e6 --spectrum Mono my_config_file.xml
 
 -----------------
 Run the simulator

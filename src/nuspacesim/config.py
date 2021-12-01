@@ -37,7 +37,7 @@
 
 from __future__ import annotations
 
-from typing import Union, Any
+from typing import Union, Any, Tuple
 from dataclasses import dataclass
 
 try:
@@ -122,6 +122,50 @@ class DetectorCharacteristics:
 
 
 @dataclass
+class MonoSpectrum:
+    log_nu_tau_energy: float = 8.0
+    """Log Energy of the tau neutrinos in GeV."""
+
+    def __call__(self) -> dict:
+        return {
+            "specType": ("Mono", "Simulation: nutau energy spectrum"),
+            "specPara": (self.log_nu_tau_energy, f"Simulation: Log Energy (GeV)"),
+        }
+
+
+@dataclass
+class PowerSpectrum:
+    index: float = 0.5
+    """Power Law Log Energy of the tau neutrinos in GeV."""
+
+    lower_bound: float = 6.0
+    """Lower Bound Log nu_tau Energy GeV."""
+
+    upper_bound: float = 12.0
+    """Upper Bound Log nu_tau Energy GeV."""
+
+    def __call__(self) -> dict:
+        return {
+            "specType": ("Power", "Simulation: nutau Power Law energy spectrum"),
+            "specPara": (self.index, f"Simulation: Power Law Index"),
+            "specLow": (self.lower_bound, f"Simulation: Energy Lower Bound"),
+            "specHigh": (self.upper_bound, f"Simulation: Energy Upper Bound"),
+        }
+
+
+@dataclass
+class FileSpectrum:
+    path: str = ""
+    """File path to user defined spectrum file"""
+
+    def __call__(self) -> dict:
+        return {
+            "specType": ("File", "Simulation: Nutau User Defined energy spectrum"),
+            "specFile": (self.path, f"Simulation: FilePath"),
+        }
+
+
+@dataclass
 class SimulationParameters:
     """Dataclass holding Simulation Parameters."""
 
@@ -129,10 +173,8 @@ class SimulationParameters:
     """Number of thrown trajectories. Default = 1000"""
     theta_ch_max: float = radians(3.0)
     """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""
-    spectrum_type: str = "Mono"
+    spectrum: Union[MonoSpectrum, PowerSpectrum, FileSpectrum] = MonoSpectrum()
     """Distribution from which to draw nu_tau energies."""
-    spectrum_param: float = 8.0
-    """Log Energy of the tau neutrinos in GeV. Default = log10(1e8) GeV."""
     e_shower_frac: float = 0.5
     """Fraction of ETau in Shower. Default = 0.5."""
     ang_from_limb: float = radians(7.0)
@@ -150,15 +192,15 @@ class SimulationParameters:
     @cached_property
     def log_nu_tau_energy(self) -> float:
         """log10 of nu_tau_energy."""
-        if self.spectrum_type == "Mono":
-            return self.spectrum_param
+        if isinstance(self.spectrum, MonoSpectrum):
+            return self.spectrum.log_nu_tau_energy
         else:
             return nan
 
     @cached_property
     def nu_tau_energy(self) -> float:
         """10 ^ log_nu_tau_energy."""
-        if self.spectrum_type == "Mono":
+        if isinstance(self.spectrum, MonoSpectrum):
             return 10 ** self.nu_tau_energy()
         else:
             return nan
@@ -181,22 +223,24 @@ class SimulationParameters:
         dict
             Representation of the data members with comments.
         """
-        return {
+        d = {
             "N": (self.N, "Simulation: thrown neutrinos"),
             "thChMax": (self.theta_ch_max, "Simulation: Maximum Cherenkov Angle"),
-            "specType": (self.spectrum_type, "Simulation: nutau energy spectrum"),
-            "specPara": (self.spectrum_param, "Simulation: spectrum parameter"),
             "specUnit": ("log(GeV)", "Simulation: Energy spectrum units"),
             "eShwFrac": (self.e_shower_frac, "Simulation: Fraction of Etau in Shower"),
             "angLimb": (self.ang_from_limb, "Simulation: Angle From Limb"),
             "maxAzAng": (self.max_azimuth_angle, "Simulation: Maximum Azimuthal Angle"),
             "ionosph": (
                 self.model_ionosphere,
-                "Simulation: For Radio, model the ionosphere?",
+                "Simulation: Radio ionosphere model flg",
             ),
             "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
             "TECerr": (self.TECerr, "Simulation: Uniform distr. err: TEC est."),
         }
+
+        d.update(self.spectrum())
+
+        return d
 
 
 @dataclass

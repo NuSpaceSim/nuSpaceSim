@@ -38,7 +38,7 @@ import numpy as np
 def taus_scatter(inputs, results, *args, **kwargs):
     r"""Plot some scatterplots"""
 
-    tau_self, betas = inputs
+    tau_self, betas, log_e_nu = inputs
     tauBeta, tauLorentz, showerEnergy, tauExitProb = results
 
     color = "c"
@@ -75,7 +75,7 @@ def taus_scatter(inputs, results, *args, **kwargs):
 def taus_histogram(inputs, results, *args, **kwargs):
     r"""Plot some histograms"""
 
-    tau_self, betas = inputs
+    tau_self, betas, log_e_nu = inputs
     tauBeta, tauLorentz, showerEnergy, tauExitProb = results
 
     color = "c"
@@ -97,7 +97,7 @@ def taus_histogram(inputs, results, *args, **kwargs):
 
 
 def taus_pexit(inputs, results, *args, **kwargs):
-    tau_self, betas = inputs
+    tau_self, betas, log_e_nu = inputs
     tauBeta, tauLorentz, showerEnergy, tauExitProb = results
 
     color = "c"

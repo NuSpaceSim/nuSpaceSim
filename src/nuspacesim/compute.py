@@ -158,10 +158,10 @@ def compute(
 
     sw = StagedWriter()
 
-    logv(
-        "Running NuSpaceSim with Energy Spectrum "
-        f"({config.simulation.spectrum_type}:{config.simulation.spectrum_param})"
-    )
+    # logv(
+    #     "Running NuSpaceSim with Energy Spectrum "
+    #     f"({config.simulation.spectrum.type}:{config.simulation.spectrum_param})"
+    # )
 
     logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
@@ -192,7 +192,11 @@ def compute(
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-            numPEs, costhetaChEff, tauExitProb, config.detector.photo_electron_threshold
+            numPEs,
+            costhetaChEff,
+            tauExitProb,
+            config.detector.photo_electron_threshold,
+            "Mono",
         )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
@@ -218,7 +222,7 @@ def compute(
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres
+            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres, "Mono"
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")

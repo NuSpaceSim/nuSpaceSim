@@ -85,7 +85,7 @@ def cli():
     "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
 )
 @click.argument("count", type=float, default=0.0)
-@click.argument("spectrum_type", type=str, default="")
+@click.argument("spectrum_type", type=str, default="Mono")
 @click.argument("spectrum_param", type=float, default=0.0)
 def run(
     config_file: str,
@@ -132,15 +132,15 @@ def run(
 
     from ..compute import compute
     from ..xml_config import config_from_xml
+    from ..config import MonoSpectrum
 
     # User Inputs
     config = config_from_xml(config_file)
 
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
 
-    if spectrum_type != "" and spectrum_param != 0:
-        config.simulation.spectrum_type = spectrum_type
-        config.simulation.spectrum_param = 10 ** spectrum_param
+    if spectrum_type == "Mono" and spectrum_param != 0:
+        config.simulation.spectrum = MonoSpectrum(10 ** spectrum_param)
 
     plot = list(registry) if plotall else plot
 
@@ -161,17 +161,8 @@ def run(
     "-n", "--numtrajs", type=float, default=100, help="number of trajectories."
 )
 @click.option("--spectrum", type=str, default="Mono", help="type of nu_tau energy.")
-@click.option(
-    "--specparam",
-    type=float,
-    default=8.0,
-    help="Parameter of energy spectrum. Defauts to log10(nu_tau_energy) in GeV",
-)
 @click.argument("filename")
-# @click.pass_context
-def create_config(
-    filename: str, numtrajs: float, spectrum: str, specparam: float
-) -> None:
+def create_config(filename: str, numtrajs: float, spectrum: str) -> None:
     """Generate a configuration file from the given parameters.
 
     \f
@@ -184,8 +175,6 @@ def create_config(
         Number of thrown trajectories. Optionally override value in config_file.
     spectrum: str, optional
         Type of nu_tau energy spectrum. Optionally override value in config_file.
-    specparam: float, optional
-        Parameter of nu_tau energy spectrum. Optionally override value in config_file.
 
     Examples
     --------
@@ -194,11 +183,18 @@ def create_config(
     `nuspacesim create_config -n 1e5 sample_input_file.xml`
     """
     from .. import NssConfig, SimulationParameters
+    from ..config import MonoSpectrum, PowerSpectrum, FileSpectrum
     from ..xml_config import create_xml
 
-    simulation = SimulationParameters(
-        N=int(numtrajs), spectrum_type=spectrum, spectrum_param=specparam
-    )
+    spec = MonoSpectrum()
+    if spectrum == "Mono":
+        spec = MonoSpectrum()
+    if spectrum == "Power":
+        spec = PowerSpectrum()
+    if spectrum == "File":
+        spec = FileSpectrum()
+
+    simulation = SimulationParameters(N=int(numtrajs), spectrum=spec)
 
     create_xml(filename, NssConfig(simulation=simulation))
 

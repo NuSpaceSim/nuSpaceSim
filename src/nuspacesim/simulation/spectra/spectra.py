@@ -36,37 +36,35 @@ from typing import Any, Callable, Union
 import numpy as np
 from numpy.typing import NDArray
 
-from ...config import NssConfig
+from ...config import NssConfig, MonoSpectrum, PowerSpectrum, FileSpectrum
 from ...utils import decorators
 from .local_plots import spectra_histogram
-
-
-def spectra_distributions(generator=np.random.default_rng) -> dict:
-    return {
-        "Mono": lambda param, size: np.full(shape=(size), fill_value=param),
-        "power": lambda low, hi, a, size: (hi - low) * generator().power(a, size) + low,
-    }
 
 
 @decorators.nss_result_plot(spectra_histogram)
 @decorators.nss_result_store("log_e_nu")
 def energy_spectra(
     N: int,
-    spectra: Union[str, Callable],
-    param,
+    spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
     *args,
     **kwargs,
 ) -> NDArray[Any]:
     """Energy Spectra of thrown Neutrinos"""
 
-    if isinstance(spectra, str):
-        gen = kwargs["generator"] if "generator" in kwargs else np.random.default_rng
-        dist = spectra_distributions(gen)[spectra]
-        return dist(param, *args, size=N, **kwargs)
-    elif isinstance(spectra, Callable):
-        return spectra(param, *args, size=N, **kwargs)
+    if isinstance(spectra, MonoSpectrum):
+        return np.full(shape=(N), fill_value=spectra.log_nu_tau_energy)
+
+    if isinstance(spectra, PowerSpectrum):
+        delta = 10 ** spectra.upper_bound - 10 ** spectra.lower_bound
+        return 10 ** spectra.lower_bound + delta * np.random.power(
+            spectra.index, size=N
+        )
+
+    if isinstance(spectra, Callable):
+        return spectra(*args, size=N, **kwargs)
+
     else:
-        raise RuntimeError(f"Parameter type not recognized {type(param)}")
+        raise RuntimeError(f"Spectra type not recognized {type(Spectra)}")
 
 
 class Spectra:
@@ -76,10 +74,7 @@ class Spectra:
         self.config = config
 
     def __call__(self, N, *args, **kwargs):
-        return energy_spectra(
-            N,
-            self.config.simulation.spectrum_type,
-            self.config.simulation.spectrum_param,
-            *args,
-            **kwargs,
-        )
+        es = energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs)
+        print(np.min(es), np.max(es))
+        print(np.log10(np.min(es)), np.log10(np.max(es)))
+        return np.log10(es)
