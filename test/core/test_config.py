@@ -46,7 +46,7 @@ def test_detector_characteristics():
 def test_simulation_params():
     sp = nss.SimulationParameters()
     assert sp.N > 0
-    assert np.log10(sp.nu_tau_energy()) == sp.log_nu_tau_energy
+    assert np.log10(sp.nu_tau_energy) == sp.log_nu_tau_energy
     assert np.sin(sp.theta_ch_max) == sp.sin_theta_ch_max
 
 

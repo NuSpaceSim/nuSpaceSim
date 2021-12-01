@@ -201,7 +201,7 @@ class SimulationParameters:
     def nu_tau_energy(self) -> float:
         """10 ^ log_nu_tau_energy."""
         if isinstance(self.spectrum, MonoSpectrum):
-            return 10 ** self.nu_tau_energy()
+            return 10 ** self.log_nu_tau_energy
         else:
             return nan
 
