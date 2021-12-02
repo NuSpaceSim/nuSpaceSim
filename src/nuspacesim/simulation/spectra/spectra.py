@@ -55,10 +55,12 @@ def energy_spectra(
         return np.full(shape=(N), fill_value=spectra.log_nu_tau_energy)
 
     if isinstance(spectra, PowerSpectrum):
-        delta = 10 ** spectra.upper_bound - 10 ** spectra.lower_bound
-        return 10 ** spectra.lower_bound + delta * np.random.power(
-            spectra.index, size=N
-        )
+        p = spectra.index
+        a = 10 ** spectra.lower_bound
+        b = 10 ** spectra.upper_bound
+        mp = 1 - p
+        u = np.random.uniform(0.0, 1.0 + np.finfo(np.float64).eps, size=N)
+        return np.reciprocal(mp) * np.log10(u * (b ** mp - a ** mp) + a ** mp)
 
     if isinstance(spectra, Callable):
         return spectra(*args, size=N, **kwargs)
@@ -74,7 +76,4 @@ class Spectra:
         self.config = config
 
     def __call__(self, N, *args, **kwargs):
-        es = energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs)
-        print(np.min(es), np.max(es))
-        print(np.log10(np.min(es)), np.log10(np.max(es)))
-        return np.log10(es)
+        return energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs)

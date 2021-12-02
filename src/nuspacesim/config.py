@@ -135,7 +135,7 @@ class MonoSpectrum:
 
 @dataclass
 class PowerSpectrum:
-    index: float = 0.5
+    index: float = 2.0
     """Power Law Log Energy of the tau neutrinos in GeV."""
 
     lower_bound: float = 6.0

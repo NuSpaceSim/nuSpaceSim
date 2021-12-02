@@ -41,8 +41,13 @@ def spectra_histogram(inputs, results, *args, **kwargs):
     log_e_nu = results
 
     color = "g"
-    fig, ax = plt.subplots(1, constrained_layout=True)
+    fig = plt.figure(figsize=(8, 7), constrained_layout=True)
+    ax = fig.add_subplot(211)
     ax.hist(log_e_nu, 100, log=False, facecolor=color)
+    ax.set_xlabel(f"log(E_nu) of {N} events")
+
+    ax = fig.add_subplot(212)
+    ax.hist(log_e_nu, 100, log=True, facecolor=color)
     ax.set_xlabel(f"log(E_nu) of {N} events")
 
     fig.suptitle("Energy Spectra Histogram, Log(E_nu)")
