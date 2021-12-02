@@ -129,7 +129,7 @@ class MonoSpectrum:
     def __call__(self) -> dict:
         return {
             "specType": ("Mono", "Simulation: nutau energy spectrum"),
-            "specPara": (self.log_nu_tau_energy, f"Simulation: Log Energy (GeV)"),
+            "specPara": (self.log_nu_tau_energy, "Simulation: Log Energy (GeV)"),
         }
 
 
@@ -147,9 +147,9 @@ class PowerSpectrum:
     def __call__(self) -> dict:
         return {
             "specType": ("Power", "Simulation: nutau Power Law energy spectrum"),
-            "specPara": (self.index, f"Simulation: Power Law Index"),
-            "specLow": (self.lower_bound, f"Simulation: Energy Lower Bound"),
-            "specHigh": (self.upper_bound, f"Simulation: Energy Upper Bound"),
+            "specPara": (self.index, "Simulation: Power Law Index"),
+            "specLow": (self.lower_bound, "Simulation: Energy Lower Bound"),
+            "specHigh": (self.upper_bound, "Simulation: Energy Upper Bound"),
         }
 
 
@@ -161,7 +161,7 @@ class FileSpectrum:
     def __call__(self) -> dict:
         return {
             "specType": ("File", "Simulation: Nutau User Defined energy spectrum"),
-            "specFile": (self.path, f"Simulation: FilePath"),
+            "specFile": (self.path, "Simulation: FilePath"),
         }
 
 
@@ -169,7 +169,7 @@ class FileSpectrum:
 class SimulationParameters:
     """Dataclass holding Simulation Parameters."""
 
-    N: int = 1000
+    N: int = 10000
     """Number of thrown trajectories. Default = 1000"""
     theta_ch_max: float = radians(3.0)
     """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""

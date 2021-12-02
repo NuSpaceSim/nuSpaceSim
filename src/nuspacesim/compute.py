@@ -158,10 +158,7 @@ def compute(
 
     sw = StagedWriter()
 
-    # logv(
-    #     "Running NuSpaceSim with Energy Spectrum "
-    #     f"({config.simulation.spectrum.type}:{config.simulation.spectrum_param})"
-    # )
+    logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)

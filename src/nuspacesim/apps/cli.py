@@ -81,17 +81,28 @@ def cli():
     is_flag=True,
     help="Do not save the results to an output file.",
 )
+@click.option(
+    "--monospectrum",
+    type=float,
+    default=None,
+    help="Mono Energetic Spectrum Log Energy.",
+)
+@click.option(
+    "--powerspectrum",
+    nargs=3,
+    type=click.Tuple([float, float, float]),
+    default=None,
+    help="Power Spectrum index, lower_bound, upper_bound.",
+)
 @click.argument(
     "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
 )
 @click.argument("count", type=float, default=0.0)
-@click.argument("spectrum_type", type=str, default="Mono")
-@click.argument("spectrum_param", type=float, default=0.0)
 def run(
     config_file: str,
     count: float,
-    spectrum_type: str,
-    spectrum_param: float,
+    monospectrum,
+    powerspectrum,
     no_result_file: bool,
     output: str,
     plot: list,
@@ -132,15 +143,19 @@ def run(
 
     from ..compute import compute
     from ..xml_config import config_from_xml
-    from ..config import MonoSpectrum
+    from ..config import MonoSpectrum, PowerSpectrum
 
     # User Inputs
     config = config_from_xml(config_file)
 
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
 
-    if spectrum_type == "Mono" and spectrum_param != 0:
-        config.simulation.spectrum = MonoSpectrum(10 ** spectrum_param)
+    if monospectrum is not None and powerspectrum is not None:
+        raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
+    if monospectrum is not None:
+        config.simulation.spectrum = MonoSpectrum(monospectrum)
+    if powerspectrum is not None:
+        config.simulation.spectrum = PowerSpectrum(*powerspectrum)
 
     plot = list(registry) if plotall else plot
 
@@ -160,9 +175,21 @@ def run(
 @click.option(
     "-n", "--numtrajs", type=float, default=100, help="number of trajectories."
 )
-@click.option("--spectrum", type=str, default="Mono", help="type of nu_tau energy.")
+@click.option(
+    "--monospectrum",
+    type=float,
+    default=None,
+    help="Mono Energetic Spectrum Log Energy.",
+)
+@click.option(
+    "--powerspectrum",
+    nargs=3,
+    type=click.Tuple([float, float, float]),
+    default=None,
+    help="Power Spectrum index, lower_bound, upper_bound.",
+)
 @click.argument("filename")
-def create_config(filename: str, numtrajs: float, spectrum: str) -> None:
+def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -> None:
     """Generate a configuration file from the given parameters.
 
     \f
@@ -173,8 +200,6 @@ def create_config(filename: str, numtrajs: float, spectrum: str) -> None:
         Name of output xml configuration file.
     numtrajs: float, optional
         Number of thrown trajectories. Optionally override value in config_file.
-    spectrum: str, optional
-        Type of nu_tau energy spectrum. Optionally override value in config_file.
 
     Examples
     --------
@@ -186,13 +211,16 @@ def create_config(filename: str, numtrajs: float, spectrum: str) -> None:
     from ..config import MonoSpectrum, PowerSpectrum, FileSpectrum
     from ..xml_config import create_xml
 
+    if monospectrum is not None and powerspectrum is not None:
+        raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
+
     spec = MonoSpectrum()
-    if spectrum == "Mono":
-        spec = MonoSpectrum()
-    if spectrum == "Power":
-        spec = PowerSpectrum()
-    if spectrum == "File":
-        spec = FileSpectrum()
+
+    if monospectrum is not None:
+        spec = MonoSpectrum(monospectrum)
+    if powerspectrum is not None:
+        spec = PowerSpectrum(*powerspectrum)
+    # spec = FileSpectrum()
 
     simulation = SimulationParameters(N=int(numtrajs), spectrum=spec)
 

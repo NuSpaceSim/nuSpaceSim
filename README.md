@@ -33,13 +33,16 @@ nuspacesim is available through [pip](https://pypi.org/project/nuspacesim/).
 
 ### Create an XML configuration script
 
+The command line simulator uses an XML file to store configuration parameters. To
+generate a default configuration file run the following, with your choice of file name.
+
 `nuspacesim create-config my_config_file.xml`
 
 ### Run simulator
 
-Simulate neutrino interactions and save the results to a fits file.
+Simulate neutrino interactions and save the results to a named fits file.
 
-`nuspacesim run my_config_file.xml 1000 8.0 -o my_nss_sim.fits`
+`nuspacesim run my_config_file.xml -o my_nss_sim.fits`
 
 # Documentation
 
@@ -63,7 +66,7 @@ Commands:
   run            Main Simulator for nuspacesim.
 ```
 
-Also works for the subcommands.
+Help documentation is also available for the subcommands.
 
 ` $  nuspacesim run --help `
 
@@ -109,12 +112,11 @@ Also works for the subcommands.
     /:/ _/_       ___         |::\  \
    /:/ /\  \     /\__\        |:|:\  \
   /:/ /::\  \   /:/__/      __|:|\:\  \
- /:/_/:/\:\__\ /::\  \     /::::|_\:\__\
- \:\/:/ /:/  / \/\:\  \__  \:\~~\  \/__/                                 .
+ /:/_/:/\:\__\ /::\  \     /::::|_\:\__\                                  .
+ \:\/:/ /:/  / \/\:\  \__  \:\~~\  \/__/
   \::/ /:/  /   ~~\:\/\__\  \:\  \                                      /
    \/_/:/  /       \::/  /   \:\  \                                    /
      /:/  /        /:/  /     \:\__\                                  /
      \/__/         \/__/       \/__/                                 /
 
 ```
-
