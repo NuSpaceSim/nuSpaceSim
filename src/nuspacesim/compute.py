@@ -193,6 +193,7 @@ def compute(
             costhetaChEff,
             tauExitProb,
             config.detector.photo_electron_threshold,
+            1.0,
             "Mono",
         )
 
@@ -219,7 +220,7 @@ def compute(
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres, "Mono"
+            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres,1.0, "Mono"
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
