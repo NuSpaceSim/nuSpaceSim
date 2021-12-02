@@ -51,7 +51,8 @@ Optionally, override the configuration file on the command line.  ::
 
 .. raw:: html
 
-    <script src="https://asciinema.org/a/i4gGSkDlQqkYn73AbBxX05lfu.js" id="asciicast-i4gGSkDlQqkYn73AbBxX05lfu" async data-autoplay="true"></script>
+
+    <script id="asciicast-faJ9K7WkwwzciS4kVpyxsUCiU" src="https://asciinema.org/a/faJ9K7WkwwzciS4kVpyxsUCiU.js" async data-autoplay="true"></script>
 
 
 --------------------------
