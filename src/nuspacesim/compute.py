@@ -166,8 +166,13 @@ def compute(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
     logv("Computing [green] Energy Spectra.[/]")
-    log_e_nu, mc_spec_norm = spec(beta_tr.shape[0], store=sw, plot=to_plot)
+    #log_e_nu, SpecPdfValues, mc_spec_norm = spec(beta_tr.shape[0], store=sw, plot=to_plot)
+    spec_values, mc_spec_norm, SpecWeightsSum = spec(beta_tr.shape[0], store=sw, plot=to_plot)
+    log_e_nu = spec_values[0]
+    SpecPdfValues = spec_values[1]
     #spec_norm = 1.0
+
+    #print (spec_values, mc_spec_norm)
 
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
@@ -194,7 +199,9 @@ def compute(
             costhetaChEff,
             tauExitProb,
             config.detector.photo_electron_threshold,
+            SpecPdfValues,
             mc_spec_norm,
+            SpecWeightsSum,
             "Mono",
         )
 
@@ -221,7 +228,7 @@ def compute(
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres, mc_spec_norm, "Mono"
+            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres, SpecPdfValues, mc_spec_norm, SpecWeightsSum, "Mono"
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")

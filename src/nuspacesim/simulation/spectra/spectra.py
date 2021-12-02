@@ -42,7 +42,7 @@ from .local_plots import spectra_histogram
 
 
 @decorators.nss_result_plot(spectra_histogram)
-@decorators.nss_result_store("log_e_nu")
+@decorators.nss_result_store("log_e_nu", "spectrum_values")
 def energy_spectra(
     N: int,
     spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
@@ -52,7 +52,8 @@ def energy_spectra(
     """Energy Spectra of thrown Neutrinos"""
 
     if isinstance(spectra, MonoSpectrum):
-        return np.full(shape=(N), fill_value=spectra.log_nu_tau_energy)
+        #return np.full(shape=(N), fill_value=spectra.log_nu_tau_energy)
+        return np.full(shape=(N), fill_value=spectra.log_nu_tau_energy), np.ones(shape=(N))
 
     if isinstance(spectra, PowerSpectrum):
         p = spectra.index
@@ -60,7 +61,11 @@ def energy_spectra(
         b = 10 ** spectra.upper_bound
         mp = 1 - p
         u = np.random.uniform(0.0, 1.0 + np.finfo(np.float64).eps, size=N)
-        return np.reciprocal(mp) * np.log10(u * (b ** mp - a ** mp) + a ** mp)
+        log_e_nu = np.reciprocal(mp) * np.log10(u * (b ** mp - a ** mp) + a ** mp)
+        e_nu = 10 ** log_e_nu
+        pdf_value = e_nu ** (-1.*p)
+        #return np.reciprocal(mp) * np.log10(u * (b ** mp - a ** mp) + a ** mp)
+        return log_e_nu, pdf_value
 
     if isinstance(spectra, Callable):
         return spectra(*args, size=N, **kwargs)
@@ -68,7 +73,7 @@ def energy_spectra(
     else:
         raise RuntimeError(f"Spectra type not recognized {type(Spectra)}")
 
-def spec_norm(
+def spec_pdf_norm(
     spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
     *args,
     **kwargs,
@@ -83,6 +88,39 @@ def spec_norm(
          b = 10 ** spectra.upper_bound
          mp = 1 - p
          return mp / (b ** mp - a ** mp)
+         #return (b ** mp - a ** mp) / mp
+
+def sum_spec_weights(
+    spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
+    *args,
+    **kwargs,
+) -> float:
+
+     if isinstance(spectra, MonoSpectrum):
+         return 1.0
+
+     if isinstance(spectra, PowerSpectrum):
+         p = spectra.index
+         a = 10 ** spectra.lower_bound
+         b = 10 ** spectra.upper_bound
+         mp = 1 - p
+         #return mp / (b ** mp - a ** mp)
+         return (b ** mp - a ** mp) / mp
+
+#def spec_pdf_value(
+#    log_e_nu: float,
+#    spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
+#    *args,
+#    **kwargs,
+#) -> float:
+
+#    if isinstance(spectra, MonoSpectrum):
+#        return 1.0
+
+#    if isinstance(spectra, PowerSpectrum):
+#        e_nu = 10 ** log_e_nu
+#        p = -1.*spectra.index
+#        return e_nu ** p
 
 class Spectra:
     """Energy Spectra of thrown Neutrinos"""
@@ -91,4 +129,4 @@ class Spectra:
         self.config = config
 
     def __call__(self, N, *args, **kwargs):
-        return energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs), spec_norm(self.config.simulation.spectrum, *args, **kwargs)
+        return energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs), spec_pdf_norm(self.config.simulation.spectrum, *args, **kwargs), sum_spec_weights(self.config.simulation.spectrum, *args, **kwargs)

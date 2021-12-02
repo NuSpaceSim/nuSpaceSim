@@ -38,7 +38,7 @@ def spectra_histogram(inputs, results, *args, **kwargs):
     r"""Plot some histograms"""
 
     N = inputs
-    log_e_nu = results
+    log_e_nu = results[0]
 
     color = "g"
     fig = plt.figure(figsize=(8, 7), constrained_layout=True)

@@ -242,7 +242,7 @@ class RegionGeom:
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
-    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_norm, spectype):
+    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_pdf_values, spec_norm, spec_weights_sum, spectype):
         """Monte Carlo integral."""
 
         cossepangle = self.costhetaTrSubV[self.event_mask]
@@ -254,7 +254,7 @@ class RegionGeom:
         )
 
         mcnorm = self.mcnorm
-        mcnorm /= spec_norm
+        #mcnorm /= spec_norm
 
         #if spectype != "Mono":
         #    mcnorm /= spec_norm
@@ -265,6 +265,13 @@ class RegionGeom:
 
         # Multiply by tau exit probability
         mcintfactor *= tauexitprob
+
+        # Weighting by energy spectrum if other than monoenergetic spectrum
+        mcintfactor /= spec_norm
+        mcintfactor /= spec_weights_sum
+        #mcintfactor *= spec_pdf_values
+
+        #print(spec_pdf_values, spec_norm)
 
         # # PE threshold
         mcintfactor[triggers < threshold] = 0
