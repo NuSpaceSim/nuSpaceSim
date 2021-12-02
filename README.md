@@ -21,7 +21,7 @@ Tau propagation is interpolated using included data tables from [nupyprop](https
 
 # Installation
 
-nuspacesim is available through [pip](https://pypi.org/project/nuspacesim/).
+`nuspacesim` is available through [pip](https://pypi.org/project/nuspacesim/).
 
 `python3 -m pip install nuspacesim`
 
