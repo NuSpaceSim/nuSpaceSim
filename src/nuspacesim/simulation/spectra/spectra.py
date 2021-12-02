@@ -68,21 +68,25 @@ def energy_spectra(
     else:
         raise RuntimeError(f"Spectra type not recognized {type(Spectra)}")
 
+
 def spec_norm(
     spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
     *args,
     **kwargs,
 ) -> float:
 
-     if isinstance(spectra, MonoSpectrum):
-         return 1.0
+    if isinstance(spectra, MonoSpectrum):
+        return 1.0
 
-     if isinstance(spectra, PowerSpectrum):
-         p = spectra.index
-         a = 10 ** spectra.lower_bound
-         b = 10 ** spectra.upper_bound
-         mp = 1 - p
-         return mp / (b ** mp - a ** mp)
+    if isinstance(spectra, PowerSpectrum):
+        p = spectra.index
+        a = 10 ** spectra.lower_bound
+        b = 10 ** spectra.upper_bound
+        mp = 1 - p
+        return mp / (b ** mp - a ** mp)
+
+    return 1.0
+
 
 class Spectra:
     """Energy Spectra of thrown Neutrinos"""
@@ -91,4 +95,7 @@ class Spectra:
         self.config = config
 
     def __call__(self, N, *args, **kwargs):
-        return energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs), spec_norm(self.config.simulation.spectrum, *args, **kwargs)
+        return (
+            energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs),
+            spec_norm(self.config.simulation.spectrum, *args, **kwargs),
+        )

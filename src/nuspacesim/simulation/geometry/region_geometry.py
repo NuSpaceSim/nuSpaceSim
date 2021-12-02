@@ -242,7 +242,7 @@ class RegionGeom:
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
-    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_norm, spectype):
+    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_norm):
         """Monte Carlo integral."""
 
         cossepangle = self.costhetaTrSubV[self.event_mask]
@@ -255,9 +255,6 @@ class RegionGeom:
 
         mcnorm = self.mcnorm
         mcnorm /= spec_norm
-
-        #if spectype != "Mono":
-        #    mcnorm /= spec_norm
 
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0

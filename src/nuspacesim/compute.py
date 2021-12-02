@@ -167,7 +167,7 @@ def compute(
     )
     logv("Computing [green] Energy Spectra.[/]")
     log_e_nu, mc_spec_norm = spec(beta_tr.shape[0], store=sw, plot=to_plot)
-    #spec_norm = 1.0
+    # spec_norm = 1.0
 
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
@@ -195,7 +195,6 @@ def compute(
             tauExitProb,
             config.detector.photo_electron_threshold,
             mc_spec_norm,
-            "Mono",
         )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
@@ -221,7 +220,11 @@ def compute(
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres, mc_spec_norm, "Mono"
+            snrs,
+            np.cos(thetaArr),
+            tauExitProb,
+            config.detector.det_SNR_thres,
+            mc_spec_norm,
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
