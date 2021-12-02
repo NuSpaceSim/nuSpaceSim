@@ -73,12 +73,7 @@ def energy_spectra(
     else:
         raise RuntimeError(f"Spectra type not recognized {type(Spectra)}")
 
-<<<<<<< HEAD
-def spec_pdf_norm(
-=======
-
 def spec_norm(
->>>>>>> bb4aae4a404b398c9a670362bcac5d954dd38fa7
     spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
     *args,
     **kwargs,
@@ -94,16 +89,15 @@ def spec_norm(
         mp = 1 - p
         return mp / (b ** mp - a ** mp)
 
-    return 1.0
+    #return 1.0
 
-<<<<<<< HEAD
-     if isinstance(spectra, PowerSpectrum):
-         p = spectra.index
-         a = 10 ** spectra.lower_bound
-         b = 10 ** spectra.upper_bound
-         mp = 1 - p
-         return mp / (b ** mp - a ** mp)
-         #return (b ** mp - a ** mp) / mp
+    if isinstance(spectra, PowerSpectrum):
+        p = spectra.index
+        a = 10 ** spectra.lower_bound
+        b = 10 ** spectra.upper_bound
+        mp = 1 - p
+        return mp / (b ** mp - a ** mp)
+        #return (b ** mp - a ** mp) / mp
 
 def sum_spec_weights(
     spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
@@ -136,8 +130,6 @@ def sum_spec_weights(
 #        e_nu = 10 ** log_e_nu
 #        p = -1.*spectra.index
 #        return e_nu ** p
-=======
->>>>>>> bb4aae4a404b398c9a670362bcac5d954dd38fa7
 
 class Spectra:
     """Energy Spectra of thrown Neutrinos"""
@@ -146,11 +138,8 @@ class Spectra:
         self.config = config
 
     def __call__(self, N, *args, **kwargs):
-<<<<<<< HEAD
-        return energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs), spec_pdf_norm(self.config.simulation.spectrum, *args, **kwargs), sum_spec_weights(self.config.simulation.spectrum, *args, **kwargs)
-=======
         return (
             energy_spectra(N, self.config.simulation.spectrum, *args, **kwargs),
             spec_norm(self.config.simulation.spectrum, *args, **kwargs),
+            sum_spec_weights(self.config.simulation.spectrum, *args, **kwargs),
         )
->>>>>>> bb4aae4a404b398c9a670362bcac5d954dd38fa7

@@ -166,16 +166,12 @@ def compute(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
     logv("Computing [green] Energy Spectra.[/]")
-<<<<<<< HEAD
+
     #log_e_nu, SpecPdfValues, mc_spec_norm = spec(beta_tr.shape[0], store=sw, plot=to_plot)
     spec_values, mc_spec_norm, SpecWeightsSum = spec(beta_tr.shape[0], store=sw, plot=to_plot)
     log_e_nu = spec_values[0]
     SpecPdfValues = spec_values[1]
     #spec_norm = 1.0
-=======
-    log_e_nu, mc_spec_norm = spec(beta_tr.shape[0], store=sw, plot=to_plot)
-    # spec_norm = 1.0
->>>>>>> bb4aae4a404b398c9a670362bcac5d954dd38fa7
 
     #print (spec_values, mc_spec_norm)
 
@@ -206,11 +202,7 @@ def compute(
             config.detector.photo_electron_threshold,
             SpecPdfValues,
             mc_spec_norm,
-<<<<<<< HEAD
             SpecWeightsSum,
-            "Mono",
-=======
->>>>>>> bb4aae4a404b398c9a670362bcac5d954dd38fa7
         )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
@@ -236,15 +228,13 @@ def compute(
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-<<<<<<< HEAD
-            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres, SpecPdfValues, mc_spec_norm, SpecWeightsSum, "Mono"
-=======
             snrs,
             np.cos(thetaArr),
             tauExitProb,
             config.detector.det_SNR_thres,
+            SpecPdfValues,
             mc_spec_norm,
->>>>>>> bb4aae4a404b398c9a670362bcac5d954dd38fa7
+            SpecWeightsSum,
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")

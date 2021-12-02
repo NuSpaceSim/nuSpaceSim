@@ -242,11 +242,7 @@ class RegionGeom:
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
-<<<<<<< HEAD
-    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_pdf_values, spec_norm, spec_weights_sum, spectype):
-=======
-    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_norm):
->>>>>>> bb4aae4a404b398c9a670362bcac5d954dd38fa7
+    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_pdf_values, spec_norm, spec_weights_sum):
         """Monte Carlo integral."""
 
         cossepangle = self.costhetaTrSubV[self.event_mask]
