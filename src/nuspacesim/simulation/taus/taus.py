@@ -34,14 +34,14 @@
 r"""Tau propagation module. A class for sampling tau attributes from beta angles."""
 
 import numpy as np
-from scipy.interpolate import interp1d, RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator, interp1d
 
 from ...config import NssConfig
 from ...utils import decorators
+from ...utils.cdf import grid_cdf_sampler, grid_inverse_sampler
 from ...utils.grid import NssGrid
-from ...utils.cdf import grid_inverse_sampler, grid_cdf_sampler
 from ...utils.interp import grid_slice_interp
-from .local_plots import taus_scatter, taus_histogram, taus_pexit
+from .local_plots import taus_histogram, taus_pexit, taus_scatter
 
 try:
     from importlib.resources import as_file, files

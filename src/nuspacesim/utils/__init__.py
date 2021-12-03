@@ -47,8 +47,4 @@ r""" Utility classes and methods
 
 __all__ = ["cdf", "grid", "interp", "misc", "decorators"]
 
-from . import cdf
-from . import grid
-from . import interp
-from . import misc
-from . import decorators
+from . import cdf, decorators, grid, interp, misc

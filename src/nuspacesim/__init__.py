@@ -139,13 +139,13 @@ Supporting classes and functions for gridded data, CDF sampling, Interpolation, 
 """
 
 from . import constants, data, utils, xml_config
-from .config import NssConfig, DetectorCharacteristics, SimulationParameters
-from .results_table import ResultsTable
-from .compute import compute
-from .simulation import geometry, eas_optical, taus
 
 # from .utils import *
 from ._version import version, version_tuple
+from .compute import compute
+from .config import DetectorCharacteristics, NssConfig, SimulationParameters
+from .results_table import ResultsTable
+from .simulation import eas_optical, geometry, taus
 
 __all__ = [
     # Core

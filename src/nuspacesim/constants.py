@@ -43,6 +43,7 @@ except ImportError:
     from cached_property import cached_property
 
 from dataclasses import dataclass
+
 import numpy as np
 
 earth_radius = 6371.0  # in KM

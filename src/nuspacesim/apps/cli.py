@@ -142,8 +142,8 @@ def run(
     """
 
     from ..compute import compute
-    from ..xml_config import config_from_xml
     from ..config import MonoSpectrum, PowerSpectrum
+    from ..xml_config import config_from_xml
 
     # User Inputs
     config = config_from_xml(config_file)
@@ -208,7 +208,7 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
     `nuspacesim create_config -n 1e5 sample_input_file.xml`
     """
     from .. import NssConfig, SimulationParameters
-    from ..config import MonoSpectrum, PowerSpectrum, FileSpectrum
+    from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
     from ..xml_config import create_xml
 
     if monospectrum is not None and powerspectrum is not None:

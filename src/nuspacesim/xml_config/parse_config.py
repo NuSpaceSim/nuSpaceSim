@@ -40,12 +40,12 @@ import numpy as np
 
 from .. import constants as const
 from ..config import (
-    NssConfig,
     DetectorCharacteristics,
-    SimulationParameters,
-    MonoSpectrum,
-    PowerSpectrum,
     FileSpectrum,
+    MonoSpectrum,
+    NssConfig,
+    PowerSpectrum,
+    SimulationParameters,
 )
 from . import config_xml_schema
 

@@ -1,6 +1,7 @@
-import numpy as np
 import astropy.io.misc.hdf5 as hf
 import astropy.table
+import numpy as np
+
 from ... import NssConfig
 from ...utils import decorators
 

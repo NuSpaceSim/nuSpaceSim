@@ -42,9 +42,8 @@ date: 2021 August 12
 """
 
 import numpy as np
-import scipy.integrate
 import quadpy as qp
-
+import scipy.integrate
 from numpy.polynomial import Polynomial
 
 from ... import constants as const

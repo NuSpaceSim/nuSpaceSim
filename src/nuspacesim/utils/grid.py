@@ -47,14 +47,13 @@
 
 """
 
+from typing import Any, Iterable, Union
+
+import numpy as np
 from astropy.io import fits, registry
 from astropy.io.misc import hdf5
 from astropy.nddata import NDDataArray
 from astropy.table import Table as AstropyTable
-
-from typing import Any, Iterable, Union
-
-import numpy as np
 
 __all__ = [
     "NssGrid",

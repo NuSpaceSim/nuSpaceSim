@@ -42,10 +42,10 @@ r"""Cherenkov photon density and angle determination class.
 
 """
 
-import numpy as np
-from numpy.polynomial import Polynomial
 import dask.bag as db
+import numpy as np
 from dask.diagnostics import ProgressBar
+from numpy.polynomial import Polynomial
 
 from .zsteps import zsteps as cppzsteps
 

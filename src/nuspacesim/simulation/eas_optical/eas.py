@@ -32,10 +32,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from .cphotang import CphotAng
+
 from ... import NssConfig
 from ...utils import decorators
-from .local_plots import eas_optical_scatter, eas_optical_histogram
+from .cphotang import CphotAng
+from .local_plots import eas_optical_histogram, eas_optical_scatter
 
 __all__ = ["EAS"]
 

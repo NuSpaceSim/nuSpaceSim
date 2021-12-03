@@ -242,7 +242,15 @@ class RegionGeom:
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
-    def mcintegral(self, triggers, costheta, tauexitprob, threshold, spec_pdf_values, spec_norm, spec_weights_sum):
+    def mcintegral(
+        self,
+        triggers,
+        costheta,
+        tauexitprob,
+        threshold,
+        spec_norm,
+        spec_weights_sum,
+    ):
         """Monte Carlo integral."""
 
         cossepangle = self.costhetaTrSubV[self.event_mask]
@@ -254,7 +262,7 @@ class RegionGeom:
         )
 
         mcnorm = self.mcnorm
-        #mcnorm /= spec_norm
+        # mcnorm /= spec_norm
 
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0
@@ -266,9 +274,9 @@ class RegionGeom:
         # Weighting by energy spectrum if other than monoenergetic spectrum
         mcintfactor /= spec_norm
         mcintfactor /= spec_weights_sum
-        #mcintfactor *= spec_pdf_values
+        # mcintfactor *= spec_pdf_values
 
-        #print(spec_pdf_values, spec_norm)
+        # print(spec_pdf_values, spec_norm)
 
         # # PE threshold
         mcintfactor[triggers < threshold] = 0

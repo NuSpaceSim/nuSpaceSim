@@ -47,8 +47,8 @@
 
 from typing import Callable
 
-from scipy.interpolate import interp1d, interpn, RegularGridInterpolator
 import numpy as np
+from scipy.interpolate import RegularGridInterpolator, interp1d, interpn
 
 from nuspacesim.utils.grid import NssGrid
 from nuspacesim.utils.interp import grid_slice_interp, vec_1d_interp

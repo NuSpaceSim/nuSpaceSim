@@ -37,15 +37,15 @@
 
 from __future__ import annotations
 
-from typing import Union, Any, Tuple
 from dataclasses import dataclass
+from typing import Any, Tuple, Union
 
 try:
     from functools import cached_property
 except ImportError:
     from cached_property import cached_property
 
-from numpy import radians, log10, sin, nan
+from numpy import log10, nan, radians, sin
 
 from . import constants as const
 

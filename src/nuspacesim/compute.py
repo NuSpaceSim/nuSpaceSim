@@ -46,17 +46,17 @@ NuSpaceSim Simulation
    compute
 
 """
+import numpy as np
 from rich.console import Console
 
-import numpy as np
 from .config import NssConfig
 from .results_table import ResultsTable
-from .simulation.geometry.region_geometry import RegionGeom
-from .simulation.spectra.spectra import Spectra
-from .simulation.taus.taus import Taus
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
+from .simulation.geometry.region_geometry import RegionGeom
+from .simulation.spectra.spectra import Spectra
+from .simulation.taus.taus import Taus
 
 __all__ = ["compute"]
 
@@ -167,13 +167,9 @@ def compute(
     )
     logv("Computing [green] Energy Spectra.[/]")
 
-    #log_e_nu, SpecPdfValues, mc_spec_norm = spec(beta_tr.shape[0], store=sw, plot=to_plot)
-    spec_values, mc_spec_norm, SpecWeightsSum = spec(beta_tr.shape[0], store=sw, plot=to_plot)
-    log_e_nu = spec_values[0]
-    SpecPdfValues = spec_values[1]
-    #spec_norm = 1.0
-
-    #print (spec_values, mc_spec_norm)
+    log_e_nu, mc_spec_norm, spec_weights_sum = spec(
+        beta_tr.shape[0], store=sw, plot=to_plot
+    )
 
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
@@ -200,9 +196,8 @@ def compute(
             costhetaChEff,
             tauExitProb,
             config.detector.photo_electron_threshold,
-            SpecPdfValues,
             mc_spec_norm,
-            SpecWeightsSum,
+            spec_weights_sum,
         )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
@@ -232,9 +227,8 @@ def compute(
             np.cos(thetaArr),
             tauExitProb,
             config.detector.det_SNR_thres,
-            SpecPdfValues,
             mc_spec_norm,
-            SpecWeightsSum,
+            spec_weights_sum,
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")

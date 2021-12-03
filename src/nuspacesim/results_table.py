@@ -41,10 +41,11 @@
 
 """
 
-from astropy.table import Table as AstropyTable
 import datetime
-from numpy.typing import ArrayLike
 from typing import Any, Iterable, Union
+
+from astropy.table import Table as AstropyTable
+from numpy.typing import ArrayLike
 
 from .config import NssConfig
 

@@ -59,7 +59,4 @@ neutrino propagation and interaction.
 
 __all__ = ["geometry", "taus", "eas_optical", "eas_radio"]
 
-from . import geometry
-from . import taus
-from . import eas_optical
-from . import eas_radio
+from . import eas_optical, eas_radio, geometry, taus
