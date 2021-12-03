@@ -139,8 +139,6 @@ Supporting classes and functions for gridded data, CDF sampling, Interpolation, 
 """
 
 from . import constants, data, utils, xml_config
-
-# from .utils import *
 from ._version import version, version_tuple
 from .compute import compute
 from .config import DetectorCharacteristics, NssConfig, SimulationParameters

@@ -1,8 +1,7 @@
 import astropy.io.misc.hdf5 as hf
-import astropy.table
 import numpy as np
 
-from ... import NssConfig
+from ...config import NssConfig
 from ...utils import decorators
 
 __all__ = ["EASRadio", "RadioEFieldParams", "IonosphereParams"]

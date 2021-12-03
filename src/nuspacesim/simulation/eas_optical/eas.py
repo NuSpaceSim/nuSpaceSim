@@ -33,7 +33,7 @@
 
 import numpy as np
 
-from ... import NssConfig
+from ...config import NssConfig
 from ...utils import decorators
 from .cphotang import CphotAng
 from .local_plots import eas_optical_histogram, eas_optical_scatter

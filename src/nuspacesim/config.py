@@ -38,14 +38,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Tuple, Union
+from typing import Any, Union
 
 try:
     from functools import cached_property
 except ImportError:
     from cached_property import cached_property
 
-from numpy import log10, nan, radians, sin
+from numpy import nan, radians, sin
 
 from . import constants as const
 
@@ -53,6 +53,9 @@ __all__ = [
     "DetectorCharacteristics",
     "SimulationParameters",
     "NssConfig",
+    "FileSpectrum",
+    "MonoSpectrum",
+    "PowerSpectrum",
 ]
 
 
