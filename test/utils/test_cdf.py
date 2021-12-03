@@ -1,7 +1,7 @@
-from nuspacesim.utils import cdf
-
-from nuspacesim.utils.grid import NssGrid
 import numpy as np
+
+from nuspacesim.utils import cdf
+from nuspacesim.utils.grid import NssGrid
 
 try:
     from importlib.resources import as_file, files

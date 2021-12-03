@@ -33,10 +33,10 @@
 
 import numpy as np
 
-from nuspacesim.simulation.geometry.nssgeometry import Geom_params
-from nuspacesim.utils import decorators
 from nuspacesim import NssConfig
 from nuspacesim.simulation.geometry.local_plots import *
+from nuspacesim.simulation.geometry.nssgeometry import Geom_params
+from nuspacesim.utils import decorators
 
 __all__ = ["RegionGeom"]
 

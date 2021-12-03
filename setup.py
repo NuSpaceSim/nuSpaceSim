@@ -5,8 +5,8 @@ nuspacesim
 A Simulator for Space-based Neutrino Detections.
 """
 
-from setuptools import setup
 from pybind11.setup_helpers import Pybind11Extension, build_ext
+from setuptools import setup
 
 # nssgeometry = Pybind11Extension(
 #     "simulation.geometry.nssgeometry",

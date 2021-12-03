@@ -1,16 +1,15 @@
-from nuspacesim.simulation.eas_optical import atmospheric_models
-from nuspacesim.simulation.eas_optical.quadeas import (
-    ozone,
-    differential_ozone,
-    aerosol_optical_depth,
-)
-
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Polynomial, polynomial
 from scipy.interpolate import splev, splrep
 
-import matplotlib
-import matplotlib.pyplot as plt
+from nuspacesim.simulation.eas_optical import atmospheric_models
+from nuspacesim.simulation.eas_optical.quadeas import (
+    aerosol_optical_depth,
+    differential_ozone,
+    ozone,
+)
 
 
 def atmospheric_density_fit():

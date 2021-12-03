@@ -1,6 +1,6 @@
-from nuspacesim import eas_optical
-
 import numpy as np
+
+from nuspacesim import eas_optical
 
 
 def test_known_values():

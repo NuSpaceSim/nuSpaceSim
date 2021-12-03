@@ -1,7 +1,9 @@
 import numpy as np
-from nuspacesim.simulation.geometry import region_geometry
-from . import cpp_region_geometry
+
 from nuspacesim.config import NssConfig
+from nuspacesim.simulation.geometry import region_geometry
+
+from . import cpp_region_geometry
 
 
 def test_rg():

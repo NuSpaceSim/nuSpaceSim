@@ -1,10 +1,10 @@
-from nuspacesim.simulation.eas_optical.quadeas import *
-from nuspacesim.simulation.eas_optical.atmospheric_models import *
+from timeit import timeit
 
 import numpy as np
 from scipy.optimize import newton
 
-from timeit import timeit
+from nuspacesim.simulation.eas_optical.atmospheric_models import *
+from nuspacesim.simulation.eas_optical.quadeas import *
 
 
 def shower_age_newton():

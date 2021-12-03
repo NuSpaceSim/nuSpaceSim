@@ -1,9 +1,9 @@
-from nuspacesim.simulation.eas_optical.atmospheric_models import rho, polyrho
-import numpy as np
+from timeit import timeit
 
 import matplotlib.pyplot as plt
+import numpy as np
 
-from timeit import timeit
+from nuspacesim.simulation.eas_optical.atmospheric_models import polyrho, rho
 
 
 def us_std_atm_density(z, earth_radius=6371):

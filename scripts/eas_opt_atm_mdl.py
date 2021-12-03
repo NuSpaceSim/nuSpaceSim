@@ -1,15 +1,15 @@
+from timeit import timeit
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import quadpy as qp
+
 from nuspacesim.simulation.eas_optical.atmospheric_models import (
     rho,
     slant_depth,
     slant_depth_integrand,
 )
-
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import quadpy as qp
-
-from timeit import timeit
 
 if __name__ == "__main__":
 
