@@ -89,17 +89,21 @@ class EASRadio:
         EFields[mask] = (EFields[mask].T * showerEnergy[mask] / 10.0).T
         distScale = zhairesDist / nssDist
         EFields[mask] = (EFields[mask].T * distScale).T
-        if self.config.simulation.model_ionosphere:
-            if self.config.simulation.TEC < 0:
-                print(
-                    "TEC should be positive!! continuing without ionospheric dispersion"
-                )
-            else:
-                ionosphere = IonosphereParams(
-                    FreqRange, self.config.simulation.TECerr, self.config.simulation.TEC
-                )
-                ionosphereScaling = ionosphere(EFields[mask])
-                EFields[mask] *= ionosphereScaling
+        # no ionosphere if the detector is below 90km
+        if self.config.detector.altitude > 90.0:
+            if self.config.simulation.model_ionosphere:
+                if self.config.simulation.TEC < 0:
+                    print(
+                        "TEC should be positive!! continuing without ionospheric dispersion"
+                    )
+                else:
+                    ionosphere = IonosphereParams(
+                        FreqRange,
+                        self.config.simulation.TECerr,
+                        self.config.simulation.TEC,
+                    )
+                    ionosphereScaling = ionosphere(EFields[mask])
+                    EFields[mask] *= ionosphereScaling
 
         # radio emission from EAS has two components, geomagnetic and Askaryan
         # Askaryan is ~20% of full strength geomagnetic
