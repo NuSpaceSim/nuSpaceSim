@@ -77,20 +77,6 @@ def cli():
     type=click.Path(exists=True, dir_okay=False),
     help="Read selected plotting functions and options from the specified INI file",
 )
-def read_plot_config(filename):
-    plot_list = []
-    cfg = configparser.ConfigParser()
-    cfg.read(filename)
-    for sec in cfg.sections()[1:]:
-        for key in cfg[sec]:
-            try:
-                if cfg[sec].getboolean(key):
-                    plot_list.append(key)
-            except Exception as e:
-                print(e, "Config file contains non-valid option")
-    return plot_list
-
-
 @click.option("--plotall", is_flag=True, help="Show all result plots.")
 @click.option(
     "-w",
@@ -256,6 +242,20 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
     simulation = SimulationParameters(N=int(numtrajs), spectrum=spec)
 
     create_xml(filename, NssConfig(simulation=simulation))
+
+
+def read_plot_config(filename):
+    plot_list = []
+    cfg = configparser.ConfigParser()
+    cfg.read(filename)
+    for sec in cfg.sections()[1:]:
+        for key in cfg[sec]:
+            try:
+                if cfg[sec].getboolean(key):
+                    plot_list.append(key)
+            except Exception as e:
+                print(e, "Config file contains non-valid option")
+    return plot_list
 
 
 if __name__ == "__main__":
