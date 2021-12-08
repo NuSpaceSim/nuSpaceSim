@@ -42,6 +42,8 @@
 
 """
 
+import configparser
+
 import click
 
 from ..utils.plot_function_registry import registry
@@ -68,6 +70,27 @@ def cli():
     default=[],
     help="Available plotting functions. Select multiple plots with multiple uses of -p",
 )
+@click.option(
+    "-P",
+    "--plotconfig",
+    default="sample_plot_config.ini",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Read selected plotting functions and options from the specified INI file",
+)
+def read_plot_config(filename):
+    plot_list = []
+    cfg = configparser.ConfigParser()
+    cfg.read(filename)
+    for sec in cfg.sections()[1:]:
+        for key in cfg[sec]:
+            try:
+                if cfg[sec].getboolean(key):
+                    plot_list.append(key)
+            except Exception as e:
+                print(e, "Config file contains non-valid option")
+    return plot_list
+
+
 @click.option("--plotall", is_flag=True, help="Show all result plots.")
 @click.option(
     "-w",
@@ -106,6 +129,7 @@ def run(
     no_result_file: bool,
     output: str,
     plot: list,
+    plotconfig: str,
     plotall: bool,
     write_stages: bool,
 ) -> None:
@@ -128,6 +152,8 @@ def run(
         Name of the output file holding the simulation results.
     plot: list, optional
         Plot the simulation results.
+    plotconfig: str, optional
+        INI file to select plots for each module, as well as to specifiy global plot settings.
     plotall: bool, optional
         Plot all the available the simulation results plots.
     no_result_file: bool, optional
@@ -157,8 +183,13 @@ def run(
     if powerspectrum is not None:
         config.simulation.spectrum = PowerSpectrum(*powerspectrum)
 
-    plot = list(registry) if plotall else plot
-
+    plot = (
+        list(registry)
+        if plotall
+        else read_plot_config(plotconfig)
+        if plotconfig
+        else plot
+    )
     simulation = compute(
         config,
         verbose=True,
