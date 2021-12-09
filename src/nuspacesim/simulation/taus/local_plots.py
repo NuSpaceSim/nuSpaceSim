@@ -241,6 +241,6 @@ def taus_overview(inputs, results, *args, **kwargs):
     fig.suptitle("Overview of Tau interaction properties")
     fig.tight_layout()
     plt.show()
-    if "pop_up" in kwargs and kwargs.get("pop_up") is True:
-        plt.show()
-    fig.savefig("taus_overview", format="pdf")
+    # if "pop_up" in kwargs and kwargs.get("pop_up") is True:
+    #     plt.show()
+    # fig.savefig("taus_overview", format="pdf")
