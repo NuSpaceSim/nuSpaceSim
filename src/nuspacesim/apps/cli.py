@@ -73,8 +73,11 @@ def cli():
 @click.option(
     "-P",
     "--plotconfig",
-    default="sample_plot_config.ini",
-    type=click.Path(exists=True, dir_okay=False),
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
     help="Read selected plotting functions and options from the specified INI file",
 )
 @click.option("--plotall", is_flag=True, help="Show all result plots.")
@@ -104,7 +107,9 @@ def cli():
     help="Power Spectrum index, lower_bound, upper_bound.",
 )
 @click.argument(
-    "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
+    "config_file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True),
 )
 @click.argument("count", type=float, default=0.0)
 def run(

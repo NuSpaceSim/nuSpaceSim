@@ -50,7 +50,7 @@ class EAS:
 
     def __init__(self, config: NssConfig):
         self.config = config
-        self.CphotAng = CphotAng()
+        self.CphotAng = CphotAng(self.config.detector.altitude)
 
     @decorators.nss_result_store("altDec", "lenDec")
     def altDec(self, beta, tauBeta, tauLorentz, u=None, *args, **kwargs):
