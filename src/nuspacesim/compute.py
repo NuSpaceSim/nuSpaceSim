@@ -172,7 +172,7 @@ def compute(
     )
 
     logv("Computing [green] Taus.[/]")
-    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
+    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
         beta_tr, log_e_nu, store=sw, plot=to_plot
     )
 

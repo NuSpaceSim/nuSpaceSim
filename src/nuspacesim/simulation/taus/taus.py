@@ -41,7 +41,7 @@ from ...utils import decorators
 from ...utils.cdf import grid_cdf_sampler, grid_inverse_sampler
 from ...utils.grid import NssGrid
 from ...utils.interp import grid_slice_interp
-from .local_plots import taus_histogram, taus_pexit, taus_scatter
+from .local_plots import taus_histogram, taus_overview, taus_pexit, taus_scatter
 
 try:
     from importlib.resources import as_file, files
@@ -145,8 +145,10 @@ class Taus(object):
 
         return E_tau * 10 ** log_e_nu
 
-    @decorators.nss_result_plot(taus_scatter, taus_histogram, taus_pexit)
-    @decorators.nss_result_store("tauBeta", "tauLorentz", "showerEnergy", "tauExitProb")
+    @decorators.nss_result_plot(taus_scatter, taus_histogram, taus_pexit, taus_overview)
+    @decorators.nss_result_store(
+        "tauBeta", "tauLorentz", "tauEnergy", "showerEnergy", "tauExitProb"
+    )
     def __call__(self, betas, log_e_nu, *args, **kwargs):
         r"""Perform main operation for Taus module.
 
@@ -177,4 +179,4 @@ class Taus(object):
 
         tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
 
-        return tauBeta, tauLorentz, showerEnergy, tauExitProb
+        return tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb
