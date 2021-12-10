@@ -93,55 +93,46 @@ class Taus(object):
         """
         Tau Exit Probability
         """
-        mask = betas >= np.radians(1.0)
+        beta_min = self.pexit_grid["beta_rad"][0]
+        beta_max = self.pexit_grid["beta_rad"][-1]
 
-        if isinstance(log_e_nu, (int, float)):
-            sliced_tau_pexit_grid = grid_slice_interp(
-                self.pexit_grid, log_e_nu, "log_e_nu"
-            )
-            pexit_interp = interp1d(
-                sliced_tau_pexit_grid.axes[0],
-                np.log10(sliced_tau_pexit_grid.data),
-            )
-            Pexit = np.full(
-                betas.shape, 10 ** pexit_interp(np.array([np.radians(1.0)]))
-            )
-            Pexit[mask] = 10 ** pexit_interp(betas[mask])
-        elif hasattr(log_e_nu, "__getitem__"):
-            pexit_interp = RegularGridInterpolator(
-                self.pexit_grid.axes, np.log10(self.pexit_grid.data)
-            )
-            Pexit = np.empty_like(betas)
-            Pexit[mask] = 10 ** pexit_interp((log_e_nu[mask], betas[mask]))
-            Pexit[~mask] = 10 ** pexit_interp((log_e_nu[~mask], np.radians(1.0)))
-        else:
-            raise RuntimeError(f"log_e_nu type not recognized: {type(log_e_nu)}")
+        beta_low = betas < beta_min
+        beta_high = betas > beta_max
+        valid = ~beta_low & ~beta_high
 
-        return Pexit
+        pexit_interp = RegularGridInterpolator(
+            self.pexit_grid.axes, np.log10(self.pexit_grid.data)
+        )
+
+        Pexit = np.zeros_like(betas)
+
+        Pexit[valid] = pexit_interp((log_e_nu[valid], betas[valid]))
+        Pexit[beta_low] = pexit_interp((log_e_nu[beta_low], beta_min))
+        Pexit[beta_high] = np.log10(np.finfo(np.float32).eps)
+
+        return 10 ** Pexit
 
     def tau_energy(self, betas, log_e_nu):
         """
         Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
 
-        mask = betas >= np.radians(1.0)
-        E_tau = np.empty_like(betas)
+        beta_min = self.tau_cdf_grid["beta_rad"][0]
+        beta_max = self.tau_cdf_grid["beta_rad"][-1]
 
-        if isinstance(log_e_nu, (int, float)):
-            tau_cdf_sample = grid_inverse_sampler(self.tau_cdf_grid, log_e_nu)
-            E_tau[mask] = tau_cdf_sample(betas[mask])
-            E_tau[~mask] = tau_cdf_sample(
-                np.full(betas[~mask].shape, self.tau_cdf_grid["beta_rad"][0])
-            )
-        elif hasattr(log_e_nu, "__getitem__"):
-            tau_cdf_sample = grid_cdf_sampler(self.tau_cdf_grid)
-            E_tau[mask] = tau_cdf_sample(log_e_nu[mask], betas[mask])
-            E_tau[~mask] = tau_cdf_sample(
-                log_e_nu[~mask],
-                np.full(betas[~mask].shape, self.tau_cdf_grid["beta_rad"][0]),
-            )
-        else:
-            raise RuntimeError(f"log_e_nu type not recognized: {type(log_e_nu)}")
+        beta_low = betas < beta_min
+        beta_high = betas > beta_max
+        valid = ~beta_low & ~beta_high
+
+        tau_cdf_sample = grid_cdf_sampler(self.tau_cdf_grid)
+
+        E_tau = np.zeros_like(betas)
+
+        E_tau[valid] = tau_cdf_sample(log_e_nu[valid], betas[valid])
+        E_tau[beta_low] = tau_cdf_sample(
+            log_e_nu[beta_low], np.full(betas[beta_low].shape, beta_min)
+        )
+        E_tau[beta_high] = np.finfo(np.float32).eps
 
         return E_tau * 10 ** log_e_nu
 
@@ -178,7 +169,6 @@ class Taus(object):
         showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1e8
 
         tauLorentz = tauEnergy / self.config.constants.massTau
-
         tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
 
         return tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb

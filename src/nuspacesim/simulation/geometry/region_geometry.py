@@ -206,7 +206,7 @@ class RegionGeom:
 
         self.raS = np.degrees(np.arctan2(ryS, rxS)) % 360.0
 
-        self.event_mask = self.costhetaTrSubN >= 0
+        self.event_mask = np.logical_and(self.costhetaTrSubN >= 0, self.betaTrSubN < 42)
 
     def betas(self):
         """Earth-emergence angles for valid events."""
