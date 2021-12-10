@@ -55,38 +55,31 @@ def get_profile(x, y, nbins, useStd=True, *args, **kwargs):
     return bincenter, mean, std, binwidth
 
 
-def taus_scatter(inputs, results, *args, **kwargs):
-    r"""Plot some scatterplots"""
+def taus_density_beta(inputs, results, *args, **kwargs):
+    r"""Plot some density plots"""
 
     tau_self, betas, log_e_nu = inputs
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
 
-    color = "c"
-    alpha = 0.1 / np.log10(betas.size)
+    fig, ax = plt.subplots(2, 2, figsize=(10, 8), sharex=True, constrained_layout=True)
 
-    fig, ax = plt.subplots(2, 2, sharex=True, constrained_layout=True)
+    im = None
 
-    ax[0, 0].scatter(x=np.degrees(betas), y=np.log10(tauBeta), c=color, alpha=alpha)
-    ax[0, 0].set_xlabel("β")
-    ax[0, 0].set_ylabel("log(τ_β)")
-    ax[0, 0].set_title("β vs log(τ_β)")
+    def hist2d(ax, x, y, xlab, ylab):
+        nonlocal im
+        _, _, _, im = ax.hist2d(
+            x=np.degrees(x), y=np.log10(y), bins=(50, 50), cmin=1, cmap="jet"
+        )
+        ax.set_xlabel(xlab)
+        ax.set_ylabel(ylab)
+        ax.set_title(f"{xlab} vs {ylab}")
 
-    ax[0, 1].scatter(x=np.degrees(betas), y=np.log10(tauLorentz), c=color, alpha=alpha)
-    ax[0, 1].set_xlabel("β")
-    ax[0, 1].set_ylabel("log(τ_Lorentz)")
-    ax[0, 1].set_title("β vs log(τ_Lorentz)")
+    hist2d(ax[0, 0], betas, tauBeta, "β", "log(τ_β)")
+    hist2d(ax[0, 1], betas, tauLorentz, "β", "log(τ_Lorentz)")
+    hist2d(ax[1, 0], betas, showerEnergy, "β", "log(showerEnergy)")
+    hist2d(ax[1, 1], betas, tauExitProb, "β", "log(Exit Probability (τ))")
 
-    ax[1, 0].scatter(
-        x=np.degrees(betas), y=np.log10(showerEnergy), c=color, alpha=alpha
-    )
-    ax[1, 0].set_xlabel("β")
-    ax[1, 0].set_ylabel("log(E_shower (100 PeV))")
-    ax[1, 0].set_title("β vs log(E_shower)")
-
-    ax[1, 1].scatter(x=np.degrees(betas), y=np.log10(tauExitProb), c=color, alpha=alpha)
-    ax[1, 1].set_xlabel("β")
-    ax[1, 1].set_ylabel("log(PExit(τ))")
-    ax[1, 1].set_title("β vs log(Exit Probability)")
+    fig.colorbar(im, ax=ax, label="Counts", format="%.0e")
 
     fig.suptitle("Tau interaction properties vs. β_tr Angles")
     plt.show()

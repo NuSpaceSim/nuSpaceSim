@@ -34,7 +34,7 @@
 import numpy as np
 
 from ...utils import decorators
-from .local_plots import *
+from .local_plots import geom_beta_tr_hist
 
 __all__ = ["RegionGeom"]
 
@@ -235,7 +235,7 @@ class RegionGeom:
     def valid_costhetaTrSubV(self):
         return self.costhetaTrSubV[self.event_mask]
 
-    @decorators.nss_result_plot(geom_beta_tr_hist, geom_beta_tr_hist_red)
+    @decorators.nss_result_plot(geom_beta_tr_hist)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")
     def __call__(self, numtrajs, *args, **kwargs):
         """Throw numtrajs events and return valid betas."""
@@ -262,7 +262,6 @@ class RegionGeom:
         )
 
         mcnorm = self.mcnorm
-        # mcnorm /= spec_norm
 
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0
@@ -274,14 +273,18 @@ class RegionGeom:
         # Weighting by energy spectrum if other than monoenergetic spectrum
         mcintfactor /= spec_norm
         mcintfactor /= spec_weights_sum
-        # mcintfactor *= spec_pdf_values
 
-        # print(spec_pdf_values, spec_norm)
-
-        # # PE threshold
+        # PE threshold
         mcintfactor[triggers < threshold] = 0
         mcintegral = np.mean(mcintfactor) * mcnorm
 
         numEvPass = np.count_nonzero(mcintfactor)
 
         return mcintegral, mcintegralgeoonly, numEvPass
+
+
+def show_plot(sim, plot):
+    plotfs = tuple([geom_beta_tr_hist])
+    inputs = tuple([0])
+    outputs = ("beta_rad", "theta_rad", "path_len")
+    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)

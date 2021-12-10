@@ -37,7 +37,7 @@ from matplotlib import pyplot as plt
 def spectra_histogram(inputs, results, *args, **kwargs):
     r"""Plot some histograms"""
 
-    N = inputs
+    N, spectrum = inputs
     log_e_nu = results
 
     color = "g"
@@ -50,5 +50,5 @@ def spectra_histogram(inputs, results, *args, **kwargs):
     ax.hist(log_e_nu, 100, log=True, facecolor=color)
     ax.set_xlabel(f"log(E_nu) of {N} events")
 
-    fig.suptitle("Energy Spectra Histogram, Log(E_nu)")
+    fig.suptitle(f"Energy Spectra Histogram, Log(E_nu)\n {spectrum}")
     plt.show()

@@ -114,3 +114,10 @@ class EAS:
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
         return numPEs, costhetaChEff
+
+
+def show_plot(sim, plot):
+    plotfs = (eas_optical_scatter, eas_optical_histogram)
+    inputs = ("beta_rad", "altDec", "showerEnergy")
+    outputs = ("numPEs", "costhetaChEff")
+    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)

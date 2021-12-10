@@ -216,3 +216,15 @@ def nss_result_plot(*plot_fs):
         return wrapper_f
 
     return decorator_plot
+
+
+def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot):
+
+    results = tuple(sim[o] for o in outputs)
+    f_input = tuple(sim[i] for i in inputs)
+
+    @nss_result_plot(*plotfs)
+    def f(*args, **kwargs):
+        return results
+
+    f(None, *f_input, plot=plot)

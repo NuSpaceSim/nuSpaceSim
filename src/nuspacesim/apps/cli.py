@@ -249,6 +249,78 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
     create_xml(filename, NssConfig(simulation=simulation))
 
 
+@cli.command()
+@click.option(
+    "-p",
+    "--plot",
+    type=click.Choice(list(registry), case_sensitive=False),
+    multiple=True,
+    default=[],
+    help="Available plotting functions. Select multiple plots with multiple uses of -p",
+)
+@click.option(
+    "-P",
+    "--plotconfig",
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    help="Read selected plotting functions and options from the specified INI file",
+)
+@click.option("--plotall", is_flag=True, help="Show all result plots.")
+@click.argument(
+    "simulation_file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+)
+def show_plot(
+    simulation_file: str,
+    plot: list,
+    plotconfig: str,
+    plotall: bool,
+) -> None:
+    """Show predefined plots of results in simulation file.
+
+    \f
+
+    Parameters
+    ----------
+    simulation_file: str
+        input ResultsTable fits file.
+    plot: list, optional
+        Plot the simulation results.
+    plotconfig: str, optional
+        INI file to select plots for each module, as well as to specifiy global plot settings.
+    plotall: bool, optional
+        Plot all the available the simulation results plots.
+
+
+    Examples
+    --------
+    Command line usage of the run command may work with the following invocation.
+
+    `nuspacesim show_plot my_sim_results.fits -p taus_overview`
+    """
+
+    from .. import simulation
+    from ..results_table import ResultsTable
+
+    sim = ResultsTable.read(simulation_file)
+
+    plot = (
+        list(registry)
+        if plotall
+        else read_plot_config(plotconfig)
+        if plotconfig
+        else plot
+    )
+
+    simulation.geometry.region_geometry.show_plot(sim, plot)
+    simulation.taus.taus.show_plot(sim, plot)
+    simulation.eas_optical.eas.show_plot(sim, plot)
+
+
 def read_plot_config(filename):
     plot_list = []
     cfg = configparser.ConfigParser()
