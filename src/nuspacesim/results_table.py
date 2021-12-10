@@ -60,7 +60,7 @@ class ResultsTable(AstropyTable):
     output file formats.
     """
 
-    def __init__(self, config: NssConfig = NssConfig()):
+    def __init__(self, config=None):
         r"""Constructor for ResultsTable class instances.
 
         Parameters
@@ -69,15 +69,21 @@ class ResultsTable(AstropyTable):
             Configuration object. Used to initialize result metadata.
         """
 
-        now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
-        super().__init__(
-            meta={
-                **config.detector(),
-                **config.simulation(),
-                **config.constants(),
-                "simTime": (now, "Start time of Simulation"),
-            }
-        )
+        if config is None:
+            config = NssConfig()
+
+        if isinstance(config, NssConfig):
+            now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+            super().__init__(
+                meta={
+                    **config.detector(),
+                    **config.simulation(),
+                    **config.constants(),
+                    "simTime": (now, "Start time of Simulation"),
+                }
+            )
+        elif isinstance(config, AstropyTable):
+            super().__init__(config)
 
     def __call__(self, col_names: Iterable[str], columns: Iterable[ArrayLike]) -> None:
         r"""Add named columns to the simulation results.

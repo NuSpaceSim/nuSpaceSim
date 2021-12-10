@@ -19,7 +19,7 @@ The package also provides a python3 API for programatic access.
 
 Tau propagation is interpolated using included data tables from nuPyProp.
 
-The source code repository is available on `GitHub<https://github.com/NuSpaceSim/nuSpaceSim>`
+The source code repository is available on `GitHub <https://github.com/NuSpaceSim/nuSpaceSim>`_.
 
 .. panels::
     :container: container-fluid pb-1

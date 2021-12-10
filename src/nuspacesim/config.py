@@ -183,7 +183,6 @@ class SimulationParameters:
     ang_from_limb: float = radians(7.0)
     """Angle From Limb. Default = π/25.714 radians (7 degrees)."""
     max_azimuth_angle: float = radians(360.0)
-    max_azimuth_angle: float = radians(360.0)
     """Maximum Azimuthal Angle. Default = 2π radians (360 degrees)."""
     model_ionosphere: int = 0
     """Model ionosphere for radio propagation?. Default = 0 (false)."""
