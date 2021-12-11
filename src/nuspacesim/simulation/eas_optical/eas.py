@@ -36,9 +36,9 @@ import numpy as np
 from ...config import NssConfig
 from ...utils import decorators
 from .cphotang import CphotAng
-from .local_plots import eas_optical_histogram, eas_optical_scatter
+from .local_plots import eas_optical_density, eas_optical_histogram
 
-__all__ = ["EAS"]
+__all__ = ["EAS", "show_plot"]
 
 
 class EAS:
@@ -74,7 +74,7 @@ class EAS:
 
         return altDec, lenDec
 
-    @decorators.nss_result_plot(eas_optical_scatter, eas_optical_histogram)
+    @decorators.nss_result_plot(eas_optical_density, eas_optical_histogram)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
     def __call__(self, beta, altDec, showerEnergy, *args, **kwargs):
         """
@@ -117,7 +117,7 @@ class EAS:
 
 
 def show_plot(sim, plot):
-    plotfs = (eas_optical_scatter, eas_optical_histogram)
+    plotfs = (eas_optical_density, eas_optical_histogram)
     inputs = ("beta_rad", "altDec", "showerEnergy")
     outputs = ("numPEs", "costhetaChEff")
     decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)

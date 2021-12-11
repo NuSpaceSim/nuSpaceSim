@@ -35,47 +35,33 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-def eas_optical_scatter(inputs, results, *args, **kwargs):
-    r"""Plot some scatterplots"""
+def eas_optical_density(inputs, results, *args, **kwargs):
+    r"""Plot some density plots"""
 
-    eas_self, betas, altDec, showerEnergy = inputs
+    _, betas, altDec, showerEnergy = inputs
     numPEs, costhetaChEff = results
 
-    color = "salmon"
-    alpha = 0.1 / np.log10(betas.size)
+    fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)
 
-    fig, ax = plt.subplots(nrows=2, ncols=3, constrained_layout=True)
+    im = None
 
-    ax[0, 0].scatter(x=np.degrees(betas), y=np.log10(numPEs), c=color, alpha=alpha)
-    ax[0, 0].set_xlabel("β")
-    ax[0, 0].set_ylabel("log(numPEs)")
-    ax[0, 0].set_title("β vs log(numPEs)")
+    def hist2d(ax, x, y, xlab, ylab):
+        nonlocal im
+        _, _, _, im = ax.hist2d(x, y=np.log10(y), bins=(50, 50), cmin=1, cmap="plasma")
+        ax.set_xlabel(xlab)
+        ax.set_ylabel(f"log({ylab})")
+        ax.set_title(f"{xlab} vs log({ylab})")
 
-    ax[1, 0].scatter(
-        x=np.degrees(betas), y=np.log10(costhetaChEff), c=color, alpha=alpha
+    hist2d(ax[0, 0], np.degrees(betas), numPEs, "β", "numPEs")
+    hist2d(ax[1, 0], np.degrees(betas), costhetaChEff, "β", "cos(θ_chEff)")
+    hist2d(ax[0, 1], altDec, numPEs, "decay altitude (km)", "numPEs")
+    hist2d(ax[1, 1], altDec, costhetaChEff, "decay altitude (km)", "cos(θ_chEff)")
+    hist2d(ax[0, 2], showerEnergy, numPEs, "showerEnergy (100 PeV)", "numPEs")
+    hist2d(
+        ax[1, 2], showerEnergy, costhetaChEff, "showerEnergy (100 PeV)", "cos(θ_chEff)"
     )
-    ax[1, 0].set_xlabel("β")
-    ax[1, 0].set_ylabel("log(cos(θ_chEff))")
-    ax[1, 0].set_title("β vs log(cos(θ_chEff))")
 
-    ax[0, 1].scatter(x=altDec, y=np.log10(numPEs), c=color, alpha=alpha)
-    ax[0, 1].set_xlabel("decay altitude (KM)")
-    ax[0, 1].set_ylabel("log(numPEs)")
-    ax[0, 1].set_title("altitude vs log(numPEs)")
-
-    ax[1, 1].scatter(x=altDec, y=np.log10(costhetaChEff), c=color, alpha=alpha)
-    ax[1, 1].set_xlabel("decay altitude (KM)")
-    ax[1, 1].set_ylabel("log(cos(θ_chEff))")
-    ax[1, 1].set_title("altitude vs log(cos(θ_chEff))")
-
-    ax[0, 2].scatter(x=showerEnergy, y=np.log10(numPEs), c=color, alpha=alpha)
-    ax[0, 2].set_xlabel("showerEnergy (100 PeV)")
-    ax[0, 2].set_ylabel("log(numPEs)")
-    ax[0, 2].set_title("showerEnergy vs log(numPEs)")
-    ax[1, 2].scatter(x=showerEnergy, y=np.log10(costhetaChEff), c=color, alpha=alpha)
-    ax[1, 2].set_xlabel("showerEnergy (100 PeV)")
-    ax[1, 2].set_ylabel("log(cos(θ_chEff))")
-    ax[1, 2].set_title("showerEnergy vs log(cos(θ_chEff))")
+    fig.colorbar(im, ax=ax, label="Counts", format="%.0e")
 
     fig.suptitle("EAS Optical Cherenkov properties.")
     plt.show()
@@ -84,7 +70,7 @@ def eas_optical_scatter(inputs, results, *args, **kwargs):
 def eas_optical_histogram(inputs, results, *args, **kwargs):
     r"""Plot some histograms"""
 
-    eas_self, betas, altDec, showerEnergy = inputs
+    # eas_self, betas, altDec, showerEnergy = inputs
     numPEs, costhetaChEff = results
 
     color = "salmon"

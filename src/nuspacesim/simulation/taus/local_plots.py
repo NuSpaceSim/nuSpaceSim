@@ -58,7 +58,7 @@ def get_profile(x, y, nbins, useStd=True, *args, **kwargs):
 def taus_density_beta(inputs, results, *args, **kwargs):
     r"""Plot some density plots"""
 
-    tau_self, betas, log_e_nu = inputs
+    _, betas, log_e_nu = inputs
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
 
     fig, ax = plt.subplots(2, 2, figsize=(10, 8), sharex=True, constrained_layout=True)
@@ -88,7 +88,7 @@ def taus_density_beta(inputs, results, *args, **kwargs):
 def taus_histogram(inputs, results, *args, **kwargs):
     r"""Plot some histograms"""
 
-    tau_self, betas, log_e_nu = inputs
+    _, _, _ = inputs
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
 
     color = "c"
@@ -110,8 +110,8 @@ def taus_histogram(inputs, results, *args, **kwargs):
 
 
 def taus_pexit(inputs, results, *args, **kwargs):
-    tau_self, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+    _, betas, _ = inputs
+    _, _, _, _, tauExitProb = results
 
     color = "c"
     alpha = 0.1 / np.log10(betas.size)
@@ -141,8 +141,8 @@ def taus_pexit(inputs, results, *args, **kwargs):
 def taus_overview(inputs, results, *args, **kwargs):
     r"""Overview plot for taus"""
 
-    tau_self, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+    _, betas, log_e_nu = inputs
+    _, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
     log_e_nu = log_e_nu + 9
     tauEnergy = tauEnergy * 1e9
     showerEnergy = showerEnergy * 1e9 * 1e8

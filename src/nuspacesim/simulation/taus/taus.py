@@ -34,13 +34,12 @@
 r"""Tau propagation module. A class for sampling tau attributes from beta angles."""
 
 import numpy as np
-from scipy.interpolate import RegularGridInterpolator, interp1d
+from scipy.interpolate import RegularGridInterpolator
 
 from ...config import NssConfig
 from ...utils import decorators
-from ...utils.cdf import grid_cdf_sampler, grid_inverse_sampler
+from ...utils.cdf import grid_cdf_sampler
 from ...utils.grid import NssGrid
-from ...utils.interp import grid_slice_interp
 from .local_plots import taus_density_beta, taus_histogram, taus_overview, taus_pexit
 
 try:

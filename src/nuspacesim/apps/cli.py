@@ -46,6 +46,8 @@ import configparser
 
 import click
 
+from .. import simulation
+from ..utils import plots
 from ..utils.plot_function_registry import registry
 
 
@@ -303,7 +305,6 @@ def show_plot(
     `nuspacesim show_plot my_sim_results.fits -p taus_overview`
     """
 
-    from .. import simulation
     from ..results_table import ResultsTable
 
     sim = ResultsTable.read(simulation_file)
@@ -319,6 +320,7 @@ def show_plot(
     simulation.geometry.region_geometry.show_plot(sim, plot)
     simulation.taus.taus.show_plot(sim, plot)
     simulation.eas_optical.eas.show_plot(sim, plot)
+    plots.show_plot(sim, plot)
 
 
 def read_plot_config(filename):
