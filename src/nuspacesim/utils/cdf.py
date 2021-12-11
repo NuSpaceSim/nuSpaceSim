@@ -53,7 +53,12 @@ from scipy.interpolate import RegularGridInterpolator, interp1d, interpn
 from nuspacesim.utils.grid import NssGrid
 from nuspacesim.utils.interp import grid_slice_interp, vec_1d_interp
 
-__all__ = ["grid_inverse_sampler", "nearest_cdf_sampler", "lerp_cdf_sampler"]
+__all__ = [
+    "grid_inverse_sampler",
+    "nearest_cdf_sampler",
+    "lerp_cdf_sampler",
+    "grid_cdf_sampler",
+]
 
 
 def invert_cdf_grid(grid: NssGrid) -> NssGrid:
