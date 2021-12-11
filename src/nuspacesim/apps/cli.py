@@ -33,22 +33,34 @@
 
 """ Command line client source code.
 
-.. autosummary::
-   :toctree:
-   :recursive:
+.. _cli:
 
-   run
-   create_config
+*****
+ CLI
+*****
+
+.. currentmodule:: nuspacesim.apps.cli
+
+.. click:: nuspacesim.apps.cli:cli
+   :prog: nuspacesim
+   :show-nested:
 
 """
+
 
 import configparser
 
 import click
 
-from .. import simulation
+from .. import NssConfig, SimulationParameters, simulation
+from ..compute import compute
+from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
+from ..results_table import ResultsTable
 from ..utils import plots
 from ..utils.plot_function_registry import registry
+from ..xml_config import config_from_xml, create_xml
+
+__all__ = ["create_config", "run", "show_plot"]
 
 
 @click.group()
@@ -160,10 +172,6 @@ def run(
     `nuspacesim run sample_input_file.xml 1e5 8 -o my_sim_results.fits`
     """
 
-    from ..compute import compute
-    from ..config import MonoSpectrum, PowerSpectrum
-    from ..xml_config import config_from_xml
-
     # User Inputs
     config = config_from_xml(config_file)
 
@@ -231,10 +239,6 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
 
     `nuspacesim create_config -n 1e5 sample_input_file.xml`
     """
-    from .. import NssConfig, SimulationParameters
-    from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
-    from ..xml_config import create_xml
-
     if monospectrum is not None and powerspectrum is not None:
         raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
 
@@ -304,8 +308,6 @@ def show_plot(
 
     `nuspacesim show_plot my_sim_results.fits -p taus_overview`
     """
-
-    from ..results_table import ResultsTable
 
     sim = ResultsTable.read(simulation_file)
 

@@ -6,10 +6,15 @@ r""" Command line client apps
  Apps
 ******
 
+.. currentmodule:: nuspacesim.apps
+
 .. autosummary::
    :toctree:
-   :recursive:
 
    cli
 
 """
+
+__all__ = ["cli"]
+
+from . import cli

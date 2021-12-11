@@ -48,6 +48,9 @@ except ImportError:
     from importlib_resources import as_file, files
 
 
+__all__ = ["Taus", "show_plot"]
+
+
 class Taus(object):
     r"""Tau attributes from beta angles via sampling CDF tables provided by nupyprop.
 

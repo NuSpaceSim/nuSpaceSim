@@ -39,14 +39,12 @@ r"""NuSpaceSim Simulation Modules.
 NuSpaceSim Simulation Modules
 *****************************
 
-.. currentmodule:: nuspacesim.simulation
 
 NuSpaceSim provides a collection of modules for simulating various stages of the
 neutrino propagation and interaction.
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    geometry

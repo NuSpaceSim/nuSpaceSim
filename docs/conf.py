@@ -41,6 +41,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
+    "sphinx_click.ext",
     "sphinx_panels",
 ]
 
@@ -93,6 +94,7 @@ autosummary_mock_imports = [
     "h5py",
     "lxml",
     "matplotlib",
+    "mpl_toolkits",
     "numpy",
     "quadpy",
     "rich",

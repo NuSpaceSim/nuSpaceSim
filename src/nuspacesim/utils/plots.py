@@ -32,7 +32,6 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from . import decorators
 
@@ -45,7 +44,6 @@ def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logy=True):
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
     ax.set_title(f"{xlab} vs {ylab}")
-    # cax = make_axes_locatable(ax).append_axes("right", size="5%", pad=0.0)
     cbar = fig.colorbar(im, ax=ax, pad=0.0)
     cbar.set_label("Counts")
 
