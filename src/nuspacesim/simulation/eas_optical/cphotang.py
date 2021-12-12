@@ -638,12 +638,12 @@ class CphotAng:
 
         photonDen = self.dtype(0.5) * photsum / CherArea
 
-        altidude_scaling = (
+        altitude_scaling = (
             distance_to_detector(betaE, alt, self.orbit_height, self.RadE)
             / distance_to_detector(betaE, alt, self.detector_altitude, self.RadE)
         ) ** 2
 
-        photonDen *= altidude_scaling
+        photonDen *= altitude_scaling
 
         Cang = np.degrees(AveCangI + CangsigI)
 
