@@ -638,14 +638,9 @@ class CphotAng:
 
         photonDen = self.dtype(0.5) * photsum / CherArea
 
-        # delta = np.abs(DistStep[0] - distance_to_detector(betaE, alt, 525, self.RadE))
-        # if delta > 1e-3:
-        #     print(DistStep[0], distance_to_detector(betaE, alt, 525, self.RadE), delta)
-
         altidude_scaling = (
-            distance_to_detector(betaE, alt, self.detector_altitude, self.RadE)
-            / distance_to_detector(betaE, alt, self.orbit_height, self.RadE)
-            # / DistStep[0]
+            distance_to_detector(betaE, alt, self.orbit_height, self.RadE)
+            / distance_to_detector(betaE, alt, self.detector_altitude, self.RadE)
         ) ** 2
 
         photonDen *= altidude_scaling
