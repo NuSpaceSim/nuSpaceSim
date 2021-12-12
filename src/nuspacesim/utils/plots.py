@@ -40,10 +40,12 @@ __all__ = ["dashboard", "energy_histograms", "show_plot"]
 
 def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logy=True):
     yf = np.log10 if logy else lambda q: q
-    _, _, _, im = ax.hist2d(x=x, y=yf(y), bins=(50, 50), cmin=1, cmap=cmap)
+    mask = (y > 0) if logy else True
+    _, _, _, im = ax.hist2d(x=x[mask], y=yf(y[mask]), bins=(50, 50), cmin=1, cmap=cmap)
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
-    ax.set_title(f"{xlab} vs {ylab}")
+    yl = f"log({ylab})" if ylab else ylab
+    ax.set_title(f"{xlab} vs {yl}")
     cbar = fig.colorbar(im, ax=ax, pad=0.0)
     cbar.set_label("Counts")
 

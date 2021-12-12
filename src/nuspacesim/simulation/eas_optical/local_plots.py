@@ -34,6 +34,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+from ...utils.plots import hist2d
+
 
 def eas_optical_density(inputs, results, *args, **kwargs):
     r"""Plot some density plots"""
@@ -43,25 +45,50 @@ def eas_optical_density(inputs, results, *args, **kwargs):
 
     fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)
 
-    im = None
-
-    def hist2d(ax, x, y, xlab, ylab):
-        nonlocal im
-        _, _, _, im = ax.hist2d(x, y=np.log10(y), bins=(50, 50), cmin=1, cmap="plasma")
-        ax.set_xlabel(xlab)
-        ax.set_ylabel(f"log({ylab})")
-        ax.set_title(f"{xlab} vs log({ylab})")
-
-    hist2d(ax[0, 0], np.degrees(betas), numPEs, "β", "numPEs")
-    hist2d(ax[1, 0], np.degrees(betas), costhetaChEff, "β", "cos(θ_chEff)")
-    hist2d(ax[0, 1], altDec, numPEs, "decay altitude (km)", "numPEs")
-    hist2d(ax[1, 1], altDec, costhetaChEff, "decay altitude (km)", "cos(θ_chEff)")
-    hist2d(ax[0, 2], showerEnergy, numPEs, "showerEnergy (100 PeV)", "numPEs")
+    hist2d(fig, ax[0, 0], np.degrees(betas), numPEs, "β", "numPEs", cmap="plasma")
     hist2d(
-        ax[1, 2], showerEnergy, costhetaChEff, "showerEnergy (100 PeV)", "cos(θ_chEff)"
+        fig,
+        ax[1, 0],
+        np.degrees(betas),
+        costhetaChEff,
+        "β",
+        "cos(θ_chEff)",
+        cmap="plasma",
     )
 
-    fig.colorbar(im, ax=ax, label="Counts", format="%.0e")
+    hist2d(
+        fig, ax[0, 1], altDec, numPEs, "decay altitude (km)", "numPEs", cmap="plasma"
+    )
+
+    hist2d(
+        fig,
+        ax[1, 1],
+        altDec,
+        costhetaChEff,
+        "decay altitude (km)",
+        "cos(θ_chEff)",
+        cmap="plasma",
+    )
+
+    hist2d(
+        fig,
+        ax[0, 2],
+        showerEnergy,
+        numPEs,
+        "showerEnergy (100 PeV)",
+        "numPEs",
+        cmap="plasma",
+    )
+
+    hist2d(
+        fig,
+        ax[1, 2],
+        showerEnergy,
+        costhetaChEff,
+        "showerEnergy (100 PeV)",
+        "cos(θ_chEff)",
+        cmap="plasma",
+    )
 
     fig.suptitle("EAS Optical Cherenkov properties.")
     plt.show()
