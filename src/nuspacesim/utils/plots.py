@@ -38,14 +38,24 @@ from . import decorators
 __all__ = ["dashboard", "energy_histograms", "show_plot"]
 
 
-def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logy=True):
+def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
+
+    xf = np.log10 if logx else lambda q: q
     yf = np.log10 if logy else lambda q: q
-    mask = (y > 0) if logy else True
-    _, _, _, im = ax.hist2d(x=x[mask], y=yf(y[mask]), bins=(50, 50), cmin=1, cmap=cmap)
-    ax.set_xlabel(xlab)
-    ax.set_ylabel(ylab)
-    yl = f"log({ylab})" if ylab else ylab
-    ax.set_title(f"{xlab} vs {yl}")
+
+    xl = f"log({xlab})" if logx else xlab
+    yl = f"log({ylab})" if logy else ylab
+
+    xmask = x > 0 if logx else np.full(x.shape, True)
+    ymask = y > 0 if logy else np.full(y.shape, True)
+    m = xmask & ymask
+
+    _, _, _, im = ax.hist2d(x=xf(x[m]), y=yf(y[m]), bins=(50, 50), cmin=1, cmap=cmap)
+
+    ax.set_xlabel(xl)
+    ax.set_ylabel(yl)
+
+    ax.set_title(f"{xl} vs {yl}")
     cbar = fig.colorbar(im, ax=ax, pad=0.0)
     cbar.set_label("Counts")
 
@@ -56,23 +66,21 @@ def dashboard(sim):
     fig, ax = plt.subplots(3, 4, figsize=(14, 8), constrained_layout=True)
 
     energy_histograms(sim, fig, ax[0, 0])
-    tau_pexit_density(sim, fig, ax[1, 0])
+    tau_pexit_hist(sim, fig, ax[1, 0])
     tau_lorentz(sim, fig, ax[2, 0])
 
     betas_histogram(sim, fig, ax[0, 1])
-    tau_pexit_hist(sim, fig, ax[1, 1])
+    tau_pexit_density(sim, fig, ax[1, 1])
     decay_altitude(sim, fig, ax[2, 1])
 
     # decay_altitude_hist(sim, fig, ax[0, 2])
     num_photo_electrons_hist(sim, fig, ax[0, 2])
     num_photo_electrons_density(sim, fig, ax[1, 2])
     num_photo_electrons_altitude(sim, fig, ax[2, 2])
-    # cherenkov_angle_hist(sim, fig, ax[2, 2])
-    # cherenkov_angle(sim, fig, ax[3, 2])
 
     # eas_input_density(sim, fig, ax[0, 3])
     cherenkov_angle_hist(sim, fig, ax[0, 3])
-    eas_2hist(sim, fig, ax[1, 3])
+    eas_results_density(sim, fig, ax[1, 3])
     cherenkov_angle(sim, fig, ax[2, 3])
 
     # tau_betas(sim, fig, ax[1, 2])
@@ -95,6 +103,7 @@ def energy_histograms(sim, fig, ax=None):
         color="C0",
         alpha=0.6,
         label=r"$E_{\nu_\tau}$",
+        edgecolor="k",
     )
     ax.hist(
         x=np.log10(sim["tauEnergy"]) + 9,
@@ -138,7 +147,9 @@ def tau_lorentz(sim, fig, ax):
         np.degrees(sim["beta_rad"]),
         sim["tauLorentz"],
         r"$\beta$",
-        r"$\log(τ_\mathrm{Lorentz})$",
+        r"$τ_\mathrm{Lorentz}$",
+        logx=False,
+        logy=True,
     )
 
 
@@ -155,13 +166,24 @@ def tau_pexit_density(sim, fig, ax):
         np.degrees(sim["beta_rad"]),
         sim["tauExitProb"],
         r"$\beta$",
-        r"$\log(P_\mathrm{exit}(\tau))$",
+        r"$P_\mathrm{exit}(\tau)$",
         cmap="viridis",
+        logx=False,
+        logy=True,
     )
 
 
 def tau_betas(sim, fig, ax):
-    hist2d(fig, ax, sim["beta_rad"], sim["tauBeta"], r"$\beta$", r"$\log(τ_β)$")
+    hist2d(
+        fig,
+        ax,
+        sim["beta_rad"],
+        sim["tauBeta"],
+        r"$\beta$",
+        r"$τ_β$",
+        logx=False,
+        logy=True,
+    )
 
 
 def decay_altitude_hist(sim, fig, ax):
@@ -178,29 +200,43 @@ def num_photo_electrons_hist(sim, fig, ax):
 
 
 def num_photo_electrons_density(sim, fig, ax):
-    m = sim["numPEs"] != 0
     hist2d(
         fig,
         ax,
-        np.log(sim["numPEs"][m]),
-        np.degrees(sim["beta_rad"][m]),
-        "log(numPEs)",
+        sim["numPEs"],
+        np.degrees(sim["beta_rad"]),
+        "numPEs",
         "β",
         "plasma",
+        logx=True,
         logy=False,
     )
 
 
 def num_photo_electrons_altitude(sim, fig, ax):
-    m = sim["numPEs"] != 0
     hist2d(
         fig,
         ax,
-        np.log(sim["numPEs"][m]),
-        sim["altDec"][m],
-        "log(numPEs)",
-        "decay_altitude log(km)",
+        sim["numPEs"],
+        sim["altDec"],
+        "numPEs",
+        "decay_altitude km",
         "plasma",
+        logx=True,
+        logy=True,
+    )
+
+
+def decay_altitude(sim, fig, ax):
+    hist2d(
+        fig,
+        ax,
+        np.degrees(sim["beta_rad"]),
+        sim["altDec"],
+        "β",
+        "decay_altitude km",
+        cmap="viridis",
+        logx=False,
         logy=True,
     )
 
@@ -211,15 +247,16 @@ def cherenkov_angle_hist(sim, fig, ax):
     ax.set_xlabel("θ_chEff")
 
 
-def decay_altitude(sim, fig, ax):
+def eas_input_density(sim, fig, ax):
     hist2d(
         fig,
         ax,
         np.degrees(sim["beta_rad"]),
         sim["altDec"],
-        "β",
-        "decay_altitude log(km)",
-        cmap="viridis",
+        "beta_rad",
+        "decay alt km",
+        cmap="jet",
+        logx=False,
         logy=True,
     )
 
@@ -233,61 +270,22 @@ def cherenkov_angle(sim, fig, ax):
         "θ_chEff",
         "β",
         cmap="jet",
+        logx=False,
         logy=False,
     )
 
 
-def cherenkov_angle_log(sim, fig, ax):
+def eas_results_density(sim, fig, ax):
     hist2d(
         fig,
         ax,
-        np.degrees(sim["beta_rad"]),
         np.degrees(np.arccos(sim["costhetaChEff"])),
-        "β",
-        "log(θ_chEff)",
-        cmap="plasma",
-        logy=True,
-    )
-
-
-def eas_input_density(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        np.degrees(sim["beta_rad"]),
-        sim["altDec"],
-        "beta_rad",
-        "decay alt log(km)",
-        cmap="jet",
-        logy=True,
-    )
-
-
-def eas_2hist(sim, fig, ax):
-    m = sim["numPEs"] != 0
-    hist2d(
-        fig,
-        ax,
-        np.degrees(np.arccos(sim["costhetaChEff"][m])),
-        np.log10(sim["numPEs"][m]),
+        sim["numPEs"],
         "θ_chEff",
-        "log(NumPEs)",
+        "NumPEs",
         cmap="jet",
+        logx=False,
         logy=False,
-    )
-
-
-def eas_2hist_log(sim, fig, ax):
-    m = sim["numPEs"] != 0
-    hist2d(
-        fig,
-        ax,
-        np.log10(np.degrees(np.arccos(sim["costhetaChEff"][m]))),
-        sim["numPEs"][m],
-        "log(θ_chEff)",
-        "log(NumPEs)",
-        cmap="jet",
-        logy=True,
     )
 
 
