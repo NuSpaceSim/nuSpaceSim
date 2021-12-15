@@ -55,7 +55,7 @@ def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
     ax.set_xlabel(xl)
     ax.set_ylabel(yl)
 
-    ax.set_title(f"{xl} vs {yl}")
+    ax.set_title(f"{yl} vs {xl}")
     cbar = fig.colorbar(im, ax=ax, pad=0.0)
     cbar.set_label("Counts")
 
