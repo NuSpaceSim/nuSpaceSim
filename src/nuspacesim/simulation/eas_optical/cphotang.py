@@ -48,7 +48,13 @@ from dask.diagnostics import ProgressBar
 from numpy.polynomial import Polynomial
 
 from .detector_geometry import distance_to_detector
-from .zsteps import zsteps as cppzsteps
+
+# Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
+# on ReadTheDocs without pre-compiling.
+try:
+    from .zsteps import zsteps as cppzsteps
+except ImportError:
+    pass
 
 __all__ = ["CphotAng"]
 

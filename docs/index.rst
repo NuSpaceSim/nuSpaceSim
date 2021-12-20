@@ -21,6 +21,8 @@ Tau propagation is interpolated using included data tables from nuPyProp.
 
 The source code repository is available on `GitHub <https://github.com/NuSpaceSim/nuSpaceSim>`_.
 
+Please provide feedback, bug reports, and feature requests through our public `Issue Tracker <https://github.com/NuSpaceSim/nuSpaceSim/issues>`_.
+
 .. panels::
     :container: container-fluid pb-1
     :column: col-lg-6 col-md-6 col-sm-12 col-xs-12 p-2
