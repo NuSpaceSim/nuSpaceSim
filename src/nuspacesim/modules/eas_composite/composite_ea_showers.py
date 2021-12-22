@@ -157,7 +157,7 @@ class CompositeShowers():
 
         return  composite_showers, composite_depths
     
-    def __call__ (self):
+    def __call__ (self, filter_errors = False):
         
         electron_gh, pion_gh, gamma_gh= self.conex_params()
         electron_e, pion_e, gamma_e = self.tau_daughter_energies()
@@ -178,49 +178,57 @@ class CompositeShowers():
             single_showers = (elec_showers, pion_showers, gamm_showers), 
             shower_bins = (elec_depths, pion_depths, gamm_depths)
         )
-            
         # filter out showers where the parameterization fails; i.e. > np.inf or 1e20
-        broken_showers_row_idx = np.where( np.any(comp_showers > 1e100, axis = 1) )
+        err_threshold = 1e100
+        broken_showers_row_idx = np.where( np.any(comp_showers >  err_threshold , axis = 1) )
         broken_events = comp_showers[:,0:2][broken_showers_row_idx]
-        comp_showers = np.delete(comp_showers, broken_showers_row_idx, axis=0)
-        depths = np.delete(depths, broken_showers_row_idx, axis=0)
+
         
         print('{} Broken Showers out to {} g/cm^2'.format(len(broken_events), self.shower_end) )
         np.savetxt('discontinous_events.txt', broken_events, fmt='%1.0f')
         
-        return comp_showers, depths, broken_events, gamm_showers, gamm_depths 
+        if filter_errors is True:
+            comp_showers = np.delete(comp_showers, broken_showers_row_idx, axis=0)
+            depths = np.delete(depths, broken_showers_row_idx, axis=0)
+           
+ 
+        
+        return comp_showers, depths, broken_events, #pion_showers, pion_depths
 
 
 
-# if __name__ == '__main__': 
-#     t0 = time.time()
-#     make_composites = CompositeShowers()
-#     comp_showers, depths =  make_composites() 
+if __name__ == '__main__': 
+    t0 = time.time()
+    make_composites = CompositeShowers()
+    comp_showers, depths, broke =  make_composites() 
     
-#     get_fits = FitCompositeShowers(comp_showers, depths)
-#     fits = get_fits()
+    get_fits = FitCompositeShowers(comp_showers, depths)
+    fits = get_fits()
     
-#     # do next: lambda with a one percent cut.
-#     # show distributions of chi squares. 
-#     # constant lambda plots rebounds 
-#     reco_showers = np.full([comp_showers.shape[0], comp_showers.shape[1]], fill_value = -1) 
-#     fit_results = np.full([comp_showers.shape[0], 4], fill_value = np.nan) 
+    # do next: lambda with a one percent cut.
+    # show distributions of chi squares. 
+    # constant lambda plots rebounds 
+    reco_showers = np.full([comp_showers.shape[0], comp_showers.shape[1]], fill_value = -1) 
+    fit_results = np.full([comp_showers.shape[0], 4], fill_value = np.nan) 
     
-#     for row,(params, depth) in enumerate(zip(fits, depths)):
+    for row,(params, depth) in enumerate(zip(fits, depths)):
             
-#         reconstructed = get_fits.reco_showers(fit_params=params, depth=depth)
-#         reco_showers[row,:] = reconstructed
+        reconstructed = get_fits.reco_showers(fit_params=params, depth=depth)
+        reco_showers[row,:] = reconstructed
         
-#     for row,(shower, shower_thoery) in enumerate(zip(comp_showers, reco_showers)):
+    for row,(shower, shower_thoery) in enumerate(zip(comp_showers, reco_showers)):
         
-#         fit_chi = get_fits.reco_chi(shower, shower_thoery)
-#         fit_results[row,:] = fit_chi
+        fit_chi = get_fits.reco_chi(shower, shower_thoery)
+        fit_results[row,:] = fit_chi
     
    
     
-#     t1 = time.time()
-#     total = t1-t0 
-#     print(total)
+    t1 = time.time()
+    total = t1-t0 
+    
+    print(total)
+
+
 #%% 
 # import matplotlib.pyplot as plt
 # mask = (fit_results[:,2] != np.inf) 

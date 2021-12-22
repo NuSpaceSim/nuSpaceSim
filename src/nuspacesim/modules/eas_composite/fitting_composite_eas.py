@@ -122,9 +122,10 @@ class FitCompositeShowers():
         
         print('Generating Fits... ')
         
-        with ProgressBar(): 
-            for row,(shower, depth) in enumerate(zip(self.showers, self.depths)):
-                shower_fit = self.fit_const_lambda(comp_shower=shower, depth=depth)
-                gh_fits[row,:] = shower_fit
+    
+        for row,(shower, depth) in enumerate(zip(self.showers, self.depths)):
+            print('Fitting', row)
+            shower_fit = self.fit_const_lambda(comp_shower=shower, depth=depth)
+            gh_fits[row,:] = shower_fit
                 
         return gh_fits

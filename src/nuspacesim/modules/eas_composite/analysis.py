@@ -3,8 +3,9 @@ import numpy as np
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 #%%
-make_composites = CompositeShowers(shower_end=3000, grammage=1)
-comp_showers, depths, test, broken_gamm_showers, broken_gamm_depths  =  make_composites()  
+make_composites = CompositeShowers(shower_end=2000, grammage=1)
+comp_showers, depths, broken_event =  make_composites(
+    filter_errors=False)  
 
 #%%
 
@@ -14,8 +15,8 @@ comp_showers, depths, test, broken_gamm_showers, broken_gamm_depths  =  make_com
 plt.figure(figsize=(8, 5), dpi= 120)
 
 
-plt.plot(broken_gamm_depths[50, 2:3000],
-         broken_gamm_showers[50, 2:3000],   
+plt.plot(broken_gamm_depths[51, 2:3000],
+         broken_gamm_showers[51, 2:3000],   
             c= 'tab:orange')
 
 # plt.title('% Difference b/w Mean of Generated Composites and Mean of Composite Fits')
@@ -99,14 +100,14 @@ fits = get_fits()
 
 #%%
 
-def giasser_hillas( x, n_max, x_max, x_0, gh_lambda): 
+# def giasser_hillas( x, n_max, x_max, x_0, gh_lambda): 
     
-    particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))  \
-                                    **((x_max - x_0)/gh_lambda) )  )   \
-            *                                                           \
-            ( np.exp((x_max - x)/gh_lambda) )    
+#     particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))  \
+#                                     **((x_max - x_0)/gh_lambda) )  )   \
+#             *                                                           \
+#             ( np.exp((x_max - x)/gh_lambda) )    
     
-    return particles
+#     return particles
 
 plt.figure(figsize=(8, 5), dpi= 120)
 plt.plot(depths[2,2:], comp_showers[2,2:], label = 'generated composite shower')
@@ -118,6 +119,7 @@ plt.legend()
 #plt.draw()
 
 #%% Plot Mean and RMS of Generated Showers
+
 
 #comp_showers= filtered_comp_showers
 plt.figure(figsize=(8, 5), dpi= 120)
@@ -142,43 +144,65 @@ plt.fill_between(depths[1,2:], average_composites - rms_error, average_composite
 # plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
 # plt.xlim(left = 0 )         
 # plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
-plt.yscale('log')
+#plt.yscale('log')
 plt.xlim(0,2000) 
 plt.legend()
 
 #%% Plot Mean and RMS of Fitted Showers
 #comp_showers= filtered_comp_showers 
 
-fitted_showers = np.empty([comp_showers.shape[0], 2000]) 
+def giasser_hillas( x, n_max, x_max, x_0, gh_lambda): 
+    
+    particles = (n_max * np.nan_to_num ( ((x - x_0) / (x_max - x_0))  \
+                                    **((x_max - x_0)/gh_lambda) )  )   \
+            *                                                           \
+            ( np.exp((x_max - x)/gh_lambda) )    
+    
+    return particles
+
+reference_make_composites = CompositeShowers(shower_end=2000, grammage=1)
+reference_comp_showers, reference_depths, broken =  reference_make_composites( filter_errors=False)    
+#comp_showers= filtered_comp_showers 
+# mask = reference_comp_showers != np.inf
+get_fits = FitCompositeShowers(reference_comp_showers, reference_depths)
+fits = get_fits()
+#%%
+
+fitted_showers = np.ones([reference_comp_showers.shape[0], 2000]) 
+
 for row,fit in enumerate(fits):
-    fitted_showers[row,:] = giasser_hillas(depths[row,2:], *fits[row,2:])
+    fitted_showers[row,:] = giasser_hillas(reference_depths[row,2:], *fits[row,2:])
+    
+
+
 plt.figure(figsize=(8, 5), dpi= 120)
 fit_average_composites = np.mean(fitted_showers, axis=0) #Takes the mean of each row (each bin)
-
 # #to get RMS
-square = np.square (fitted_showers .T) #squares the 2D matrix  
-mean = square.mean(axis = 1) #gets mean along each bin
+square = (fitted_showers .T)**2 #squares the 2D matrix  
+mean = np.mean(square, axis = 1) #gets mean along each bin
 rms =  np.sqrt(mean) #gets root of each mean
 
-rms_error = np.sqrt(np.mean( ( fit_average_composites  - fitted_showers )**2, axis = 0 ))
+rms_error = np.sqrt(np.nanmean( ( fit_average_composites  - fitted_showers )**2, axis = 0 ))
 
 
 
-plt.plot(depths[1,2:], fit_average_composites,  '--k', label= 'Mean Fitted Showers') 
+plt.plot(reference_depths[1,2:], fit_average_composites,  '--k', label= 'Fitted Showers Mean') 
 
-plt.fill_between(depths[1,2:], fit_average_composites - rms_error, fit_average_composites+ rms_error,
-                  alpha = 0.5, edgecolor='green', facecolor='green', 
-                  label = 'Error')
+# plt.fill_between(np.linspace(0,2000,2000), 
+#                  fit_average_composites - rms_error, 
+#                  fit_average_composites+ rms_error,
+#                   alpha = 0.5, edgecolor='green', facecolor='green', 
+#                   label = 'Error')
 
 # #plt.title('G-H Plots | ' + str(file_name.split('/')[-1]) +'/'+ str(data_name))
-# plt.ylabel('Number of Particles N')
-# plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
-# plt.xlim(left = 0 )         
-# plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
-plt.yscale('log')
+plt.ylabel('Shower Content')
+plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
+plt.xlim(left = 0 )         
+plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
+#plt.yscale('log')
 plt.legend() 
-plt.xlim(0,2000)
-plt.ylim(1,1e8)
+#plt.xlim(0,2000)
+#plt.ylim(1,1e8)
 #%%
 plt.figure(figsize=(8, 5), dpi= 120)
 percent_diff = np.abs(average_composites - fit_average_composites) / \

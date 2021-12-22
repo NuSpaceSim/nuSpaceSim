@@ -5,8 +5,8 @@ r""" Utility classes and methods
    :recursive:
 """
 
-__all__ = ["fitting_composite_eas", "shower_long_profiles", "composite_ea_showers"]
+from .fitting_composite_eas import FitCompositeShowers
+from .shower_long_profiles import ShowerParameterization
+from .composite_ea_showers import CompositeShowers
 
-from . import fitting_composite_eas
-from . import shower_long_profiles
-from . import composite_ea_showers
+__all__ = ["FitCompositeShowers", "ShowerParameterization", "CompositeShowers"]
