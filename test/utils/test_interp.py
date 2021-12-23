@@ -1,4 +1,5 @@
 import numpy as np
+
 from nuspacesim.utils.grid import NssGrid
 from nuspacesim.utils.interp import grid_slice_interp
 

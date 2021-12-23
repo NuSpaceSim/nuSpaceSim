@@ -2,7 +2,7 @@
 requires = ["setuptools>=46",
             "setuptools_scm[toml]>=3.4",
             "wheel",
-            "pybind11>=2.6",
+            "pybind11>=2.8",
             "numpy>1.17",
            ]
 build-backend = "setuptools.build_meta"
@@ -40,6 +40,7 @@ exclude = '''
     | buck-out
     | build
     | dist
+    | _version.py
   )/
 )
 '''
@@ -47,3 +48,6 @@ exclude = '''
 [tool.autopep8]
 max_line_length = 88
 ignore = "E501,W6"  # or ["E501", "W6"]
+
+[tool.isort]
+profile = "black"

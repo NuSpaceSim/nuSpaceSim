@@ -1,6 +1,7 @@
-import numpy as np
 import math
+
 import h5py
+import numpy as np
 
 
 def extract_pexit_data(filename):

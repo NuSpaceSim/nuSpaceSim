@@ -21,8 +21,10 @@
     <TauShowerType Preset="true">
       <FracETauInShower>0.5</FracETauInShower>
     </TauShowerType>
-    <NuTauEnergySpecType SpectrumType="Mono">
-      <NuTauEnergy>100000000.0</NuTauEnergy>
+    <NuTauEnergySpecType>
+      <MonoSpectrum>
+        <LogNuEnergy>8.0</LogNuEnergy>
+      </MonoSpectrum>
     </NuTauEnergySpecType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
     <NumTrajs>100</NumTrajs>

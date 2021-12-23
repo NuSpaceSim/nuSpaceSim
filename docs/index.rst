@@ -9,7 +9,7 @@ nuSpaceSim Documentation
 
 νSpaceSim
 
-This is the beta release of the nuspacesim simulator tool!
+This is the public release of the nuspacesim simulator tool!
 
 This package simulates upward-going electromagnetic air showers caused by neutrino
 interactions with the atmosphere. It calculates the tau neutrino acceptance for the
@@ -18,6 +18,10 @@ configuration file, with settings for detector characteristics and global parame
 The package also provides a python3 API for programatic access.
 
 Tau propagation is interpolated using included data tables from nuPyProp.
+
+The source code repository is available on `GitHub <https://github.com/NuSpaceSim/nuSpaceSim>`_.
+
+Please provide feedback, bug reports, and feature requests through our public `Issue Tracker <https://github.com/NuSpaceSim/nuSpaceSim/issues>`_.
 
 .. panels::
     :container: container-fluid pb-1

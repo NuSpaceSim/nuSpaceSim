@@ -31,21 +31,36 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r""" Command line client source code.
+""" Command line client source code.
 
-.. autosummary::
-   :toctree:
-   :recursive:
+.. _cli:
 
-   run
-   create_config
+*****
+ CLI
+*****
 
+.. currentmodule:: nuspacesim.apps.cli
+
+.. click:: nuspacesim.apps.cli:cli
+   :prog: nuspacesim
+   :show-nested:
 
 """
 
+
+import configparser
+
 import click
 
+from .. import NssConfig, SimulationParameters, simulation
+from ..compute import compute
+from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
+from ..results_table import ResultsTable
+from ..utils import plots
 from ..utils.plot_function_registry import registry
+from ..xml_config import config_from_xml, create_xml
+
+__all__ = ["create_config", "run", "show_plot"]
 
 
 @click.group()
@@ -69,6 +84,16 @@ def cli():
     default=[],
     help="Available plotting functions. Select multiple plots with multiple uses of -p",
 )
+@click.option(
+    "-P",
+    "--plotconfig",
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    help="Read selected plotting functions and options from the specified INI file",
+)
 @click.option("--plotall", is_flag=True, help="Show all result plots.")
 @click.option(
     "-w",
@@ -82,18 +107,34 @@ def cli():
     is_flag=True,
     help="Do not save the results to an output file.",
 )
+@click.option(
+    "--monospectrum",
+    type=float,
+    default=None,
+    help="Mono Energetic Spectrum Log Energy.",
+)
+@click.option(
+    "--powerspectrum",
+    nargs=3,
+    type=click.Tuple([float, float, float]),
+    default=None,
+    help="Power Spectrum index, lower_bound, upper_bound.",
+)
 @click.argument(
-    "config_file", default="sample_input_file.xml", type=click.Path(exists=True)
+    "config_file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True),
 )
 @click.argument("count", type=float, default=0.0)
-@click.argument("logevalue", type=float, default=0.0)
 def run(
     config_file: str,
     count: float,
-    logevalue: float,
+    monospectrum,
+    powerspectrum,
     no_result_file: bool,
     output: str,
     plot: list,
+    plotconfig: str,
     plotall: bool,
     write_stages: bool,
 ) -> None:
@@ -110,12 +151,14 @@ def run(
         XML configuration file for particular simulation particular.
     count : int, optional
         Number of thrown trajectories. Optionally override value in config_file.
-    logevalue: float, optional
-        Log of nu tau Energy. Optionally override value in config_file.
+    spectrum_type : str, optional
+        Type of
     output: str, optional
         Name of the output file holding the simulation results.
     plot: list, optional
         Plot the simulation results.
+    plotconfig: str, optional
+        INI file to select plots for each module, as well as to specifiy global plot settings.
     plotall: bool, optional
         Plot all the available the simulation results plots.
     no_result_file: bool, optional
@@ -129,15 +172,25 @@ def run(
     `nuspacesim run sample_input_file.xml 1e5 8 -o my_sim_results.fits`
     """
 
-    from ..compute import compute
-    from ..xml_config import config_from_xml
-
     # User Inputs
     config = config_from_xml(config_file)
+
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
-    if count != 0.0:
-        config.simulation.nu_tau_energy = 10 ** logevalue
-    plot = list(registry) if plotall else plot
+
+    if monospectrum is not None and powerspectrum is not None:
+        raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
+    if monospectrum is not None:
+        config.simulation.spectrum = MonoSpectrum(monospectrum)
+    if powerspectrum is not None:
+        config.simulation.spectrum = PowerSpectrum(*powerspectrum)
+
+    plot = (
+        list(registry)
+        if plotall
+        else read_plot_config(plotconfig)
+        if plotconfig
+        else plot
+    )
     simulation = compute(
         config,
         verbose=True,
@@ -145,6 +198,7 @@ def run(
         output_file=output,
         write_stages=write_stages,
     )
+
     if not no_result_file:
         simulation.write(output, overwrite=True)
 
@@ -154,11 +208,20 @@ def run(
     "-n", "--numtrajs", type=float, default=100, help="number of trajectories."
 )
 @click.option(
-    "-l", "--logenergy", type=float, default=8.0, help="log10(nu_tau_energy) in GeV"
+    "--monospectrum",
+    type=float,
+    default=None,
+    help="Mono Energetic Spectrum Log Energy.",
+)
+@click.option(
+    "--powerspectrum",
+    nargs=3,
+    type=click.Tuple([float, float, float]),
+    default=None,
+    help="Power Spectrum index, lower_bound, upper_bound.",
 )
 @click.argument("filename")
-# @click.pass_context
-def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
+def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -> None:
     """Generate a configuration file from the given parameters.
 
     \f
@@ -169,21 +232,111 @@ def create_config(filename: str, numtrajs: float, logenergy: float) -> None:
         Name of output xml configuration file.
     numtrajs: float, optional
         Number of thrown trajectories. Optionally override value in config_file.
-    logenergy: float, optional
-        Log of nu tau Energy. Optionally override value in config_file.
 
     Examples
     --------
     Command line usage of the create_config command may work with the following invocation.
 
-    `nuspacesim create_config -n 100000 sample_input_file.xml`
+    `nuspacesim create_config -n 1e5 sample_input_file.xml`
     """
-    from .. import NssConfig, SimulationParameters
-    from ..xml_config import create_xml
+    if monospectrum is not None and powerspectrum is not None:
+        raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
 
-    simulation = SimulationParameters(N=int(numtrajs), nu_tau_energy=(10 ** logenergy))
+    spec = MonoSpectrum()
+
+    if monospectrum is not None:
+        spec = MonoSpectrum(monospectrum)
+    if powerspectrum is not None:
+        spec = PowerSpectrum(*powerspectrum)
+    # spec = FileSpectrum()
+
+    simulation = SimulationParameters(N=int(numtrajs), spectrum=spec)
 
     create_xml(filename, NssConfig(simulation=simulation))
+
+
+@cli.command()
+@click.option(
+    "-p",
+    "--plot",
+    type=click.Choice(list(registry), case_sensitive=False),
+    multiple=True,
+    default=[],
+    help="Available plotting functions. Select multiple plots with multiple uses of -p",
+)
+@click.option(
+    "-P",
+    "--plotconfig",
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    help="Read selected plotting functions and options from the specified INI file",
+)
+@click.option("--plotall", is_flag=True, help="Show all result plots.")
+@click.argument(
+    "simulation_file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+)
+def show_plot(
+    simulation_file: str,
+    plot: list,
+    plotconfig: str,
+    plotall: bool,
+) -> None:
+    """Show predefined plots of results in simulation file.
+
+    \f
+
+    Parameters
+    ----------
+    simulation_file: str
+        input ResultsTable fits file.
+    plot: list, optional
+        Plot the simulation results.
+    plotconfig: str, optional
+        INI file to select plots for each module, as well as to specifiy global plot settings.
+    plotall: bool, optional
+        Plot all the available the simulation results plots.
+
+
+    Examples
+    --------
+    Command line usage of the run command may work with the following invocation.
+
+    `nuspacesim show_plot my_sim_results.fits -p taus_overview`
+    """
+
+    sim = ResultsTable.read(simulation_file)
+
+    plot = (
+        list(registry)
+        if plotall
+        else read_plot_config(plotconfig)
+        if plotconfig
+        else plot
+    )
+
+    simulation.geometry.region_geometry.show_plot(sim, plot)
+    simulation.taus.taus.show_plot(sim, plot)
+    simulation.eas_optical.eas.show_plot(sim, plot)
+    plots.show_plot(sim, plot)
+
+
+def read_plot_config(filename):
+    plot_list = []
+    cfg = configparser.ConfigParser()
+    cfg.read(filename)
+    for sec in cfg.sections()[1:]:
+        for key in cfg[sec]:
+            try:
+                if cfg[sec].getboolean(key):
+                    plot_list.append(key)
+            except Exception as e:
+                print(e, "Config file contains non-valid option")
+    return plot_list
 
 
 if __name__ == "__main__":

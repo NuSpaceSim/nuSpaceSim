@@ -45,7 +45,6 @@ Geometry
 
     RegionGeom
     local_plots
-    nssgeometry
 
 """
 

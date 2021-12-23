@@ -33,12 +33,11 @@
 
 """Wrapper class for interacting with RenoNuTau table data and nupyprop tables."""
 
-import numpy as np
-
-from astropy.table import Table as AstropyTable
-from nuspacesim.utils.grid import NssGrid
-
 import h5py
+import numpy as np
+from astropy.table import Table as AstropyTable
+
+from nuspacesim.utils.grid import NssGrid
 
 np.set_printoptions(linewidth=np.inf)
 

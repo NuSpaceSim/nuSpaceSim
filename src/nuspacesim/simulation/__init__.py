@@ -39,14 +39,12 @@ r"""NuSpaceSim Simulation Modules.
 NuSpaceSim Simulation Modules
 *****************************
 
-.. currentmodule:: nuspacesim.simulation
 
 NuSpaceSim provides a collection of modules for simulating various stages of the
 neutrino propagation and interaction.
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    geometry
@@ -59,7 +57,4 @@ neutrino propagation and interaction.
 
 __all__ = ["geometry", "taus", "eas_optical", "eas_radio"]
 
-from . import geometry
-from . import taus
-from . import eas_optical
-from . import eas_radio
+from . import eas_optical, eas_radio, geometry, taus

@@ -47,14 +47,13 @@
 
 """
 
+from typing import Any, Iterable, Union
+
+import numpy as np
 from astropy.io import fits, registry
 from astropy.io.misc import hdf5
 from astropy.nddata import NDDataArray
 from astropy.table import Table as AstropyTable
-
-from typing import Any, Iterable, Union
-
-import numpy as np
 
 __all__ = [
     "NssGrid",
@@ -347,10 +346,9 @@ def hdf5_nssgrid_writer(grid, filename, path="/", **kwargs):
             grp.attrs[k] = v
 
 
-with registry.delay_doc_updates(NssGrid):
-    registry.register_reader("fits", NssGrid, fits_nssgrid_reader)
-    registry.register_writer("fits", NssGrid, fits_nssgrid_writer)
-    registry.register_identifier("fits", NssGrid, fits.connect.is_fits)
-    registry.register_reader("hdf5", NssGrid, hdf5_nssgrid_reader)
-    registry.register_writer("hdf5", NssGrid, hdf5_nssgrid_writer)
-    registry.register_identifier("hdf5", NssGrid, hdf5.is_hdf5)
+registry.register_reader("fits", NssGrid, fits_nssgrid_reader)
+registry.register_writer("fits", NssGrid, fits_nssgrid_writer)
+registry.register_identifier("fits", NssGrid, fits.connect.is_fits)
+registry.register_reader("hdf5", NssGrid, hdf5_nssgrid_reader)
+registry.register_writer("hdf5", NssGrid, hdf5_nssgrid_writer)
+registry.register_identifier("hdf5", NssGrid, hdf5.is_hdf5)

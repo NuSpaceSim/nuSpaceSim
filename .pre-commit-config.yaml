@@ -5,17 +5,26 @@ repos:
     hooks:
     - id: check-merge-conflict
     - id: check-added-large-files
-      maxkb: 8192
+      args: ["--maxkb", "8192"]
     - id: check-xml
-    - id: end-of-file-fixer
-    - id: trailing-whitespace
 
   - repo: https://github.com/ambv/black
-    rev: stable
+    rev: 21.11b1
     hooks:
       - id: black
 
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.9
+    rev: 3.9.2
     hooks:
       - id: flake8
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--filter-files"]
+
+  - repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.20.0
+    hooks:
+    -   id: setup-cfg-fmt

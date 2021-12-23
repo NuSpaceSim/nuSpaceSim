@@ -32,12 +32,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from .cphotang import CphotAng
-from ... import NssConfig
-from ...utils import decorators
-from .local_plots import eas_optical_scatter, eas_optical_histogram
 
-__all__ = ["EAS"]
+from ...config import NssConfig
+from ...utils import decorators
+from .cphotang import CphotAng
+from .local_plots import eas_optical_density, eas_optical_histogram
+
+__all__ = ["EAS", "show_plot"]
 
 
 class EAS:
@@ -49,10 +50,10 @@ class EAS:
 
     def __init__(self, config: NssConfig):
         self.config = config
-        self.CphotAng = CphotAng()
+        self.CphotAng = CphotAng(self.config.detector.altitude)
 
     @decorators.nss_result_store("altDec", "lenDec")
-    def altDec(self, beta, tauBeta, tauLorentz, u=None):
+    def altDec(self, beta, tauBeta, tauLorentz, u=None, *args, **kwargs):
         """
         get decay altitude
         """
@@ -73,9 +74,9 @@ class EAS:
 
         return altDec, lenDec
 
-    @decorators.nss_result_plot(eas_optical_scatter, eas_optical_histogram)
+    @decorators.nss_result_plot(eas_optical_density, eas_optical_histogram)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
-    def __call__(self, beta, altDec, showerEnergy):
+    def __call__(self, beta, altDec, showerEnergy, *args, **kwargs):
         """
         Electromagnetic Air Shower operation.
         """
@@ -113,3 +114,10 @@ class EAS:
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
         return numPEs, costhetaChEff
+
+
+def show_plot(sim, plot):
+    plotfs = (eas_optical_density, eas_optical_histogram)
+    inputs = ("beta_rad", "altDec", "showerEnergy")
+    outputs = ("numPEs", "costhetaChEff")
+    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)

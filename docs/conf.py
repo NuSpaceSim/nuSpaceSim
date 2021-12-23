@@ -40,8 +40,9 @@ extensions = [
     "sphinx.ext.graphviz",
     "sphinx.ext.ifconfig",
     "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx_click.ext",
     "sphinx_panels",
-    "numpydoc",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -58,16 +59,12 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-# html_theme = 'alabaster'
 html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
 html_static_path = ["_static"]
-
-autodoc_mock_imports = []
 
 # ----
 
@@ -83,10 +80,6 @@ intersphinx_mapping = {
     "scipy-lecture-notes": ("https://scipy-lectures.org", None),
 }
 
-# Make numpydoc to generate plots for example sections
-numpydoc_use_plots = True
-numpydoc_show_class_members = False
-
 # -----------------------------------------------------------------------------
 # Autosummary
 # -----------------------------------------------------------------------------
@@ -94,3 +87,16 @@ numpydoc_show_class_members = False
 autosummary_generate = True
 autosummary_generate_overwrite = True
 autosummary_imported_members = False
+autosummary_mock_imports = [
+    "astropy",
+    "click",
+    "dask",
+    "h5py",
+    "lxml",
+    "matplotlib",
+    "mpl_toolkits",
+    "numpy",
+    "quadpy",
+    "rich",
+    "scipy",
+]

@@ -1,6 +1,7 @@
+import numpy as np
+
 from nuspacesim import ResultsTable
 from nuspacesim.utils import decorators
-import numpy as np
 
 
 def test_nss_result_store():

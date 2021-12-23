@@ -42,12 +42,19 @@ r"""Cherenkov photon density and angle determination class.
 
 """
 
-import numpy as np
-from numpy.polynomial import Polynomial
 import dask.bag as db
+import numpy as np
 from dask.diagnostics import ProgressBar
+from numpy.polynomial import Polynomial
 
-from .zsteps import zsteps as cppzsteps
+from .detector_geometry import distance_to_detector
+
+# Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
+# on ReadTheDocs without pre-compiling.
+try:
+    from .zsteps import zsteps as cppzsteps
+except ImportError:
+    pass
 
 __all__ = ["CphotAng"]
 
@@ -55,12 +62,13 @@ __all__ = ["CphotAng"]
 class CphotAng:
     r"""Cherenkov Photon Angle"""
 
-    def __init__(self):
+    def __init__(self, detector_altitude):
         r"""CphotAng: Cherenkov photon density and angle determination class.
 
         Iterative summation of cherenkov radiation reimplemented in numpy and
         C++.
         """
+        self.detector_altitude = detector_altitude
         self.dtype = np.float32
         """numerical data type"""
 
@@ -329,37 +337,13 @@ class CphotAng:
         """
         theta propagation.
         """
-        # aa = np.sin(ThetView, dtype=self.dtype)
         tp = (self.RadE + self.zmax) / (self.RadE + z)
         return np.arccos(sinThetView * tp, dtype=self.dtype)
-
-    # def delta_z(self, z, ThetProp):
-    #     '''
-    #     Change in z.
-    #     '''
-    #     Rad = z + self.RadE
-    #     return np.sqrt((Rad*Rad) + (self.dL*self.dL) -
-    #                    self.dtype(2)*Rad*self.dL*np.cos(
-    #                        (self.pi/self.dtype(2)) +
-    #         ThetProp, dtype=self.dtype),
-    #         dtype=self.dtype) - Rad
 
     def zsteps(self, z, sinThetView):
         """
         Compute all mid-bin z steps and corresponding delz values
         """
-        # zsave = []
-        # delzs = []
-        # while (z <= self.zMaxZ):
-        #     # c  correct ThetProp for starting altitude
-        #     ThetProp = self.theta_prop(z, sinThetView)
-        #     delz = self.delta_z(z, ThetProp)
-        #     delzs.append(delz)
-        #     zsave.append(z+delz/self.dtype(2.))
-        #     z += delz
-
-        # zsave = np.array(zsave)
-        # delzs = np.array(delzs)
         return cppzsteps(
             z, sinThetView, self.RadE, self.zMaxZ, self.zmax, self.dL, self.pi
         )
@@ -584,7 +568,7 @@ class CphotAng:
         thetaC = np.arccos(np.reciprocal(AirN), dtype=self.dtype)
         return eCthres, thetaC
 
-    def distance_to_detector(self, ThetView, ThetPrpA, zs):
+    def d_to_det(self, ThetView, ThetPrpA, zs):
         """Distance to detector."""
         AngE = self.pi / (2) - ThetView - ThetPrpA
         DistStep = np.sin(AngE, dtype=self.dtype)
@@ -638,7 +622,7 @@ class CphotAng:
         # c
 
         # distance to detector
-        DistStep = self.distance_to_detector(ThetView, ThetPrpA, zs)
+        DistStep = self.d_to_det(ThetView, ThetPrpA, zs)
 
         # Scaled Photon Yield
         SPYield = self.sphoton_yeild(thetaC, RN, delgram, ZonZ, zs, ThetPrpA)
@@ -659,6 +643,14 @@ class CphotAng:
         CherArea = self.cherenkov_area(AveCangI, DistStep, izRNmax)
 
         photonDen = self.dtype(0.5) * photsum / CherArea
+
+        altitude_scaling = (
+            distance_to_detector(betaE, alt, self.orbit_height, self.RadE)
+            / distance_to_detector(betaE, alt, self.detector_altitude, self.RadE)
+        ) ** 2
+
+        photonDen *= altitude_scaling
+
         Cang = np.degrees(AveCangI + CangsigI)
 
         return photonDen, Cang

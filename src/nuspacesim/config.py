@@ -37,15 +37,15 @@
 
 from __future__ import annotations
 
-from typing import Union, Any
 from dataclasses import dataclass
+from typing import Any, Union
 
 try:
     from functools import cached_property
 except ImportError:
     from cached_property import cached_property
 
-from numpy import radians, log10, sin
+from numpy import nan, radians, sin
 
 from . import constants as const
 
@@ -53,6 +53,9 @@ __all__ = [
     "DetectorCharacteristics",
     "SimulationParameters",
     "NssConfig",
+    "FileSpectrum",
+    "MonoSpectrum",
+    "PowerSpectrum",
 ]
 
 
@@ -122,20 +125,63 @@ class DetectorCharacteristics:
 
 
 @dataclass
-class SimulationParameters:
-    r"""Dataclass holding Simulation Parameters."""
+class MonoSpectrum:
+    log_nu_tau_energy: float = 8.0
+    """Log Energy of the tau neutrinos in GeV."""
 
-    N: int = 1000
+    def __call__(self) -> dict:
+        return {
+            "specType": ("Mono", "Simulation: nutau energy spectrum"),
+            "specPara": (self.log_nu_tau_energy, "Simulation: Log Energy (GeV)"),
+        }
+
+
+@dataclass
+class PowerSpectrum:
+    index: float = 2.0
+    """Power Law Log Energy of the tau neutrinos in GeV."""
+
+    lower_bound: float = 6.0
+    """Lower Bound Log nu_tau Energy GeV."""
+
+    upper_bound: float = 12.0
+    """Upper Bound Log nu_tau Energy GeV."""
+
+    def __call__(self) -> dict:
+        return {
+            "specType": ("Power", "Simulation: nutau Power Law energy spectrum"),
+            "specPara": (self.index, "Simulation: Power Law Index"),
+            "specLow": (self.lower_bound, "Simulation: Energy Lower Bound"),
+            "specHigh": (self.upper_bound, "Simulation: Energy Upper Bound"),
+        }
+
+
+@dataclass
+class FileSpectrum:
+    path: str = ""
+    """File path to user defined spectrum file"""
+
+    def __call__(self) -> dict:
+        return {
+            "specType": ("File", "Simulation: Nutau User Defined energy spectrum"),
+            "specFile": (self.path, "Simulation: FilePath"),
+        }
+
+
+@dataclass
+class SimulationParameters:
+    """Dataclass holding Simulation Parameters."""
+
+    N: int = 10000
     """Number of thrown trajectories. Default = 1000"""
     theta_ch_max: float = radians(3.0)
     """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""
-    nu_tau_energy: float = 1e8
-    """Energy of the tau neutrinos in GeV. Default = 1e8 GeV."""
+    spectrum: Union[MonoSpectrum, PowerSpectrum, FileSpectrum] = MonoSpectrum()
+    """Distribution from which to draw nu_tau energies."""
     e_shower_frac: float = 0.5
     """Fraction of ETau in Shower. Default = 0.5."""
     ang_from_limb: float = radians(7.0)
     """Angle From Limb. Default = π/25.714 radians (7 degrees)."""
-    max_azimuth_angle: float = radians(360.0)
     max_azimuth_angle: float = radians(360.0)
     """Maximum Azimuthal Angle. Default = 2π radians (360 degrees)."""
     model_ionosphere: int = 0
@@ -147,15 +193,26 @@ class SimulationParameters:
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
-        """log base 10 of nu_tau_energy."""
-        return log10(self.nu_tau_energy)
+        """log10 of nu_tau_energy."""
+        if isinstance(self.spectrum, MonoSpectrum):
+            return self.spectrum.log_nu_tau_energy
+        else:
+            return nan
+
+    @cached_property
+    def nu_tau_energy(self) -> float:
+        """10 ^ log_nu_tau_energy."""
+        if isinstance(self.spectrum, MonoSpectrum):
+            return 10 ** self.log_nu_tau_energy
+        else:
+            return nan
 
     @cached_property
     def sin_theta_ch_max(self) -> float:
         """sin of theta_ch_max."""
         return sin(self.theta_ch_max)
 
-    def __call__(self) -> dict[str, tuple[Union[int, float], str]]:
+    def __call__(self) -> dict[str, tuple[Union[int, float, str], str]]:
         r"""Dictionary representation of SimulationParameters instance.
 
         Groups the data member values with descriptive comments in a tuple. Adds
@@ -168,20 +225,24 @@ class SimulationParameters:
         dict
             Representation of the data members with comments.
         """
-        return {
+        d = {
             "N": (self.N, "Simulation: thrown neutrinos"),
             "thChMax": (self.theta_ch_max, "Simulation: Maximum Cherenkov Angle"),
-            "nuTauEn": (self.nu_tau_energy, "Simulation: nutau energy (GeV)"),
+            "specUnit": ("log(GeV)", "Simulation: Energy spectrum units"),
             "eShwFrac": (self.e_shower_frac, "Simulation: Fraction of Etau in Shower"),
             "angLimb": (self.ang_from_limb, "Simulation: Angle From Limb"),
             "maxAzAng": (self.max_azimuth_angle, "Simulation: Maximum Azimuthal Angle"),
             "ionosph": (
                 self.model_ionosphere,
-                "Simulation: For Radio, model the ionosphere?",
+                "Simulation: Radio ionosphere model flg",
             ),
             "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
             "TECerr": (self.TECerr, "Simulation: Uniform distr. err: TEC est."),
         }
+
+        d.update(self.spectrum())
+
+        return d
 
 
 @dataclass

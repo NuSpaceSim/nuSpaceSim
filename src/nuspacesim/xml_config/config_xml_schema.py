@@ -95,11 +95,24 @@ xsd = StringIO(
   <xs:attribute name="Preset" type="xs:boolean"/>
 </xs:complexType>
 
-<xs:complexType name="NTESType">
+<xs:complexType name="MonoSpecType">
   <xs:sequence>
-    <xs:element name="NuTauEnergy" type="xs:decimal"/>
+    <xs:element name="LogNuEnergy" type="xs:decimal"/>
   </xs:sequence>
-  <xs:attribute name="SpectrumType" type="xs:string"/>
+</xs:complexType>
+
+<xs:complexType name="PowerSpecType">
+  <xs:sequence>
+    <xs:element name="PowerLawIndex" type="xs:decimal"/>
+    <xs:element name="LowerBound" type="xs:decimal"/>
+    <xs:element name="UpperBound" type="xs:decimal"/>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="FileSpecType">
+  <xs:sequence>
+    <xs:element name="FilePath" type="xs:string"/>
+  </xs:sequence>
 </xs:complexType>
 
 <xs:complexType name="FreqType">
@@ -147,7 +160,15 @@ xsd = StringIO(
             <xs:element name="MaximumCherenkovAngle" type="AngleType"/>
             <xs:element name="AngleFromLimb" type="AngleType"/>
             <xs:element name="TauShowerType" type="TSType"/>
-            <xs:element name="NuTauEnergySpecType" type="NTESType"/>
+            <xs:element name="NuTauEnergySpecType">
+              <xs:complexType>
+                <xs:choice>
+                  <xs:element name="MonoSpectrum" type="MonoSpecType"/>
+                  <xs:element name="PowerSpectrum" type="PowerSpecType"/>
+                  <xs:element name="FileSpectrum" type="FileSpecType"/>
+                </xs:choice>
+              </xs:complexType>
+            </xs:element>
             <xs:element name="AzimuthalAngle" type="AngleType"/>
             <xs:element name="NumTrajs" type="xs:decimal"/>
             <xs:element name="ModelIonosphere" type="xs:integer"/>

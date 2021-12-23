@@ -1,7 +1,7 @@
-import numpy as np
 import astropy.io.misc.hdf5 as hf
-import astropy.table
-from ... import NssConfig
+import numpy as np
+
+from ...config import NssConfig
 from ...utils import decorators
 
 __all__ = ["EASRadio", "RadioEFieldParams", "IonosphereParams"]
@@ -50,7 +50,9 @@ class EASRadio:
         return ang
 
     @decorators.nss_result_store("EFields")
-    def __call__(self, beta, altDec, lenDec, theta, pathLen, showerEnergy):
+    def __call__(
+        self, beta, altDec, lenDec, theta, pathLen, showerEnergy, *args, **kwargs
+    ):
         """
         EAS radio output from ZHAires lookup tables
         """
@@ -87,17 +89,21 @@ class EASRadio:
         EFields[mask] = (EFields[mask].T * showerEnergy[mask] / 10.0).T
         distScale = zhairesDist / nssDist
         EFields[mask] = (EFields[mask].T * distScale).T
-        if self.config.simulation.model_ionosphere:
-            if self.config.simulation.TEC < 0:
-                print(
-                    "TEC should be positive!! continuing without ionospheric dispersion"
-                )
-            else:
-                ionosphere = IonosphereParams(
-                    FreqRange, self.config.simulation.TECerr, self.config.simulation.TEC
-                )
-                ionosphereScaling = ionosphere(EFields[mask])
-                EFields[mask] *= ionosphereScaling
+        # no ionosphere if the detector is below 90km
+        if self.config.detector.altitude > 90.0:
+            if self.config.simulation.model_ionosphere:
+                if self.config.simulation.TEC < 0:
+                    print(
+                        "TEC should be positive!! continuing without ionospheric dispersion"
+                    )
+                else:
+                    ionosphere = IonosphereParams(
+                        FreqRange,
+                        self.config.simulation.TECerr,
+                        self.config.simulation.TEC,
+                    )
+                    ionosphereScaling = ionosphere(EFields[mask])
+                    EFields[mask] *= ionosphereScaling
 
         # radio emission from EAS has two components, geomagnetic and Askaryan
         # Askaryan is ~20% of full strength geomagnetic

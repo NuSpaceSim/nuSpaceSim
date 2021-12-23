@@ -40,8 +40,11 @@ import numpy as np
 
 from .. import constants as const
 from ..config import (
-    NssConfig,
     DetectorCharacteristics,
+    FileSpectrum,
+    MonoSpectrum,
+    NssConfig,
+    PowerSpectrum,
     SimulationParameters,
 )
 from . import config_xml_schema
@@ -149,7 +152,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         The Simulation Parameters object.
     """
 
-    simparams: dict[str, str] = {}
+    simparams = {}
     tree = ET.parse(xmlfile)
     root = tree.getroot()
     elsimparams = root.find("SimulationParameters")
@@ -160,10 +163,23 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
             simparams[node.tag] = node.attrib["Preset"]
             if node.attrib["Preset"] == "true":
                 simparams["FracETauInShower"] = str(node.find("FracETauInShower").text)
+
         elif node.tag == "NuTauEnergySpecType":
-            simparams[node.tag] = node.attrib["SpectrumType"]
-            if node.attrib["SpectrumType"] == "Mono":
-                simparams["NuTauEnergy"] = str(node.find("NuTauEnergy").text)
+            for spectrum_type in node:
+                if "MonoSpectrum" == spectrum_type.tag:
+                    simparams["Spectrum"] = MonoSpectrum(
+                        log_nu_tau_energy=float(spectrum_type.find("LogNuEnergy").text),
+                    )
+                if "PowerSpectrum" == spectrum_type.tag:
+                    simparams["Spectrum"] = PowerSpectrum(
+                        index=float(spectrum_type.find("PowerLawIndex").text),
+                        lower_bound=float(spectrum_type.find("LowerBound").text),
+                        upper_bound=float(spectrum_type.find("UpperBound").text),
+                    )
+                if "FileSpectrum" == spectrum_type.tag:
+                    simparams["Spectrum"] = FileSpectrum(
+                        path=str(node.spectrum_type("FilePath").text)
+                    )
         else:
             simparams[node.tag] = str(node.text)
 
@@ -175,7 +191,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
-        nu_tau_energy=float(simparams["NuTauEnergy"]),
+        spectrum=simparams["Spectrum"],
         e_shower_frac=float(simparams["FracETauInShower"]),
         ang_from_limb=float(simparams["AngleFromLimb"]),
         max_azimuth_angle=float(simparams["AzimuthalAngle"]),
@@ -315,10 +331,25 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     fraceshow.text = str(config.simulation.e_shower_frac)
 
     nutauspectype = ET.SubElement(simparams, "NuTauEnergySpecType")
-    nutauspectype.set("SpectrumType", "Mono")
 
-    nutauen = ET.SubElement(nutauspectype, "NuTauEnergy")
-    nutauen.text = str(config.simulation.nu_tau_energy)
+    if isinstance(config.simulation.spectrum, MonoSpectrum):
+        mono = ET.SubElement(nutauspectype, "MonoSpectrum")
+        nutauen = ET.SubElement(mono, "LogNuEnergy")
+        nutauen.text = str(config.simulation.spectrum.log_nu_tau_energy)
+
+    if isinstance(config.simulation.spectrum, PowerSpectrum):
+        power = ET.SubElement(nutauspectype, "PowerSpectrum")
+        sp1 = ET.SubElement(power, "PowerLawIndex")
+        sp2 = ET.SubElement(power, "LowerBound")
+        sp3 = ET.SubElement(power, "UpperBound")
+        sp1.text = str(config.simulation.spectrum.index)
+        sp2.text = str(config.simulation.spectrum.lower_bound)
+        sp3.text = str(config.simulation.spectrum.upper_bound)
+
+    if isinstance(config.simulation.spectrum, FileSpectrum):
+        filespec = ET.SubElement(nutauspectype, "FileSpectrum")
+        sp1 = ET.SubElement(filespec, "FilePath")
+        sp1.text = str(config.simulation.spectrum.path)
 
     azimuthang = ET.SubElement(simparams, "AzimuthalAngle")
     azimuthang.set("Unit", "Radians")

@@ -46,16 +46,17 @@ NuSpaceSim Simulation
    compute
 
 """
+import numpy as np
 from rich.console import Console
 
-import numpy as np
 from .config import NssConfig
 from .results_table import ResultsTable
-from .simulation.geometry.region_geometry import RegionGeom
-from .simulation.taus.taus import Taus
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
+from .simulation.geometry.region_geometry import RegionGeom
+from .simulation.spectra.spectra import Spectra
+from .simulation.taus.taus import Taus
 
 __all__ = ["compute"]
 
@@ -137,6 +138,7 @@ def compute(
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
+    spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
     eas_radio = EASRadio(config)
@@ -156,17 +158,22 @@ def compute(
 
     sw = StagedWriter()
 
-    logv(f"Running NuSpaceSim with log(E_nu)={config.simulation.log_nu_tau_energy}")
+    logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
+    logv("Computing [green] Energy Spectra.[/]")
+
+    log_e_nu, mc_spec_norm, spec_weights_sum = spec(
+        beta_tr.shape[0], store=sw, plot=to_plot
+    )
 
     logv("Computing [green] Taus.[/]")
-    tauBeta, tauLorentz, showerEnergy, tauExitProb = tau(
-        beta_tr, store=sw, plot=to_plot
+    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
+        beta_tr, log_e_nu, store=sw, plot=to_plot
     )
 
     logv("Computing [green] Decay Altitudes.[/]")
@@ -185,7 +192,12 @@ def compute(
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-            numPEs, costhetaChEff, tauExitProb, config.detector.photo_electron_threshold
+            numPEs,
+            costhetaChEff,
+            tauExitProb,
+            config.detector.photo_electron_threshold,
+            mc_spec_norm,
+            spec_weights_sum,
         )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
@@ -211,7 +223,12 @@ def compute(
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV = geom.mcintegral(
-            snrs, np.cos(thetaArr), tauExitProb, config.detector.det_SNR_thres
+            snrs,
+            np.cos(thetaArr),
+            tauExitProb,
+            config.detector.det_SNR_thres,
+            mc_spec_norm,
+            spec_weights_sum,
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")

@@ -36,12 +36,16 @@ r""" Utility classes and methods
 .. autosummary::
    :toctree:
    :recursive:
+
+   cdf
+   decorators
+   grid
+   interp
+   misc
+   plots
+
 """
 
-__all__ = ["cdf", "grid", "interp", "misc", "decorators"]
+__all__ = ["cdf", "decorators", "grid", "interp", "misc", "plots"]
 
-from . import cdf
-from . import grid
-from . import interp
-from . import misc
-from . import decorators
+from . import cdf, decorators, grid, interp, misc, plots

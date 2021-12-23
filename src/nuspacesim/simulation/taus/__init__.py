@@ -41,12 +41,13 @@ Taus
 
 .. autosummary::
    :toctree:
+   :recursive:
 
     Taus
-    local_plots
 
 """
 
-__all__ = ["Taus"]
+__all__ = ["Taus", "show_plot", "local_plots"]
 
-from .taus import Taus
+from . import local_plots
+from .taus import Taus, show_plot

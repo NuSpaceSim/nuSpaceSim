@@ -31,12 +31,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import numpy as np
-
-import nuspacesim as nss
+from matplotlib import pyplot as plt
 
 
-def test_fund_constants():
-    fc = nss.constants.Fund_Constants()
-    assert fc.earth_radius > 0.0
-    assert np.reciprocal(fc.mean_Tau_life) == fc.inv_mean_Tau_life
+def spectra_histogram(inputs, results, *args, **kwargs):
+    r"""Plot some histograms"""
+
+    N, spectrum = inputs
+    log_e_nu = results
+
+    color = "g"
+    fig = plt.figure(figsize=(8, 7), constrained_layout=True)
+    ax = fig.add_subplot(211)
+    ax.hist(log_e_nu, 100, log=False, facecolor=color)
+    ax.set_xlabel(f"log(E_nu) of {N} events")
+
+    ax = fig.add_subplot(212)
+    ax.hist(log_e_nu, 100, log=True, facecolor=color)
+    ax.set_xlabel(f"log(E_nu) of {N} events")
+
+    fig.suptitle(f"Energy Spectra Histogram, Log(E_nu)\n {spectrum}")
+    plt.show()

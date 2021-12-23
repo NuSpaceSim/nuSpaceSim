@@ -33,10 +33,57 @@
 
 import numpy as np
 
-import nuspacesim as nss
+
+def viewing_angle(beta_tr, Zdet, Re):
+    return np.arcsin((Re / (Re + Zdet)) * np.cos(beta_tr))
 
 
-def test_fund_constants():
-    fc = nss.constants.Fund_Constants()
-    assert fc.earth_radius > 0.0
-    assert np.reciprocal(fc.mean_Tau_life) == fc.inv_mean_Tau_life
+def propagation_angle(beta_tr, z, Re):
+    return np.arccos((Re / (Re + z)) * np.cos(beta_tr))
+
+
+def propagation_theta(beta_tr, z, Re):
+    return propagation_angle(beta_tr, z, Re)
+
+
+def length_along_prop_axis(z_start, z_stop, beta_tr, Re):
+    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
+    L2 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start ** 2
+    L = np.sqrt(L1) - np.sqrt(L2)
+    return L
+
+
+def deriv_length_along_prop_axis(z_stop, beta_tr, Re):
+    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
+    L = (Re + z_stop) / np.sqrt(L1)
+    return L
+
+
+def altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    r1 = Re ** 2
+    r2 = 2 * Re * z_start
+    r3 = z_start ** 2
+    return -Re + np.sqrt(
+        L ** 2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
+    )
+
+
+def deriv_altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    r1 = Re ** 2
+    r2 = 2 * Re * z_start
+    r3 = z_start ** 2
+    r4 = np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3)
+    denom = np.sqrt(L ** 2 + 2 * L * r4 + r1 + r2 + r3)
+    numer = (Re + z_start) * ((L) / r4 + 1)
+    return numer / denom
+
+
+def gain_in_altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    return altitude_along_prop_axis(L, z_start, beta_tr, Re) - z_start
+
+
+def distance_to_detector(beta_tr, z, z_det, earth_radius):
+    theta_view = viewing_angle(beta_tr, z_det, earth_radius)
+    theta_prop = propagation_angle(beta_tr, z, earth_radius)
+    ang_e = np.pi / 2 - theta_view - theta_prop
+    return np.sin(ang_e) / np.sin(theta_view) * (z + earth_radius)

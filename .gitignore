@@ -26,3 +26,9 @@ eggs
 _version.py
 .tox
 *.ipynb
+nuspacesim_run_*.fits
+nuspacesim_run_*.h5
+nuspacesim_run_*.hdf5
+*.fits
+*.hdf5
+*.h5

@@ -37,6 +37,7 @@
    :toctree:
    :recursive:
 
+   grid_cdf_sampler
    invert_cdf_grid
    grid_inverse_sampler
    nearest_cdf_sampler
@@ -46,13 +47,18 @@
 
 from typing import Callable
 
-from scipy.interpolate import interp1d, RegularGridInterpolator
 import numpy as np
+from scipy.interpolate import RegularGridInterpolator, interp1d, interpn
 
 from nuspacesim.utils.grid import NssGrid
 from nuspacesim.utils.interp import grid_slice_interp, vec_1d_interp
 
-__all__ = ["grid_inverse_sampler", "nearest_cdf_sampler", "lerp_cdf_sampler"]
+__all__ = [
+    "grid_inverse_sampler",
+    "nearest_cdf_sampler",
+    "lerp_cdf_sampler",
+    "grid_cdf_sampler",
+]
 
 
 def invert_cdf_grid(grid: NssGrid) -> NssGrid:
@@ -346,5 +352,64 @@ def lerp_cdf_sampler(grid: NssGrid, log_e_nu: float) -> Callable:
                 ui = np.random.uniform(0.0, 1.0, size=bi.size) if u is None else ui
                 zi[...] = vec_1d_interp(cdfs, sliced.axes[ex], ui)
             return it.operands[2]
+
+    return sample
+
+
+def grid_cdf_sampler(grid: NssGrid) -> Callable:
+    r"""Sample Tau Energies by interpolating the tau_cdf grid.
+
+    Parameters
+    ----------
+    grid: NssGrid
+        The full, 3D tau_cdf grid object.
+
+    Returns
+    -------
+    sample : Callable
+        A function that will take an array of beta angles in radians and return an
+        array of sampled tau energies.
+    """
+
+    def sample(log_e_nu, beta, u=None):
+        r"""Sampling function for nearest_cdf_sampler.
+
+        Interpolate cdf values and inverse transfom sample z (E_tau / E_nu) values from
+        the tau_cdf grid.
+
+        Parameters
+        ----------
+        log_e_nu: ArrayLike
+            The log energies to sample z values from.
+        beta: ArrayLike
+            The beta angles (in radians) to sample z values from.
+        u: ArrayLike, Optional
+            Random numbers for CDF interpolation. If 'None', values will be generated.
+
+        Returns
+        -------
+        result : ArrayLike
+            Array of sampled z values parameterized by the interpolated CDFs.
+
+        """
+        it = np.nditer(
+            [log_e_nu, beta, u, None],
+            flags=["external_loop", "buffered"],
+            op_flags=[
+                ["readonly"],
+                ["readonly"],
+                ["readwrite", "virtual"] if u is None else ["readonly"],
+                ["writeonly", "allocate", "no_broadcast"],
+            ],
+        )
+
+        with it:
+            for li, bi, ui, zi in it:
+                cdfs = interpn(
+                    (grid["log_e_nu"], grid["beta_rad"]), grid.data, (li, bi)
+                )
+                ui = np.random.uniform(0.0, 1.0, size=bi.size) if u is None else ui
+                zi[...] = vec_1d_interp(cdfs, grid["e_tau_frac"], ui)
+            return it.operands[3]
 
     return sample

@@ -1,4 +1,4 @@
 sphinx
 sphinx-panels
 sphinx-rtd-theme
-numpydoc
+sphinx-click

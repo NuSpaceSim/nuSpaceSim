@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-    Top level fundimental constants and the Fund_Constants class.
+    Top level fundamental constants and the Fund_Constants class.
 """
 
 from __future__ import annotations
@@ -43,6 +43,7 @@ except ImportError:
     from cached_property import cached_property
 
 from dataclasses import dataclass
+
 import numpy as np
 
 earth_radius = 6371.0  # in KM
@@ -55,7 +56,7 @@ mean_Tau_life = 2.903e-13  # seconds
 
 @dataclass
 class Fund_Constants:
-    r"""Fundimental constants used in nuspacesim simulations.
+    r"""Fundamental constants used in nuspacesim simulations.
 
     Attributes
     ----------
@@ -83,7 +84,7 @@ class Fund_Constants:
         return 1.0 / self.mean_Tau_life  # [s^-1]
 
     def __call__(self) -> dict[str, tuple[float, str]]:
-        r"""Dictionary representation of Fundimental Constants instance.
+        r"""Dictionary representation of Fundamental Constants instance.
 
         Groups the data member values with descriptive comments in a tuple. Adds
         keyword names no longer than eight characters. This is useful for setting the
@@ -97,9 +98,9 @@ class Fund_Constants:
         """
 
         return {
-            "R_Earth": (self.earth_radius, "FundimentalConstants: Earth Radius"),
-            "c": (self.c, "FundimentalConstants: speed of light"),
-            "massTau": (self.massTau, "FundimentalConstants: massTau"),
-            "uTauLife": (self.mean_Tau_life, "FundimentalConstants: mean Tau Lifetime"),
-            "pi": (self.pi, "FundimentalConstants: pi"),
+            "R_Earth": (self.earth_radius, "FundamentalConstants: Earth Radius"),
+            "c": (self.c, "FundamentalConstants: speed of light"),
+            "massTau": (self.massTau, "FundamentalConstants: massTau"),
+            "uTauLife": (self.mean_Tau_life, "FundamentalConstants: mean Tau Lifetime"),
+            "pi": (self.pi, "FundamentalConstants: pi"),
         }

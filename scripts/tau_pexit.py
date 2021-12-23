@@ -1,11 +1,11 @@
-import nuspacesim as nss
-import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib import animation
-from scipy.interpolate import interp1d
-from scipy.interpolate import splev, splrep
-
 from importlib.resources import as_file, files
+
+import numpy as np
+from matplotlib import animation
+from matplotlib import pyplot as plt
+from scipy.interpolate import interp1d, splev, splrep
+
+import nuspacesim as nss
 
 
 def tau_exit_compare_10_75():

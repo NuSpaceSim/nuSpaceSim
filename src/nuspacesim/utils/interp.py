@@ -44,13 +44,12 @@
 
 """
 
-from typing import Callable, Any
+from typing import Any, Callable
 
-from scipy.interpolate import interp1d
 import numpy as np
+from scipy.interpolate import interp1d
 
 from nuspacesim.utils.grid import NssGrid
-
 
 __all__ = [
     "grid_interpolator",

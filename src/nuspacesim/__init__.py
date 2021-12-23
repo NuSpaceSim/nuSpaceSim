@@ -43,9 +43,8 @@ Command line client application
 
 .. autosummary::
    :toctree:
-   :recursive:
 
-   nuspacesim.apps.cli
+   nuspacesim.apps
 
 
 ******************
@@ -56,7 +55,6 @@ Scientific modules for performing specific stages of the simulation.
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    nuspacesim.simulation
@@ -71,7 +69,6 @@ your simulations.
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    nuspacesim.NssConfig
@@ -87,7 +84,6 @@ Perform a full simulation by calling the default nuspacesim.simulate function.
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    nuspacesim.compute
@@ -101,7 +97,6 @@ Classes and Methods for storing and interacting with nuspacesim data.
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    nuspacesim.results_table
@@ -116,7 +111,6 @@ Supporting data files such as the nupyprop tau energy CDFs and exit probability 
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    nuspacesim.data
@@ -130,7 +124,6 @@ Supporting classes and functions for gridded data, CDF sampling, Interpolation, 
 
 .. autosummary::
    :toctree:
-   :recursive:
    :nosignatures:
 
    nuspacesim.utils
@@ -139,13 +132,11 @@ Supporting classes and functions for gridded data, CDF sampling, Interpolation, 
 """
 
 from . import constants, data, utils, xml_config
-from .config import NssConfig, DetectorCharacteristics, SimulationParameters
-from .results_table import ResultsTable
-from .compute import compute
-from .simulation import geometry, eas_optical, taus
-
-# from .utils import *
 from ._version import version, version_tuple
+from .compute import compute
+from .config import DetectorCharacteristics, NssConfig, SimulationParameters
+from .results_table import ResultsTable
+from .simulation import eas_optical, geometry, taus
 
 __all__ = [
     # Core
