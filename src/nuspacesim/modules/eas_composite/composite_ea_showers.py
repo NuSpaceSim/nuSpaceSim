@@ -98,13 +98,14 @@ class CompositeShowers():
         r""" Create single particle showers Nmax scaled by pythia energies
         from same PID.
         """
-        
+        #padded_vec_len = self.shower_end/self.grammage + 200
         # pre-allocate arrays, make room for event tag and decay tag 
-        showers = np.ones([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 2)]
-                           ) 
-        depths =  np.ones([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 2)]
-                           ) 
-        
+        # showers = np.ones([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 1000 + 2)]
+        #                     ) 
+        # depths =  np.ones([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 1000 + 2)]
+        #                     ) 
+        showers = []
+        depths = []
         for row,(shower_params,tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
             
             shower = ShowerParameterization (
@@ -121,10 +122,12 @@ class CompositeShowers():
                                     shower_end = self.shower_end,
                                     grammage = self.grammage)
             
-            showers[row,:] = shower_content
-            depths[row,:] = depth 
+            # showers[row,:] = shower_content
+            # depths[row,:] = depth 
+            showers.append(shower_content)
+            depths.append(depth)
             
-        return showers, depths
+        return np.array(showers), np.array(depths)
     
     
     def composite_showers(self, **kwargs):

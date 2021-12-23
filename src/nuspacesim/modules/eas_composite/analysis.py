@@ -2,6 +2,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
+#%% 
+
+
+make_composites = CompositeShowers(shower_end=10000, grammage=1)
+
+electron_gh, pion_gh, gamma_gh= make_composites.conex_params()
+electron_e, pion_e, gamma_e = make_composites.tau_daughter_energies()
+
+gamm_showers, gamm_depths = make_composites.single_particle_showers(
+    tau_energies=gamma_e, gh_params=gamma_gh
+    )
+
 #%%
 make_composites = CompositeShowers(shower_end=2000, grammage=1)
 comp_showers, depths, broken_event =  make_composites(

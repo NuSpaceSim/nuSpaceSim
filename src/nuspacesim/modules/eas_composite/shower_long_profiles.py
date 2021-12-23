@@ -41,14 +41,16 @@ class ShowerParameterization:
         self, n_max, x_max, x_0, p1, p2, p3, shower_end:int = 2000, grammage:int = 1
         ):
         
+        
         scaled_n_max = n_max * self.table_decay_e
         
         # allows negative starting depths
-        # bins = int ( (shower_end + np.abs(x_0) ) / grammage)
-        # x = np.linspace( int(x_0), shower_end, bins, endpoint=False) #slant depths g/cm^2 
-        
+        bins =  int((shower_end + np.round(np.abs(x_0)) ) / grammage) 
+        padded_vec_len = (shower_end/ grammage) + 600
+        #x = np.linspace( np.round(x_0), shower_end, bins, endpoint=True) #slant depths g/cm^2 
+        x = np.arange(np.round(x_0), shower_end + 1, grammage)
         # constrains starting depths 
-        x = np.linspace( 0, shower_end, int(shower_end/grammage)) #slant depths g/cm^2    
+        # x = np.linspace( 0, shower_end, int(shower_end/grammage)) #slant depths g/cm^2    
         
         #calculating gaisser-hillas function
         gh_lambda = p1 + p2*x + p3*(x**2) 
@@ -60,16 +62,22 @@ class ShowerParameterization:
         exp2 = (x_max - x) / gh_lambda
         term2 = np.exp(exp2) 
         
-        f = np.nan_to_num(term1 * term2)
-        
+        f = np.nan_to_num(term1 * term2).astype(int)
+        #print(np.min(f))
+        if np.min(f) < 0:
+            break_point = int(np.argwhere(f < 0)[0])
+            #print(break_point)
+            f[break_point:] = 0
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
         #t = (x - x_max)/36.62 #shower stage
-        
+        #print(int(padded_vec_len), len(x))
+        x = np.pad(x, (int(padded_vec_len - len(x) ), 0), 'constant')
+        f = np.pad(f, (int(padded_vec_len - len(f) ), 0), 'constant')
         #tag the outputs with the event number
         # x = np.r_[self.event_tag,self.decay_tag,x].astype(int)
         # f = np.r_[self.event_tag,self.decay_tag,f].astype(int)
-        x = np.r_[self.event_tag,self.decay_tag,x]
-        f = np.r_[self.event_tag,self.decay_tag,f]
+        x = np.r_[x, self.event_tag, self.decay_tag].astype(int)
+        f = np.r_[f, self.event_tag, self.decay_tag].astype(int)
 
         return x, f
     
