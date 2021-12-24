@@ -125,6 +125,7 @@ class FitCompositeShowers():
     
         for row,(shower, depth) in enumerate(zip(self.showers, self.depths)):
             print('Fitting', row)
+            #mask = depth != np.nan
             shower_fit = self.fit_const_lambda(comp_shower=shower, depth=depth)
             gh_fits[row,:] = shower_fit
                 

@@ -9,10 +9,36 @@ try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
+    
+def numpy_argmax_reduceat(arr, group_idxs):
+    r"""Get the indexes of maximum values within a grouping. 
+    
+    Parameters
+    ----------
+    arr: array
+        flattened array of all the values to find the maximum of each group
+    group_idxs: int
+        indeces of the start of each group, can be found by np.unique
+
+    Returns
+    -------
+    max_in_grp_idx: array
+        indeces of the maximum of each grouping 
+    
+    Based on: https://stackoverflow.com/a/41835843
+    """
+    n = arr.max()+1  
+    id_arr = np.zeros(arr.size,dtype=int)
+    id_arr[group_idxs[1:]] = 1
+    shift = n*id_arr.cumsum()
+    sortidx = (arr+shift).argsort()
+    grp_shifted_argmax = np.append(group_idxs[1:],arr.size)-1
+    max_in_grp_idx = sortidx[grp_shifted_argmax] 
+    return max_in_grp_idx
 
 class CompositeShowers():    
     r""" Make composite showers with constituent electrons, gamma, and pions, 
-    contributions scaled by sampled tau energies. 
+    contributions scaled by sampled tau energies.  
     
     Parameters
     ----------
@@ -94,18 +120,34 @@ class CompositeShowers():
         # each row has [event_num, energy ] 
         return electron_energies, pion_energies, gamma_energies 
         
-    def single_particle_showers(self, tau_energies, gh_params): 
-        r""" Create single particle showers Nmax scaled by pythia energies
-        from same PID.
+    def single_particle_showers(self, tau_energies, gh_params, left_pad:int = 500): 
+        r""" Create single a particle shower w/ Nmax scaled by pythia energy from same PID.
+        Enables variable-- allowing negative-- shower starting points, left padded to uniform length.
+    
+        Parameters
+        ----------
+        tau_energies: float
+            shower_energy, default table energy is 100 PeV
+        gh_params: array
+            CONEX GH output for one shower, for sample table layout see
+            nuSpaceSim/src/nuspacesim/data/conex_gh_params/dat_data \
+            /dumpGH_conex_gamma_E17_95deg_0km_eposlhc_830250265_22.dat
+    
+        Returns
+        -------
+        showers: array 
+            shower content for one, non-composite shower
+        depths: array
+            corresponding slant depths
         """
         #padded_vec_len = self.shower_end/self.grammage + 200
         # pre-allocate arrays, make room for event tag and decay tag 
-        # showers = np.ones([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 1000 + 2)]
-        #                     ) 
-        # depths =  np.ones([ gh_params.shape[0], int((self.shower_end/ self.grammage) + 1000 + 2)]
-        #                     ) 
-        showers = []
-        depths = []
+        showers = np.ones([gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
+                            ) 
+        depths = np.ones([gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
+                            ) 
+        # showers = []
+        # depths = []
         for row,(shower_params,tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
             
             shower = ShowerParameterization (
@@ -122,65 +164,96 @@ class CompositeShowers():
                                     shower_end = self.shower_end,
                                     grammage = self.grammage)
             
-            # showers[row,:] = shower_content
-            # depths[row,:] = depth 
-            showers.append(shower_content)
-            depths.append(depth)
+            showers[row,:] = shower_content
+            depths[row,:] = depth 
+            # showers.append(shower_content)
+            # depths.append(depth)
             
-        return np.array(showers), np.array(depths)
+        return showers, depths
     
     
-    def composite_showers(self, **kwargs):
-        r""" From single particle showers, create composite showers by
-        summing each event. 
-        
-        Returns:
-            Composite Showers in # of Charged Particles with columns 0 and 1
-            being the event number and decay ID, repsectively.
-            
-            Uniform bins of the showers, all constrained to be uniform, 
-            set by end_shower and grammage.
+    def composite_showers(self, rebound_cut= None, **kwargs):
+        r""" From single particle showers, create composite showers by summing each event. 
+        For depths, selects the longest grammage vector. 
+        # of particles with columns 0 and 1 being the event number and decay ID, repsectively.
+        Uniform padded bins of the showers set by x_0, end_shower, and grammage.
     
+        Parameters
+        ----------
+        single_showers: arrays
+            uniform grammage arrays for each shower component
+        shower_bins: array
+            binds for each shower componenet for the composite
+    
+        Returns
+        -------
+        composite_showers: array 
+            composite showers 
+        composite_depths : array
+            composite shower slant depths, padded on the left to uniform lengths   
         """
         
-        # read in all arrays and get a main array containing all of them. 
+        # read in all arrays and get a main array containing all of the, sorted 
         single_showers = kwargs.get('single_showers')
         single_shower_bins = kwargs.get('shower_bins')
+        
         single_showers = np.concatenate((single_showers), axis=0) 
         single_shower_bins = np.concatenate((single_shower_bins), axis=0) 
-        # sort by event number
+        
         single_showers = single_showers[single_showers[:,0].argsort()]
         single_shower_bins  = single_shower_bins[single_shower_bins[:,0].argsort()]
-            
-        grps, idx = np.unique(single_showers[:,0], return_index=True, axis=0)
-        unique_event_tags = np.take(single_showers[:,1], idx)
-        counts = np.add.reduceat(single_showers[:, 2:], idx)
-        composite_showers = np.column_stack((grps,unique_event_tags,counts))
-        composite_depths = np.unique(single_shower_bins, axis = 0)
+       
+        # get unique event numbers, the index at which each event group starts 
+        # and number of showers in each event
+        grps, idx, num_showers_in_evt = np.unique(
+            single_showers[:,0], return_index=True, return_counts=True, axis=0)
+        unique_decay_codes = np.take(single_showers[:,1], idx)
+        
+        # sum each column up until the row index of where the new group starts and tack on the codes
+        composite_showers = np.column_stack(
+            (grps, unique_decay_codes, np.add.reduceat(single_showers[:, 2:], idx))
+            )
+        
+        # per event, find the longest slant depth and use that since grammage is identical 
+        sum_of_each_row = np.nansum(np.abs(single_shower_bins[:, 2:]), axis = 1)
+        longest_shower_in_event_idxs = numpy_argmax_reduceat(sum_of_each_row, idx)
 
-        return  composite_showers, composite_depths
+        composite_depths = np.take(single_shower_bins, longest_shower_in_event_idxs, axis=0)
+        
+        return  composite_showers, composite_depths 
+    
+    def shower_end_cuts (self, composite_showers, composite_depths):
+        #rom nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+        nmax_positions = np.argmax(composite_showers)
+        
     
     def __call__ (self, filter_errors = False):
+        r"""Loads CONEX GH parametrizations for electron, pion, and gamma.
+        Makes single particle showers. Takes these showers and summs them per slant depth bin.
+        Returns the paritlce showers and the slant depth for each composite in an array.
+        Each padded to the smae length with nans due to variable starting points.
         
+        Currently supports 100 PeV only. 
+        """
+        # get CONEX params and pythia tables.
         electron_gh, pion_gh, gamma_gh= self.conex_params()
         electron_e, pion_e, gamma_e = self.tau_daughter_energies()
-        
+        # make single particle showers
         elec_showers, elec_depths = self.single_particle_showers(
             tau_energies=electron_e, gh_params=electron_gh
             )
-    
         pion_showers, pion_depths = self.single_particle_showers(
             tau_energies=pion_e, gh_params=pion_gh
             )
-    
         gamm_showers, gamm_depths = self.single_particle_showers(
             tau_energies=gamma_e, gh_params=gamma_gh
             )
-        
+        # make composite showers 
         comp_showers, depths = self.composite_showers( 
             single_showers = (elec_showers, pion_showers, gamm_showers), 
             shower_bins = (elec_depths, pion_depths, gamm_depths)
         )
+        
         # filter out showers where the parameterization fails; i.e. > np.inf or 1e20
         err_threshold = 1e100
         broken_showers_row_idx = np.where( np.any(comp_showers >  err_threshold , axis = 1) )

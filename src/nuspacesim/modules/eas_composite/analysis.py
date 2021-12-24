@@ -5,20 +5,37 @@ from fitting_composite_eas import FitCompositeShowers
 #%% 
 
 
-make_composites = CompositeShowers(shower_end=10000, grammage=1)
+make_composites = CompositeShowers(shower_end=3000, grammage=1)
+comp_showers, depths, broken_event =  make_composites(
+    filter_errors=False) 
+#%%
+# def shower_end_cuts (composite_showers, composite_depths):
+#     #rom nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+nmax_positions = np.argmax(comp_showers[:,2:], axis=1) + 2 
+nmax_vals = np.take_along_axis(comp_showers, nmax_positions[:,None], axis=1)
 
+xmax_vals = np.take_along_axis(depths, nmax_positions[:,None], axis=1)  
+
+rebound_values = nmax_vals * 0.01  
+diff_bw_rebound = comp_showers - rebound_values 
+rebound_positions = np.argmin(np.abs(diff_bw_rebound), axis=1)
+#%%
+make_composites = CompositeShowers(shower_end=2000, grammage=1)
+comp_showers, depths, broken_event =  make_composites(
+    filter_errors=False)  
 electron_gh, pion_gh, gamma_gh= make_composites.conex_params()
 electron_e, pion_e, gamma_e = make_composites.tau_daughter_energies()
 
 gamm_showers, gamm_depths = make_composites.single_particle_showers(
     tau_energies=gamma_e, gh_params=gamma_gh
     )
+elec_showers, elec_depths = make_composites.single_particle_showers(
+    tau_energies=electron_e, gh_params=electron_gh
+    )
 
-#%%
-make_composites = CompositeShowers(shower_end=2000, grammage=1)
-comp_showers, depths, broken_event =  make_composites(
-    filter_errors=False)  
-
+pion_showers, pion_depths = make_composites.single_particle_showers(
+    tau_energies=pion_e, gh_params=pion_gh
+    )
 #%%
 
 
