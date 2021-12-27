@@ -25,10 +25,11 @@ comp_showers, comp_depths, broken_event =  make_composites(filter_errors=False)
 # get_fits = FitCompositeShowers(comp_showers, comp_depths,)
 # fits = get_fits()
 #
-for depths,showers  in zip( comp_depths[0:10,], comp_showers[0:10,]):
+for depths,showers  in zip( depths[0:10,], comp_showers[0:10,]):
     event_num = depths[0]
     decay_code = depths[1]
     plt.plot(depths[2:], showers[2:],'--', label = str(event_num)+"|"+ str(decay_code) )
+
 plt.yscale('log')
 
 plt.legend()

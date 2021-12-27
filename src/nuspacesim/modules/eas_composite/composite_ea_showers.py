@@ -148,7 +148,7 @@ class CompositeShowers():
                             ) 
         # showers = []
         # depths = []
-        for row,(shower_params,tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
+        for row,(shower_params, tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
             
             shower = ShowerParameterization (
                 table_decay_e=tau_dec_e[-1], event_tag=tau_dec_e[0], decay_tag=tau_dec_e[1]
@@ -223,8 +223,51 @@ class CompositeShowers():
         return  composite_showers, composite_depths 
     
     def shower_end_cuts (self, composite_showers, composite_depths):
-        #rom nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
-        nmax_positions = np.argmax(composite_showers)
+        #from nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+        comp_showers =  np.copy(composite_showers)
+        comp_depths = np.copy(composite_depths)
+        
+        print("Trimming {} showers...".format(np.shape(comp_showers)[0]))
+        # get the idx of the maxiumum particle content, skip the event number and decay code and offset
+        nmax_idxs = np.argmax(comp_showers[:,2:], axis=1) + 2 
+        # given the idxs of the max values, get the max values
+        nmax_vals = np.take_along_axis(comp_showers, nmax_idxs[:,None], axis=1)
+        # given the idxs of the max values, get the x max
+        xmax_vals = np.take_along_axis(depths, nmax_idxs[:,None], axis=1)  
+        rebound_values = nmax_vals * 0.01
+        # get rebound idxs 
+        x, y = np.where(comp_showers < rebound_values)
+        s = np.flatnonzero(np.append([False], x[1:] != x[:-1]))
+        less_than_thresh_per_evt = np.split(y, s)
+        # checking each event and getting the last idx where it is still less than the threshold
+        rebound_idxs = map(lambda x: x[-1], less_than_thresh_per_evt)
+        rebound_idxs = np.array(list(rebound_idxs))
+        # check for showers not going below the threshold and rebounding up into it
+        non_rebounding = rebound_idxs < nmax_idxs 
+        went_past_thresh = rebound_values < comp_showers[:,-1][:, None]
+        did_not_go_below_rebound_thresh = non_rebounding[:, None] & went_past_thresh
+        # for showers not going low enough, continue them till the end without any cuts,changes mask above
+        rebound_idxs[:, None][did_not_go_below_rebound_thresh] = np.shape(comp_showers)[1] - 1 
+        # from the rebound idxs on cutoff the shower
+        cut_off_mask = rebound_idxs[:,None] < np.arange(np.shape(comp_showers)[1])
+        # check for showers not reaching up into the threshold and were never cut short
+        full_shower_mask = rebound_idxs == np.shape(comp_showers)[1] - 1
+        
+        comp_showers[cut_off_mask] = np.nan
+        full_showers = comp_showers[full_shower_mask, :]
+        trimmed_showers = comp_showers[~full_shower_mask, :] 
+        shallow_showers = comp_showers[did_not_go_below_rebound_thresh.flatten(), :]
+        
+        full_depths = comp_depths[full_shower_mask, :]
+        trimmed_depths = comp_depths[~full_shower_mask, :] 
+        shallow_depths = comp_depths[did_not_go_below_rebound_thresh.flatten(), :]
+        
+        print(np.count_nonzero(did_not_go_below_rebound_thresh))
+        
+        return (tuple((full_showers, full_depths)), 
+                tuple((trimmed_showers, trimmed_depths)), 
+                tuple((shallow_showers, shallow_depths))
+                )
         
     
     def __call__ (self, filter_errors = False):

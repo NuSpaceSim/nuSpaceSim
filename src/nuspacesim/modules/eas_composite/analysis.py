@@ -5,20 +5,75 @@ from fitting_composite_eas import FitCompositeShowers
 #%% 
 
 
-make_composites = CompositeShowers(shower_end=3000, grammage=1)
+make_composites = CompositeShowers(shower_end=20000, grammage=5)
 comp_showers, depths, broken_event =  make_composites(
     filter_errors=False) 
 #%%
 # def shower_end_cuts (composite_showers, composite_depths):
 #     #rom nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+
+# get the idx of the maxiumum particle content, skip the event number and decay code and offset
 nmax_positions = np.argmax(comp_showers[:,2:], axis=1) + 2 
+# given the idxs of the max values, get the max values
 nmax_vals = np.take_along_axis(comp_showers, nmax_positions[:,None], axis=1)
-
+# given the idxs of the max values, get the x max
 xmax_vals = np.take_along_axis(depths, nmax_positions[:,None], axis=1)  
-
+# get rebound idxs 
 rebound_values = nmax_vals * 0.01  
-diff_bw_rebound = comp_showers - rebound_values 
+diff_bw_rebound = comp_showers[:,2:] - rebound_values 
 rebound_positions = np.argmin(np.abs(diff_bw_rebound), axis=1)
+#get showers that do not rebound, avoid catching the rising edge
+non_rebounding = rebound_positions < nmax_positions 
+print(np.count_nonzero(non_rebounding))
+rebound_positions[non_rebounding] = np.shape(comp_showers)[1]  
+mask = rebound_positions[:,None] < np.arange(np.shape(comp_showers)[1])
+
+#comp_showers[mask] = np.nan
+#%%
+print("Trimming {} showers using a re".format(np.shape(comp_showers)[0]))
+# get the idx of the maxiumum particle content, skip the event number and decay code and offset
+nmax_idxs = np.argmax(comp_showers[:,2:], axis=1) + 2 
+# given the idxs of the max values, get the max values
+nmax_vals = np.take_along_axis(comp_showers, nmax_idxs[:,None], axis=1)
+# given the idxs of the max values, get the x max
+xmax_vals = np.take_along_axis(depths, nmax_idxs[:,None], axis=1)  
+rebound_values = nmax_vals * 0.01
+# get rebound idxs 
+x, y = np.where(comp_showers < rebound_values)
+s = np.flatnonzero(np.append([False], x[1:] != x[:-1]))
+less_than_thresh_per_evt = np.split(y, s)
+# checking each event and getting the last idx where it is still less than the threshold
+rebound_idxs = map(lambda x: x[-1], less_than_thresh_per_evt)
+rebound_idxs = np.array(list(rebound_idxs))
+# check for showers not going below the threshold and rebounding up into it
+non_rebounding = rebound_idxs < nmax_idxs 
+went_past_thresh = rebound_values < comp_showers[:,-1][:, None]
+did_not_go_below_rebound_thresh = non_rebounding[:, None] & went_past_thresh
+# for showers not going low enough, continue them till the end without any cuts,changes mask above
+rebound_idxs[:, None][did_not_go_below_rebound_thresh] = np.shape(comp_showers)[1] - 1 
+# from the rebound idxs on cutoff the shower
+cut_off_mask = rebound_idxs[:,None] < np.arange(np.shape(comp_showers)[1])
+# check for showers not reaching up into the threshold and were never cut short
+full_shower_mask = rebound_idxs == np.shape(comp_showers)[1] - 1
+
+comp_showers[cut_off_mask] = np.nan
+full_showers = comp_showers[full_shower_mask, :]
+trimmed_showers = comp_showers[~full_shower_mask, :] 
+shallow_showers = comp_showers[did_not_go_below_rebound_thresh.flatten(), :]
+
+print(np.count_nonzero(did_not_go_below_rebound_thresh))
+#%%
+
+for depth, showers  in zip( depths[0:10,:], comp_showers[0:10,:]):
+    event_num = depth[0]
+    decay_code = depth[1]
+   # print(np.max(showers[2:]*.01))
+    #plt.hlines(np.max(showers[2:]*.01), 0,20000)
+    plt.plot(depth[2:], showers[2:],'--', label = str(event_num)+"|"+ str(decay_code) )
+#plt.ylim(top = .25e7)
+plt.yscale('log')
+
+plt.legend()
 #%%
 make_composites = CompositeShowers(shower_end=2000, grammage=1)
 comp_showers, depths, broken_event =  make_composites(
