@@ -4,10 +4,64 @@ from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 #%% 
 
-
-make_composites = CompositeShowers(shower_end=20000, grammage=5)
-comp_showers, depths, broken_event =  make_composites(
+make_composites = CompositeShowers(shower_end=20000, grammage=1)
+comp_showers, comp_depths, broken_event =  make_composites(
     filter_errors=False) 
+#%%
+trimmed_showers, _ = make_composites.shower_end_cuts(
+    composite_showers=comp_showers, composite_depths=comp_depths, separate_showers=False)
+
+#%%
+
+
+print("Trimming {} showers.".format(np.shape(comp_showers)[0]))
+# get the idx of the maxiumum particle content, skip the event number and decay code and offset
+nmax_idxs = np.argmax(comp_showers[:,2:], axis=1) + 2 
+# given the idxs of the max values, get the max values
+nmax_vals = np.take_along_axis(comp_showers, nmax_idxs[:,None], axis=1)
+# given the idxs of the max values, get the x max
+xmax_vals = np.take_along_axis(comp_depths, nmax_idxs[:,None], axis=1) 
+# set the rebound threshold
+rebound_values = nmax_vals * 0.01 
+print("Cutting shower rebounds past {}% of Nmax".format(0.01 *100))
+# get rebound idxs 
+x, y = np.where(comp_showers < rebound_values)
+s = np.flatnonzero(np.append([False], x[1:] != x[:-1]))
+less_than_thresh_per_evt = np.split(y, s)
+# checking each event and getting the last idx where it is still less than the threshold
+rebound_idxs = map(lambda x: x[-1], less_than_thresh_per_evt)
+rebound_idxs = np.array(list(rebound_idxs))
+# check for showers not going below the threshold and rebounding up into it
+non_rebounding = rebound_idxs < nmax_idxs 
+went_past_thresh = rebound_values < comp_showers[:,-1][:, None]
+did_not_go_below_rebound_thresh = non_rebounding[:, None] & went_past_thresh
+# for showers not going low enough, continue them till the end without any cuts,changes mask above
+rebound_idxs[:, None][did_not_go_below_rebound_thresh] = np.shape(comp_showers)[1] - 1 
+# from the rebound idxs on cutoff the shower
+cut_off_mask = rebound_idxs[:,None] < np.arange(np.shape(comp_showers)[1])
+# check for showers not reaching up into the threshold and were never cut short
+full_shower_mask = rebound_idxs == np.shape(comp_showers)[1] - 1
+
+comp_showers[cut_off_mask] = np.nan
+full_showers = comp_showers[full_shower_mask, :]
+trimmed_showers = comp_showers[~full_shower_mask, :] 
+shallow_showers = comp_showers[did_not_go_below_rebound_thresh.flatten(), :]
+
+full_depths = comp_depths[full_shower_mask, :]
+trimmed_depths = comp_depths[~full_shower_mask, :] 
+shallow_depths = comp_depths[did_not_go_below_rebound_thresh.flatten(), :]
+
+trimmed_showers_reb_grammage = np.take_along_axis(
+    trimmed_depths, rebound_idxs[~full_shower_mask][:,None], axis=1
+    )
+#print(np.count_nonzero(did_not_go_below_rebound_thresh))
+print("There are {} full showers.".format(np.shape(full_showers)[0]))
+print("There are {} trimmed showers".format(np.shape(trimmed_showers)[0]))
+print("With cutoffs happening at {} {}".format(
+    np.mean(trimmed_showers_reb_grammage), np.std(trimmed_showers_reb_grammage)))
+print("There are {} shallow showers.".format(np.shape(shallow_showers)[0]))
+
+
 #%%
 # def shower_end_cuts (composite_showers, composite_depths):
 #     #rom nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
@@ -305,3 +359,26 @@ plt.ylabel('% Difference')
 plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
 plt.xlim(left = 0 )         
 plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+
+#%% 
+# import matplotlib.pyplot as plt
+# mask = (fit_results[:,2] != np.inf) 
+# #filtered_test = fit_results[:,2][mask]
+# histogram = (fit_results[:,2][mask])
+# histogram = histogram [histogram < 10] 
+
+# #%%
+# mask1 = (fit_results[:,3] ==1  ) 
+# masked_event_nums = fit_results[:,0][mask1]
+# masked_decaycodes = fit_results[:,1][mask1]
+# masked_chi = fit_results[:,2][mask1]
+# masked_p_vals = fit_results[:,3][mask1]
+
+# mask1 = np.array([masked_event_nums, masked_decaycodes, masked_chi, masked_p_vals]).T
+# #%%
+# plt.figure(figsize=(8, 5), dpi= 120)  
+# plt.hist (histogram, bins = 30, edgecolor='black') 
+# plt.title ('Distribution of Reduced Chisquare for the Fits')
+# plt.ylabel('Counts')
+# plt.xlabel('Reduced ChiSquare')
+# #plt.xlim(0,10)
