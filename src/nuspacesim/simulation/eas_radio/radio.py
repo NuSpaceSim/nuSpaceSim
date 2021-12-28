@@ -3,6 +3,7 @@ import numpy as np
 
 from ...config import NssConfig
 from ...utils import decorators
+from ..eas_optical.detector_geometry import distance_to_detector
 
 __all__ = ["EASRadio", "RadioEFieldParams", "IonosphereParams"]
 
@@ -11,7 +12,6 @@ try:
 except ImportError:
     from importlib_resources import files
 
-
 class EASRadio:
     """
     Extensive Air Shower for radio emission
@@ -19,22 +19,6 @@ class EASRadio:
 
     def __init__(self, config: NssConfig):
         self.config = config
-
-    def decay_to_detector_dist(self, beta, altDec, detectAlt, lenDec, viewAngle):
-        Re = self.config.constants.earth_radius
-        r1 = detectAlt + Re
-        r2 = altDec + Re
-        exit = np.pi / 2.0 - beta
-        r2squared = r2 ** 2
-        thetaE = (Re ** 2 + (Re + altDec) ** 2 - lenDec ** 2) / (2 * Re * (Re + altDec))
-        thetaE[thetaE < 0] = 0
-        thetaE[thetaE > 1] = 1
-        thetaE = np.arccos(thetaE)
-        thetaRel = exit - thetaE + viewAngle
-        cosexit = np.cos(thetaRel)
-        return (
-            np.sqrt(r2squared * cosexit * cosexit - r2squared + r1 * r1) - r2 * cosexit
-        )
 
     def get_decay_view(self, exitView, losDist, lenDec):
         """
@@ -67,16 +51,8 @@ class EASRadio:
         viewAngles[mask] = self.get_decay_view(theta[mask], pathLen[mask], lenDec[mask])
 
         # rudimentary distance scaling TODO investigate that this actually works with zhaires
-        nssDist = self.decay_to_detector_dist(
-            beta[mask],
-            altDec[mask],
-            self.config.detector.altitude,
-            lenDec[mask],
-            viewAngles[mask],
-        )
-        zhairesDist = self.decay_to_detector_dist(
-            beta[mask], altDec[mask], 525.0, lenDec[mask], viewAngles[mask]
-        )
+        nssDist = distance_to_detector(beta[mask], altDec[mask], self.config.detector.altitude, self.config.constants.earth_radius)
+        zhairesDist = distance_to_detector(beta[mask], altDec[mask], 525.0, self.config.constants.earth_radius)
 
         EFields = np.zeros_like(beta)
         EFields = radioParams(
@@ -87,7 +63,7 @@ class EASRadio:
         # scale by the energy of the shower (all zhaires files are for 10^18 eV shower)
         # shower energy is in units of 100 PeV, we want in GeV
         EFields[mask] = (EFields[mask].T * showerEnergy[mask] / 10.0).T
-        distScale = zhairesDist / nssDist
+        distScale = np.abs(zhairesDist / nssDist)
         EFields[mask] = (EFields[mask].T * distScale).T
         # no ionosphere if the detector is below 90km
         if self.config.detector.altitude > 90.0:
@@ -225,7 +201,7 @@ class IonosphereParams(object):
                 "",
                 "***** WARNING *****",
                 "The only supported parameters for ionospheric dispersion are:",
-                "frequency ranges of 30-80 MHz, 30-300 MHz, 300-1000 MHz",
+                "frequency ranges of 30-80 MHz, 30-300 MHz, 300-1000 MHz, 200-1200 MHz",
                 "TEC values of 1, 5, 10, 50, 100, 150",
                 "and TECerr values of < 10.",
                 "Arbitrary values of these parameters will eventually be enabled, but not yet !!",
