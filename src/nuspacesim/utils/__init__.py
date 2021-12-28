@@ -43,9 +43,10 @@ r""" Utility classes and methods
    interp
    misc
    plots
-
+   
+   eas_cher_gen"
 """
 
-__all__ = ["cdf", "decorators", "grid", "interp", "misc", "plots"]
+__all__ = ["cdf", "decorators", "grid", "interp", "misc", "plots", "eas_cher_gen"]
 
-from . import cdf, decorators, grid, interp, misc, plots
+from . import cdf, decorators, grid, interp, misc, plots, eas_cher_gen
