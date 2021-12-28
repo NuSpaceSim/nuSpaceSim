@@ -9,7 +9,7 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/nuspacesim)
 
 
-This is the beta release of the *nuspacesim* simulator tool!
+This is the official release of the *nuspacesim* simulator tool!
 
 This package simulates upward-going extensive air showers caused by neutrino
 interactions with the atmosphere. It calculates the tau neutrino acceptance for the
