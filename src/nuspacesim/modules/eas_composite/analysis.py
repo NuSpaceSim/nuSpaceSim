@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from .composite_ea_showers import CompositeShowers
-from .fitting_composite_eas import FitCompositeShowers
+from composite_ea_showers import CompositeShowers
+from fitting_composite_eas import FitCompositeShowers
 #%% 
 
 make_composites = CompositeShowers(shower_end=20000, grammage=1)
-comp_showers, comp_depths, broken_event =  make_composites(
+comp_showers, comp_depths =  make_composites(
     filter_errors=False) 
 #%%
 trimmed_showers, _ = make_composites.shower_end_cuts(

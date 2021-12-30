@@ -225,7 +225,7 @@ class CompositeShowers():
         composite_showers, 
         composite_depths, 
         shwr_threshold:float=0.01,
-        pad_tails_with:float=np.nan, 
+        pad_tails_with:float=0, 
         separate_showers:bool=False,
     ):
         r""" Given composite showers and depths, cut the tails of the showers if it reaches the
@@ -275,7 +275,7 @@ class CompositeShowers():
         xmax_vals = np.take_along_axis(comp_depths, nmax_idxs[:,None], axis=1) 
         # set the rebound threshold
         rebound_values = nmax_vals * shwr_threshold
-        print("Cutting shower rebounds past {}% of Nmax".format(shwr_threshold*100))
+        print("Cutting shower rebounds past {}% of n max.".format(shwr_threshold*100))
         # get rebound idxs 
         x, y = np.where(comp_showers < rebound_values)
         s = np.flatnonzero(np.append([False], x[1:] != x[:-1]))
@@ -356,21 +356,20 @@ class CompositeShowers():
         )
         
         # filter out showers where the parameterization fails; i.e. > np.inf or 1e20
-        err_threshold = 1e100
-        broken_showers_row_idx = np.where( np.any(comp_showers >  err_threshold , axis = 1) )
-        broken_events = comp_showers[:,0:2][broken_showers_row_idx]
+        # err_threshold = 1e100
+        # broken_showers_row_idx = np.where( np.any(comp_showers >  err_threshold , axis = 1) )
+        # broken_events = comp_showers[:,0:2][broken_showers_row_idx]
 
+        # print('{} Broken Showers out to {} g/cm^2'.format(len(broken_events), self.shower_end) )
+        # np.savetxt('discontinous_events.txt', broken_events, fmt='%1.0f')
         
-        print('{} Broken Showers out to {} g/cm^2'.format(len(broken_events), self.shower_end) )
-        np.savetxt('discontinous_events.txt', broken_events, fmt='%1.0f')
-        
-        if filter_errors is True:
-            comp_showers = np.delete(comp_showers, broken_showers_row_idx, axis=0)
-            depths = np.delete(depths, broken_showers_row_idx, axis=0)
+        # if filter_errors is True:
+        #     comp_showers = np.delete(comp_showers, broken_showers_row_idx, axis=0)
+        #     depths = np.delete(depths, broken_showers_row_idx, axis=0)
            
  
         
-        return comp_showers, depths, broken_events, #pion_showers, pion_depths
+        return comp_showers, depths, #broken_events, pion_showers, pion_depths
 
 
 

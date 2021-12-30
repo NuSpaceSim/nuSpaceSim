@@ -38,14 +38,21 @@ class ShowerParameterization:
         return x, content, self.event_tag
         
     def gaisser_hillas(
-        self, n_max, x_max, x_0, p1, p2, p3, shower_end:int = 2000, grammage:int = 1
+        self, 
+        n_max, 
+        x_max, 
+        x_0, 
+        p1, 
+        p2, 
+        p3, 
+        shower_end:int=2000, 
+        grammage:int=1, 
+        pad_bins_with:float=np.nan,
+        pad_tails_with:float=0
         ):
         
         padded_vec_len = (shower_end/ grammage) + 500
         scaled_n_max = n_max * self.table_decay_e
-        
-        #bins =  int((shower_end + np.round(np.abs(x_0)) ) / grammage) 
-        #x = np.linspace( np.round(x_0), shower_end, bins, endpoint=True) 
         
         # allows negative starting depths
         x = np.arange(np.round(x_0), shower_end + 1, grammage) # slant depths g/cm^2
@@ -64,16 +71,25 @@ class ShowerParameterization:
         
         if np.min(f) < 0: # pads with 0s at the end if the fit brakes and there's a pole
             break_point = int(np.argwhere(f < 0)[0])
-            f[break_point:] = 0
-
-        #     stop_point = int(np.argwhere(f == 0)[-1])
-        #     f[stop_point:] = 0
+            f[break_point:] = pad_tails_with
+            
+        # correct zombie showers 
+        # i.e. showers that stay 0 for a while after nmax 
+        # but then starts to rebound >10000g/cm^2 after death
+        nmax_idx = int(np.argmax(f[2:]) ) + 2
+        num_of_zeroes = np.count_nonzero(f[nmax_idx:] == 0)
+        percent_of_zeroes = (num_of_zeroes / len(f[nmax_idx:])) * 100
         
+        # if after the nmax, x% of the entries are 0 and still rebound, treat that as zombie
+        if percent_of_zeroes > 40 and f[-1] > 0 :
+            #print(percent_of_zeroes, self.event_tag)
+            stop_point = int(np.argwhere(f == 0)[-1])
+            f[stop_point:] = pad_tails_with
+            
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
         #t = (x - x_max)/36.62 #shower stage
-
         x = np.pad(
-            x, (int(padded_vec_len - len(x) ), 0), 'constant',  constant_values = np.nan
+            x, (int(padded_vec_len - len(x) ), 0), 'constant',  constant_values = pad_bins_with
             )
         f = np.pad(f, (int(padded_vec_len - len(f) ), 0), 'constant')
         #tag the outputs with the event number
