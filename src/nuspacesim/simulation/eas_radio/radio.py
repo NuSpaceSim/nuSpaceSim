@@ -12,6 +12,7 @@ try:
 except ImportError:
     from importlib_resources import files
 
+
 class EASRadio:
     """
     Extensive Air Shower for radio emission
@@ -51,8 +52,15 @@ class EASRadio:
         viewAngles[mask] = self.get_decay_view(theta[mask], pathLen[mask], lenDec[mask])
 
         # rudimentary distance scaling TODO investigate that this actually works with zhaires
-        nssDist = distance_to_detector(beta[mask], altDec[mask], self.config.detector.altitude, self.config.constants.earth_radius)
-        zhairesDist = distance_to_detector(beta[mask], altDec[mask], 525.0, self.config.constants.earth_radius)
+        nssDist = distance_to_detector(
+            beta[mask],
+            altDec[mask],
+            self.config.detector.altitude,
+            self.config.constants.earth_radius,
+        )
+        zhairesDist = distance_to_detector(
+            beta[mask], altDec[mask], 525.0, self.config.constants.earth_radius
+        )
 
         EFields = np.zeros_like(beta)
         EFields = radioParams(
@@ -223,13 +231,10 @@ class IonosphereParams(object):
         # if TEC == 0:
         #    return perfect_TEC_disperse(self.lowFreq*1.e6, self.highFreq*1.e6, TEC)/100.
         TECerr = np.random.uniform(-self.TECerr, self.TECerr, EFields.shape)
-        # i fit all of these with gaussians
+        # these are fit with lorentzians
         scale = (
-            self.params[0]
-            * np.exp(
-                -((self.TEC + TECerr - self.params[1]) ** 2)
-                / (2.0 * self.params[2] ** 2)
-            )
+            self.params[2]
+            / (np.pi * self.params[1] * (1 + (TECerr / self.params[1]) ** 2))
             + self.params[3]
         )
         return scale / 100.0
