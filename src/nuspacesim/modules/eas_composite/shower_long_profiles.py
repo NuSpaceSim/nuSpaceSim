@@ -68,7 +68,7 @@ class ShowerParameterization:
         term2 = np.exp(exp2) 
         
         f = np.nan_to_num(term1 * term2).astype(int)
-        
+        #print(f)
         if np.min(f) < 0: # pads with 0s at the end if the fit brakes and there's a pole
             break_point = int(np.argwhere(f < 0)[0])
             f[break_point:] = pad_tails_with
@@ -87,7 +87,7 @@ class ShowerParameterization:
             f[stop_point:] = pad_tails_with
             
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
-        #t = (x - x_max)/36.62 #shower stage
+        x = (x - x_max)/36.62 #shower stage
         x = np.pad(
             x, (int(padded_vec_len - len(x) ), 0), 'constant',  constant_values = pad_bins_with
             )

@@ -3,10 +3,31 @@ import numpy as np
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 
-make_composites = CompositeShowers(shower_end=30000, grammage=10)
-comp_showers, comp_depths =  make_composites(filter_errors=False)  
-trimmed_showers, _ = make_composites.shower_end_cuts(
-    composite_showers=comp_showers, composite_depths=comp_depths, separate_showers=False)
+make_composites_0km = CompositeShowers( 
+    alt=0, shower_end=4000, grammage=10
+    )
+
+comp_showers_0km, comp_depths_0km =  make_composites_0km(filter_errors=False) 
+ 
+trimmed_showers_0km, _ = make_composites_0km.shower_end_cuts(
+    composite_showers=comp_showers_0km, 
+    composite_depths=comp_showers_0km, 
+    separate_showers=False
+    )
+
+make_composites_15km = CompositeShowers( 
+    alt=15, shower_end=40000, grammage=10
+    )
+
+comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
+ 
+trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
+    composite_showers=comp_showers_15km, 
+    composite_depths=comp_showers_15km, 
+    separate_showers=False
+    )
+
+
 #make_composites = CompositeShowers(shower_end=2000, grammage=1)
 
 # electron_gh, pion_gh, gamma_gh= make_composites.conex_params()
@@ -27,13 +48,30 @@ trimmed_showers, _ = make_composites.shower_end_cuts(
 # get_fits = FitCompositeShowers(comp_showers, comp_depths,)
 # fits = get_fits()
 #
-for depths,showers  in zip( comp_depths[0:10,], trimmed_showers[0:10,]):
+plt.figure(figsize=(8,6), dpi=(200)) 
+for depths,showers  in zip(comp_depths_0km[0:5,], trimmed_showers_0km[0:5,]):
     event_num = depths[0]
     decay_code = depths[1]
-    plt.plot(depths[2:], showers[2:],'--', label = str(event_num)+"|"+ str(decay_code) )
+    plt.plot(
+            depths[2:], 
+            showers[2:], 
+            label = str(event_num)+"|"+ str(decay_code) 
+            )
+    
+
+for depths,showers  in zip(comp_depths_15km[0:5,], trimmed_showers_15km[0:5,]):
+    event_num = depths[0]
+    decay_code = depths[1]
+    plt.plot(
+             depths[2:], 
+             showers[2:],'--', 
+             label = str(event_num)+"|"+ str(decay_code) 
+             )
 
 plt.yscale('log')
-
+plt.xlim(left= -30, right=100)
+plt.ylabel("N Particles")
+plt.xlabel("Shower Stage")
 plt.legend()
 #%%
 
@@ -44,24 +82,55 @@ def mean_rms_plot(showers, bins, **kwargs):
     longest_shower = bins[longest_shower_idx, 2:]
     average_composites = np.nanmean(comp_showers, axis=0) 
     
-    rms_error = np.sqrt(np.nanmean((average_composites  - comp_showers)**2, axis = 0 ))
-    plt.plot(longest_shower, average_composites,  '--k', **kwargs) 
+    rms_error = np.sqrt(
+        np.nanmean((average_composites  - comp_showers)**2, axis = 0 )
+        )
+    #plt.figure(figsize=(8,6)) 
+    plt.plot(longest_shower, average_composites,  '--k') 
     
     plt.fill_between(longest_shower, 
                       average_composites - rms_error, 
                       average_composites + rms_error,
                       alpha = 0.5, 
-                      edgecolor='red', 
-                      facecolor='crimson',
+                      #facecolor='crimson',
                       interpolate=True,
-                      label='RMS Error') 
+                      **kwargs) 
 
-    plt.title('Mean and RMS Error')
+    plt.title('Mean and RMS Error 0km')
     plt.ylabel('Number of Particles')
     plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
-    # plt.yscale('log')
+    #plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
+    plt.yscale('log') 
     plt.ylim(bottom=1) 
+    #plt.xlim(left=9000,right=12000)
     plt.legend()
+
+plt.figure(figsize=(8,6))    
+mean_rms_plot(trimmed_showers_0km,
+              comp_depths_0km, label='0 km')
+mean_rms_plot(trimmed_showers_15km,
+              comp_depths_15km, label='15 km', facecolor='green')
+#%%
+decay_channels = np.unique(comp_depths_0km[:,1]) 
+
+for dc in decay_channels: 
+    x = trimmed_showers_0km[trimmed_showers_0km[:,1] == dc]
+    y = comp_depths_0km[comp_depths_0km[:,1] == dc]
     
-mean_rms_plot(trimmed_showers,comp_depths, label='mean generated composite showers')
+
+    plt.figure(figsize=(8,6))   
+    for depths,showers  in zip(y, x):
+
+        event_num = depths[0]
+        decay_code = depths[1]
+        plt.plot(
+                 depths[2:], 
+                 showers[2:],
+                 alpha=0.3, 
+                 #label = str(event_num)+"|"+ str(decay_code) 
+                 )
+    plt.title('{}'.format(dc))
+    #plt.legend()
+    plt.ylabel("N Particles")
+    plt.xlabel("Shower Stage")   
+    plt.yscale('log') 

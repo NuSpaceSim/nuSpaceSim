@@ -27,7 +27,7 @@ def cli_misc():
 @click.argument("conex_filename", type=click.Path(exists=True))
 @click.argument("conex_out_filename", type=str)
 @click.argument("conex_out_dataname", type=str)
-def conex_to_h5 (conex_filename, conex_out_filenam, conex_out_dataname): 
+def conex_to_h5 (conex_filename, conex_out_filename, conex_out_dataname): 
     r""" Convert a .txt or .dat CONEX output to .hdf5.
     
     Parameters
@@ -48,7 +48,7 @@ def conex_to_h5 (conex_filename, conex_out_filenam, conex_out_dataname):
     """
     from ..utils.eas_cher_gen.conex_gh.conex_macros import conex_converter
     
-    conex_converter (conex_filename, conex_out_filenam, conex_out_dataname)
+    conex_converter (conex_filename, conex_out_filename, conex_out_dataname)
     
     
 #pythia tables to .hdf5 converter
