@@ -3,7 +3,7 @@ import numpy as np
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 
-make_composites_0km = CompositeShowers( 
+make_composites_0km =  CompositeShowers( 
     alt=0, shower_end=5000, grammage=1
     ) 
 
