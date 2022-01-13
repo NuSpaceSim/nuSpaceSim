@@ -14,18 +14,18 @@ trimmed_showers_0km, _ = make_composites_0km.shower_end_cuts(
     composite_depths=comp_showers_0km, 
     separate_showers=False
     )
-#trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
-# make_composites_15km = CompositeShowers( 
-#     alt=15, shower_end=20000, grammage=10
-#     )
+trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
+make_composites_15km = CompositeShowers( 
+    alt=15, shower_end=20000, grammage=10
+    )
 
-# comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
+comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
  
-# trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
-#     composite_showers=comp_showers_15km, 
-#     composite_depths=comp_showers_15km, 
-#     separate_showers=False
-#     )
+trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
+    composite_showers=comp_showers_15km, 
+    composite_depths=comp_showers_15km, 
+    separate_showers=False
+    )
 
 
 #make_composites = CompositeShowers(shower_end=2000, grammage=1)
@@ -49,30 +49,31 @@ trimmed_showers_0km, _ = make_composites_0km.shower_end_cuts(
 # fits = get_fits()
 #
 plt.figure(figsize=(8,6), dpi=(200)) 
-for depths,showers  in zip(comp_depths_0km[0:5,], trimmed_showers_0km[0:5,]):
-    event_num = depths[0]
-    decay_code = depths[1]
-    plt.plot(
-            depths[2:], 
-            showers[2:], 
-            label = str(event_num)+"|"+ str(decay_code) 
-            )
+# for depths,showers  in zip(comp_depths_0km[0:5,], trimmed_showers_0km[0:5,]):
+#     event_num = depths[0]
+#     decay_code = depths[1]
+#     plt.plot(
+#             depths[2:], 
+#             showers[2:], 
+#             label = str(event_num)+"|"+ str(decay_code) 
+#             )
     
 
-for depths,showers  in zip(comp_depths_15km[0:5,], trimmed_showers_15km[0:5,]):
+for depths,showers  in zip(comp_depths_15km, trimmed_showers_15km):
     event_num = depths[0]
     decay_code = depths[1]
     plt.plot(
              depths[2:], 
-             showers[2:],'--', 
+             showers[2:],
+             '--', 
              label = str(event_num)+"|"+ str(decay_code) 
              )
 
 plt.yscale('log')
-plt.xlim(left= -30, right=100)
+#plt.xlim(left= -30, right=100)
 plt.ylabel("N Particles")
 plt.xlabel("Shower Stage")
-plt.legend()
+#plt.legend()
 #%%
 
 def mean_rms_plot(showers, bins, **kwargs): 
