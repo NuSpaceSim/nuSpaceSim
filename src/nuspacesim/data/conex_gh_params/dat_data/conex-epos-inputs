@@ -1,6 +1,6 @@
 RUNNR   1                              run number
 NSHOW   1                              number of showers to generate
-PRMPAR  22                             prim. particle (1=gamma, 14=proton, ...)
+PRMPAR  132                             prim. particle (1=gamma, 14=proton, ...)
 ESLOPE  -1                           slope of primary energy spectrum
 ERANGE  1.E8  1.E8                     energy range of primary particle (GeV)
 THETAP  0  0                         range of zenith angle (degree)

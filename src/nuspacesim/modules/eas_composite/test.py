@@ -101,7 +101,7 @@ def mean_rms_plot(showers, bins, **kwargs):
     rms_low = average_composites - rms_error 
     rms_high = average_composites + rms_error
     
-    
+
     plt.fill_between(longest_shower, 
                       rms_low, 
                       rms_high,
@@ -112,12 +112,15 @@ def mean_rms_plot(showers, bins, **kwargs):
 
     plt.title('Mean and RMS Error 0km')
     plt.ylabel('Number of Particles')
-    #plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
+    plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
     #plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
+
     plt.yscale('log') 
+    plt.grid(True, which='both', linestyle='--')
     #plt.ylim(bottom=1) 
     #plt.xlim(right=1500)
     plt.legend()
+    plt.show()
     
     return rms_low, rms_high, test
 
