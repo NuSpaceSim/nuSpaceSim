@@ -4,8 +4,8 @@ from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 
 make_composites_0km = CompositeShowers( 
-    alt=0, shower_end=4000, grammage=10
-    )
+    alt=0, shower_end=5000, grammage=1
+    ) 
 
 comp_showers_0km, comp_depths_0km =  make_composites_0km(filter_errors=False) 
  
@@ -14,18 +14,18 @@ trimmed_showers_0km, _ = make_composites_0km.shower_end_cuts(
     composite_depths=comp_showers_0km, 
     separate_showers=False
     )
+#trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
+# make_composites_15km = CompositeShowers( 
+#     alt=15, shower_end=20000, grammage=10
+#     )
 
-make_composites_15km = CompositeShowers( 
-    alt=15, shower_end=40000, grammage=10
-    )
-
-comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
+# comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
  
-trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
-    composite_showers=comp_showers_15km, 
-    composite_depths=comp_showers_15km, 
-    separate_showers=False
-    )
+# trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
+#     composite_showers=comp_showers_15km, 
+#     composite_depths=comp_showers_15km, 
+#     separate_showers=False
+#     )
 
 
 #make_composites = CompositeShowers(shower_end=2000, grammage=1)
@@ -75,22 +75,36 @@ plt.xlabel("Shower Stage")
 plt.legend()
 #%%
 
-def mean_rms_plot(showers, bins, **kwargs):
+def mean_rms_plot(showers, bins, **kwargs): 
     comp_showers = np.copy(showers[:,2:])
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis = 1) 
     longest_shower_idx = np.argmax(bin_lengths)
     longest_shower = bins[longest_shower_idx, 2:]
     average_composites = np.nanmean(comp_showers, axis=0) 
     
+    test = average_composites  - comp_showers
     rms_error = np.sqrt(
         np.nanmean((average_composites  - comp_showers)**2, axis = 0 )
         )
-    #plt.figure(figsize=(8,6)) 
-    plt.plot(longest_shower, average_composites,  '--k') 
+    rms = np.sqrt(
+        np.nanmean((comp_showers)**2, axis = 0 ) 
+        )
+    std = np.nanstd(comp_showers, axis = 0)  
+    err_in_mean = np.nanstd(comp_showers, axis = 0) / np.sqrt(np.sum(~np.isnan( comp_showers), 0)) 
+    #plt.figure(figsize=(8,6))  
+    plt.plot(longest_shower, average_composites,  '--k', label = 'mean') 
+    plt.plot(longest_shower, rms_error ,  '--r', label='rms error') 
+    plt.plot(longest_shower, rms ,  '--g', label='rms') 
+    plt.plot(longest_shower, std ,  '--y', label='std')  
+    plt.plot(longest_shower, err_in_mean ,  '--b', label='error in mean')
+    
+    rms_low = average_composites - rms_error 
+    rms_high = average_composites + rms_error
+    
     
     plt.fill_between(longest_shower, 
-                      average_composites - rms_error, 
-                      average_composites + rms_error,
+                      rms_low, 
+                      rms_high,
                       alpha = 0.5, 
                       #facecolor='crimson',
                       interpolate=True,
@@ -98,19 +112,21 @@ def mean_rms_plot(showers, bins, **kwargs):
 
     plt.title('Mean and RMS Error 0km')
     plt.ylabel('Number of Particles')
-    plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
+    #plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
     #plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
     plt.yscale('log') 
-    plt.ylim(bottom=1) 
-    #plt.xlim(left=9000,right=12000)
+    #plt.ylim(bottom=1) 
+    #plt.xlim(right=1500)
     plt.legend()
+    
+    return rms_low, rms_high, test
 
 plt.figure(figsize=(8,6))    
-mean_rms_plot(trimmed_showers_0km,
-              comp_depths_0km, label='0 km')
-mean_rms_plot(trimmed_showers_15km,
-              comp_depths_15km, label='15 km', facecolor='green')
-#%%
+low, high,test = mean_rms_plot(
+    trimmed_showers_0km, comp_depths_0km, label='mean +/- rmse ')
+# mean_rms_plot(trimmed_showers_15km,
+#               comp_depths_15km, label='15 km', facecolor='green')
+#%%  
 decay_channels = np.unique(comp_depths_0km[:,1]) 
 
 for dc in decay_channels: 
@@ -131,6 +147,7 @@ for dc in decay_channels:
                  )
     plt.title('{}'.format(dc))
     #plt.legend()
+    
     plt.ylabel("N Particles")
     plt.xlabel("Shower Stage")   
     plt.yscale('log') 

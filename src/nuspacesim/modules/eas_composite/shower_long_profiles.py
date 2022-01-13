@@ -51,12 +51,12 @@ class ShowerParameterization:
         pad_tails_with:float=0
         ):
         
-        padded_vec_len = (shower_end/ grammage) + 500
+        padded_vec_len = (shower_end/ grammage) + 400
         scaled_n_max = n_max * self.table_decay_e
         
         # allows negative starting depths
         x = np.arange(np.round(x_0), shower_end + 1, grammage) # slant depths g/cm^2
-        
+        #print(np.round(x_0))
         #calculating gaisser-hillas function
         gh_lambda = p1 + p2*x + p3*(x**2) 
         
@@ -87,7 +87,7 @@ class ShowerParameterization:
             f[stop_point:] = pad_tails_with
             
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
-        x = (x - x_max)/36.62 #shower stage
+        #x = (x - x_max)/36.62 #shower stage
         x = np.pad(
             x, (int(padded_vec_len - len(x) ), 0), 'constant',  constant_values = pad_bins_with
             )

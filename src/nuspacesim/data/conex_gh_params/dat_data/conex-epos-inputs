@@ -1,0 +1,43 @@
+RUNNR   1                              run number
+NSHOW   1                              number of showers to generate
+PRMPAR  22                             prim. particle (1=gamma, 14=proton, ...)
+ESLOPE  -1                           slope of primary energy spectrum
+ERANGE  1.E8  1.E8                     energy range of primary particle (GeV)
+THETAP  0  0                         range of zenith angle (degree)
+PHIP    10  10                       range of azimuth angle (degree)
+SEED    1   0   0                      seed for 1. random number sequence
+SEED    2   0   0                      seed for 2. random number sequence
+SEED    3   0   0                      seed for 3. random number sequence (for CONEX : has to be changed for each run)
+OBSLEV  110.e2                             observation level (in cm)
+FIXHEI  0. 0                             starting altitude (g/cm**2)
+MAGNET  20.0  42.8                     magnetic field centr. Europe
+* HADFLG  0  0  0  0  0  2               flags hadr.interact.&fragmentation
+
+ECUTS   1.  1.  1.e-3  1.e-3           energy cuts for particles
+
+MUADDI  T                              additional info for muons
+MUMULT  T                              muon multiple scattering angle
+ELMFLG  F   T                          em. interaction flags (NKG,EGS)
+THIN    1.  1. 1.
+RADNKG  200.E2                         outer radius for NKG lat.dens.distr.
+ARRANG  0.                             rotation of array to north
+LONGI   T  10.  F  T                   longit.distr. & step size & fit & out
+ECTMAP  1.E5                           cut on gamma factor for printout
+MAXPRT  10                              max. number of printed events
+EPOPAR input ../epos/epos.param        !initialization input file for epos
+EPOPAR fname inics ../epos/epos.inics  !initialization input file for epos
+EPOPAR fname iniev ../epos/epos.iniev  !initialization input file for epos
+EPOPAR fname initl ../epos/epos.initl  !initialization input file for epos
+EPOPAR fname inirj ../epos/epos.inirj  !initialization input file for epos
+EPOPAR fname inihy ../epos/epos.ini1b  !initialization input file for epos
+EPOPAR fname check none                !dummy output file for epos
+EPOPAR fname histo none                !dummy output file for epos
+EPOPAR fname data  none                !dummy output file for epos
+EPOPAR fname copy  none                !dummy output file for epos
+DIRECT  ./                             output directory
+DATBAS  F                              write .dbase file
+USER    you                            user 
+PAROUT F F
+* URQMD T 2
+DEBUG   F  6  F  1000000               debug flag and log.unit for out
+EXIT                                   terminates input

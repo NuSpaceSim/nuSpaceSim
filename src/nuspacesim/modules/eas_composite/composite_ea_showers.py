@@ -149,7 +149,7 @@ class CompositeShowers():
         
         return electron_energies, pion_energies, gamma_energies 
         
-    def single_particle_showers(self, tau_energies, gh_params, left_pad:int = 500): 
+    def single_particle_showers(self, tau_energies, gh_params, left_pad:int = 400): 
         r""" Create single a particle shower w/ Nmax scaled by pythia energy from same PID.
         Enables variable-- allowing negative-- shower starting points, left padded to uniform length.
     
@@ -256,7 +256,7 @@ class CompositeShowers():
         composite_showers, 
         composite_depths, 
         shwr_threshold:float=0.01,
-        pad_tails_with:float=0, 
+        pad_tails_with:float=np.nan, 
         separate_showers:bool=False,
     ):
         r""" Given composite showers and depths, cut the tails of the showers if it reaches the
