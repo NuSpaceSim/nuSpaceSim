@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from composite_ea_showers import CompositeShowers
-from fitting_composite_eas import FitCompositeShowers
+from fitting_composite_eas import FitCompositeShowers 
 #%% 
 
 make_composites = CompositeShowers(shower_end=20000, grammage=1)

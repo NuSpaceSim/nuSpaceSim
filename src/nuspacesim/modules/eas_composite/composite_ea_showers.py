@@ -191,7 +191,8 @@ class CompositeShowers():
                                     p2 = shower_params[8],
                                     p3 = shower_params[9],
                                     shower_end = self.shower_end,
-                                    grammage = self.grammage)
+                                    grammage = self.grammage
+                                    )
             
             showers[row,:] = shower_content
             depths[row,:] = depth 
@@ -259,25 +260,28 @@ class CompositeShowers():
         pad_tails_with:float=np.nan, 
         separate_showers:bool=False,
     ):
-        r""" Given composite showers and depths, cut the tails of the showers if it reaches the
-        provided shower threshold. Distinguishes between: 
+        r""" Given composite showers and depths, cut the tails of the showers 
+        if it reaches the provided shower threshold. Distinguishes between: 
         full_showers: showers that do not rebound up into the threshold
         trimmed_showers: showers whose tails were cut off after shwr_threshold
-        shallow_showers: showers that do not go below the threshold within set shower end grammage
+        shallow_showers: showers that do not go below the threshold within 
+        set shower end grammage
         
         Parameters
         ----------
         composite_showers: arrays
-            uniform grammage arrays for each composite shower, tagged with event # and decay id
+            uniform grammage arrays for each composite shower, 
+            tagged with event # and decay id
         composite_depths: array
             bins for each shower componenet for the composite
         shwr_threshold: float
-            decimal multiple of the shower nmax to set as the rebound threshold, default 0.01
+            decimal multiple of the shower nmax to set as the rebound threshold, 
+            efault 0.01
         pad_tails_with: float
             what to pad the shower after getting cut off, default np.nan
         separate_showers: bool
-            if True, return three tuples containing the showers and corresponding depths for each 
-            shower type, default FALSE
+            if True, return three tuples containing the showers and 
+            corresponding depths for each shower type, default FALSE
         
         
         Returns
@@ -287,11 +291,14 @@ class CompositeShowers():
         composite_depths: array
             corresponding composite bins
         full_showers: tuple
-            if separate_showers is True, separates out this kind of shower, need to unpack the bins
+            if separate_showers is True, separates out this kind of shower, 
+            need to unpack the bins
         trimmed_showers: tuple
-            if separate_showers is True, separates out this kind of shower, need to unpack the bins
+            if separate_showers is True, separates out this kind of shower, 
+            need to unpack the bins
         shallow_shors: tuple
-            if separate_showers is True, separates out this kind of shower, need to unpack the bins
+            if separate_showers is True, separates out this kind of shower, 
+            need to unpack the bins
         """
 
         comp_showers =  np.copy(composite_showers)
@@ -326,6 +333,7 @@ class CompositeShowers():
         full_shower_mask = rebound_idxs == np.shape(comp_showers)[1] - 1
         
         comp_showers[cut_off_mask] = pad_tails_with
+        
         full_showers = comp_showers[full_shower_mask, :]
         trimmed_showers = comp_showers[~full_shower_mask, :] 
         shallow_showers = comp_showers[did_not_go_below_rebound_thresh.flatten(), :]
@@ -333,6 +341,7 @@ class CompositeShowers():
         full_depths = comp_depths[full_shower_mask, :]
         trimmed_depths = comp_depths[~full_shower_mask, :] 
         shallow_depths = comp_depths[did_not_go_below_rebound_thresh.flatten(), :]
+        
         trimmed_showers_reb_grammage = np.take_along_axis(
             trimmed_depths, rebound_idxs[~full_shower_mask][:,None], axis=1
             )

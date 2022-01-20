@@ -9,25 +9,44 @@ make_composites_0km =  CompositeShowers(
 
 comp_showers_0km, comp_depths_0km =  make_composites_0km(filter_errors=False) 
  
-trimmed_showers_0km, _ = make_composites_0km.shower_end_cuts(
+trimmed_showers_0km, test_depths = make_composites_0km.shower_end_cuts(
     composite_showers=comp_showers_0km, 
-    composite_depths=comp_showers_0km, 
+    composite_depths=comp_depths_0km, 
     separate_showers=False
     )
-trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
-make_composites_15km = CompositeShowers( 
-    alt=15, shower_end=20000, grammage=10
-    )
+#trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
 
-comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
+# make_composites_15km = CompositeShowers( 
+#     alt=15, shower_end=20000, grammage=10
+#     )
+
+# comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
  
-trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
-    composite_showers=comp_showers_15km, 
-    composite_depths=comp_showers_15km, 
-    separate_showers=False
-    )
+# trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
+#     composite_showers=comp_showers_15km, 
+#     composite_depths=comp_showers_15km, 
+#     separate_showers=False
+#     )
 
+#%% RMS histogram analysis 
+import scipy
 
+sample_shower_column = comp_showers_0km[:,50::700].T
+sample_depth_column = comp_depths_0km[:,50::700].T
+
+for (depth,showers) in zip(sample_depth_column,sample_shower_column ): 
+    #print(depth)
+    print(showers.shape) 
+    plt.figure(figsize=(8,6)) 
+
+    plt.hist(showers, alpha = .5, label='{:g} g/cm^2'.format(depth[418]), bins = 10)
+    plt.title('Distribution of Composite values')
+    plt.xlabel('Particle Content (N)')
+    plt.ylabel('# of composite showers')
+
+    plt.legend()
+
+#%%
 #make_composites = CompositeShowers(shower_end=2000, grammage=1)
 
 # electron_gh, pion_gh, gamma_gh= make_composites.conex_params()
@@ -131,13 +150,13 @@ low, high,test = mean_rms_plot(
 # mean_rms_plot(trimmed_showers_15km,
 #               comp_depths_15km, label='15 km', facecolor='green')
 #%%  
-decay_channels = np.unique(comp_depths_0km[:,1]) 
+decay_channels = np.unique(comp_depths_0km[:,1]) [0:2]
 
 for dc in decay_channels: 
     x = trimmed_showers_0km[trimmed_showers_0km[:,1] == dc]
     y = comp_depths_0km[comp_depths_0km[:,1] == dc]
     
-
+    
     plt.figure(figsize=(8,6))   
     for depths,showers  in zip(y, x):
 
