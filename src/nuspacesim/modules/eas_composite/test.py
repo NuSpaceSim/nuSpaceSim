@@ -14,8 +14,10 @@ trimmed_showers_0km, test_depths = make_composites_0km.shower_end_cuts(
     composite_depths=comp_depths_0km, 
     separate_showers=False
     )
-#trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
+mask = (trimmed_showers_0km > 0) & (trimmed_showers_0km < 1)
+trimmed_showers_0km[mask] = 0
 
+#trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
 # make_composites_15km = CompositeShowers( 
 #     alt=15, shower_end=20000, grammage=10
 #     )
@@ -31,7 +33,7 @@ trimmed_showers_0km, test_depths = make_composites_0km.shower_end_cuts(
 #%% RMS histogram analysis 
 import scipy
 
-sample_shower_column = comp_showers_0km[:,50::700].T
+sample_shower_column = trimmed_showers_0km[:,50::700].T
 sample_depth_column = comp_depths_0km[:,50::700].T
 
 for (depth,showers) in zip(sample_depth_column,sample_shower_column ): 
@@ -39,11 +41,15 @@ for (depth,showers) in zip(sample_depth_column,sample_shower_column ):
     print(showers.shape) 
     plt.figure(figsize=(8,6)) 
 
-    plt.hist(showers, alpha = .5, label='{:g} g/cm^2'.format(depth[418]), bins = 10)
+    plt.hist(showers, 
+             alpha = .5, 
+             edgecolor='black', linewidth=.5,
+             label='{:g} g/cm^2'.format(depth[418]), 
+             bins = 10)
     plt.title('Distribution of Composite values')
     plt.xlabel('Particle Content (N)')
     plt.ylabel('# of composite showers')
-
+    plt.xscale('log')
     plt.legend()
 
 #%%
