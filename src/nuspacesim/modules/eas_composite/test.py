@@ -106,9 +106,12 @@ def mean_rms_plot(showers, bins, **kwargs):
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis = 1) 
     longest_shower_idx = np.argmax(bin_lengths)
     longest_shower = bins[longest_shower_idx, 2:]
+    # take average a long each bin, ignoring nans
     average_composites = np.nanmean(comp_showers, axis=0) 
     
     test = average_composites  - comp_showers
+    # take the square root of the mean of the difference between the average
+    # and each particle content of each shower for one bin, squared
     rms_error = np.sqrt(
         np.nanmean((average_composites  - comp_showers)**2, axis = 0 )
         )
