@@ -4,7 +4,7 @@ from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 
 make_composites_0km =  CompositeShowers( 
-    alt=0, shower_end=5000, grammage=1
+    alt=0, shower_end=3000, grammage=1
     ) 
 
 comp_showers_0km, comp_depths_0km =  make_composites_0km(filter_errors=False) 
@@ -33,21 +33,21 @@ trimmed_showers_0km[mask] = 0
 #%% RMS histogram analysis 
 import scipy
 
-sample_shower_column = trimmed_showers_0km[:,50::700].T
-sample_depth_column = comp_depths_0km[:,50::700].T
+sample_shower_column = trimmed_showers_0km[:,500::700].T
+sample_depth_column = comp_depths_0km[:,500::700].T
 
 for (depth,showers) in zip(sample_depth_column,sample_shower_column ): 
     #print(depth)
     print(showers.shape) 
     plt.figure(figsize=(8,6)) 
-
+    #x = showers / np.nanmean(showers)
     plt.hist(showers, 
              alpha = .5, 
              edgecolor='black', linewidth=.5,
              label='{:g} g/cm^2'.format(depth[418]), 
-             bins = 10)
+             bins = 50)
     plt.title('Distribution of Composite values')
-    plt.xlabel('Particle Content (N)')
+    plt.xlabel('Particle Content/ Avg particle Content (N)')
     plt.ylabel('# of composite showers')
     plt.xscale('log')
     plt.legend()
@@ -127,8 +127,8 @@ def mean_rms_plot(showers, bins, **kwargs):
     plt.plot(longest_shower, std ,  '--y', label='std')  
     plt.plot(longest_shower, err_in_mean ,  '--b', label='error in mean')
     
-    rms_low = average_composites - rms_error 
-    rms_high = average_composites + rms_error
+    rms_low = average_composites - err_in_mean 
+    rms_high = average_composites + err_in_mean 
     
 
     plt.fill_between(longest_shower, 
