@@ -48,7 +48,8 @@ class ShowerParameterization:
         shower_end:int=2000, 
         grammage:int=1, 
         pad_bins_with:float=np.nan,
-        pad_tails_with:float=0
+        pad_tails_with:float=0,
+        fit_break_thresh:float=1e10
         ):
         
         padded_vec_len = (shower_end/ grammage) + 400
@@ -67,11 +68,34 @@ class ShowerParameterization:
         exp2 = (x_max - x) / gh_lambda
         term2 = np.exp(exp2) 
         
-        f = np.nan_to_num(term1 * term2).astype(int)
-        #print(f)
-        if np.min(f) < 0: # pads with 0s at the end if the fit brakes and there's a pole
-            break_point = int(np.argwhere(f < 0)[0])
-            f[break_point:] = pad_tails_with
+        f = np.nan_to_num(term1 * term2)
+        f = np.round(f,0)
+        
+        # constrain the showers physically
+        
+        # pads with 0s at the end if the fit brakes and there's a pole
+        if np.min(f) < 0: 
+            nose_dive = int(np.argwhere(f < 0)[0])
+            f[nose_dive:] = pad_tails_with
+        # we consider the fit broken if it exceedes a reasonable value 1e10
+        if np.max(f) > fit_break_thresh:   
+            pole = int(np.argwhere(f > fit_break_thresh)[0])
+            f[pole:] = pad_tails_with
+        # floor the partilce content if < 1
+        f[((f > 0) & (f < 1))] = 0  
+
+        # cut showers that are decresearing before x_0
+        next_element_minus_previous = np.diff(f)
+        # flat showers, meaing they contribute nothing, always 0
+        if np.max(next_element_minus_previous[1:]) == 0:
+            f = np.zeros(10)
+        else:
+            # get the index where the shower starts to increase intially,
+            # pad with 0s up to there
+            physical_start_point = int (
+                np.argwhere(next_element_minus_previous[1:] > 0)[0] 
+                )
+            f[:physical_start_point] = 0
             
         # correct zombie showers 
         # i.e. showers that stay 0 for a while after nmax 
@@ -79,22 +103,27 @@ class ShowerParameterization:
         nmax_idx = int(np.argmax(f[2:]) ) + 2
         num_of_zeroes = np.count_nonzero(f[nmax_idx:] == 0)
         percent_of_zeroes = (num_of_zeroes / len(f[nmax_idx:])) * 100
-        
-        # if after the nmax, x% of the entries are 0 and still rebound, treat that as zombie
+        # if after the nmax, % of the entries are 0 and still rebound, 
+        # treat that as zombie
         if percent_of_zeroes > 40 and f[-1] > 0 :
-            #print(percent_of_zeroes, self.event_tag)
             stop_point = int(np.argwhere(f == 0)[-1])
             f[stop_point:] = pad_tails_with
             
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
         #x = (x - x_max)/36.62 #shower stage
         x = np.pad(
-            x, (int(padded_vec_len - len(x) ), 0), 'constant',  constant_values = pad_bins_with
+            x, (int(padded_vec_len - len(x) ), 0), 
+            'constant',  
+            constant_values = pad_bins_with
             )
-        f = np.pad(f, (int(padded_vec_len - len(f) ), 0), 'constant')
+        f = np.pad(
+            f, (int(padded_vec_len - len(f) ), 0), 
+            'constant',
+            constant_values = 0
+            )
         #tag the outputs with the event number
         x = np.r_[self.event_tag,self.decay_tag,x]
-        f = np.r_[self.event_tag,self.decay_tag,f].astype(int)
+        f = np.r_[self.event_tag,self.decay_tag,f]
 
         return x, f
     

@@ -3,38 +3,42 @@ import numpy as np
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 
-make_composites_0km =  CompositeShowers( 
-    alt=0, shower_end=3000, grammage=1
-    ) 
+# make_composites_0km =  CompositeShowers( 
+#     alt=0, shower_end=3000, grammage=1
+#     ) 
 
-comp_showers_0km, comp_depths_0km =  make_composites_0km(filter_errors=False) 
+# comp_showers_0km, comp_depths_0km =  make_composites_0km(filter_errors=False) 
  
-trimmed_showers_0km, test_depths = make_composites_0km.shower_end_cuts(
-    composite_showers=comp_showers_0km, 
-    composite_depths=comp_depths_0km, 
-    separate_showers=False
-    )
-mask = (trimmed_showers_0km > 0) & (trimmed_showers_0km < 1)
-trimmed_showers_0km[mask] = 0
+# trimmed_showers_0km, test_depths = make_composites_0km.shower_end_cuts(
+#     composite_showers=comp_showers_0km, 
+#     composite_depths=comp_depths_0km, 
+#     separate_showers=False
+    # )
+# mask = (trimmed_showers_0km > 0) & (trimmed_showers_0km < 1)
+# trimmed_showers_0km[mask] = 0
 
 #trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
-# make_composites_15km = CompositeShowers( 
-#     alt=15, shower_end=20000, grammage=10
-#     )
 
-# comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
+make_composites_15km = CompositeShowers( 
+    alt=15, shower_end=20000, grammage=10, tau_table_start=3000
+    )
+
+comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
  
-# trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
-#     composite_showers=comp_showers_15km, 
-#     composite_depths=comp_showers_15km, 
-#     separate_showers=False
-#     )
+trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
+    composite_showers=comp_showers_15km, 
+    composite_depths=comp_depths_15km, 
+    separate_showers=False
+    )
 
 #%% RMS histogram analysis 
 import scipy
 
-sample_shower_column = trimmed_showers_0km[:,500::700].T
-sample_depth_column = comp_depths_0km[:,500::700].T
+# sample_shower_column = trimmed_showers_0km[:,500::700].T
+# sample_depth_column = comp_depths_0km[:,500::700].T
+
+sample_shower_column = trimmed_showers_15km[:,500::700].T
+sample_depth_column = trimmed_showers_15km[:,500::700].T
 
 for (depth,showers) in zip(sample_depth_column,sample_shower_column ): 
     #print(depth)
@@ -72,8 +76,8 @@ for (depth,showers) in zip(sample_depth_column,sample_shower_column ):
 #%%
 # get_fits = FitCompositeShowers(comp_showers, comp_depths,)
 # fits = get_fits()
-#
-plt.figure(figsize=(8,6), dpi=(200)) 
+# 
+plt.figure(figsize=(8,6),dpi=200) 
 # for depths,showers  in zip(comp_depths_0km[0:5,], trimmed_showers_0km[0:5,]):
 #     event_num = depths[0]
 #     decay_code = depths[1]
@@ -85,14 +89,17 @@ plt.figure(figsize=(8,6), dpi=(200))
     
 
 for depths,showers  in zip(comp_depths_15km, trimmed_showers_15km):
+    
     event_num = depths[0]
     decay_code = depths[1]
+
     plt.plot(
              depths[2:], 
              showers[2:],
-             '--', 
+             alpha=.2,
+             #s=.2, 
              label = str(event_num)+"|"+ str(decay_code) 
-             )
+         )
 
 plt.yscale('log')
 #plt.xlim(left= -30, right=100)

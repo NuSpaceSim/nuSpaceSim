@@ -54,62 +54,75 @@ class CompositeShowers():
     slant_depths: array
         Corresponding slant depths to shower contents. 
     """
-    def __init__(self, alt: int, shower_end: int = 2000, grammage: int = 1):  
+    def __init__(
+            self, 
+            alt:int, 
+            shower_end:int=2000, 
+            grammage:int=1,
+            tau_table_start:int=0,
+            ):  
+        
         self.altitude = alt
+        self.tau_strt = tau_table_start
+        # assumes the data libraries are labeled as gh_xx_km, where xx is the
+        # altitude in km
         
-        if self.altitude == 0:
-            with as_file(
-                files('nuspacesim.data.conex_gh_params.gh_00_km') / 'electron_EAS_table.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                electron_gh = np.array(data.get('EASdata_11'))
-                
-            with as_file(
-                files('nuspacesim.data.conex_gh_params.gh_00_km') / 'gamma_EAS_table.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                gamma_gh = np.array(data.get('EASdata_22'))
-                
-            with as_file(
-                files('nuspacesim.data.conex_gh_params.gh_00_km') / 'pion_EAS_table.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                pion_gh = np.array(data.get('EASdata_211'))        
+        with as_file(
+            files(f'nuspacesim.data.conex_gh_params.gh_{self.altitude:02}_km')
+            / 'electron_EAS_table.h5'
+        ) as path:
+            data = h5py.File(path, 'r')
+            electron_gh = np.array(data.get('EASdata_11'))
             
-            with as_file(
-                files('nuspacesim.data.pythia_tau_decays') / 'new_tau_100_PeV.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                tau_decays = np.array(data.get('tau_data'))  
-                
-            self.tau_tables = tau_decays
-                
-        elif self.altitude == 15: 
-            with as_file(
-                files('nuspacesim.data.conex_gh_params.gh_15_km') / 'electron_EAS_table.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                electron_gh = np.array(data.get('EASdata_11'))
-                
-            with as_file(
-                files('nuspacesim.data.conex_gh_params.gh_15_km') / 'gamma_EAS_table.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                gamma_gh = np.array(data.get('EASdata_22'))
-                
-            with as_file(
-                files('nuspacesim.data.conex_gh_params.gh_15_km') / 'pion_EAS_table.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                pion_gh = np.array(data.get('EASdata_211'))        
+        with as_file(
+            files(f'nuspacesim.data.conex_gh_params.gh_{self.altitude:02}_km') 
+            / 'gamma_EAS_table.h5'
+        ) as path:
+            data = h5py.File(path, 'r')
+            gamma_gh = np.array(data.get('EASdata_22'))
             
-            with as_file(
-                files('nuspacesim.data.pythia_tau_decays') / 'new_tau_100_PeV.h5'
-            ) as path:
-                data = h5py.File(path, 'r')
-                tau_decays = np.array(data.get('tau_data'))            
+        with as_file(
+            files(f'nuspacesim.data.conex_gh_params.gh_{self.altitude:02}_km') 
+            / 'pion_EAS_table.h5'
+        ) as path:
+            data = h5py.File(path, 'r')
+            pion_gh = np.array(data.get('EASdata_211'))        
         
-            self.tau_tables = tau_decays[3000:,:] 
+        with as_file(
+            files('nuspacesim.data.pythia_tau_decays') 
+            / 'new_tau_100_PeV.h5'
+        ) as path:
+            data = h5py.File(path, 'r')
+            tau_decays = np.array(data.get('tau_data'))  
+        
+        self.tau_tables = tau_decays[self.tau_strt:,:]
+                
+        # elif self.altitude == 15: 
+        #     with as_file(
+        #         files('nuspacesim.data.conex_gh_params.gh_15_km') / 'electron_EAS_table.h5'
+        #     ) as path:
+        #         data = h5py.File(path, 'r')
+        #         electron_gh = np.array(data.get('EASdata_11'))
+                
+        #     with as_file(
+        #         files('nuspacesim.data.conex_gh_params.gh_15_km') / 'gamma_EAS_table.h5'
+        #     ) as path:
+        #         data = h5py.File(path, 'r')
+        #         gamma_gh = np.array(data.get('EASdata_22'))
+                
+        #     with as_file(
+        #         files('nuspacesim.data.conex_gh_params.gh_15_km') / 'pion_EAS_table.h5'
+        #     ) as path:
+        #         data = h5py.File(path, 'r')
+        #         pion_gh = np.array(data.get('EASdata_211'))        
+            
+        #     with as_file(
+        #         files('nuspacesim.data.pythia_tau_decays') / 'new_tau_100_PeV.h5'
+        #     ) as path:
+        #         data = h5py.File(path, 'r')
+        #         tau_decays = np.array(data.get('tau_data'))            
+        
+        #     self.tau_tables = tau_decays[3000:,:] 
             
         self.electron_showers = electron_gh
         self.gamma_showers = gamma_gh
@@ -171,10 +184,13 @@ class CompositeShowers():
         """
         #padded_vec_len = self.shower_end/self.grammage + 200
         # pre-allocate arrays, make room for event tag and decay tag 
-        showers = np.ones([gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
+        showers = np.ones(
+            [gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
                             ) 
-        depths = np.ones([gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
+        depths = np.ones(
+            [gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
                             ) 
+        
         # showers = []
         # depths = []
         for row,(shower_params, tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
@@ -345,19 +361,20 @@ class CompositeShowers():
         trimmed_showers_reb_grammage = np.take_along_axis(
             trimmed_depths, rebound_idxs[~full_shower_mask][:,None], axis=1
             )
+        #print()
         #print(np.count_nonzero(did_not_go_below_rebound_thresh))
 
-        print("There are {} full showers.".format(np.shape(full_showers)[0]))
+        print("There is/are: \n {} full showers.".format(np.shape(full_showers)[0]))
         if np.shape(trimmed_showers)[0] == 0:
-            print("There are {} trimmed showers".format(np.shape(trimmed_showers)[0]))
+            print("There are {} trimmed shower(s)".format(np.shape(trimmed_showers)[0]))
         else:  
-            print("There are {} trimmed showers".format(np.shape(trimmed_showers)[0]),
-                  "with cutoffs at {:.0f} ± {:.0f} g/cm^2.".format(
+            print(" {} trimmed shower(s)".format(np.shape(trimmed_showers)[0]),
+                  "with cutoff(s) at {:.0f} ± {:.0f} g/cm^2.".format(
                         np.nanmean(trimmed_showers_reb_grammage), 
                         np.nanstd(trimmed_showers_reb_grammage)
                   )
             )
-        print("There are {} shallow showers.".format(np.shape(shallow_showers)[0]))
+        print(" {} shallow shower(s).".format(np.shape(shallow_showers)[0]))
         
         if separate_showers is True:
             return (tuple((full_showers, full_depths)), 
