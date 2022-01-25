@@ -130,7 +130,7 @@ output. Something like
 
 .. code:: sh
 
-  firefox file:///home/areustle/nasa/NuSpaceSim/nuSpaceSim/.tox/docs_out/index.html
+  firefox file://~/nuSpaceSim/.tox/docs_out/index.html
 
 
 Run unit tests
@@ -147,7 +147,20 @@ The pre-defined unit tests can be run on your system directly with pytest
 Run unit tests on multiple versions of python (Advanced)
 --------------------------------------------------------
 
+First, set up and install `pyenv <https://github.com/pyenv/pyenv>`_, which will require
+altering your default shell environment.
 
+Then use pyenv to install multiple versions of python. I specifically use
+``3.7.11, 3.8.11, 3.9.7, 3.10.0``. Then set all of the desired versions as your "local"
+pyenv python, and check that they're properly set.
+
+::
+
+  pyenv install 3.7.11 3.8.11 3.9.7 3.10.0
+  pyenv local 3.7.11 3.8.11 3.9.7 3.10.0
+  pyenv versions
+
+Finally run the test suite against all versions in parallel with tox.
 
 ::
 
