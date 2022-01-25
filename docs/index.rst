@@ -42,7 +42,7 @@ Please provide feedback, bug reports, and feature requests through our public `I
             :classes: btn-block btn-secondary stretched-link
 
     ---
-    :fa:`book` User guide
+    :fa:`book` Tutorials
     ^^^^^^^^^^
     The user guide provides in-depth information on the
     key concepts of nuSpaceSim with useful background information and explanation.
