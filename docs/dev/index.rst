@@ -1,8 +1,8 @@
 .. _dev:
 
-================
-Developers Guide
-================
+=================
+Developers' Guide
+=================
 
 For developers of nuSpaceSim to perform needed improvements, maintenance, and upgrades.
 
