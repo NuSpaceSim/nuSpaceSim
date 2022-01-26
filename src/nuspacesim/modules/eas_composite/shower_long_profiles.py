@@ -110,7 +110,7 @@ class ShowerParameterization:
             f[stop_point:] = pad_tails_with
             
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
-        #x = (x - x_max)/36.62 #shower stage
+        x = (x - x_max)/36.62 #shower stage
         x = np.pad(
             x, (int(padded_vec_len - len(x) ), 0), 
             'constant',  
