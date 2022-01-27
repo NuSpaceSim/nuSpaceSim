@@ -4,7 +4,7 @@ from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
 
 make_composites_0km =  CompositeShowers( 
-    alt=0, shower_end=5000, grammage=1
+    alt=0, shower_end=10000, grammage=10
     ) 
 
 comp_showers_0km, comp_depths_0km =  make_composites_0km(filter_errors=False) 
@@ -16,11 +16,11 @@ trimmed_showers_0km, test_depths = make_composites_0km.shower_end_cuts(
     )
 # mask = (trimmed_showers_0km > 0) & (trimmed_showers_0km < 1)
 # trimmed_showers_0km[mask] = 0
-
+#%%
 # trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
 
 make_composites_15km = CompositeShowers( 
-    alt=15, shower_end=20000, grammage=1, tau_table_start=3000
+    alt=15, shower_end=20000, grammage=10, tau_table_start=3000
     )
 comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
 trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(
@@ -115,11 +115,11 @@ def mean_rms_plot(showers, bins, **kwargs):
     comp_showers = np.copy(showers[:,2:])
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis = 1) 
     longest_shower_idx = np.argmax(bin_lengths)
-    longest_shower = bins[10, 2:]
+    longest_shower_bin = bins[10, 2:]
     # take average a long each bin, ignoring nans
     average_composites = np.nanmean(comp_showers, axis=0) 
     
-    test = average_composites  - comp_showers
+    #test = average_composites  - comp_showers
     # take the square root of the mean of the difference between the average
     # and each particle content of each shower for one bin, squared
     rms_error = np.sqrt(
@@ -131,7 +131,7 @@ def mean_rms_plot(showers, bins, **kwargs):
     std = np.nanstd(comp_showers, axis = 0)  
     err_in_mean = np.nanstd(comp_showers, axis = 0) / np.sqrt(np.sum(~np.isnan( comp_showers), 0)) 
     #plt.figure(figsize=(8,6))  
-    plt.plot(longest_shower, average_composites,  '--k', label = 'mean') 
+    plt.plot(longest_shower_bin, average_composites,  '--k', label = 'mean') 
     # plt.plot(longest_shower, rms_error ,  '--r', label='rms error') 
     # plt.plot(longest_shower, rms ,  '--g', label='rms') 
     # plt.plot(longest_shower, std ,  '--y', label='std')  
@@ -141,7 +141,7 @@ def mean_rms_plot(showers, bins, **kwargs):
     rms_high = average_composites + rms_error
     
 
-    plt.fill_between(longest_shower, 
+    plt.fill_between(longest_shower_bin, 
                       rms_low, 
                       rms_high,
                       alpha = 0.2, 
@@ -161,12 +161,24 @@ def mean_rms_plot(showers, bins, **kwargs):
     plt.legend()    
     #plt.show()
     
-    return rms_low, rms_high, test
+    return  longest_shower_bin, average_composites#rms_low, rms_high, test
 
 plt.figure(figsize=(8,6), dpi=200)  
-mean_rms_plot( trimmed_showers_0km, comp_depths_0km, label='0 km')
 
-mean_rms_plot( trimmed_showers_15km,comp_depths_15km, label='15 km', facecolor='tab:red')
+bin_0km, mean_0km = mean_rms_plot(
+    trimmed_showers_0km, comp_depths_0km, label='0 km'
+    )
+bin_15km, mean_15km = mean_rms_plot(
+    trimmed_showers_15km,comp_depths_15km, label='15 km', facecolor='tab:red'
+    )
+#%% take a ratio of both
+sample = 2
+plt.plot(bin_0km[0::7],mean_0km[0::7])
+plt.plot(bin_15km[0::12],mean_15km[0::12]) 
+plt.yscale('log')
+ratio_of_diff_altitudes = mean_0km[0::7]/mean_15km[0::12]
+plt.plot(bin_15km[0::12], ratio_of_diff_altitudes)
+
 #%%  
 decay_channels = np.unique(comp_depths_0km[:,1]) [0:2]
 
