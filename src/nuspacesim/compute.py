@@ -66,6 +66,7 @@ def compute(
     verbose: bool = False,
     output_file: str = None,
     to_plot: list = [],
+    plot_kwargs: dict = {},
     write_stages=False,
 ) -> ResultsTable:
     r"""Simulate an upward going shower.
@@ -107,6 +108,8 @@ def compute(
         Name of file to write intermediate stages
     to_plot: list, optional
         Call the listed plotting functions as appropritate.
+    plot_kwargs: dict, option
+        Set the contained plotting specifications
     write_stages: bool, optional
         Enable writing intermediate results to the output_file.
 
@@ -142,6 +145,8 @@ def compute(
     tau = Taus(config)
     eas = EAS(config)
     eas_radio = EASRadio(config)
+    if "filename" not in plot_kwargs:
+        plot_kwargs["filename"] = "nuspacesim_run_" + sim.meta["simTime"][0]
 
     class StagedWriter:
         """Optionally write intermediate values to file"""
@@ -157,37 +162,35 @@ def compute(
                 sim.write(output_file, overwrite=True)
 
     sw = StagedWriter()
-
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
+    beta_tr, thetaArr, pathLenArr = geom(
+        config.simulation.N, store=sw, plot=to_plot, kwargs=plot_kwargs
+    )
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
-        beta_tr.shape[0], store=sw, plot=to_plot
+        beta_tr.shape[0], store=sw, plot=to_plot, kwargs=plot_kwargs
     )
-
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
-        beta_tr, log_e_nu, store=sw, plot=to_plot
+        beta_tr, log_e_nu, store=sw, plot=to_plot, kwargs=plot_kwargs
     )
 
     logv("Computing [green] Decay Altitudes.[/]")
-    altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
+    altDec, lenDec = eas.altDec(
+        beta_tr, tauBeta, tauLorentz, store=sw, plot=to_plot, kwargs=plot_kwargs
+    )
 
     if config.detector.method == "Optical" or config.detector.method == "Both":
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
-            beta_tr,
-            altDec,
-            showerEnergy,
-            store=sw,
-            plot=to_plot,
+            beta_tr, altDec, showerEnergy, store=sw, plot=to_plot, kwargs=plot_kwargs
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")

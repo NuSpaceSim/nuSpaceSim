@@ -39,9 +39,10 @@ def spectra_histogram(inputs, results, *args, **kwargs):
 
     N, spectrum = inputs
     log_e_nu = results
+    plotting_opts = kwargs.get("kwargs")
 
     color = "g"
-    fig = plt.figure(figsize=(8, 7), constrained_layout=True)
+    fig = plt.figure(figsize=plotting_opts.get("figsize"), constrained_layout=True)
     ax = fig.add_subplot(211)
     ax.hist(log_e_nu, 100, log=False, facecolor=color)
     ax.set_xlabel(f"log(E_nu) of {N} events")
@@ -51,4 +52,11 @@ def spectra_histogram(inputs, results, *args, **kwargs):
     ax.set_xlabel(f"log(E_nu) of {N} events")
 
     fig.suptitle(f"Energy Spectra Histogram, Log(E_nu)\n {spectrum}")
-    plt.show()
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_spectra_histogram."
+            + plotting_opts.get("save_as")
+        )

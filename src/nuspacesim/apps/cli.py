@@ -85,7 +85,15 @@ def cli():
     help="Available plotting functions. Select multiple plots with multiple uses of -p",
 )
 @click.option(
-    "-P",
+    "-ps",
+    "--plotsettings",
+    nargs=5,
+    type=click.Tuple([int, int, bool, str, bool]),
+    default=None,
+    help="Save plot supplied with -p with given file extension, optionally suppress pop_up",
+)
+@click.option(
+    "-pc",
     "--plotconfig",
     type=click.Path(
         exists=True,
@@ -136,6 +144,7 @@ def run(
     plot: list,
     plotconfig: str,
     plotall: bool,
+    plotsettings,
     write_stages: bool,
 ) -> None:
     """Perform the full nuspacesim simulation.
@@ -183,22 +192,37 @@ def run(
         config.simulation.spectrum = MonoSpectrum(monospectrum)
     if powerspectrum is not None:
         config.simulation.spectrum = PowerSpectrum(*powerspectrum)
-
     plot = (
         list(registry)
         if plotall
-        else read_plot_config(plotconfig)
+        else read_plot_config(plotconfig)[0]
         if plotconfig
         else plot
     )
+
+    if plotconfig:
+        plot_kwargs = read_plot_config(plotconfig)[1]
+        if output is not None:
+            plot_kwargs["filename"] = output
+    elif (plot and plotsettings) or (plotall and plotsettings):
+        plot_kwargs = {
+            "figsize": (plotsettings[0], plotsettings[1]),
+            "save_to_file": plotsettings[2],
+            "save_as": plotsettings[3],
+            "pop_up": plotsettings[4],
+        }
+        if output is not None:
+            plot_kwargs["filename"] = output
+    else:
+        plot_kwargs = {}
     simulation = compute(
         config,
         verbose=True,
         to_plot=plot,
+        plot_kwargs=plot_kwargs,
         output_file=output,
         write_stages=write_stages,
     )
-
     if not no_result_file:
         simulation.write(output, overwrite=True)
 
@@ -329,6 +353,15 @@ def read_plot_config(filename):
     plot_list = []
     cfg = configparser.ConfigParser()
     cfg.read(filename)
+    plot_kwargs = {
+        "figsize": (
+            cfg["General"].getint("fig_width"),
+            cfg["General"].getint("fig_height"),
+        ),
+        "save_as": cfg["General"]["save_as"],
+        "pop_up": cfg["General"].getboolean("pop_up"),
+        "save_to_file": cfg["General"].getboolean("save_to_file"),
+    }
     for sec in cfg.sections()[1:]:
         for key in cfg[sec]:
             try:
@@ -336,7 +369,7 @@ def read_plot_config(filename):
                     plot_list.append(key)
             except Exception as e:
                 print(e, "Config file contains non-valid option")
-    return plot_list
+    return plot_list, plot_kwargs
 
 
 if __name__ == "__main__":

@@ -42,9 +42,9 @@ def get_profile(x, y, nbins, useStd=True, *args, **kwargs):
         x = x[~np.isnan(y)]
         y = y[~np.isnan(y)]
 
-    n, _ = np.histogram(x, bins=nbins, **kwargs)
-    sy, _ = np.histogram(x, bins=nbins, weights=y, **kwargs)
-    sy2, _ = np.histogram(x, bins=nbins, weights=y * y, **kwargs)
+    n, _ = np.histogram(x, bins=nbins)
+    sy, _ = np.histogram(x, bins=nbins, weights=y)
+    sy2, _ = np.histogram(x, bins=nbins, weights=y * y)
     mean = sy / n
     std = np.sqrt(sy2 / n - mean * mean)
     if not useStd:
@@ -60,6 +60,7 @@ def taus_density_beta(inputs, results, *args, **kwargs):
 
     _, betas, log_e_nu = inputs
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+    plotting_opts = kwargs.get("kwargs")
 
     fig, ax = plt.subplots(2, 2, figsize=(10, 8), sharex=True, constrained_layout=True)
 
@@ -82,7 +83,14 @@ def taus_density_beta(inputs, results, *args, **kwargs):
     fig.colorbar(im, ax=ax, label="Counts", format="%.0e")
 
     fig.suptitle("Tau interaction properties vs. β_tr Angles")
-    plt.show()
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_taus_density_beta."
+            + plotting_opts.get("save_as")
+        )
 
 
 def taus_histogram(inputs, results, *args, **kwargs):
@@ -93,6 +101,7 @@ def taus_histogram(inputs, results, *args, **kwargs):
 
     color = "c"
     alpha = 1
+    plotting_opts = kwargs.get("kwargs")
 
     fig, ax = plt.subplots(2, 2, constrained_layout=True)
 
@@ -106,7 +115,14 @@ def taus_histogram(inputs, results, *args, **kwargs):
     ax[1, 1].set_xlabel("log(PExit(τ))")
 
     fig.suptitle("Tau interaction property Histograms")
-    plt.show()
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_taus_histogram."
+            + plotting_opts.get("save_as")
+        )
 
 
 def taus_pexit(inputs, results, *args, **kwargs):
@@ -115,6 +131,7 @@ def taus_pexit(inputs, results, *args, **kwargs):
 
     color = "c"
     alpha = 0.1 / np.log10(betas.size)
+    plotting_opts = kwargs.get("kwargs")
 
     fig, ax = plt.subplots(1, 2, constrained_layout=True)
 
@@ -135,19 +152,28 @@ def taus_pexit(inputs, results, *args, **kwargs):
     ax[1].set_xlabel("PExit(τ)")
 
     fig.suptitle("Tau Pexit")
-    plt.show()
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_taus_pexit."
+            + plotting_opts.get("save_as")
+        )
 
 
 def taus_overview(inputs, results, *args, **kwargs):
-    r"""Overview plot for taus"""
 
+    print(kwargs)
+    r"""Overview plot for taus"""
+    plotting_opts = kwargs.get("kwargs")
     _, betas, log_e_nu = inputs
     _, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
     log_e_nu = log_e_nu + 9
     tauEnergy = tauEnergy * 1e9
     showerEnergy = showerEnergy * 1e9 * 1e8
 
-    fig, ax = plt.subplots(2, 2, figsize=(10, 8))
+    fig, ax = plt.subplots(2, 2, figsize=kwargs.get("figsize"))
     binning_b = np.arange(
         np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
     )
@@ -233,7 +259,11 @@ def taus_overview(inputs, results, *args, **kwargs):
 
     fig.suptitle("Overview of Tau interaction properties")
     fig.tight_layout()
-    plt.show()
-    # if "pop_up" in kwargs and kwargs.get("pop_up") is True:
-    #     plt.show()
-    # fig.savefig("taus_overview", format="pdf")
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_taus_overview."
+            + plotting_opts.get("save_as")
+        )

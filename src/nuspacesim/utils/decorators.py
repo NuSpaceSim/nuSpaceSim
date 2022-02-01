@@ -200,17 +200,17 @@ def nss_result_plot(*plot_fs):
             if isinstance(plot, str):
                 for plotf in plot_fs:
                     if plotf.__name__ == plot:
-                        plotf(args, values)
+                        plotf(args, values, **kwargs)
             elif callable(plot):
                 plot(args, values)
             elif isinstance(plot, Iterable):
                 if all(isinstance(p, str) for p in plot):
                     for plotf in plot_fs:
                         if plotf.__name__ in plot:
-                            plotf(args, values)
+                            plotf(args, values, **kwargs)
                 elif all(callable(p) for p in plot):
                     for plotf in plot:
-                        plotf(args, values)
+                        plotf(args, values, **kwargs)
             return values
 
         return wrapper_f

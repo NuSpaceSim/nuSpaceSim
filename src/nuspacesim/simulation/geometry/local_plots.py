@@ -40,9 +40,18 @@ def geom_beta_tr_hist(inputs, results, *args, **kwargs):
 
     _ = inputs
     betas, _, _ = results
+    plotting_opts = kwargs.get("kwargs")
 
+    fig = plt.figure(figsize=(8, 7), constrained_layout=True)
     plt.hist(np.degrees(betas), 50, alpha=0.75)
     plt.xlabel("beta_tr (radians)")
     plt.ylabel("frequency (counts)")
     plt.title(f"Histogram of {betas.size} Beta Angles")
-    plt.show()
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_geom_beta_tr_hist."
+            + plotting_opts.get("save_as")
+        )

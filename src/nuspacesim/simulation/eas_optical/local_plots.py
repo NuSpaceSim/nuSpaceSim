@@ -42,6 +42,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
 
     _, betas, altDec, showerEnergy = inputs
     numPEs, costhetaChEff = results
+    plotting_opts = kwargs.get("kwargs")
 
     fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)
 
@@ -91,13 +92,21 @@ def eas_optical_density(inputs, results, *args, **kwargs):
     )
 
     fig.suptitle("EAS Optical Cherenkov properties.")
-    plt.show()
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_eas_optical_density."
+            + plotting_opts.get("save_as")
+        )
 
 
 def eas_optical_histogram(inputs, results, *args, **kwargs):
     r"""Plot some histograms"""
 
     # eas_self, betas, altDec, showerEnergy = inputs
+    plotting_opts = kwargs.get("kwargs")
     numPEs, costhetaChEff = results
 
     color = "salmon"
@@ -112,4 +121,11 @@ def eas_optical_histogram(inputs, results, *args, **kwargs):
     ax[1].set_xlabel("log(cos(θ_chEff))")
 
     fig.suptitle("EAS Optical Cherenkov property Histograms")
-    plt.show()
+    if plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_eas_optical_histogram."
+            + plotting_opts.get("save_as")
+        )
