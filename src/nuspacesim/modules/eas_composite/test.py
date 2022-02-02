@@ -20,7 +20,7 @@ trimmed_showers_0km, test_depths = make_composites_0km.shower_end_cuts(
 # trimmed_showers_0km[trimmed_showers_0km == 0] = np.nan
 
 make_composites_15km = CompositeShowers( 
-    alt=15, shower_end=20000, grammage=10, tau_table_start=3000
+    alt=15, shower_end=20000, grammage=1, tau_table_start=3000
     )
 comp_showers_15km, comp_depths_15km =  make_composites_15km(filter_errors=False) 
 trimmed_showers_15km, _ = make_composites_15km.shower_end_cuts(

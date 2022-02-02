@@ -77,10 +77,12 @@ class ShowerParameterization:
         if np.min(f) < 0: 
             nose_dive = int(np.argwhere(f < 0)[0])
             f[nose_dive:] = pad_tails_with
-        # we consider the fit broken if it exceedes a reasonable value 1e10
+        # we consider the fit broken if it exceedes a reasonable value 
         if np.max(f) > fit_break_thresh:   
+            
             pole = int(np.argwhere(f > fit_break_thresh)[0])
             f[pole:] = pad_tails_with
+            
         # floor the partilce content if < 1
         f[((f > 0) & (f < 1))] = 0  
 
@@ -110,7 +112,7 @@ class ShowerParameterization:
             f[stop_point:] = pad_tails_with
             
         #LambdaAtx_max = p1 + p2*x_max + p3*(x_max**2)
-        x = (x - x_max)/36.62 #shower stage
+        #x = (x - x_max)/36.62 #shower stage
         x = np.pad(
             x, (int(padded_vec_len - len(x) ), 0), 
             'constant',  

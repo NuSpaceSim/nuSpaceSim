@@ -96,33 +96,6 @@ class CompositeShowers():
             tau_decays = np.array(data.get('tau_data'))  
         
         self.tau_tables = tau_decays[self.tau_strt:,:]
-                
-        # elif self.altitude == 15: 
-        #     with as_file(
-        #         files('nuspacesim.data.conex_gh_params.gh_15_km') / 'electron_EAS_table.h5'
-        #     ) as path:
-        #         data = h5py.File(path, 'r')
-        #         electron_gh = np.array(data.get('EASdata_11'))
-                
-        #     with as_file(
-        #         files('nuspacesim.data.conex_gh_params.gh_15_km') / 'gamma_EAS_table.h5'
-        #     ) as path:
-        #         data = h5py.File(path, 'r')
-        #         gamma_gh = np.array(data.get('EASdata_22'))
-                
-        #     with as_file(
-        #         files('nuspacesim.data.conex_gh_params.gh_15_km') / 'pion_EAS_table.h5'
-        #     ) as path:
-        #         data = h5py.File(path, 'r')
-        #         pion_gh = np.array(data.get('EASdata_211'))        
-            
-        #     with as_file(
-        #         files('nuspacesim.data.pythia_tau_decays') / 'new_tau_100_PeV.h5'
-        #     ) as path:
-        #         data = h5py.File(path, 'r')
-        #         tau_decays = np.array(data.get('tau_data'))            
-        
-        #     self.tau_tables = tau_decays[3000:,:] 
             
         self.electron_showers = electron_gh
         self.gamma_showers = gamma_gh
@@ -229,7 +202,7 @@ class CompositeShowers():
         single_showers: arrays
             uniform grammage arrays for each shower component
         shower_bins: array
-            bins for each shower componenet for the composite
+            bins for each shower component for the composite
     
         Returns
         -------
@@ -321,30 +294,40 @@ class CompositeShowers():
         comp_depths = np.copy(composite_depths)
         
         print("Trimming {} showers.".format(np.shape(comp_showers)[0]))
-        # get the idx of the maxiumum particle content, skip the event number and decay code and offset
+        # get the idx of the maxiumum particle content, skip the event number 
+        # and decay code and offset
         nmax_idxs = np.argmax(comp_showers[:,2:], axis=1) + 2 
+        
         # given the idxs of the max values, get the max values
         nmax_vals = np.take_along_axis(comp_showers, nmax_idxs[:,None], axis=1)
+        
         # given the idxs of the max values, get the x max
         xmax_vals = np.take_along_axis(comp_depths, nmax_idxs[:,None], axis=1) 
+        
         # set the rebound threshold
         rebound_values = nmax_vals * shwr_threshold
         print("Cutting shower rebounds past {}% of n max.".format(shwr_threshold*100))
+        
         # get rebound idxs 
         x, y = np.where(comp_showers < rebound_values)
         s = np.flatnonzero(np.append([False], x[1:] != x[:-1]))
         less_than_thresh_per_evt = np.split(y, s)
+        
         # checking each event and getting the last idx where it is still less than the threshold
         rebound_idxs = map(lambda x: x[-1], less_than_thresh_per_evt)
         rebound_idxs = np.array(list(rebound_idxs))
+        
         # check for showers not going below the threshold and rebounding up into it
         non_rebounding = rebound_idxs < nmax_idxs 
         went_past_thresh = rebound_values < comp_showers[:,-1][:, None]
         did_not_go_below_rebound_thresh = non_rebounding[:, None] & went_past_thresh
+        
         # for showers not going low enough, continue them till the end without any cuts,changes mask above
         rebound_idxs[:, None][did_not_go_below_rebound_thresh] = np.shape(comp_showers)[1] - 1 
+        
         # from the rebound idxs on cutoff the shower
         cut_off_mask = rebound_idxs[:,None] < np.arange(np.shape(comp_showers)[1])
+        
         # check for showers not reaching up into the threshold and were never cut short
         full_shower_mask = rebound_idxs == np.shape(comp_showers)[1] - 1
         
