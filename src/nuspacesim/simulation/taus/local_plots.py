@@ -164,7 +164,6 @@ def taus_pexit(inputs, results, *args, **kwargs):
 
 def taus_overview(inputs, results, *args, **kwargs):
 
-    print(kwargs)
     r"""Overview plot for taus"""
     plotting_opts = kwargs.get("kwargs")
     _, betas, log_e_nu = inputs
