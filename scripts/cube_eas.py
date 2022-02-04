@@ -523,8 +523,8 @@ def photon_count():
 
     # alt_dec = np.random.uniform(0.1, 2.2, N)
     # beta_tr = np.random.uniform(np.radians(1), 0.5 * np.pi, N)
-    alt_dec = np.linspace(0.1, 2.2, n)
-    beta_tr = np.linspace(np.radians(1), 0.5 * np.pi, n)
+    alt_dec = np.linspace(0.2, 2.2, n)
+    beta_tr = np.linspace(np.radians(20), 0.5 * np.pi, n)
     alt_dec, beta_tr = np.meshgrid(alt_dec, beta_tr)
     alt_dec = alt_dec.ravel()
     beta_tr = beta_tr.ravel()

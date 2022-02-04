@@ -46,125 +46,6 @@ def differential_ozone(z):
     return -derivative(ozone, z)
 
 
-def poly_differential_ozone(z):
-    # fmt: off
-    _polydifoz = Polynomial(
-        [1.58730302e-1, -2.28377732e00, 3.88514872e00, -1.00201924e02, 1.25384358e03,
-         -6.07444561e01, -2.55521209e04, 9.95782609e03, 2.89535348e05, -1.68713471e05,
-         -1.88322268e06, 1.28137760e06, 7.56064015e06, -5.30174814e06, -1.99411195e07,
-         1.33214081e07, 3.58159190e07, -2.13788677e07, -4.43222183e07, 2.21324708e07,
-         3.73327083e07, -1.43479612e07, -2.04932327e07, 5.30961778e06, 6.62152119e06,
-         -8.57379855e05, -9.56235193e05, ],
-        domain=[0.0, 100.0],
-    )
-    # fmt: on
-    return _polydifoz(z)
-
-
-ozone_spline = BSpline(
-    # fmt: off
-    np.array(
-        [0.0, 0.0, 0.0, 0.0, 6.89655172, 10.34482759, 13.79310345, 17.24137931,
-         20.68965517, 24.13793103, 27.5862069, 31.03448276, 34.48275862, 37.93103448,
-         41.37931034, 44.82758621, 48.27586207, 51.72413793, 55.17241379, 58.62068966,
-         62.06896552, 65.51724138, 68.96551724, 72.4137931, 75.86206897, 79.31034483,
-         82.75862069, 86.20689655, 89.65517241, 93.10344828, 100.0, 100.0, 100.0,
-         100.0, ]
-    ),
-    np.array(
-        [3.25000000e02, 3.18177024e02, 3.08908644e02, 3.00483582e02, 2.95353477e02,
-         2.76720925e02, 2.38445425e02, 1.80430762e02, 1.06225920e02, 6.45461187e01,
-         3.28591575e01, 1.22379408e01, 7.65516571e00, 2.81772715e00, 1.04250806e00,
-         1.40834257e00, 1.20048349e00, 1.14634515e00, 1.05101746e00, 9.66726427e-01,
-         8.79478129e-01, 7.93022227e-01, 7.06354003e-01, 6.19742671e-01,
-         5.33116094e-01, 4.46493602e-01, 3.59870016e-01, 2.44372291e-01,
-         1.57748887e-01, 1.00000000e-01, 0.00000000e00, 0.00000000e00, 0.00000000e00,
-         0.00000000e00, ]
-    ),
-    3,
-    # fmt: on
-)
-
-
-def spline_differential_ozone(z):
-    return -ozone_spline.derivative(1)(z)
-
-
-def ozone_content(L_n, Lmax, alt_dec, beta_tr):
-    def f(x):
-        return spline_differential_ozone(altitude_along_prop_axis(x, alt_dec, beta_tr))
-
-    return cp.integrate(
-        f, L_n, Lmax, is_1d=True, parallel=True, tile_byte_limit=2 ** 25
-    )
-
-
-def ozone_losses(ZonZ, wavelength):
-    """
-    Calculate ozone losses from points along shower axis (l) in km.
-
-    ############################
-    Implementation needs review.
-    ############################
-
-    """
-
-    Okappa = 10 ** (110.5 - 44.21 * np.log10(wavelength))
-    return np.exp(-1e-3 * np.multiply(ZonZ, Okappa))
-
-
-def atmospheric_ozone_fit(_):
-    # slant-depth from gaussian quadriture
-    matplotlib.rcParams.update({"font.size": 16})
-
-    N = int(22)
-    M = int(1e5)
-    x = np.linspace(0.0, 100.0, N)
-    z = np.linspace(0.0, 100.0, M)
-    xoz = ozone(x)
-    oz = ozone(z)
-    doz = differential_ozone(z)
-
-    spl = splrep(x, xoz)
-    soz = splev(z, spl)
-
-    fig, (ax1, ax2) = plt.subplots(2, 2, sharex=True, squeeze=True)
-
-    ax1[0].plot(z, oz, "b-")
-    ax1[0].plot(z, soz, "r--")
-    ax1[0].set_xlabel("Altitude (KM)")
-    ax1[0].set_ylabel("Ozone Depth")
-    ax1[0].set_title("Ozone Depth")
-    ax1[0].legend(["Nimbus", "Spline"])
-    ax1[0].grid(True)
-
-    ax2[0].plot(z, oz, "b-")
-    ax2[0].plot(z, soz, "r--")
-    ax2[0].set_yscale("log")
-    ax2[0].set_xlabel("Altitude (KM)")
-    ax2[0].set_ylabel("Log(Ozone Depth)")
-    ax2[0].grid(True)
-
-    dsoz = -splev(z, spl, der=1)
-
-    ax1[1].plot(z, doz, "b-")
-    ax1[1].plot(z, dsoz, "r--")
-    ax1[1].set_xlabel("Altitude (KM)")
-    ax1[1].set_ylabel("d(Ozone Depth)/d altitude")
-    ax1[1].set_title("negative first derivative")
-    ax1[1].legend(["Nimbus", "Spline"])
-    ax1[1].grid(True)
-
-    ax2[1].plot(z, doz, "b")
-    ax2[1].plot(z, dsoz, "r--")
-    ax2[1].set_yscale("log")
-    ax2[1].set_xlabel("Altitude (KM)")
-    ax2[1].set_ylabel("log(d(Ozone Depth)/d altitude)")
-    ax2[1].grid(True)
-
-    plt.show()
-
-
 def plot_hist_errors(
     Z, T, OD, OD_fit, title="Ozone Depth Approximaiton Error Histograms"
 ):
@@ -177,6 +58,9 @@ def plot_hist_errors(
         r"$\frac{3\pi}{8}$",
         r"$\frac{\pi}{2}$",
     ]
+
+    print("Absolute Error", np.sum(np.abs(OD - OD_fit)))
+    print("Relative Error", np.sum(np.abs(OD[OD > 0] - OD_fit[OD > 0]) / OD[OD > 0]))
 
     fig = plt.figure(figsize=(15, 10), constrained_layout=True)
     fig.suptitle(title)
@@ -219,10 +103,6 @@ def plot_hist_errors(
     ax.set_yticks(rad_ticks)
     ax.set_yticklabels(rad_tick_labels)
     ax.set_title("Absolute Error |quadrature - approx|")
-
-    # ax = fig.add_subplot(324)
-    # ax.scatter((np.abs(OD[OD > 0] - OD_fit[OD > 0]) / OD[OD > 0]).ravel())
-    # ax.set_xlabel("Relative Error |quadrature - approx|/slant_depth")
 
     plt.show()
 
