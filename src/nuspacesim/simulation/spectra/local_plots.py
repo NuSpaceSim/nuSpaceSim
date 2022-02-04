@@ -40,19 +40,24 @@ def spectra_histogram(inputs, results, *args, **kwargs):
     N, spectrum = inputs
     log_e_nu = results
     plotting_opts = kwargs.get("kwargs")
+    if "default_color" in plotting_opts:
+        c = "C{}".format(plotting_opts.get("default_color"))
+    else:
+        c = "C0"
 
-    color = "g"
-    fig = plt.figure(figsize=plotting_opts.get("figsize"), constrained_layout=True)
+    fig = plt.figure(constrained_layout=True)
     ax = fig.add_subplot(211)
-    ax.hist(log_e_nu, 100, log=False, facecolor=color)
+    ax.hist(log_e_nu, 100, log=False, color=c)
     ax.set_xlabel(f"log(E_nu) of {N} events")
 
     ax = fig.add_subplot(212)
-    ax.hist(log_e_nu, 100, log=True, facecolor=color)
+    ax.hist(log_e_nu, 100, log=True, color=c)
     ax.set_xlabel(f"log(E_nu) of {N} events")
 
     fig.suptitle(f"Energy Spectra Histogram, Log(E_nu)\n {spectrum}")
-    if plotting_opts.get("pop_up") is True:
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
         fig.savefig(

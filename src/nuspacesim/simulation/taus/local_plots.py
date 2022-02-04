@@ -61,6 +61,10 @@ def taus_density_beta(inputs, results, *args, **kwargs):
     _, betas, log_e_nu = inputs
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
     plotting_opts = kwargs.get("kwargs")
+    if "default_colormap" in plotting_opts:
+        cm = plotting_opts.get("default_colormap")
+    else:
+        cm = "viridis"
 
     fig, ax = plt.subplots(2, 2, figsize=(10, 8), sharex=True, constrained_layout=True)
 
@@ -69,7 +73,7 @@ def taus_density_beta(inputs, results, *args, **kwargs):
     def hist2d(ax, x, y, xlab, ylab):
         nonlocal im
         _, _, _, im = ax.hist2d(
-            x=np.degrees(x), y=np.log10(y), bins=(50, 50), cmin=1, cmap="jet"
+            x=np.degrees(x), y=np.log10(y), bins=(50, 50), cmin=1, cmap=cm
         )
         ax.set_xlabel(xlab)
         ax.set_ylabel(ylab)
@@ -83,7 +87,9 @@ def taus_density_beta(inputs, results, *args, **kwargs):
     fig.colorbar(im, ax=ax, label="Counts", format="%.0e")
 
     fig.suptitle("Tau interaction properties vs. β_tr Angles")
-    if plotting_opts.get("pop_up") is True:
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
         fig.savefig(
@@ -99,23 +105,27 @@ def taus_histogram(inputs, results, *args, **kwargs):
     _, _, _ = inputs
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
 
-    color = "c"
-    alpha = 1
     plotting_opts = kwargs.get("kwargs")
+    if "default_color" in plotting_opts:
+        c = "C{}".format(plotting_opts.get("default_color"))
+    else:
+        c = "C0"
 
     fig, ax = plt.subplots(2, 2, constrained_layout=True)
 
-    ax[0, 0].hist(tauBeta, 100, log=True, facecolor=color, alpha=alpha)
+    ax[0, 0].hist(tauBeta, 100, log=True, facecolor=c)
     ax[0, 0].set_xlabel("log(τ_β)")
-    ax[0, 1].hist(tauLorentz, 100, log=True, facecolor=color, alpha=alpha)
+    ax[0, 1].hist(tauLorentz, 100, log=True, facecolor=c)
     ax[0, 1].set_xlabel("log(τ_Lorentz)")
-    ax[1, 0].hist(showerEnergy, 100, log=True, facecolor=color, alpha=alpha)
+    ax[1, 0].hist(showerEnergy, 100, log=True, facecolor=c)
     ax[1, 0].set_xlabel("log(showerEnergy)")
-    ax[1, 1].hist(tauExitProb, 100, log=True, facecolor=color, alpha=alpha)
+    ax[1, 1].hist(tauExitProb, 100, log=True, facecolor=c)
     ax[1, 1].set_xlabel("log(PExit(τ))")
 
     fig.suptitle("Tau interaction property Histograms")
-    if plotting_opts.get("pop_up") is True:
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
         fig.savefig(
@@ -129,9 +139,12 @@ def taus_pexit(inputs, results, *args, **kwargs):
     _, betas, _ = inputs
     _, _, _, _, tauExitProb = results
 
-    color = "c"
-    alpha = 0.1 / np.log10(betas.size)
     plotting_opts = kwargs.get("kwargs")
+    if "default_color" in plotting_opts:
+        c = "C{}".format(plotting_opts.get("default_color"))
+    else:
+        c = "C0"
+    alpha = 0.1 / np.log10(betas.size)
 
     fig, ax = plt.subplots(1, 2, constrained_layout=True)
 
@@ -139,7 +152,7 @@ def taus_pexit(inputs, results, *args, **kwargs):
         x=np.degrees(betas),
         y=np.log10(tauExitProb),
         s=1,
-        c=color,
+        c=c,
         marker=".",
         alpha=alpha,
     )
@@ -147,12 +160,14 @@ def taus_pexit(inputs, results, *args, **kwargs):
     ax[0].set_ylabel("log(PExit(τ))")
     ax[0].set_title("β vs Exit Probability.")
 
-    ax[1].hist(tauExitProb, 100, log=True, facecolor=color)
+    ax[1].hist(tauExitProb, 100, log=True, facecolor=c)
     ax[1].set_ylabel("log(frequency)")
     ax[1].set_xlabel("PExit(τ)")
 
     fig.suptitle("Tau Pexit")
-    if plotting_opts.get("pop_up") is True:
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
         fig.savefig(
@@ -166,6 +181,18 @@ def taus_overview(inputs, results, *args, **kwargs):
 
     r"""Overview plot for taus"""
     plotting_opts = kwargs.get("kwargs")
+    if "default_color" in plotting_opts:
+        c1, c2, c3 = (
+            "C{}".format(plotting_opts.get("default_color")),
+            "C{}".format(plotting_opts.get("default_color") + 1),
+            "C{}".format(plotting_opts.get("default_color") + 2),
+        )
+    else:
+        c1, c2, c3 = "C0", "C1", "C2"
+    if "default_colormap" in plotting_opts:
+        cm = plotting_opts.get("default_colormap")
+    else:
+        cm = "viridis"
     _, betas, log_e_nu = inputs
     _, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
     log_e_nu = log_e_nu + 9
@@ -182,19 +209,23 @@ def taus_overview(inputs, results, *args, **kwargs):
         0.1,
     )
     ax[0, 0].hist(
-        x=log_e_nu, bins=binning_e, color="C0", alpha=0.6, label=r"$E_{\nu_\tau}$"
+        x=log_e_nu,
+        bins=binning_e,
+        color=c1,
+        alpha=0.6,
+        label=r"$E_{\nu_\tau}$",
     )
     ax[0, 0].hist(
         x=np.log10(tauEnergy),
         bins=binning_e,
-        color="C1",
+        color=c2,
         alpha=0.6,
         label=r"$E_\tau$",
     )
     ax[0, 0].hist(
         x=np.log10(showerEnergy),
         bins=binning_e,
-        color="C2",
+        color=c3,
         alpha=0.6,
         label=r"$E_\mathrm{shower}$",
     )
@@ -205,7 +236,11 @@ def taus_overview(inputs, results, *args, **kwargs):
     )
     ax[0, 0].set_ylabel(r"Counts")
 
-    n, bins, _ = ax[0, 1].hist(x=np.degrees(betas), bins=binning_b)
+    n, bins, _ = ax[0, 1].hist(
+        x=np.degrees(betas),
+        bins=binning_b,
+        color=c1,
+    )
     ax[0, 1].set_xlabel(r"Earth emergence angle $\beta$ / $^{\circ}$")
     ax[0, 1].set_ylabel("Counts")
     ax[0, 1].set_yscale("log")
@@ -215,7 +250,7 @@ def taus_overview(inputs, results, *args, **kwargs):
         np.log10(np.min(tauLorentz)) - 0.2, np.log10(np.max(tauLorentz)) + 0.2, 25
     )
     _, _, _, im = ax[1, 0].hist2d(
-        np.degrees(betas), tauLorentz, bins=[binning_b, binning_y], cmin=1
+        np.degrees(betas), tauLorentz, bins=[binning_b, binning_y], cmin=1, cmap=cm
     )
     bincenter, mean, std, binwidth = get_profile(
         np.degrees(betas), tauLorentz, 10, useStd=True, **kwargs
@@ -225,7 +260,7 @@ def taus_overview(inputs, results, *args, **kwargs):
         mean,
         yerr=std,
         xerr=binwidth,
-        color="C1",
+        color=c2,
         fmt=".",
         lw=2,
         zorder=5,
@@ -245,7 +280,11 @@ def taus_overview(inputs, results, *args, **kwargs):
         np.log10(np.min(tauExitProb)) - 0.2, np.log10(np.max(tauExitProb)) + 0.2, 25
     )
     _, _, _, im = ax[1, 1].hist2d(
-        np.degrees(betas), tauExitProb, bins=[binning_b, binning_y], cmin=1
+        np.degrees(betas),
+        tauExitProb,
+        bins=[binning_b, binning_y],
+        cmin=1,
+        cmap=cm,
     )
     divider = make_axes_locatable(ax[1, 1])
     cax = divider.append_axes("right", size="5%", pad=0.0)
@@ -258,7 +297,9 @@ def taus_overview(inputs, results, *args, **kwargs):
 
     fig.suptitle("Overview of Tau interaction properties")
     fig.tight_layout()
-    if plotting_opts.get("pop_up") is True:
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
         fig.savefig(

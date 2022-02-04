@@ -41,13 +41,19 @@ def geom_beta_tr_hist(inputs, results, *args, **kwargs):
     _ = inputs
     betas, _, _ = results
     plotting_opts = kwargs.get("kwargs")
+    if "default_color" in plotting_opts:
+        c = "C{}".format(plotting_opts.get("default_color"))
+    else:
+        c = "C0"
 
     fig = plt.figure(figsize=(8, 7), constrained_layout=True)
-    plt.hist(np.degrees(betas), 50, alpha=0.75)
+    plt.hist(np.degrees(betas), 50, color=c)
     plt.xlabel("beta_tr (radians)")
     plt.ylabel("frequency (counts)")
     plt.title(f"Histogram of {betas.size} Beta Angles")
-    if plotting_opts.get("pop_up") is True:
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
         fig.savefig(

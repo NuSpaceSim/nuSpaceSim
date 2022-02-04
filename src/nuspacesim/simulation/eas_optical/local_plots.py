@@ -43,10 +43,14 @@ def eas_optical_density(inputs, results, *args, **kwargs):
     _, betas, altDec, showerEnergy = inputs
     numPEs, costhetaChEff = results
     plotting_opts = kwargs.get("kwargs")
+    if "default_colormap" in plotting_opts:
+        cm = plotting_opts.get("default_colormap")
+    else:
+        cm = "viridis"
 
     fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)
 
-    hist2d(fig, ax[0, 0], np.degrees(betas), numPEs, "β", "numPEs", cmap="plasma")
+    hist2d(fig, ax[0, 0], np.degrees(betas), numPEs, "β", "numPEs", cmap=cm)
     hist2d(
         fig,
         ax[1, 0],
@@ -54,12 +58,10 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         costhetaChEff,
         "β",
         "cos(θ_chEff)",
-        cmap="plasma",
+        cmap=cm,
     )
 
-    hist2d(
-        fig, ax[0, 1], altDec, numPEs, "decay altitude (km)", "numPEs", cmap="plasma"
-    )
+    hist2d(fig, ax[0, 1], altDec, numPEs, "decay altitude (km)", "numPEs", cmap=cm)
 
     hist2d(
         fig,
@@ -68,7 +70,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         costhetaChEff,
         "decay altitude (km)",
         "cos(θ_chEff)",
-        cmap="plasma",
+        cmap=cm,
     )
 
     hist2d(
@@ -78,7 +80,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         numPEs,
         "showerEnergy (100 PeV)",
         "numPEs",
-        cmap="plasma",
+        cmap=cm,
     )
 
     hist2d(
@@ -88,7 +90,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         costhetaChEff,
         "showerEnergy (100 PeV)",
         "cos(θ_chEff)",
-        cmap="plasma",
+        cmap=cm,
     )
 
     fig.suptitle("EAS Optical Cherenkov properties.")
@@ -107,21 +109,24 @@ def eas_optical_histogram(inputs, results, *args, **kwargs):
 
     # eas_self, betas, altDec, showerEnergy = inputs
     plotting_opts = kwargs.get("kwargs")
+    if "default_color" in plotting_opts:
+        c = "C{}".format(plotting_opts.get("default_color"))
+    else:
+        c = "C0"
     numPEs, costhetaChEff = results
-
-    color = "salmon"
-    alpha = 1
 
     fig, ax = plt.subplots(2, 1, constrained_layout=True)
 
-    ax[0].hist(numPEs, 100, log=True, facecolor=color, alpha=alpha)
+    ax[0].hist(numPEs, 100, log=True, facecolor=c)
     ax[0].set_xlabel("log(numPEs)")
 
-    ax[1].hist(costhetaChEff, 100, log=True, facecolor=color, alpha=alpha)
+    ax[1].hist(costhetaChEff, 100, log=True, facecolor=c)
     ax[1].set_xlabel("log(cos(θ_chEff))")
 
     fig.suptitle("EAS Optical Cherenkov property Histograms")
-    if plotting_opts.get("pop_up") is True:
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
         fig.savefig(
