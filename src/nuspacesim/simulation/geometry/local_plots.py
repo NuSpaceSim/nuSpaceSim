@@ -31,6 +31,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -48,9 +49,9 @@ def geom_beta_tr_hist(inputs, results, *args, **kwargs):
 
     fig = plt.figure(figsize=(8, 7), constrained_layout=True)
     plt.hist(np.degrees(betas), 50, color=c)
-    plt.xlabel("beta_tr (radians)")
-    plt.ylabel("frequency (counts)")
-    plt.title(f"Histogram of {betas.size} Beta Angles")
+    plt.xlabel("Earth emergence angle $\\beta$ / $^{\\circ}$")
+    plt.ylabel("Counts")
+    plt.title(f"Histogram of {betas.size} $\\beta$ angles")
     if "pop_up" not in plotting_opts:
         plt.show()
     elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
@@ -59,5 +60,46 @@ def geom_beta_tr_hist(inputs, results, *args, **kwargs):
         fig.savefig(
             plotting_opts.get("filename")
             + "_geom_beta_tr_hist."
+            + plotting_opts.get("save_as")
+        )
+
+
+def path_length_to_detector(inputs, results, *args, **kwargs):
+    r"""Plot a histgram of beta trajectories."""
+
+    _ = inputs
+    betas, _, path_lens = results
+    plotting_opts = kwargs.get("kwargs")
+    if "default_colormap" in plotting_opts:
+        cm = plotting_opts.get("default_colormap")
+    else:
+        cm = "viridis"
+
+    binning_b = np.arange(
+        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
+    )
+    fig, ax = plt.subplots(figsize=kwargs.get("figsize"), constrained_layout=True)
+    im = ax.hexbin(
+        np.degrees(betas),
+        path_lens,
+        gridsize=len(binning_b),
+        yscale="log",
+        mincnt=1,
+        cmap=cm,
+        edgecolors="none",
+    )
+    ax.set_xlabel("Earth emergence angle $\\beta$ / $^{\\circ}$")
+    ax.set_ylabel("Path length to detector / km")
+    cbar = fig.colorbar(im, ax=ax, pad=0.0)
+    cbar.set_label("Counts")
+
+    if "pop_up" not in plotting_opts:
+        plt.show()
+    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
+        plt.show()
+    if plotting_opts.get("save_to_file") is True:
+        fig.savefig(
+            plotting_opts.get("filename")
+            + "_path_length_to_detector."
             + plotting_opts.get("save_as")
         )

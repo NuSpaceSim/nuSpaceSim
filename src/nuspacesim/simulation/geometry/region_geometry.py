@@ -34,7 +34,7 @@
 import numpy as np
 
 from ...utils import decorators
-from .local_plots import geom_beta_tr_hist
+from .local_plots import geom_beta_tr_hist, path_length_to_detector
 
 __all__ = ["RegionGeom"]
 
@@ -235,7 +235,7 @@ class RegionGeom:
     def valid_costhetaTrSubV(self):
         return self.costhetaTrSubV[self.event_mask]
 
-    @decorators.nss_result_plot(geom_beta_tr_hist)
+    @decorators.nss_result_plot(geom_beta_tr_hist, path_length_to_detector)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")
     def __call__(self, numtrajs, *args, **kwargs):
         """Throw numtrajs events and return valid betas."""

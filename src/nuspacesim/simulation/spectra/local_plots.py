@@ -45,16 +45,16 @@ def spectra_histogram(inputs, results, *args, **kwargs):
     else:
         c = "C0"
 
-    fig = plt.figure(constrained_layout=True)
-    ax = fig.add_subplot(211)
-    ax.hist(log_e_nu, 100, log=False, color=c)
-    ax.set_xlabel(f"log(E_nu) of {N} events")
+    fig, ax = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
+    ax[0].hist(log_e_nu, 100, log=False, color=c)
+    ax[0].set_ylabel("Counts")
 
-    ax = fig.add_subplot(212)
-    ax.hist(log_e_nu, 100, log=True, color=c)
-    ax.set_xlabel(f"log(E_nu) of {N} events")
+    ax[1].hist(log_e_nu, 100, log=True, color=c)
+    ax[1].set_xlabel("$\\log_{{10}}\\left(E_\\nu\\right)$")
+    ax[1].set_ylabel("Counts")
 
-    fig.suptitle(f"Energy Spectra Histogram, Log(E_nu)\n {spectrum}")
+    fig.suptitle(f"Energy Spectra Histogram of {N} events\n {spectrum}")
+    fig.tight_layout()
     if "pop_up" not in plotting_opts:
         plt.show()
     elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:

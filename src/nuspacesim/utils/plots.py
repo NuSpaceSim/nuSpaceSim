@@ -38,6 +38,30 @@ from . import decorators
 __all__ = ["dashboard", "energy_histograms", "show_plot"]
 
 
+def hexbin(fig, ax, x, y, xlab, ylab, cmap="viridis", logx=True, logy=True):
+
+    xf = np.log10 if logx else lambda q: q
+    yf = np.log10 if logy else lambda q: q
+
+    xl = f"log({xlab})" if logx else xlab
+    yl = f"log({ylab})" if logy else ylab
+
+    xmask = x > 0 if logx else np.full(x.shape, True)
+    ymask = y > 0 if logy else np.full(y.shape, True)
+    m = xmask & ymask
+
+    im = ax.hexbin(
+        x=xf(x[m]), y=yf(y[m]), gridsize=25, mincnt=1, cmap=cmap, edgecolors="none"
+    )
+
+    ax.set_xlabel(xl)
+    ax.set_ylabel(yl)
+
+    ax.set_title(f"{yl} vs {xl}")
+    cbar = fig.colorbar(im, ax=ax, pad=0.0)
+    cbar.set_label("Counts")
+
+
 def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
 
     xf = np.log10 if logx else lambda q: q
@@ -103,7 +127,6 @@ def energy_histograms(sim, fig, ax=None):
         color="C0",
         alpha=0.6,
         label=r"$E_{\nu_\tau}$",
-        edgecolor="k",
     )
     ax.hist(
         x=np.log10(sim["tauEnergy"]) + 9,

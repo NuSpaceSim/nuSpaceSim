@@ -65,28 +65,63 @@ def taus_density_beta(inputs, results, *args, **kwargs):
         cm = plotting_opts.get("default_colormap")
     else:
         cm = "viridis"
-
+    binning_b = np.arange(
+        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
+    )
     fig, ax = plt.subplots(2, 2, figsize=(10, 8), sharex=True, constrained_layout=True)
 
     im = None
 
-    def hist2d(ax, x, y, xlab, ylab):
+    def hexbin(ax, x, y, xlab, xunits, ylab):
         nonlocal im
-        _, _, _, im = ax.hist2d(
-            x=np.degrees(x), y=np.log10(y), bins=(50, 50), cmin=1, cmap=cm
+        im = ax.hexbin(
+            x=np.degrees(x),
+            y=np.log10(y),
+            gridsize=len(binning_b),
+            mincnt=1,
+            cmap=cm,
+            edgecolors="none",
         )
-        ax.set_xlabel(xlab)
-        ax.set_ylabel(ylab)
+        ax.set_xlabel(f"{xlab} / {xunits}")
+        ax.set_ylabel(f"{ylab}")
         ax.set_title(f"{xlab} vs {ylab}")
 
-    hist2d(ax[0, 0], betas, tauBeta, "β", "log(τ_β)")
-    hist2d(ax[0, 1], betas, tauLorentz, "β", "log(τ_Lorentz)")
-    hist2d(ax[1, 0], betas, showerEnergy, "β", "log(showerEnergy)")
-    hist2d(ax[1, 1], betas, tauExitProb, "β", "log(Exit Probability (τ))")
+    hexbin(
+        ax[0, 0],
+        betas,
+        tauBeta,
+        "$\\beta$",
+        "$^{\\circ}$",
+        "$\\log_{10}(\\tau_\\beta)$",
+    )
+    hexbin(
+        ax[0, 1],
+        betas,
+        tauLorentz,
+        "$\\beta$",
+        "$^{\\circ}$",
+        "$\\log_{10}(\\tau_\\mathrm{Lorentz})$",
+    )
+    hexbin(
+        ax[1, 0],
+        betas,
+        showerEnergy,
+        "$\\beta$",
+        "$^{\\circ}$",
+        "$\\log_{10}(E_\\mathrm{shower})$",
+    )
+    hexbin(
+        ax[1, 1],
+        betas,
+        tauExitProb,
+        "$\\beta$",
+        "$^{\\circ}$",
+        "$\\log_{10}(P_\\mathrm{Exit}(\\tau))$",
+    )
 
     fig.colorbar(im, ax=ax, label="Counts", format="%.0e")
 
-    fig.suptitle("Tau interaction properties vs. β_tr Angles")
+    fig.suptitle("Tau interaction properties vs. Earth emergence angles $\\beta$")
     if "pop_up" not in plotting_opts:
         plt.show()
     elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
@@ -114,15 +149,15 @@ def taus_histogram(inputs, results, *args, **kwargs):
     fig, ax = plt.subplots(2, 2, constrained_layout=True)
 
     ax[0, 0].hist(tauBeta, 100, log=True, facecolor=c)
-    ax[0, 0].set_xlabel("log(τ_β)")
+    ax[0, 0].set_xlabel("$\\log_{10}(\\tau_\\beta)$")
     ax[0, 1].hist(tauLorentz, 100, log=True, facecolor=c)
-    ax[0, 1].set_xlabel("log(τ_Lorentz)")
+    ax[0, 1].set_xlabel("$\\log_{10}(\\tau_\\mathrm{Lorentz})$")
     ax[1, 0].hist(showerEnergy, 100, log=True, facecolor=c)
-    ax[1, 0].set_xlabel("log(showerEnergy)")
+    ax[1, 0].set_xlabel("$\\log_{10}(E_\\mathrm{shower})$")
     ax[1, 1].hist(tauExitProb, 100, log=True, facecolor=c)
-    ax[1, 1].set_xlabel("log(PExit(τ))")
+    ax[1, 1].set_xlabel("$\\log_{10}(P_\\mathrm{Exit}(\\tau))$")
 
-    fig.suptitle("Tau interaction property Histograms")
+    fig.suptitle("$\\tau$ interaction property Histograms")
     if "pop_up" not in plotting_opts:
         plt.show()
     elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
@@ -144,27 +179,36 @@ def taus_pexit(inputs, results, *args, **kwargs):
         c = "C{}".format(plotting_opts.get("default_color"))
     else:
         c = "C0"
-    alpha = 0.1 / np.log10(betas.size)
+    if "default_colormap" in plotting_opts:
+        cm = plotting_opts.get("default_colormap")
+    else:
+        cm = "viridis"
 
-    fig, ax = plt.subplots(1, 2, constrained_layout=True)
-
-    ax[0].scatter(
-        x=np.degrees(betas),
-        y=np.log10(tauExitProb),
-        s=1,
-        c=c,
-        marker=".",
-        alpha=alpha,
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5), constrained_layout=True)
+    binning_b = np.arange(
+        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
     )
-    ax[0].set_xlabel("β")
-    ax[0].set_ylabel("log(PExit(τ))")
-    ax[0].set_title("β vs Exit Probability.")
+    im = ax[0].hexbin(
+        np.degrees(betas),
+        np.log10(tauExitProb),
+        gridsize=len(binning_b),
+        mincnt=1,
+        cmap=cm,
+        edgecolors="none",
+    )
+    ax[0].set_xlabel("$\\beta$ / $^{\\circ}$")
+    ax[0].set_ylabel("$\\log_{10}(P_\\mathrm{Exit}(\\tau))$")
 
     ax[1].hist(tauExitProb, 100, log=True, facecolor=c)
-    ax[1].set_ylabel("log(frequency)")
-    ax[1].set_xlabel("PExit(τ)")
+    ax[1].set_ylabel("$\\log(Counts)$")
+    ax[1].set_xlabel("$P_\\mathrm{Exit}(\\tau)$")
 
-    fig.suptitle("Tau Pexit")
+    divider = make_axes_locatable(ax[0])
+    cax = divider.append_axes("right", size="5%", pad=0.0)
+    cbar = fig.colorbar(im, cax=cax)
+    cbar.set_label("Counts")
+
+    fig.suptitle("$\\tau$ exit probability")
     if "pop_up" not in plotting_opts:
         plt.show()
     elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
@@ -213,26 +257,26 @@ def taus_overview(inputs, results, *args, **kwargs):
         bins=binning_e,
         color=c1,
         alpha=0.6,
-        label=r"$E_{\nu_\tau}$",
+        label="$E_{\\nu_\\tau}$",
     )
     ax[0, 0].hist(
         x=np.log10(tauEnergy),
         bins=binning_e,
         color=c2,
         alpha=0.6,
-        label=r"$E_\tau$",
+        label="$E_\\tau$",
     )
     ax[0, 0].hist(
         x=np.log10(showerEnergy),
         bins=binning_e,
         color=c3,
         alpha=0.6,
-        label=r"$E_\mathrm{shower}$",
+        label="$E_\\mathrm{shower}$",
     )
     ax[0, 0].set_yscale("log")
     ax[0, 0].legend(loc="upper left")
     ax[0, 0].set_xlabel(
-        r"Energy / $\log_\mathrm{10}\left(\frac{E}{\mathrm{eV}}\right)$"
+        "Energy / $\\log_\\mathrm{10}\\left(\\frac{E}{\\mathrm{eV}}\\right)$"
     )
     ax[0, 0].set_ylabel(r"Counts")
 
@@ -241,16 +285,19 @@ def taus_overview(inputs, results, *args, **kwargs):
         bins=binning_b,
         color=c1,
     )
-    ax[0, 1].set_xlabel(r"Earth emergence angle $\beta$ / $^{\circ}$")
+    ax[0, 1].set_xlabel("Earth emergence angle $\\beta$ / $^{\\circ}$")
     ax[0, 1].set_ylabel("Counts")
     ax[0, 1].set_yscale("log")
     ax[0, 1].set_xlim(min(binning_b), max(binning_b))
 
-    binning_y = np.logspace(
-        np.log10(np.min(tauLorentz)) - 0.2, np.log10(np.max(tauLorentz)) + 0.2, 25
-    )
-    _, _, _, im = ax[1, 0].hist2d(
-        np.degrees(betas), tauLorentz, bins=[binning_b, binning_y], cmin=1, cmap=cm
+    im = ax[1, 0].hexbin(
+        np.degrees(betas),
+        tauLorentz,
+        gridsize=len(binning_b),
+        yscale="log",
+        mincnt=1,
+        cmap=cm,
+        edgecolors="none",
     )
     bincenter, mean, std, binwidth = get_profile(
         np.degrees(betas), tauLorentz, 10, useStd=True, **kwargs
@@ -270,30 +317,27 @@ def taus_overview(inputs, results, *args, **kwargs):
     cax = divider.append_axes("right", size="5%", pad=0.0)
     cbar = fig.colorbar(im, cax=cax)
     cbar.set_label("Counts")
-    ax[1, 0].set_yscale("log")
     ax[1, 0].set_xlim(min(binning_b), max(binning_b))
-    ax[1, 0].legend(loc="upper center")
-    ax[1, 0].set_xlabel(r"Earth emergence angle $\beta$ / $^{\circ}$")
-    ax[1, 0].set_ylabel(r"$\tau_\mathrm{Lorentz}$")
+    ax[1, 0].legend(loc="lower center")
+    ax[1, 0].set_xlabel("Earth emergence angle $\\beta$ / $^{\\circ}$")
+    ax[1, 0].set_ylabel("$\\tau_\\mathrm{Lorentz}$")
 
-    binning_y = np.logspace(
-        np.log10(np.min(tauExitProb)) - 0.2, np.log10(np.max(tauExitProb)) + 0.2, 25
-    )
-    _, _, _, im = ax[1, 1].hist2d(
+    im = ax[1, 1].hexbin(
         np.degrees(betas),
         tauExitProb,
-        bins=[binning_b, binning_y],
-        cmin=1,
+        gridsize=len(binning_b),
+        yscale="log",
+        mincnt=1,
         cmap=cm,
+        edgecolors="none",
     )
     divider = make_axes_locatable(ax[1, 1])
     cax = divider.append_axes("right", size="5%", pad=0.0)
     cbar = fig.colorbar(im, cax=cax)
     cbar.set_label("Counts")
-    ax[1, 1].set_yscale("log")
     ax[1, 1].set_xlim(min(binning_b), max(binning_b))
-    ax[1, 1].set_xlabel(r"Earth emergence angle $\beta$ / $^{\circ}$")
-    ax[1, 1].set_ylabel(r"$P_\mathrm{Exit}(\tau)$")
+    ax[1, 1].set_xlabel("Earth emergence angle $\\beta$ / $^{\\circ}$")
+    ax[1, 1].set_ylabel("$P_\\mathrm{Exit}(\\tau)$")
 
     fig.suptitle("Overview of Tau interaction properties")
     fig.tight_layout()

@@ -34,7 +34,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ...utils.plots import hist2d
+from ...utils.plots import hexbin
 
 
 def eas_optical_density(inputs, results, *args, **kwargs):
@@ -42,6 +42,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
 
     _, betas, altDec, showerEnergy = inputs
     numPEs, costhetaChEff = results
+
     plotting_opts = kwargs.get("kwargs")
     if "default_colormap" in plotting_opts:
         cm = plotting_opts.get("default_colormap")
@@ -50,50 +51,67 @@ def eas_optical_density(inputs, results, *args, **kwargs):
 
     fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)
 
-    hist2d(fig, ax[0, 0], np.degrees(betas), numPEs, "β", "numPEs", cmap=cm)
-    hist2d(
+    hexbin(
+        fig,
+        ax[0, 0],
+        np.degrees(betas),
+        numPEs,
+        "$\\beta$ / $^{\\circ}$",
+        "#PEs",
+        cmap=cm,
+    )
+    hexbin(
         fig,
         ax[1, 0],
         np.degrees(betas),
         costhetaChEff,
-        "β",
-        "cos(θ_chEff)",
+        "$\\beta$ / $^{\\circ}$",
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
         cmap=cm,
     )
 
-    hist2d(fig, ax[0, 1], altDec, numPEs, "decay altitude (km)", "numPEs", cmap=cm)
+    hexbin(
+        fig,
+        ax[0, 1],
+        altDec,
+        numPEs,
+        "$Decay_\\mathrm{Altitude}$ / km",
+        "#PEs",
+        cmap=cm,
+    )
 
-    hist2d(
+    hexbin(
         fig,
         ax[1, 1],
         altDec,
         costhetaChEff,
-        "decay altitude (km)",
-        "cos(θ_chEff)",
+        "Decay_\\mathrm{Altitude}$ / km",
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
         cmap=cm,
     )
 
-    hist2d(
+    hexbin(
         fig,
         ax[0, 2],
         showerEnergy,
         numPEs,
-        "showerEnergy (100 PeV)",
-        "numPEs",
+        "$E_\\mathrm{shower}$ / 100 PeV",
+        "#PEs",
         cmap=cm,
     )
 
-    hist2d(
+    hexbin(
         fig,
         ax[1, 2],
         showerEnergy,
         costhetaChEff,
-        "showerEnergy (100 PeV)",
-        "cos(θ_chEff)",
+        "$E_\\mathrm{shower}$ / 100 PeV",
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
         cmap=cm,
     )
 
     fig.suptitle("EAS Optical Cherenkov properties.")
+
     if plotting_opts.get("pop_up") is True:
         plt.show()
     if plotting_opts.get("save_to_file") is True:
@@ -118,10 +136,12 @@ def eas_optical_histogram(inputs, results, *args, **kwargs):
     fig, ax = plt.subplots(2, 1, constrained_layout=True)
 
     ax[0].hist(numPEs, 100, log=True, facecolor=c)
-    ax[0].set_xlabel("log(numPEs)")
+    ax[0].set_xlabel("log(#PEs)")
+    ax[0].set_ylabel("Counts")
 
     ax[1].hist(costhetaChEff, 100, log=True, facecolor=c)
-    ax[1].set_xlabel("log(cos(θ_chEff))")
+    ax[1].set_xlabel("$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)")
+    ax[1].set_ylabel("Counts")
 
     fig.suptitle("EAS Optical Cherenkov property Histograms")
     if "pop_up" not in plotting_opts:
