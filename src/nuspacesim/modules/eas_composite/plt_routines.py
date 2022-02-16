@@ -45,7 +45,7 @@ def mean_rms_plot(showers, bins, **kwargs):
     #plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
     #plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))  
     plt.xlabel('Shower stage')
-    plt.yscale('log') 
+    #plt.yscale('log') 
     plt.grid(True, which='both', linestyle='--')
     plt.ylim(bottom=1) 
     #plt.xlim(right=1500)
