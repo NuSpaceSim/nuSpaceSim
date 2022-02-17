@@ -2,6 +2,50 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def get_decay_channel(decay_code):
+        
+    decay_dict = { 
+        200011: r"$\tau \rightarrow \nu_\tau + \pi$",
+        210001: r"$\tau \rightarrow \nu_\tau + K$",
+        300001: r"$\tau \rightarrow \nu_\tau + e + \nu_e$",
+        300002: r"$\tau \rightarrow \nu_\tau + \mu + nu_mu$",
+        300111: r"$\tau \rightarrow \nu_\tau + \pi_0 + pi$",
+        310001: r"$\tau \rightarrow \nu_\tau + K_0 + K$",
+        311001: r"$\tau \rightarrow \nu_\tau + \eta + K$",
+        310011: r"$\tau \rightarrow \nu_\tau + \pi_0 + \overline{K_0}$",
+        310101: r"$\tau \rightarrow \nu_\tau + \pi_0 + K$",
+        311002: r"$\tau \rightarrow \nu_\tau + \Omega + K$",
+        311003: r"$\tau \rightarrow \nu_\tau + \eta + K^*(892)$",
+        400211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi$",
+        400031: r"$\tau \rightarrow \nu_\tau + \pi^+ + pi^- +pi$",
+        410111: r"$\tau \rightarrow \nu_\tau + \pi_0 + pi + \overline{K_0}$",
+        410021: r"$\tau \rightarrow \nu_\tau + \pi^+ + pi^- + K$",
+        410011: r"$\tau \rightarrow \nu_\tau + \pi + K^+ + K^- $",
+        410101: r"$\tau \rightarrow \nu_\tau + \pi_0 + K_0 + K$",
+        410012: r"$\tau \rightarrow \nu_\tau + \pi + KS + KL$",
+        410201: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + K$",
+        410013: r"$\tau \rightarrow \nu_\tau + \pi + KL + KL$",
+        410014: r"$\tau \rightarrow \nu_\tau + \pi + KS + KS$",
+        401111: r"$\tau \rightarrow \nu_\tau + \eta + \pi_0 + \pi$",
+        400111: r"$\tau \rightarrow \nu_\tau + \gamma + \pi_0 + \pi$",
+        500131: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi^+ + \pi^- + \pi$",
+        500311: r"$\tau \rightarrow \nu_\tau + 3\pi_0 + \pi$",
+        501031: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi + \eta$",
+        501211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi + \eta$",
+        501212: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi + \Omega$",
+        501032: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi + \Omega$",
+        510301: r"$\tau \rightarrow \nu_\tau + \3pi_0 + K$",
+        510121: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi^+ + pi^- + K$",
+        510211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \overline{K_0} + \pi$",
+        510031: r"$\tau \rightarrow \nu_\tau + \overline{K_0} + \pi^+ + \pi^- + \pi$",
+        510111: r"$\tau \rightarrow \nu_\tau + \pi_0 + K_0 + \overline{K_0} + \pi$",
+        510112: r"$\tau \rightarrow \nu_\tau + \pi_0 + K^+ + K^- + \pi$",
+        600231: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi^+ + \pi^- + \pi$",
+        600411: r"$\tau \rightarrow \nu_\tau + 4\pi_0 + \pi$",
+        600051: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi^+ + \pi^- + \pi$",
+    }
+    return decay_dict[decay_code]
+    
 def mean_rms_plot(showers, bins, **kwargs): 
     comp_showers = np.copy(showers[:,2:])
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis = 1) 
@@ -53,3 +97,8 @@ def mean_rms_plot(showers, bins, **kwargs):
     #plt.show()
     
     return  longest_shower_bin, average_composites, rms_low, rms_high
+
+
+    
+    
+

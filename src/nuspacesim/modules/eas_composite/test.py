@@ -186,7 +186,6 @@ for dc in decay_channels:
     x = trimmed_showers_0km[trimmed_showers_0km[:,1] == dc]
     y = comp_depths_0km[comp_depths_0km[:,1] == dc]
     
-    
     plt.figure(figsize=(8,6))   
     for depths,showers  in zip(y, x):
 
