@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from composite_ea_showers import CompositeShowers
 from fitting_composite_eas import FitCompositeShowers
-from plt_routines import mean_rms_plot
+from plt_routines import mean_rms_plot, decay_channel_mult_plt
 from scipy import stats
 #%%
 
 make_composites_00km =  CompositeShowers( 
-    alt=0, shower_end=5e3, grammage=1
+    alt=0, shower_end=5e3, grammage=1, tau_table_start=3000
     ) 
 
 comp_showers_00km, comp_depths_00km = make_composites_00km(filter_errors=False) 
@@ -26,7 +26,10 @@ decay_channels = np.unique(comp_depths_00km[:,1])
 
 plt.figure(figsize=(8,6), dpi=200)  
 bin_00km, mean_00km, rms_low, rms_high = mean_rms_plot(
-    trimmed_showers_00km,comp_depths_00km, label='0 km', facecolor='tab:red'
+    showers=trimmed_showers_00km,
+    bins=comp_depths_00km, 
+    label='0 km', 
+    facecolor='tab:red'
     )
 
 max_shwr_col = trimmed_showers_00km[:, np.argmax(mean_00km)].T
@@ -196,32 +199,6 @@ plt.ylabel('Particle Content/ Avg particle Content (N)')
 plt.legend()
 
 #%% Decay channel 
-from plt_routines import get_decay_channel
 
-decay_channels = np.unique(comp_depths_00km[:,1]) #[0:2]
+decay_channel_mult_plt(bins=comp_depths_00km, showers=trimmed_showers_00km)
 
-
- 
-plt.figure(figsize=(25,15),dpi=200) 
-for i,dc in enumerate(decay_channels, start=1): 
-    x = trimmed_showers_00km[trimmed_showers_00km[:,1] == dc]
-    y = comp_depths_00km[comp_depths_00km[:,1] == dc]
-    
-    plt.subplot(4, 7, i)
-    for depths,showers  in zip(y, x):
-        event_num = depths[0]
-        decay_code = depths[1]
-        plt.plot(
-                 depths[2:], 
-                 showers[2:],
-                 alpha=0.3, 
-                 #label = str(event_num)+"|"+ str(decay_code) 
-                 )
-        
-    decay_channel = get_decay_channel(dc)
-    plt.title(decay_channel)
-    #plt.legend()
-    
-    #plt.ylabel('N Particles')
-    #plt.xlabel('Slant Depth') 
-    plt.yscale('log') 

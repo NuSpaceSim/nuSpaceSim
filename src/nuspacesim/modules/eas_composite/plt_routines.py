@@ -46,7 +46,7 @@ def get_decay_channel(decay_code):
     }
     return decay_dict[decay_code]
     
-def mean_rms_plot(showers, bins, **kwargs): 
+def mean_rms_plot(bins, showers, **kwargs): 
     comp_showers = np.copy(showers[:,2:])
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis = 1) 
     longest_shower_idx = np.argmax(bin_lengths)
@@ -99,6 +99,37 @@ def mean_rms_plot(showers, bins, **kwargs):
     return  longest_shower_bin, average_composites, rms_low, rms_high
 
 
+def decay_channel_mult_plt(bins, showers):   
+    r"""Mosiac of longitudinal profiles for each decay channel in 
+    a set of composoite showers.
     
     
+    """
+    decay_channels = np.unique(bins[:,1]) #[0:2]
+    plt.figure(figsize=(25,15),dpi=200) 
+    
+    for i,dc in enumerate(decay_channels, start=1): 
+
+        x = bins[bins[:,1] == dc]
+        y = showers[showers[:,1] == dc]
+        
+        plt.subplot(4, 7, i)
+        for depth,shower  in zip(x, y):
+            # iterate and plot each shower in that decay channel
+            event_num = depth[0]
+            decay_code = depth[1]
+            plt.plot(
+                     depth[2:], 
+                     shower[2:],
+                     alpha=0.3, 
+                     #label = str(event_num)+"|"+ str(decay_code) 
+                     )
+            
+        decay_channel = get_decay_channel(dc)
+        plt.title(decay_channel)
+        #plt.legend()
+        
+        #plt.ylabel('N Particles')
+        #plt.xlabel('Slant Depth') 
+        plt.yscale('log') 
 

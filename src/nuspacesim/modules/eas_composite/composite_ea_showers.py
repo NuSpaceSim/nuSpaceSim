@@ -136,8 +136,10 @@ class CompositeShowers():
         return electron_energies, pion_energies, gamma_energies 
         
     def single_particle_showers(self, tau_energies, gh_params, left_pad:int = 400): 
-        r""" Create single a particle shower w/ Nmax scaled by pythia energy from same PID.
-        Enables variable-- allowing negative-- shower starting points, left padded to uniform length.
+        r""" Create single a particle shower w/ N_max scaled 
+        by pythia energy from same PID.
+        Enables variable-- allowing negative-- shower starting points, 
+        left padded to uniform length.
     
         Parameters
         ----------
@@ -159,10 +161,10 @@ class CompositeShowers():
         # pre-allocate arrays, make room for event tag and decay tag 
         showers = np.ones(
             [gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
-                            ) 
+        ) 
         depths = np.ones(
             [gh_params.shape[0], int((self.shower_end/ self.grammage) + left_pad + 2)]
-                            ) 
+        ) 
         
         # showers = []
         # depths = []
@@ -173,15 +175,15 @@ class CompositeShowers():
             )
             
             depth, shower_content= shower.gaisser_hillas(
-                                    n_max = shower_params[4],
-                                    x_max = shower_params[5],
-                                    x_0 = shower_params[6],
-                                    p1 = shower_params[7],
-                                    p2 = shower_params[8],
-                                    p3 = shower_params[9],
-                                    shower_end = self.shower_end,
-                                    grammage = self.grammage
-                                    )
+                n_max = shower_params[4],
+                x_max = shower_params[5],
+                x_0 = shower_params[6],
+                p1 = shower_params[7],
+                p2 = shower_params[8],
+                p3 = shower_params[9],
+                shower_end = self.shower_end,
+                grammage = self.grammage
+            )
             
             showers[row,:] = shower_content
             depths[row,:] = depth 
@@ -228,7 +230,8 @@ class CompositeShowers():
             single_showers[:,0], return_index=True, return_counts=True, axis=0)
         unique_decay_codes = np.take(single_showers[:,1], idx)
         
-        # sum each column up until the row index of where the new group starts and tack on the codes
+        # sum each column up until the row index of where the new group starts
+        # and tack on the codes
         composite_showers = np.column_stack(
             (grps, unique_decay_codes, np.add.reduceat(single_showers[:, 2:], idx))
             )
@@ -250,10 +253,10 @@ class CompositeShowers():
         separate_showers:bool=False,
     ):
         r""" Given composite showers and depths, cut the tails of the showers 
-        if it reaches the provided shower threshold. Distinguishes between: 
-        full_showers: showers that do not rebound up into the threshold
-        trimmed_showers: showers whose tails were cut off after shwr_threshold
-        shallow_showers: showers that do not go below the threshold within 
+        if it reaches the provided shower threshold. Distinguishes between 
+        full_showers: showers that do not rebound up into the threshold;
+        trimmed_showers: showers whose tails were cut off after shwr_threshold;
+        shallow_showers: showers that do not go below the threshold within;
         set shower end grammage
         
         Parameters
@@ -313,7 +316,8 @@ class CompositeShowers():
         s = np.flatnonzero(np.append([False], x[1:] != x[:-1]))
         less_than_thresh_per_evt = np.split(y, s)
         
-        # checking each event and getting the last idx where it is still less than the threshold
+        # checking each event and getting the last idx where it is still less 
+        # than the threshold
         rebound_idxs = map(lambda x: x[-1], less_than_thresh_per_evt)
         rebound_idxs = np.array(list(rebound_idxs))
         
@@ -322,7 +326,8 @@ class CompositeShowers():
         went_past_thresh = rebound_values < comp_showers[:,-1][:, None]
         did_not_go_below_rebound_thresh = non_rebounding[:, None] & went_past_thresh
         
-        # for showers not going low enough, continue them till the end without any cuts,changes mask above
+        # for showers not going low enough, 
+        # continue them till the end without any cuts,changes mask above
         rebound_idxs[:, None][did_not_go_below_rebound_thresh] = np.shape(comp_showers)[1] - 1 
         
         # from the rebound idxs on cutoff the shower
@@ -344,9 +349,11 @@ class CompositeShowers():
         trimmed_showers_reb_grammage = np.take_along_axis(
             trimmed_depths, rebound_idxs[~full_shower_mask][:,None], axis=1
             )
-        #print()
-        #print(np.count_nonzero(did_not_go_below_rebound_thresh))
 
+        # =====================================================================
+        #         print some info about shower classifications
+
+        
         print("There is/are: \n {} full showers.".format(np.shape(full_showers)[0]))
         if np.shape(trimmed_showers)[0] == 0:
             print("There are {} trimmed shower(s)".format(np.shape(trimmed_showers)[0]))
@@ -358,6 +365,8 @@ class CompositeShowers():
                   )
             )
         print(" {} shallow shower(s).".format(np.shape(shallow_showers)[0]))
+        # =====================================================================
+        
         
         if separate_showers is True:
             return (tuple((full_showers, full_depths)), 
@@ -413,36 +422,38 @@ class CompositeShowers():
 
 
 
-if __name__ == '__main__': 
-    t0 = time.time()
-    make_composites = CompositeShowers()
-    comp_showers, depths, broke =  make_composites() 
-    
-    get_fits = FitCompositeShowers(comp_showers, depths)
-    fits = get_fits()
-    
-    # do next: lambda with a one percent cut.
-    # show distributions of chi squares. 
-    # constant lambda plots rebounds 
-    reco_showers = np.full([comp_showers.shape[0], comp_showers.shape[1]], fill_value = -1) 
-    fit_results = np.full([comp_showers.shape[0], 4], fill_value = np.nan) 
-    
-    for row,(params, depth) in enumerate(zip(fits, depths)):
-            
-        reconstructed = get_fits.reco_showers(fit_params=params, depth=depth)
-        reco_showers[row,:] = reconstructed
-        
-    for row,(shower, shower_thoery) in enumerate(zip(comp_showers, reco_showers)):
-        
-        fit_chi = get_fits.reco_chi(shower, shower_thoery)
-        fit_results[row,:] = fit_chi
-    
-   
-    
-    t1 = time.time()
-    total = t1-t0 
-    
-    print(total)
-
+# =============================================================================
+# if __name__ == '__main__': 
+#     t0 = time.time()
+#     make_composites = CompositeShowers()
+#     comp_showers, depths, broke =  make_composites() 
+#     
+#     get_fits = FitCompositeShowers(comp_showers, depths)
+#     fits = get_fits()
+#     
+#     # do next: lambda with a one percent cut.
+#     # show distributions of chi squares. 
+#     # constant lambda plots rebounds 
+#     reco_showers = np.full([comp_showers.shape[0], comp_showers.shape[1]], fill_value = -1) 
+#     fit_results = np.full([comp_showers.shape[0], 4], fill_value = np.nan) 
+#     
+#     for row,(params, depth) in enumerate(zip(fits, depths)):
+#             
+#         reconstructed = get_fits.reco_showers(fit_params=params, depth=depth)
+#         reco_showers[row,:] = reconstructed
+#         
+#     for row,(shower, shower_thoery) in enumerate(zip(comp_showers, reco_showers)):
+#         
+#         fit_chi = get_fits.reco_chi(shower, shower_thoery)
+#         fit_results[row,:] = fit_chi
+#     
+#    
+#     
+#     t1 = time.time()
+#     total = t1-t0 
+#     
+#     print(total)
+# 
+# =============================================================================
 
     
