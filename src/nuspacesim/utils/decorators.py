@@ -218,8 +218,7 @@ def nss_result_plot(*plot_fs):
     return decorator_plot
 
 
-def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot):
-
+def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot, plot_kwargs):
     f_input = tuple() if inputs is None else tuple(sim[i] for i in inputs)
     results = tuple() if outputs is None else tuple(sim[o] for o in outputs)
 
@@ -227,7 +226,7 @@ def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot):
     def f(*args, **kwargs):
         return results
 
-    f(None, *f_input, plot=plot)
+    f(None, *f_input, plot=plot, kwargs=plot_kwargs)
 
 
 def ensure_plot_registry(*plot_fs):

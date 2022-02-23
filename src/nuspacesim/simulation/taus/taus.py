@@ -176,8 +176,10 @@ class Taus(object):
         return tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb
 
 
-def show_plot(sim, plot):
+def show_plot(sim, plot, plot_kwargs):
     inputs = ("beta_rad", "log_e_nu")
     outputs = ("tauBeta", "tauLorentz", "tauEnergy", "showerEnergy", "tauExitProb")
     plotfs = (taus_density_beta, taus_histogram, taus_pexit, taus_overview)
-    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)
+    decorators.nss_result_plot_from_file(
+        sim, inputs, outputs, plotfs, plot, plot_kwargs
+    )

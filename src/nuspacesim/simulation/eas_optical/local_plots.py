@@ -58,7 +58,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         numPEs,
         "$\\beta$ / $^{\\circ}$",
         "#PEs",
-        cmap=cm,
+        cm=cm,
     )
     hexbin(
         fig,
@@ -67,7 +67,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         costhetaChEff,
         "$\\beta$ / $^{\\circ}$",
         "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
-        cmap=cm,
+        cm=cm,
     )
 
     hexbin(
@@ -77,7 +77,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         numPEs,
         "$Decay_\\mathrm{Altitude}$ / km",
         "#PEs",
-        cmap=cm,
+        cm=cm,
     )
 
     hexbin(
@@ -87,7 +87,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         costhetaChEff,
         "Decay_\\mathrm{Altitude}$ / km",
         "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
-        cmap=cm,
+        cm=cm,
     )
 
     hexbin(
@@ -97,7 +97,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         numPEs,
         "$E_\\mathrm{shower}$ / 100 PeV",
         "#PEs",
-        cmap=cm,
+        cm=cm,
     )
 
     hexbin(
@@ -107,7 +107,7 @@ def eas_optical_density(inputs, results, *args, **kwargs):
         costhetaChEff,
         "$E_\\mathrm{shower}$ / 100 PeV",
         "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
-        cmap=cm,
+        cm=cm,
     )
 
     fig.suptitle("EAS Optical Cherenkov properties.")

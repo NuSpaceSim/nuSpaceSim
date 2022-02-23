@@ -203,7 +203,11 @@ def run(
     if plotconfig:
         plot_kwargs = read_plot_config(plotconfig)[1]
         if output is not None:
-            plot_kwargs["filename"] = output
+            for ext in [".h5", ".hdf5", ".fits"]:
+                if ext in output:
+                    plot_kwargs["filename"] = output.replace(ext, "")
+                else:
+                    plot_kwargs["filename"] = output
     elif (plot and plotsettings) or (plotall and plotsettings):
         plot_kwargs = {
             "figsize": (plotsettings[0], plotsettings[1]),
@@ -214,7 +218,11 @@ def run(
             "default_colormap": plotsettings[6],
         }
         if output is not None:
-            plot_kwargs["filename"] = output
+            for ext in [".h5", ".hdf5", ".fits"]:
+                if ext in output:
+                    plot_kwargs["filename"] = output.replace(ext, "")
+                else:
+                    plot_kwargs["filename"] = output
     else:
         plot_kwargs = {}
     simulation = compute(
@@ -291,6 +299,14 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
     help="Available plotting functions. Select multiple plots with multiple uses of -p",
 )
 @click.option(
+    "-ps",
+    "--plotsettings",
+    nargs=7,
+    type=click.Tuple([int, int, bool, str, bool, int, str]),
+    default=None,
+    help="Save plot supplied with -p with given file extension, optionally suppress pop_up",
+)
+@click.option(
     "-pc",
     "--plotconfig",
     type=click.Path(
@@ -311,6 +327,7 @@ def show_plot(
     plot: list,
     plotconfig: str,
     plotall: bool,
+    plotsettings,
 ) -> None:
     """Show predefined plots of results in simulation file.
 
@@ -340,15 +357,36 @@ def show_plot(
     plot = (
         list(registry)
         if plotall
-        else read_plot_config(plotconfig)
+        else read_plot_config(plotconfig)[0]
         if plotconfig
         else plot
     )
 
-    simulation.geometry.region_geometry.show_plot(sim, plot)
-    simulation.taus.taus.show_plot(sim, plot)
-    simulation.eas_optical.eas.show_plot(sim, plot)
-    plots.show_plot(sim, plot)
+    for ext in [".h5", ".hdf5", ".fits"]:
+        if ext in simulation_file:
+            plot_filename = simulation_file.replace(ext, "")
+        else:
+            plot_filename = simulation_file
+    if plotconfig:
+        plot_kwargs = read_plot_config(plotconfig)[1]
+        plot_kwargs["filename"] = plot_filename
+    elif (plot and plotsettings) or (plotall and plotsettings):
+        plot_kwargs = {
+            "figsize": (plotsettings[0], plotsettings[1]),
+            "save_to_file": plotsettings[2],
+            "save_as": plotsettings[3],
+            "pop_up": plotsettings[4],
+            "default_color": plotsettings[5],
+            "default_colormap": plotsettings[6],
+            "filename": plot_filename,
+        }
+    else:
+        plot_kwargs = {}
+
+    simulation.geometry.region_geometry.show_plot(sim, plot, plot_kwargs)
+    simulation.taus.taus.show_plot(sim, plot, plot_kwargs)
+    simulation.eas_optical.eas.show_plot(sim, plot, plot_kwargs)
+    plots.show_plot(sim, plot, plot_kwargs)
 
 
 def read_plot_config(filename):

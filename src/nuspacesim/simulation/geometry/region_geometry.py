@@ -283,8 +283,10 @@ class RegionGeom:
         return mcintegral, mcintegralgeoonly, numEvPass
 
 
-def show_plot(sim, plot):
+def show_plot(sim, plot, plot_kwargs):
     plotfs = tuple([geom_beta_tr_hist])
     inputs = tuple([0])
     outputs = ("beta_rad", "theta_rad", "path_len")
-    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)
+    decorators.nss_result_plot_from_file(
+        sim, inputs, outputs, plotfs, plot, plot_kwargs
+    )
