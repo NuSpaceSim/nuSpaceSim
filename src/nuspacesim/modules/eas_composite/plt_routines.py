@@ -96,7 +96,7 @@ def mean_rms_plot(bins, showers, **kwargs):
     plt.legend()    
     #plt.show()
     
-    return  longest_shower_bin, average_composites, rms_low, rms_high
+    return   longest_shower_bin, average_composites, rms_low, rms_high
 
 
 def decay_channel_mult_plt(bins, showers):   
