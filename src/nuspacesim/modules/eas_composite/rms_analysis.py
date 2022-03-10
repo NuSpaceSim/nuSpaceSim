@@ -111,58 +111,59 @@ def mc_drt_rms (n, bins, col_depths, col_showers):
     # accepted_his_vals = np.unique(accepted_his_vals)
     #filtered_freq = freq[accepted_his_idxs] 
     #print(accepted_his_idxs, filtered_freq) 
-    
-    
+
     new_frequencies = np.zeros(np.size(freq)) 
-    
+   # print(accepted_his_idxs)
     new_frequencies[accepted_his_idxs[0]] = accepted_his_vals[0] 
     hit_rms = bin_ctr[accepted_his_idxs]
     
-# =============================================================================
-#     plt.figure(figsize=(8,6),dpi=200) 
-#     plt.hist(
-#         col_showers, 
-#         alpha=.5, 
-#         edgecolor='black', linewidth=.5,
-#         label=r'${:g} g/cm^2$'.format(col_depths[0]), 
-#         bins = bins
-#         )
-#     plt.scatter(bin_ctr, freq, s=2, c='k') 
-#     plt.scatter(rdom_x_ax, rdom_y_ax, s=2, c='r')
-#     # plt.xlim(right=8e7)
-#     # plt.ylim(top=np.max(freq)+2)
-#     plt.xlabel('Particle Content/ Avg particle Content (N)')
-#     plt.title('bins = {}, n = {}'.format(bins,n))
-#     plt.legend()
-#     plt.figure(figsize=(8,6),dpi=200) 
-#     plt.bar(
-#         bin_ctr, 
-#         new_frequencies, 
-#         bin_size,
-#         alpha=.5, 
-#         edgecolor='black', 
-#         linewidth=.5,
-#         label=r'${:g} g/cm^2$ MC Reconstructed'.format(col_depth), 
-#         ) 
-#     plt.scatter(rdom_x_ax, rdom_y_ax, s=2, c='r')
-#     
-#     plt.title('bins = {}, n = {}'.format(bins,n))
-#     plt.xlabel('Particle Content/ Avg particle Content (N)')
-#     # plt.xlim(right=8e7)
-#     # plt.ylim(top=np.max(freq)+2)
-#     plt.legend()
-# =============================================================================
+        
+
+    
+    
+    plt.figure(figsize=(8,6),dpi=200) 
+    plt.hist(
+        col_showers, 
+        alpha=.5, 
+        edgecolor='black', linewidth=.5,
+        label=r'${:g} g/cm^2$'.format(col_depths[0]), 
+        bins = bins
+        )
+    plt.scatter(bin_ctr, freq, s=2, c='k') 
+    plt.scatter(rdom_x_ax, rdom_y_ax, s=2, c='r')
+    # plt.xlim(right=8e7)
+    # plt.ylim(top=np.max(freq)+2)
+    plt.xlabel('Particle Content/ Avg particle Content (N)')
+    plt.title('bins = {}, n = {}'.format(bins,n))
+    plt.legend()
+    plt.figure(figsize=(8,6),dpi=200) 
+    plt.bar(
+        bin_ctr, 
+        new_frequencies, 
+        bin_size,
+        alpha=.5, 
+        edgecolor='black', 
+        linewidth=.5,
+        label=r'${:g} g/cm^2$ MC Reconstructed'.format(col_depth), 
+        ) 
+    plt.scatter(rdom_x_ax, rdom_y_ax, s=2, c='r')
+    
+    plt.title('bins = {}, n = {}'.format(bins,n))
+    plt.xlabel('Particle Content/ Avg particle Content (N)')
+    # plt.xlim(right=8e7)
+    # plt.ylim(top=np.max(freq)+2)
+    plt.legend()
     
     
     return col_depth, col_mean, hit_rms[0]
 
-
-col_depth, col_mean, hit_rms = mc_drt_rms(10, 100, col_depths=max_dpth_col, col_showers=max_shwr_col)
+#%%
+col_depth, col_mean, hit_rms = mc_drt_rms(50, 100, col_depths=max_dpth_col, col_showers=max_shwr_col)
 
 #%% Iterating through the composite shower to assign rms for each depth
 
-sample_shower_column = trimmed_showers_00km[::,400::].T
-sample_depth_column = comp_depths_00km[::,400::].T
+sample_shower_column = trimmed_showers_00km[::,500::100].T
+sample_depth_column = comp_depths_00km[::,500::100].T
 
 shwr_depth = np.ones(np.shape(sample_shower_column)[0])
 shwr_mean = np.ones(np.shape(sample_shower_column)[0])
@@ -173,7 +174,7 @@ for i,(depths,showers) in enumerate(zip(sample_depth_column,sample_shower_column
     showers = showers[~np.isnan(showers)]
     
     col_depth, col_mean, hit_rms = mc_drt_rms(
-        200, 50, col_depths=depths, col_showers=showers
+        200, 30, col_depths=depths, col_showers=showers
         )
     shwr_depth[i] = col_depth
     shwr_mean[i] = col_mean
