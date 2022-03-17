@@ -135,9 +135,8 @@ from . import constants, data, utils, xml_config
 from ._version import version, version_tuple
 from .compute import compute
 from .config import DetectorCharacteristics, NssConfig, SimulationParameters
-from .modules import eas_composite
 from .results_table import ResultsTable
-from .simulation import eas_optical, geometry, taus
+from .simulation import eas_composite, eas_optical, geometry, taus
 
 
 __all__ = [

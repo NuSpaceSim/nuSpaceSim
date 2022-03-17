@@ -48,6 +48,7 @@ neutrino propagation and interaction.
    :nosignatures:
 
    geometry
+   eas_composite
    eas_optical
    eas_radio
    taus
@@ -55,6 +56,6 @@ neutrino propagation and interaction.
 
 """
 
-__all__ = ["geometry", "taus", "eas_optical", "eas_radio"]
+__all__ = ["geometry", "taus", "eas_optical", "eas_radio", "eas_composite"]
 
-from . import eas_optical, eas_radio, geometry, taus
+from . import eas_composite, eas_optical, eas_radio, geometry, taus
