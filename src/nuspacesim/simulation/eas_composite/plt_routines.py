@@ -49,9 +49,11 @@ def get_decay_channel(decay_code):
     return decay_dict[decay_code]
 
 
-def mean_rms_plot(bins, showers, **kwargs):
+def mean_rms(bins, showers, plot_mean_rms=False, remove_tags=True, **kwargs):
+    
     comp_showers = np.copy(showers[:, 2:])
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis=1)
+    
     longest_shower_idx = np.argmax(bin_lengths)
     longest_shower_bin = bins[10, 2:]
     # take average a long each bin, ignoring nans
@@ -68,36 +70,38 @@ def mean_rms_plot(bins, showers, **kwargs):
     err_in_mean = np.nanstd(comp_showers, axis=0) / np.sqrt(
         np.sum(~np.isnan(comp_showers), 0)
     )
-    # plt.figure(figsize=(8,6))
-    plt.plot(longest_shower_bin, average_composites, "--k", label="mean")
-    # plt.plot(longest_shower, rms_error ,  '--r', label='rms error')
-    # plt.plot(longest_shower, rms ,  '--g', label='rms')
-    # plt.plot(longest_shower, std ,  '--y', label='std')
-    # plt.plot(longest_shower, err_in_mean ,  '--b', label='error in mean')
-
     rms_low = average_composites - rms_error
     rms_high = average_composites + rms_error
+    if plot_mean_rms is True:
+        plt.figure(figsize=(8,6))
+        plt.plot(longest_shower_bin, average_composites, "--k", label="mean")
+        # plt.plot(longest_shower, rms_error ,  '--r', label='rms error')
+        # plt.plot(longest_shower, rms ,  '--g', label='rms')
+        # plt.plot(longest_shower, std ,  '--y', label='std')
+        # plt.plot(longest_shower, err_in_mean ,  '--b', label='error in mean')
+    
 
-    plt.fill_between(
-        longest_shower_bin,
-        rms_low,
-        rms_high,
-        alpha=0.2,
-        # facecolor='crimson',
-        interpolate=True,
-        **kwargs
-    )
-
-    plt.title("Mean and RMS Error")
-    plt.ylabel("Number of Particles")
-    # plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
-    # plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.xlabel("Shower stage")
-    # plt.yscale('log')
-    plt.grid(True, which="both", linestyle="--")
-    plt.ylim(bottom=1)
-    # plt.xlim(right=1500)
-    plt.legend()
+    
+        plt.fill_between(
+            longest_shower_bin,
+            rms_low,
+            rms_high,
+            alpha=0.2,
+            # facecolor='crimson',
+            interpolate=True,
+            **kwargs
+        )
+    
+        plt.title("Mean and RMS Error")
+        plt.ylabel("Number of Particles")
+        # plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
+        # plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        plt.xlabel("Shower stage")
+        # plt.yscale('log')
+        plt.grid(True, which="both", linestyle="--")
+        plt.ylim(bottom=1)
+        # plt.xlim(right=1500)
+        plt.legend()
     # plt.show()
 
     return longest_shower_bin, average_composites, rms_low, rms_high
@@ -105,8 +109,11 @@ def mean_rms_plot(bins, showers, **kwargs):
 
 def decay_channel_mult_plt(bins, showers):
     r"""
-    Mosiac of longitudinal profiles for each decay channel in
-    a set of composoite showers.
+    Mosiac of longitudinal profiles for each decay channel in a set of composoite showers.
+    
+    Sample usage:
+    -------------
+    decay_channel_mult_plt(bins=comp_depths_00km, showers=trimmed_showers_00km)
     """
     decay_channels = np.unique(bins[:, 1])  # [0:2]
     plt.figure(figsize=(25, 15), dpi=200)

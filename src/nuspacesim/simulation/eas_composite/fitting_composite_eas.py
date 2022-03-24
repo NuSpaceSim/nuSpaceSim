@@ -1,7 +1,7 @@
-from nuspacesim.utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
+from ...utils.eas_cher_gen.composite_showers.composite_macros import bin_nmax_xmax
 import numpy as np
 from scipy import optimize
-from dask.diagnostics import ProgressBar
+#from dask.diagnostics import ProgressBar
 
 class FitCompositeShowers():    
     r""" 

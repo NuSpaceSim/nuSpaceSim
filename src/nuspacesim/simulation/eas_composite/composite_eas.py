@@ -1,10 +1,10 @@
 import h5py
 import numpy as np
-import time
-from shower_long_profiles import ShowerParameterization
-from fitting_composite_eas import FitCompositeShowers
-
-np.seterr(all="ignore")
+#import time
+from .shower_long_profiles import ShowerParameterization
+from .fitting_composite_eas import FitCompositeShowers
+    
+#np.seterr(all="ignore")
 try:
     from importlib.resources import as_file, files
 except ImportError:
