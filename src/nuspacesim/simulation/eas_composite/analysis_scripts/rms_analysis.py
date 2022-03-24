@@ -26,90 +26,96 @@ trimmed_showers_00km, test_depths = make_composites_00km.shower_end_cuts(
 decay_channels = np.unique(comp_depths_00km[:, 1])
 
 #%%
-sampler = MCVariedMean(trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50)
+sampler = MCVariedMean(
+    trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50
+)
 mc_rms, sample_grm, sample_shwr = sampler.sampling_per_depth()
 
-rms_err_upper =  sample_shwr + mc_rms  * sample_shwr
-rms_err_lower =  sample_shwr- mc_rms * sample_shwr
+rms_err_upper = sample_shwr + mc_rms * sample_shwr
+rms_err_lower = sample_shwr - mc_rms * sample_shwr
 abs_error = rms_err_upper - sample_shwr
 
-plt.figure(figsize=(20, 6), dpi=200) 
-plt.suptitle('Sampling Per Slant Depth') 
+plt.figure(figsize=(20, 6), dpi=200)
+plt.suptitle("Sampling Per Slant Depth")
 
 plt.subplot(1, 3, 1)
 plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".")
 
 plt.ylabel("Particle Content")
-plt.yscale('log')
+plt.yscale("log")
 
 plt.subplot(1, 3, 2)
-plt.errorbar(sample_grm, sample_shwr*mc_rms, fmt=".")
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".")
 
 plt.ylabel("Particle Content*Random Multiplier")
-plt.yscale('log')
+plt.yscale("log")
 
 plt.subplot(1, 3, 3)
-plt.errorbar(sample_grm, sample_shwr*mc_rms, fmt=".")
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".")
 plt.ylabel("Particle Content*Random Multiplier")
 
 #%%
 
-sampler = MCVariedMean(trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50)
-mc_rms, sample_grm, sample_shwr = sampler.sampling_nmax_per_depth() 
+sampler = MCVariedMean(
+    trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50
+)
+mc_rms, sample_grm, sample_shwr = sampler.sampling_nmax_per_depth()
 
-rms_err_upper =  sample_shwr + mc_rms  * sample_shwr
-rms_err_lower =  sample_shwr- mc_rms * sample_shwr
+rms_err_upper = sample_shwr + mc_rms * sample_shwr
+rms_err_lower = sample_shwr - mc_rms * sample_shwr
 abs_error = rms_err_upper - sample_shwr
 
-plt.figure(figsize=(20, 6), dpi=200) 
-plt.suptitle('Sampling Nmax Per Slant Depth') 
+plt.figure(figsize=(20, 6), dpi=200)
+plt.suptitle("Sampling Nmax Per Slant Depth")
 
 plt.subplot(1, 3, 1)
-plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c='tab:orange')
+plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c="tab:orange")
 
 plt.ylabel("Particle Content")
-plt.yscale('log')
+plt.yscale("log")
 
 plt.subplot(1, 3, 2)
-plt.errorbar(sample_grm, sample_shwr*mc_rms, fmt=".", c='tab:orange')
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:orange")
 
 plt.ylabel("Particle Content*Random Multiplier")
-plt.yscale('log')
+plt.yscale("log")
 
 plt.subplot(1, 3, 3)
-plt.errorbar(sample_grm, sample_shwr*mc_rms, fmt=".", c='tab:orange')
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:orange")
 plt.ylabel("Particle Content*Random Multiplier")
 #%%
-sampler = MCVariedMean(trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50)
+sampler = MCVariedMean(
+    trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50
+)
 mc_rms, sample_grm, sample_shwr = sampler.sampling_nmax_once()
 
-rms_err_upper =  sample_shwr + mc_rms  * sample_shwr
-rms_err_lower =  sample_shwr- mc_rms * sample_shwr
+rms_err_upper = sample_shwr + mc_rms * sample_shwr
+rms_err_lower = sample_shwr - mc_rms * sample_shwr
 abs_error = rms_err_upper - sample_shwr
 
-plt.figure(figsize=(20, 6), dpi=200) 
-plt.suptitle('Sampling Nmax Once') 
+plt.figure(figsize=(20, 6), dpi=200)
+plt.suptitle("Sampling Nmax Once")
 
 plt.subplot(1, 3, 1)
-plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c='tab:red')
+plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c="tab:red")
 
 plt.ylabel("Particle Content")
-#plt.yscale('log')
+# plt.yscale('log')
 
 plt.subplot(1, 3, 2)
-plt.errorbar(sample_grm, sample_shwr*mc_rms, fmt=".", c='tab:red')
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:red")
 
 plt.ylabel("Particle Content*Random Multiplier")
-plt.yscale('log')
+plt.yscale("log")
 
 plt.subplot(1, 3, 3)
-plt.errorbar(sample_grm, sample_shwr*mc_rms, fmt=".", c='tab:red')
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:red")
 plt.ylabel("Particle Content*Random Multiplier")
 
 #%%
 
-sample_shower_column = trimmed_showers_00km[:,500::500].T
-sample_depth_column = comp_depths_00km[:,500::500].T
+sample_shower_column = trimmed_showers_00km[:, 500::500].T
+sample_depth_column = comp_depths_00km[:, 500::500].T
 
 plt.figure(figsize=(8, 6), dpi=200)
 bin_00km, mean_00km, rms_low, rms_high = mean_rms(
