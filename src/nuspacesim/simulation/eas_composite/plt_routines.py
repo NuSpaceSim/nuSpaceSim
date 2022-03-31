@@ -49,7 +49,7 @@ def get_decay_channel(decay_code):
     return decay_dict[decay_code]
 
 
-def mean_rms(bins, showers, plot_mean_rms=False, remove_tags=True, **kwargs):
+def mean_rms_plt(bins, showers, plot_mean_rms=False, remove_tags=True, **kwargs):
 
     comp_showers = np.copy(showers[:, 2:])
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis=1)
@@ -158,3 +158,19 @@ def decay_channel_mult_plt(
                 facecolor="black",
                 zorder=20,
             )
+
+
+def recursive_plt(composite_dpths, composite_shwrs):
+    r"""Loops through each paired list and plots them on the same axes"""
+    for depths, showers in zip(composite_dpths, composite_shwrs):
+
+        event_num = depths[0]
+        decay_code = depths[1]
+
+        plt.plot(
+            depths[2:],
+            showers[2:],
+            alpha=0.2,
+            # s=.2,
+            # label = str(event_num)+"|"+ str(decay_code)
+        )

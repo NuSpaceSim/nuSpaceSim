@@ -1,10 +1,11 @@
 import h5py
 import numpy as np
-#import time
+
+# import time
 from .shower_long_profiles import ShowerParameterization
 from .fitting_composite_eas import FitCompositeShowers
-    
-#np.seterr(all="ignore")
+
+# np.seterr(all="ignore")
 try:
     from importlib.resources import as_file, files
 except ImportError:
@@ -133,9 +134,7 @@ class CompositeShowers:
 
         return electron_energies, pion_energies, gamma_energies
 
-    def single_particle_showers(
-        self, tau_energies, gh_params, left_pad: int = 400
-    ):
+    def single_particle_showers(self, tau_energies, gh_params, left_pad: int = 400):
         r""" Create single a particle shower w/ N_max scaled 
         by pythia energy from same PID.
         Enables variable-- allowing negative-- shower starting points, 
@@ -174,9 +173,7 @@ class CompositeShowers:
 
         # showers = []
         # depths = []
-        for row, (shower_params, tau_dec_e) in enumerate(
-            zip(gh_params, tau_energies)
-        ):
+        for row, (shower_params, tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
 
             shower = ShowerParameterization(
                 table_decay_e=tau_dec_e[-1],
@@ -231,9 +228,7 @@ class CompositeShowers:
         single_shower_bins = np.concatenate((single_shower_bins), axis=0)
 
         single_showers = single_showers[single_showers[:, 0].argsort()]
-        single_shower_bins = single_shower_bins[
-            single_shower_bins[:, 0].argsort()
-        ]
+        single_shower_bins = single_shower_bins[single_shower_bins[:, 0].argsort()]
 
         # get unique event numbers, the index at which each event group starts
         # and number of showers in each event
@@ -254,9 +249,7 @@ class CompositeShowers:
 
         # per event, find the longest slant depth and use that since grammage is identical
         sum_of_each_row = np.nansum(np.abs(single_shower_bins[:, 2:]), axis=1)
-        longest_shower_in_event_idxs = numpy_argmax_reduceat(
-            sum_of_each_row, idx
-        )
+        longest_shower_in_event_idxs = numpy_argmax_reduceat(sum_of_each_row, idx)
 
         composite_depths = np.take(
             single_shower_bins, longest_shower_in_event_idxs, axis=0
@@ -322,20 +315,14 @@ class CompositeShowers:
         nmax_idxs = np.argmax(comp_showers[:, 2:], axis=1) + 2
 
         # given the idxs of the max values, get the max values
-        nmax_vals = np.take_along_axis(
-            comp_showers, nmax_idxs[:, None], axis=1
-        )
+        nmax_vals = np.take_along_axis(comp_showers, nmax_idxs[:, None], axis=1)
 
         # given the idxs of the max values, get the x max
         xmax_vals = np.take_along_axis(comp_depths, nmax_idxs[:, None], axis=1)
 
         # set the rebound threshold
         rebound_values = nmax_vals * shwr_threshold
-        print(
-            "Cutting shower rebounds past {}% of n max.".format(
-                shwr_threshold * 100
-            )
-        )
+        print("Cutting shower rebounds past {}% of n max.".format(shwr_threshold * 100))
 
         # get rebound idxs
         x, y = np.where(comp_showers < rebound_values)
@@ -350,9 +337,7 @@ class CompositeShowers:
         # check for showers not going below the threshold and rebounding up into it
         non_rebounding = rebound_idxs < nmax_idxs
         went_past_thresh = rebound_values < comp_showers[:, -1][:, None]
-        did_not_go_below_rebound_thresh = (
-            non_rebounding[:, None] & went_past_thresh
-        )
+        did_not_go_below_rebound_thresh = non_rebounding[:, None] & went_past_thresh
 
         # for showers not going low enough,
         # continue them till the end without any cuts,changes mask above
@@ -361,9 +346,7 @@ class CompositeShowers:
         )
 
         # from the rebound idxs on cutoff the shower
-        cut_off_mask = rebound_idxs[:, None] < np.arange(
-            np.shape(comp_showers)[1]
-        )
+        cut_off_mask = rebound_idxs[:, None] < np.arange(np.shape(comp_showers)[1])
 
         # check for showers not reaching up into the threshold and were never cut short
         full_shower_mask = rebound_idxs == np.shape(comp_showers)[1] - 1
@@ -372,15 +355,11 @@ class CompositeShowers:
 
         full_showers = comp_showers[full_shower_mask, :]
         trimmed_showers = comp_showers[~full_shower_mask, :]
-        shallow_showers = comp_showers[
-            did_not_go_below_rebound_thresh.flatten(), :
-        ]
+        shallow_showers = comp_showers[did_not_go_below_rebound_thresh.flatten(), :]
 
         full_depths = comp_depths[full_shower_mask, :]
         trimmed_depths = comp_depths[~full_shower_mask, :]
-        shallow_depths = comp_depths[
-            did_not_go_below_rebound_thresh.flatten(), :
-        ]
+        shallow_depths = comp_depths[did_not_go_below_rebound_thresh.flatten(), :]
 
         trimmed_showers_reb_grammage = np.take_along_axis(
             trimmed_depths, rebound_idxs[~full_shower_mask][:, None], axis=1
@@ -389,17 +368,9 @@ class CompositeShowers:
         # =====================================================================
         #         print some info about shower classifications
 
-        print(
-            "There is/are: \n {} full showers.".format(
-                np.shape(full_showers)[0]
-            )
-        )
+        print("There is/are: \n {} full showers.".format(np.shape(full_showers)[0]))
         if np.shape(trimmed_showers)[0] == 0:
-            print(
-                "There are {} trimmed shower(s)".format(
-                    np.shape(trimmed_showers)[0]
-                )
-            )
+            print("There are {} trimmed shower(s)".format(np.shape(trimmed_showers)[0]))
         else:
             print(
                 " {} trimmed shower(s)".format(np.shape(trimmed_showers)[0]),

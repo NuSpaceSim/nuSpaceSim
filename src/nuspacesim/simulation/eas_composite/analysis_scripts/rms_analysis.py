@@ -5,8 +5,9 @@ import numpy as np
 from nuspacesim.simulation.eas_composite.composite_eas import CompositeShowers
 from nuspacesim.simulation.eas_composite.mc_mean_shwr_sampler import MCVariedMean
 from nuspacesim.simulation.eas_composite.plt_routines import (
-    mean_rms,
+    mean_rms_plt,
     decay_channel_mult_plt,
+    recursive_plt,
 )
 
 #%%
@@ -62,18 +63,19 @@ plt.suptitle("Sampling Per Slant Depth")
 
 plt.subplot(1, 3, 1)
 plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".")
-
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content")
 plt.yscale("log")
 
 plt.subplot(1, 3, 2)
 plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".")
-
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content*Random Multiplier")
 plt.yscale("log")
 
 plt.subplot(1, 3, 3)
 plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".")
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content*Random Multiplier")
 
 #%%Sampling Nmax Per Slant Depth
@@ -95,19 +97,20 @@ plt.figure(figsize=(20, 6), dpi=200)
 plt.suptitle("Sampling Nmax Per Slant Depth")
 
 plt.subplot(1, 3, 1)
-plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c="tab:orange")
-
+plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c="orange")
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content")
 plt.yscale("log")
 
 plt.subplot(1, 3, 2)
-plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:orange")
-
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="orange")
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content*Random Multiplier")
 plt.yscale("log")
 
 plt.subplot(1, 3, 3)
-plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:orange")
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="orange")
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content*Random Multiplier")
 #%%Sampling Nmax Once
 sampler = MCVariedMean(
@@ -127,35 +130,26 @@ plt.figure(figsize=(20, 6), dpi=200)
 plt.suptitle("Sampling Nmax Once")
 
 plt.subplot(1, 3, 1)
-plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c="tab:red")
-
+plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c="red")
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content")
 plt.yscale("log")
 
 plt.subplot(1, 3, 2)
-plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:red")
-
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="red")
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content*Random Multiplier")
 plt.yscale("log")
 
 plt.subplot(1, 3, 3)
-plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:red")
+plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="red")
+recursive_plt(comp_depths_00km, comp_showers_00km)
 plt.ylabel("Particle Content*Random Multiplier")
 #%% overplot
 plt.figure(figsize=(8, 6), dpi=200)
 
-for depths, showers in zip(comp_depths_00km, comp_showers_00km):
 
-    event_num = depths[0]
-    decay_code = depths[1]
-
-    plt.plot(
-        depths[2:],
-        showers[2:],
-        alpha=0.2,
-        # s=.2,
-        # label = str(event_num)+"|"+ str(decay_code)
-    )
+recursive_plt(comp_depths_00km, comp_showers_00km)
 
 plt.errorbar(
     sample_grm, sample_shwr, abs_error, fmt=".", c="black", label="mean and sampled rms"
@@ -171,7 +165,6 @@ plt.errorbar(
 # )
 
 plt.title("Sampling Nmax Once")
-plt.title("Sampling Nmax Per Slant Depth")
 plt.xlabel("slant depth g cm$^{-2}$")
 plt.ylabel("$N$")
 plt.yscale("log")
@@ -182,7 +175,8 @@ sample_shower_column = trimmed_showers_00km[:, 500::500].T
 sample_depth_column = comp_depths_00km[:, 500::500].T
 
 plt.figure(figsize=(8, 6), dpi=200)
-bin_00km, mean_00km, rms_low, rms_high = mean_rms(
+
+bin_00km, mean_00km, rms_low, rms_high = mean_rms_plt(
     showers=trimmed_showers_00km,
     bins=comp_depths_00km,
     label="0 km",
