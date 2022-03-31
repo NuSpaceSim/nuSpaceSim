@@ -12,22 +12,44 @@ from nuspacesim.simulation.eas_composite.plt_routines import (
 #%%
 
 make_composites_00km = CompositeShowers(
-    alt=0, shower_end=3e3, grammage=1, tau_table_start=3000
+    alt=0, shower_end=8e3, grammage=1, tau_table_start=3000
 )
 
 comp_showers_00km, comp_depths_00km = make_composites_00km(filter_errors=False)
 
-trimmed_showers_00km, test_depths = make_composites_00km.shower_end_cuts(
+trimmed_showers_00km, _ = make_composites_00km.shower_end_cuts(
     composite_showers=comp_showers_00km,
     composite_depths=comp_depths_00km,
     separate_showers=False,
 )
 
 decay_channels = np.unique(comp_depths_00km[:, 1])
-
 #%%
+plt.figure(figsize=(8, 6), dpi=200)
+
+
+for depths, showers in zip(comp_depths_00km, comp_showers_00km):
+
+    event_num = depths[0]
+    decay_code = depths[1]
+
+    plt.plot(
+        depths[2:],
+        showers[2:],
+        alpha=0.2,
+        # s=.2,
+        label=str(event_num) + "|" + str(decay_code),
+    )
+
+plt.yscale("log")
+
+#%%Sampling Per Slant Depth
 sampler = MCVariedMean(
-    trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50
+    trimmed_showers_00km,
+    comp_depths_00km,
+    n_throws=400,
+    hist_bins=30,
+    sample_grammage=100,
 )
 mc_rms, sample_grm, sample_shwr = sampler.sampling_per_depth()
 
@@ -54,10 +76,14 @@ plt.subplot(1, 3, 3)
 plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".")
 plt.ylabel("Particle Content*Random Multiplier")
 
-#%%
+#%%Sampling Nmax Per Slant Depth
 
 sampler = MCVariedMean(
-    trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50
+    trimmed_showers_00km,
+    comp_depths_00km,
+    n_throws=400,
+    hist_bins=30,
+    sample_grammage=100,
 )
 mc_rms, sample_grm, sample_shwr = sampler.sampling_nmax_per_depth()
 
@@ -83,9 +109,13 @@ plt.yscale("log")
 plt.subplot(1, 3, 3)
 plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:orange")
 plt.ylabel("Particle Content*Random Multiplier")
-#%%
+#%%Sampling Nmax Once
 sampler = MCVariedMean(
-    trimmed_showers_00km, test_depths, n_throws=400, hist_bins=30, sample_grammage=50
+    trimmed_showers_00km,
+    comp_depths_00km,
+    n_throws=400,
+    hist_bins=30,
+    sample_grammage=100,
 )
 mc_rms, sample_grm, sample_shwr = sampler.sampling_nmax_once()
 
@@ -100,7 +130,7 @@ plt.subplot(1, 3, 1)
 plt.errorbar(sample_grm, sample_shwr, abs_error, fmt=".", c="tab:red")
 
 plt.ylabel("Particle Content")
-# plt.yscale('log')
+plt.yscale("log")
 
 plt.subplot(1, 3, 2)
 plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:red")
@@ -111,7 +141,41 @@ plt.yscale("log")
 plt.subplot(1, 3, 3)
 plt.errorbar(sample_grm, sample_shwr * mc_rms, fmt=".", c="tab:red")
 plt.ylabel("Particle Content*Random Multiplier")
+#%% overplot
+plt.figure(figsize=(8, 6), dpi=200)
 
+for depths, showers in zip(comp_depths_00km, comp_showers_00km):
+
+    event_num = depths[0]
+    decay_code = depths[1]
+
+    plt.plot(
+        depths[2:],
+        showers[2:],
+        alpha=0.2,
+        # s=.2,
+        # label = str(event_num)+"|"+ str(decay_code)
+    )
+
+plt.errorbar(
+    sample_grm, sample_shwr, abs_error, fmt=".", c="black", label="mean and sampled rms"
+)
+
+# plt.fill_between(
+#     sample_grm,
+#     rms_err_lower,
+#     rms_err_upper,
+#     alpha=0.4,
+#     facecolor="black",
+#     zorder=20,
+# )
+
+plt.title("Sampling Nmax Once")
+plt.title("Sampling Nmax Per Slant Depth")
+plt.xlabel("slant depth g cm$^{-2}$")
+plt.ylabel("$N$")
+plt.yscale("log")
+plt.legend()
 #%%
 
 sample_shower_column = trimmed_showers_00km[:, 500::500].T
@@ -137,13 +201,15 @@ plt.yscale("linear")
 plt.figure(figsize=(8, 6), dpi=200)
 # x = showers / np.nanmean(showers)
 plt.hist(
-    max_shwr_col,
+    max_shwr_col / np.mean(max_shwr_col),
     alpha=0.5,
     edgecolor="black",
     linewidth=0.5,
     label="{:g} g/cm^2".format(max_dpth_col[0]),
     bins=30,
 )
+
+
 # plt.scatter(bin_ctr, freq, c='k')
 plt.title("Distribution of Composite values")
 plt.xlabel("Particle Content/ Avg particle Content (N)")
@@ -151,6 +217,16 @@ plt.xlabel("Particle Content/ Avg particle Content (N)")
 plt.ylabel("# of composite showers")
 # plt.xscale('log')
 plt.legend()
+#%%sample_grm, sample_shwr, abs_error
+decay_channel_mult_plt(
+    bins=comp_depths_00km,
+    showers=comp_showers_00km,
+    smpl_rms_plt=True,
+    sampl_grm=sample_grm,
+    sampl_lwr_err=rms_err_lower,
+    sampl_upr_err=rms_err_upper,
+)
+
 
 #%% Dart board monte carlo
 # n = 10
