@@ -114,7 +114,7 @@ class Taus(object):
 
         return 10 ** Pexit
 
-    def tau_energy(self, betas, log_e_nu):
+    def tau_energy(self, betas, log_e_nu, u=None):
         """
         Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
@@ -130,13 +130,13 @@ class Taus(object):
 
         E_tau = np.zeros_like(betas)
 
-        E_tau[valid] = tau_cdf_sample(log_e_nu[valid], betas[valid])
+        E_tau[valid] = tau_cdf_sample(log_e_nu[valid], betas[valid], u)
         E_tau[beta_low] = tau_cdf_sample(
-            log_e_nu[beta_low], np.full(betas[beta_low].shape, beta_min)
+            log_e_nu[beta_low], np.full(betas[beta_low].shape, beta_min), u
         )
         E_tau[beta_high] = np.finfo(np.float32).eps
 
-        return E_tau * 10 ** log_e_nu
+        return E_tau * (10 ** log_e_nu)
 
     @decorators.nss_result_plot(
         taus_density_beta, taus_histogram, taus_pexit, taus_overview
