@@ -23,11 +23,13 @@ class MCVariedMean:
             showers=self.showers,
             bins=self.depths,
         )
-        self.nmax_shwr_col = self.showers[:, np.argmax(self.mean)].T
-        self.xmax_dpth_col = self.depths[:, np.argmax(self.mean)].T
+
+        # find where the average peaks, get that column for all showers @ that grammg.
+        self.nmax_shwr_col = self.showers[:, np.nanargmax(self.mean)].T
+        self.xmax_dpth_col = self.depths[:, np.nanargmax(self.mean)].T
 
         # controll how much linear sampling is done
-        left_pad_width = 500
+        left_pad_width = 400
         self.sample_dpth_col = self.depths[::, left_pad_width::sample_grammage]
         self.sample_shwr_col = self.showers[::, left_pad_width::sample_grammage]
 
@@ -35,7 +37,8 @@ class MCVariedMean:
             showers=np.hstack((self.tags, self.sample_shwr_col)),
             bins=np.hstack((self.tags, self.sample_dpth_col)),
         )
-        print(self.sample_dpth_col.shape[1])
+
+    # print(self.sample_dpth_col.shape[1])
 
     def mc_drt_rms(self, col_depths, col_showers, plot_darts=False):
         """
