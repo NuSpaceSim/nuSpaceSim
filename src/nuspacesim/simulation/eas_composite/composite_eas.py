@@ -70,7 +70,7 @@ class CompositeShowers:
         self.tau_strt = tau_table_start
         # assumes the data libraries are labeled as gh_xx_km, where xx is the
         # altitude in km
-
+        # to do: add an automatic path scanner
         with as_file(
             files(f"nuspacesim.data.conex_gh_params.gh_{self.altitude:02}_km")
             / "electron_EAS_table.h5"

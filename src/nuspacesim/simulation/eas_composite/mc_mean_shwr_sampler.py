@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from nuspacesim.simulation.eas_composite.plt_routines import mean_rms
+from nuspacesim.simulation.eas_composite.plt_routines import mean_rms_plt
 
 
 class MCVariedMean:
@@ -12,14 +12,14 @@ class MCVariedMean:
         hist_bins=30,
         sample_grammage=1,
     ):
-        self.tags = composite_showers[:,0:2]
+        self.tags = composite_showers[:, 0:2]
         self.showers = composite_showers
         self.depths = slant_depths
         self.n_throws = n_throws
         self.hist_bins = hist_bins
 
         # find mean and depth of all composite showers
-        self.mean_depth, self.mean, _, _ = mean_rms(
+        self.mean_depth, self.mean, _, _ = mean_rms_plt(
             showers=self.showers,
             bins=self.depths,
         )
@@ -30,15 +30,12 @@ class MCVariedMean:
         left_pad_width = 500
         self.sample_dpth_col = self.depths[::, left_pad_width::sample_grammage]
         self.sample_shwr_col = self.showers[::, left_pad_width::sample_grammage]
-        
-        
-        self.output_depth, self.output_mean, _, _  =  mean_rms(
+
+        self.output_depth, self.output_mean, _, _ = mean_rms_plt(
             showers=np.hstack((self.tags, self.sample_shwr_col)),
-            bins=np.hstack((self.tags,self.sample_dpth_col))
-            
+            bins=np.hstack((self.tags, self.sample_dpth_col)),
         )
         print(self.sample_dpth_col.shape[1])
-
 
     def mc_drt_rms(self, col_depths, col_showers, plot_darts=False):
         """
@@ -154,8 +151,8 @@ class MCVariedMean:
             # shwr_depth[i] = col_depth
             # shwr_mean[i] = col_mean
             sample_shwr_rms[i] = hit_rms
-            #print(hit_rms)
-        
+            # print(hit_rms)
+
         return sample_shwr_rms, self.output_depth.T, self.output_mean.T
 
     def sampling_nmax_per_depth(self):
@@ -168,14 +165,14 @@ class MCVariedMean:
         for i, (depths, showers) in enumerate(
             zip(self.sample_dpth_col.T, self.sample_shwr_col.T)
         ):
-            
+
             _, _, hit_rms = self.mc_drt_rms(
                 col_depths=depths,
                 col_showers=self.nmax_shwr_col,
             )
-            #print(hit_rms)  
+            # print(hit_rms)
             max_sample_shwr_rms[i] = hit_rms
-            
+
         return max_sample_shwr_rms, self.output_depth.T, self.output_mean.T
 
     def sampling_nmax_once(self):

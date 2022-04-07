@@ -55,7 +55,7 @@ def mean_rms_plt(bins, showers, plot_mean_rms=False, remove_tags=True, **kwargs)
     bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis=1)
 
     longest_shower_idx = np.argmax(bin_lengths)
-    longest_shower_bin = bins[10, 2:]
+    longest_shower_bin = bins[longest_shower_idx, 2:]
     # take average a long each bin, ignoring nans
     average_composites = np.nanmean(comp_showers, axis=0)
 

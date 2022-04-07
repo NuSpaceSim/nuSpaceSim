@@ -13,7 +13,7 @@ from nuspacesim.simulation.eas_composite.plt_routines import (
 #%%
 
 make_composites_00km = CompositeShowers(
-    alt=0, shower_end=8e3, grammage=1, tau_table_start=3000
+    alt=0, shower_end=8e3, grammage=10, tau_table_start=3000
 )
 
 comp_showers_00km, comp_depths_00km = make_composites_00km(filter_errors=False)
@@ -24,12 +24,18 @@ trimmed_showers_00km, _ = make_composites_00km.shower_end_cuts(
     separate_showers=False,
 )
 
+full, trimmed, _ = make_composites_00km.shower_end_cuts(
+    composite_showers=comp_showers_00km,
+    composite_depths=comp_depths_00km,
+    separate_showers=True,
+)
+
 decay_channels = np.unique(comp_depths_00km[:, 1])
 #%%
 plt.figure(figsize=(8, 6), dpi=200)
 
 
-for depths, showers in zip(comp_depths_00km, comp_showers_00km):
+for depths, showers in zip(trimmed[1], trimmed[0]):
 
     event_num = depths[0]
     decay_code = depths[1]

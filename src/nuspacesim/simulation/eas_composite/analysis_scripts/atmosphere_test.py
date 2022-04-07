@@ -15,7 +15,7 @@ plt.ylabel("Atm Density (g/cm^3)")
 plt.xlabel("Altitutde (km)")
 
 plt.figure(figsize=(8, 6), dpi=200)
-angles = np.radians(np.linspace(0, 80, 5))[:2]
+angles = np.radians(np.array([75, 80, 85, 87, 89]))  # np.radians(np.linspace(0, 80, 5))
 
 
 for angle in angles:
@@ -27,7 +27,7 @@ for angle in angles:
 
     slt_dpths = np.array(slant_depths)
     plt.plot(
-        altitudes[1:],
+        altitudes[0:],
         slt_dpths[:, :1],
         label="{:.2f} degrees".format(np.degrees(angle)),
     )
