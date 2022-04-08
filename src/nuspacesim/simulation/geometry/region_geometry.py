@@ -277,10 +277,14 @@ class RegionGeom:
         # PE threshold
         mcintfactor[triggers < threshold] = 0
         mcintegral = np.mean(mcintfactor) * mcnorm
+        mcintegraluncert = (
+            np.sqrt(np.var(mcintfactor, ddof=1)
+                    / len(mcintfactor)) * mcnorm
+        )
 
         numEvPass = np.count_nonzero(mcintfactor)
 
-        return mcintegral, mcintegralgeoonly, numEvPass
+        return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
 
 def show_plot(sim, plot):
