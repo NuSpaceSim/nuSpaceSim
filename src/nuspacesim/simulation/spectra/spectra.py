@@ -56,11 +56,11 @@ def energy_spectra(
 
     if isinstance(spectra, PowerSpectrum):
         p = spectra.index
-        a = 10 ** spectra.lower_bound
-        b = 10 ** spectra.upper_bound
+        a = 10**spectra.lower_bound
+        b = 10**spectra.upper_bound
         mp = 1 - p
         u = np.random.uniform(0.0, 1.0 + np.finfo(np.float64).eps, size=N)
-        log_e_nu = np.reciprocal(mp) * np.log10(u * (b ** mp - a ** mp) + a ** mp)
+        log_e_nu = np.reciprocal(mp) * np.log10(u * (b**mp - a**mp) + a**mp)
         return log_e_nu
 
     if isinstance(spectra, Callable):
@@ -81,10 +81,10 @@ def spec_norm(
 
     if isinstance(spectra, PowerSpectrum):
         p = spectra.index
-        a = 10 ** spectra.lower_bound
-        b = 10 ** spectra.upper_bound
+        a = 10**spectra.lower_bound
+        b = 10**spectra.upper_bound
         mp = 1 - p
-        return mp / (b ** mp - a ** mp)
+        return mp / (b**mp - a**mp)
 
     return 1.0
 
@@ -100,10 +100,10 @@ def sum_spec_weights(
 
     if isinstance(spectra, PowerSpectrum):
         p = spectra.index
-        a = 10 ** spectra.lower_bound
-        b = 10 ** spectra.upper_bound
+        a = 10**spectra.lower_bound
+        b = 10**spectra.upper_bound
         mp = 1 - p
-        return (b ** mp - a ** mp) / mp
+        return (b**mp - a**mp) / mp
 
     return 1.0
 

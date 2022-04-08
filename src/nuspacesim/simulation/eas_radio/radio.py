@@ -98,7 +98,7 @@ class EASRadio:
         Re = self.config.constants.earth_radius
         B_angle = np.ones(altDec[mask].shape)
         B_angle *= np.pi / 2.0 - np.arccos(
-            (lenDec[mask] ** 2.0 + (altDec[mask] + Re) ** 2.0 - Re ** 2.0)
+            (lenDec[mask] ** 2.0 + (altDec[mask] + Re) ** 2.0 - Re**2.0)
             / (2.0 * lenDec[mask] * (altDec[mask] + Re))
         )
         bounds = np.radians(30.0)
@@ -172,7 +172,7 @@ class RadioEFieldParams(object):
         viewAngle = (peak.T + viewAngle).T
         Efield = (
             E0 * np.exp(-((viewAngle - peak) ** 2) / (2.0 * w * w))
-            + np.abs(E1) * np.exp(-(viewAngle ** 2) / (2.0 * w2 * w2)) / 2.0
+            + np.abs(E1) * np.exp(-(viewAngle**2) / (2.0 * w2 * w2)) / 2.0
         )  # this factor of 2 is to make up for how i made this fits in the first place
         return Efield
 
