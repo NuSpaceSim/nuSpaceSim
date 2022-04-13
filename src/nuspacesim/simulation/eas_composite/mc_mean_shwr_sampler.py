@@ -25,9 +25,11 @@ class MCVariedMean:
         )
 
         # find where the average peaks, get that column for all showers @ that grammg.
-        self.nmax_shwr_col = self.showers[:, np.nanargmax(self.mean)].T
-        self.xmax_dpth_col = self.depths[:, np.nanargmax(self.mean)].T
-
+        max_idx = np.nanargmax(self.mean)
+        self.nmax_shwr_col = self.showers[:, max_idx].T
+        self.xmax_dpth_col = self.depths[:, max_idx].T
+        # print(max_idx)
+        print("X-max", self.xmax_dpth_col[1])
         # controll how much linear sampling is done
         left_pad_width = 400
         self.sample_dpth_col = self.depths[::, left_pad_width::sample_grammage]
@@ -133,7 +135,7 @@ class MCVariedMean:
 
         return col_depth, col_mean, hit_rms[0]
 
-    def sampling_per_depth(self):
+    def sampling_per_depth(self, return_rms_dist=False):
         r"""
         Iterating through the composite shower to assign rms for each depth
         by sampling each point in that depth.
@@ -158,7 +160,7 @@ class MCVariedMean:
 
         return sample_shwr_rms, self.output_depth.T, self.output_mean.T
 
-    def sampling_nmax_per_depth(self):
+    def sampling_nmax_per_depth(self, return_rms_dist=False):
         r"""
         Iterating through the composite shower to assign rms for each depth
         by sampling showers near nmax per slant depth. Non-uniform multipliers
@@ -178,7 +180,7 @@ class MCVariedMean:
 
         return max_sample_shwr_rms, self.output_depth.T, self.output_mean.T
 
-    def sampling_nmax_once(self):
+    def sampling_nmax_once(self, return_rms_dist=False):
         r"""
         Sample the rms distribution once around nmax and return uniform multipliears.
         """
@@ -186,4 +188,12 @@ class MCVariedMean:
             col_depths=self.xmax_dpth_col,
             col_showers=self.nmax_shwr_col,
         )
-        return hit_rms, self.output_depth.T, self.output_mean.T
+        if return_rms_dist is True:
+            return (
+                hit_rms,
+                self.output_depth.T,
+                self.output_mean.T,
+                self.nmax_shwr_col.T,
+            )
+        else:
+            return hit_rms, self.output_depth.T, self.output_mean.T

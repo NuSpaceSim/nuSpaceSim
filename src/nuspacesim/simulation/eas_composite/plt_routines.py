@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import warnings
+
+warnings.filterwarnings(action="ignore", message="Mean of empty slice")
 
 
 def get_decay_channel(decay_code):
@@ -85,7 +88,7 @@ def mean_rms_plt(bins, showers, plot_mean_rms=False, remove_tags=True, **kwargs)
             alpha=0.2,
             # facecolor='crimson',
             interpolate=True,
-            **kwargs
+            **kwargs,
         )
 
         plt.title("Mean and RMS Error")
@@ -160,7 +163,7 @@ def decay_channel_mult_plt(
             )
 
 
-def recursive_plt(composite_dpths, composite_shwrs):
+def recursive_plt(composite_dpths, composite_shwrs, lbl="None", **kwargs):
     r"""Loops through each paired list and plots them on the same axes"""
     for depths, showers in zip(composite_dpths, composite_shwrs):
 
@@ -170,7 +173,8 @@ def recursive_plt(composite_dpths, composite_shwrs):
         plt.plot(
             depths[2:],
             showers[2:],
-            alpha=0.2,
-            # s=.2,
-            # label = str(event_num)+"|"+ str(decay_code)
+            alpha=0.1,
+            **kwargs,
         )
+
+    plt.plot(composite_dpths[1, 2:], composite_shwrs[1, 2:], label=lbl, **kwargs)
