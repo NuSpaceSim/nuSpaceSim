@@ -128,13 +128,14 @@ def compute(
     if verbose:
         console.rule("[bold blue] NuSpaceSim")
 
-    def mc_logv(mcint, mcintgeo, numEvPass, method):
+    def mc_logv(mcint, mcintgeo, numEvPass, mcunc, method):
         logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]:", mcint)
         logv(
             f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
             mcintgeo,
         )
         logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
+        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
@@ -191,7 +192,7 @@ def compute(
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV = geom.mcintegral(
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             numPEs,
             costhetaChEff,
             tauExitProb,
@@ -203,8 +204,9 @@ def compute(
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
         sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")
         sw.add_meta("ONEVPASS", passEV, "Optical Number of Passing Events")
+        sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
-        mc_logv(mcint, mcintgeo, passEV, "Optical")
+        mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
 
     if config.detector.method == "Radio" or config.detector.method == "Both":
         logv("Computing [green] EAS Radio signal.[/]")
@@ -222,7 +224,7 @@ def compute(
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV = geom.mcintegral(
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             snrs,
             np.cos(thetaArr),
             tauExitProb,
@@ -234,8 +236,9 @@ def compute(
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
         sw.add_meta("RMCINTGO", mcintgeo, "Radio MonteCarlo Integral, GEO Only")
         sw.add_meta("RNEVPASS", passEV, "Radio Number of Passing Events")
+        sw.add_meta("RMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
-        mc_logv(mcint, mcintgeo, passEV, "Radio")
+        mc_logv(mcint, mcintgeo, passEV, mcunc, "Radio")
 
     logv("\n :sparkles: [cyan]Done[/] :sparkles:")
 

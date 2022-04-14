@@ -112,7 +112,7 @@ class Taus(object):
         Pexit[beta_low] = pexit_interp((log_e_nu[beta_low], beta_min))
         Pexit[beta_high] = np.log10(np.finfo(np.float32).eps)
 
-        return 10 ** Pexit
+        return 10**Pexit
 
     def tau_energy(self, betas, log_e_nu):
         """
@@ -136,7 +136,7 @@ class Taus(object):
         )
         E_tau[beta_high] = np.finfo(np.float32).eps
 
-        return E_tau * 10 ** log_e_nu
+        return E_tau * 10**log_e_nu
 
     @decorators.nss_result_plot(
         taus_density_beta, taus_histogram, taus_pexit, taus_overview
@@ -171,7 +171,7 @@ class Taus(object):
         showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1e8
 
         tauLorentz = tauEnergy / self.config.constants.massTau
-        tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
+        tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz**2))
 
         return tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb
 

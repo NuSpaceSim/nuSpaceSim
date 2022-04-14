@@ -65,8 +65,8 @@ class EAS:
         lenDec = tDec * tauBeta * self.config.constants.c
 
         altDec = np.sqrt(
-            self.config.constants.earth_radius ** 2
-            + lenDec ** 2
+            self.config.constants.earth_radius**2
+            + lenDec**2
             + 2.0 * self.config.constants.earth_radius * lenDec * np.sin(beta)
         )
 

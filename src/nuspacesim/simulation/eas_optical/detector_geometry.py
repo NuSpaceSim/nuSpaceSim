@@ -47,33 +47,33 @@ def propagation_theta(beta_tr, z, Re):
 
 
 def length_along_prop_axis(z_start, z_stop, beta_tr, Re):
-    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
-    L2 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start ** 2
+    L1 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop**2
+    L2 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start**2
     L = np.sqrt(L1) - np.sqrt(L2)
     return L
 
 
 def deriv_length_along_prop_axis(z_stop, beta_tr, Re):
-    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
+    L1 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop**2
     L = (Re + z_stop) / np.sqrt(L1)
     return L
 
 
 def altitude_along_prop_axis(L, z_start, beta_tr, Re):
-    r1 = Re ** 2
+    r1 = Re**2
     r2 = 2 * Re * z_start
-    r3 = z_start ** 2
+    r3 = z_start**2
     return -Re + np.sqrt(
-        L ** 2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
+        L**2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
     )
 
 
 def deriv_altitude_along_prop_axis(L, z_start, beta_tr, Re):
-    r1 = Re ** 2
+    r1 = Re**2
     r2 = 2 * Re * z_start
-    r3 = z_start ** 2
+    r3 = z_start**2
     r4 = np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3)
-    denom = np.sqrt(L ** 2 + 2 * L * r4 + r1 + r2 + r3)
+    denom = np.sqrt(L**2 + 2 * L * r4 + r1 + r2 + r3)
     numer = (Re + z_start) * ((L) / r4 + 1)
     return numer / denom
 

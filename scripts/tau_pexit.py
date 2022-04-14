@@ -53,7 +53,7 @@ def tau_exit_compare_10_75():
     )
     ax1[0].scatter(
         np.degrees(reno_sgrid.axes[0]),
-        10 ** reno_sgrid.data,
+        10**reno_sgrid.data,
         30,
         "b",
         "+",
@@ -234,7 +234,7 @@ def spline_fit():
     betas = np.linspace(sg["beta_rad"][0], sg["beta_rad"][-1], 1000)
     s_pexit = splev(betas, spl)
 
-    plt.plot(betas, 10.0 ** s_pexit)
+    plt.plot(betas, 10.0**s_pexit)
     plt.show()
 
     print(spl)
