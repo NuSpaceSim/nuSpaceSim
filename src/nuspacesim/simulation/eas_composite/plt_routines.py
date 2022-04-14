@@ -173,8 +173,15 @@ def recursive_plt(composite_dpths, composite_shwrs, lbl="None", **kwargs):
         plt.plot(
             depths[2:],
             showers[2:],
-            alpha=0.1,
+            alpha=0.2,
             **kwargs,
         )
 
-    plt.plot(composite_dpths[1, 2:], composite_shwrs[1, 2:], label=lbl, **kwargs)
+    plt.plot(
+        composite_dpths[1, 2:],
+        composite_shwrs[1, 2:],
+        alpha=0.2,
+        label=lbl,
+        zorder=0,
+        **kwargs,
+    )
