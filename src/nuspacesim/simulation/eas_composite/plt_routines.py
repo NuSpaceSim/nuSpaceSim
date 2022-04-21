@@ -8,6 +8,15 @@ warnings.filterwarnings(action="ignore", message="Mean of empty slice")
 def get_decay_channel(decay_code):
     r"""
     PYTHIA 8 Decay Codes to Corresponding Decay Codes
+    https://drive.google.com/file/d/1MVj0FhWNI-075oZQwM8NWSwateT0xqJH/view
+    Decay Code Format — 6 digit number
+    — 1st number = number of daughters (range: 2 - 6)
+    — 2nd number = kaon flag (0 or 1)
+    — 3rd number = eta/omega flag (0 or 1)
+    — 4th number = number of pi0s (range: 0 - 4)
+    — 5th number = number of charged pions (range: 0 - 5)
+    — 6th number = number to differentiate between decays with similarities
+    in the other numbers
     """
     decay_dict = {
         200011: r"$\tau \rightarrow \nu_\tau + \pi$",
