@@ -190,6 +190,8 @@ class SimulationParameters:
     """Total Electron Content for ionospheric propagation. Default = 10."""
     TECerr: float = 0.1
     """Error for TEC reconstruction. Default = 0.1"""
+    tau_table_version: str = "1"
+    """Version of tau conversion tables."""
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
