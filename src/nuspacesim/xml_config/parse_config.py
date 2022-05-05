@@ -198,6 +198,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         model_ionosphere=bool(int(simparams["ModelIonosphere"])),
         TEC=float(simparams["TEC"]),
         TECerr=np.abs(float(simparams["TECerr"])),
+        tau_table_version=simparams["TauTableVer"],
     )
 
 
@@ -366,6 +367,9 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     tecerr = ET.SubElement(simparams, "TECerr")
     tecerr.text = str(config.simulation.TECerr)
+
+    TauTableVer = ET.SubElement(simparams, "TauTableVer")
+    TauTableVer.text = str(config.simulation.tau_table_version)
 
     def indent(elem, level=0):
         i = "\n" + level * "  "
