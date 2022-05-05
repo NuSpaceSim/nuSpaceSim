@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from nuspacesim.simulation.eas_composite.plt_routines import mean_rms_plt
+import warnings
 
 
 class MCVariedMean:
@@ -12,6 +13,9 @@ class MCVariedMean:
         hist_bins=30,
         sample_grammage=1,
     ):
+        with warnings.catch_warnings():
+            # take care of taking mean of NaN slice
+            warnings.simplefilter("ignore", category=RuntimeWarning)
         self.tags = composite_showers[:, 0:2]
         self.showers = composite_showers
         self.depths = slant_depths
@@ -29,7 +33,7 @@ class MCVariedMean:
         self.nmax_shwr_col = self.showers[:, max_idx].T
         self.xmax_dpth_col = self.depths[:, max_idx].T
         # print(max_idx)
-        print("X-max", self.xmax_dpth_col[1])
+        # print("X-max", self.xmax_dpth_col[1])
         # controll how much linear sampling is done
         left_pad_width = 400
         self.sample_dpth_col = self.depths[::, left_pad_width::sample_grammage]

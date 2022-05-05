@@ -72,25 +72,12 @@ class CompositeShowers:
         # altitude in km
         # to do: add an automatic path scanner
         with as_file(
-            files(f"nuspacesim.data.conex_gh_params.gh_{self.altitude:02}_km")
-            / "electron_EAS_table.h5"
+            files("nuspacesim.data.conex_gh_params") / f"gh_{self.altitude:02}_km.h5"
         ) as path:
             data = h5py.File(path, "r")
-            electron_gh = np.array(data.get("EASdata_11"))
-
-        with as_file(
-            files(f"nuspacesim.data.conex_gh_params.gh_{self.altitude:02}_km")
-            / "gamma_EAS_table.h5"
-        ) as path:
-            data = h5py.File(path, "r")
-            gamma_gh = np.array(data.get("EASdata_22"))
-
-        with as_file(
-            files(f"nuspacesim.data.conex_gh_params.gh_{self.altitude:02}_km")
-            / "pion_EAS_table.h5"
-        ) as path:
-            data = h5py.File(path, "r")
-            pion_gh = np.array(data.get("EASdata_211"))
+            electron_gh = np.array(data.get("electron"))
+            gamma_gh = np.array(data.get("gamma"))
+            pion_gh = np.array(data.get("pion"))
 
         with as_file(
             files("nuspacesim.data.pythia_tau_decays") / "new_tau_100_PeV.h5"
