@@ -210,12 +210,11 @@ def run(
                     plot_kwargs["filename"] = output
     elif (plot and plotsettings) or (plotall and plotsettings):
         plot_kwargs = {
-            "figsize": (plotsettings[0], plotsettings[1]),
-            "save_to_file": plotsettings[2],
-            "save_as": plotsettings[3],
-            "pop_up": plotsettings[4],
-            "default_color": plotsettings[5],
-            "default_colormap": plotsettings[6],
+            "save_to_file": plotsettings[0],
+            "save_as": plotsettings[1],
+            "pop_up": plotsettings[2],
+            "default_color": plotsettings[3],
+            "default_colormap": plotsettings[4],
         }
         if output is not None:
             for ext in [".h5", ".hdf5", ".fits"]:
@@ -301,8 +300,8 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
 @click.option(
     "-ps",
     "--plotsettings",
-    nargs=7,
-    type=click.Tuple([int, int, bool, str, bool, int, str]),
+    nargs=5,
+    type=click.Tuple([bool, str, bool, int, str]),
     default=None,
     help="Save plot supplied with -p with given file extension, optionally suppress pop_up",
 )
@@ -372,12 +371,11 @@ def show_plot(
         plot_kwargs["filename"] = plot_filename
     elif (plot and plotsettings) or (plotall and plotsettings):
         plot_kwargs = {
-            "figsize": (plotsettings[0], plotsettings[1]),
-            "save_to_file": plotsettings[2],
-            "save_as": plotsettings[3],
-            "pop_up": plotsettings[4],
-            "default_color": plotsettings[5],
-            "default_colormap": plotsettings[6],
+            "save_to_file": plotsettings[0],
+            "save_as": plotsettings[1],
+            "pop_up": plotsettings[2],
+            "default_color": plotsettings[3],
+            "default_colormap": plotsettings[4],
             "filename": plot_filename,
         }
     else:
@@ -394,10 +392,6 @@ def read_plot_config(filename):
     cfg = configparser.ConfigParser()
     cfg.read(filename)
     plot_kwargs = {
-        "figsize": (
-            cfg["General"].getint("fig_width"),
-            cfg["General"].getint("fig_height"),
-        ),
         "save_as": cfg["General"]["save_as"],
         "pop_up": cfg["General"].getboolean("pop_up"),
         "save_to_file": cfg["General"].getboolean("save_to_file"),

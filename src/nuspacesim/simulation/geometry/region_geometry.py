@@ -284,7 +284,7 @@ class RegionGeom:
 
 
 def show_plot(sim, plot, plot_kwargs):
-    plotfs = tuple([geom_beta_tr_hist])
+    plotfs = tuple([geom_beta_tr_hist, path_length_to_detector])
     inputs = tuple([0])
     outputs = ("beta_rad", "theta_rad", "path_len")
     decorators.nss_result_plot_from_file(

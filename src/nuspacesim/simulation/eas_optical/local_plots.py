@@ -32,125 +32,253 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from matplotlib import pyplot as plt
 
-from ...utils.plots import hexbin
+from ...utils.plot_wrapper import PlotWrapper
 
 
-def eas_optical_density(inputs, results, *args, **kwargs):
+def numpes_vs_beta(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    binning_b = np.arange(
+        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
+    )
+    im = fig.hexbin(
+        ax,
+        x=np.degrees(betas),
+        y=numPEs,
+        gs=len(binning_b),
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "$\\beta$ / $^{\\circ}$",
+        "#PEs",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def altdec_vs_numpes(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+
+    im = fig.hexbin(
+        ax,
+        x=altDec,
+        y=numPEs,
+        gs=25,
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "$Decay_\\mathrm{Altitude}$ / km",
+        "#PEs",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def altdec_vs_beta(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    binning_b = np.arange(
+        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
+    )
+    im = fig.hexbin(
+        ax,
+        x=np.degrees(betas),
+        y=altDec,
+        gs=len(binning_b),
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "$\\beta$ / $^{\\circ}$",
+        "$Decay_\\mathrm{Altitude}$ / km",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def showerenergy_vs_numpes(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+
+    im = fig.hexbin(
+        ax,
+        x=showerEnergy,
+        y=numPEs,
+        gs=25,
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "$E_\\mathrm{shower}$ / 100 PeV",
+        "#PEs",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def costhetacheff_vs_beta(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    binning_b = np.arange(
+        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
+    )
+    im = fig.hexbin(
+        ax,
+        x=np.degrees(betas),
+        y=costhetaChEff,
+        gs=len(binning_b),
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "$\\beta$ / $^{\\circ}$",
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def costhetacheff_vs_numpes(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    im = fig.hexbin(
+        ax,
+        x=numPEs,
+        y=costhetaChEff,
+        gs=25,
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "#PEs",
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def altdec_vs_costhetacheff(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    im = fig.hexbin(
+        ax,
+        x=altDec,
+        y=costhetaChEff,
+        gs=25,
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "$Decay_\\mathrm{Altitude}$ / km",
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def showerenergy_vs_costhetacheff(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    im = fig.hexbin(
+        ax,
+        x=showerEnergy,
+        y=costhetaChEff,
+        gs=25,
+        logx=True,
+        logy=True,
+    )
+    fig.make_labels(
+        ax,
+        "$E_\\mathrm{shower}$ / 100 PeV",
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
+        clabel="Counts",
+        im=im,
+        logx=True,
+        logy=True,
+    )
+
+
+def numpes_hist(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    ax.hist(
+        x=numPEs,
+        bins=np.linspace(min(numPEs), max(numPEs), 100),
+        color=fig.params["default_colors"][0],
+    )
+    fig.make_labels(
+        ax,
+        "#PEs",
+        "Counts",
+    )
+
+
+def costhetacheff_hist(inputs, results, fig, ax, *args, **kwargs):
+    _, betas, altDec, showerEnergy = inputs
+    numPEs, costhetaChEff = results
+    ax.hist(
+        x=costhetaChEff,
+        bins=np.linspace(min(costhetaChEff), max(costhetaChEff), 100),
+        color=fig.params["default_colors"][0],
+    )
+    fig.make_labels(
+        ax,
+        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
+        "Counts",
+    )
+
+
+def eas_optical_density_overview(inputs, results, plot_kwargs, *args, **kwargs):
     r"""Plot some density plots"""
 
     _, betas, altDec, showerEnergy = inputs
     numPEs, costhetaChEff = results
-
-    plotting_opts = kwargs.get("kwargs")
-    if "default_colormap" in plotting_opts:
-        cm = plotting_opts.get("default_colormap")
-    else:
-        cm = "viridis"
-
-    fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)
-
-    hexbin(
-        fig,
-        ax[0, 0],
-        np.degrees(betas),
-        numPEs,
-        "$\\beta$ / $^{\\circ}$",
-        "#PEs",
-        cm=cm,
-    )
-    hexbin(
-        fig,
-        ax[1, 0],
-        np.degrees(betas),
-        costhetaChEff,
-        "$\\beta$ / $^{\\circ}$",
-        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
-        cm=cm,
+    fig = PlotWrapper(plot_kwargs, 2, 3, (15, 8), "EAS Optical Cherenkov properties")
+    numpes_vs_beta(inputs, results, fig, fig.ax[0, 0])
+    altdec_vs_numpes(inputs, results, fig, fig.ax[0, 1])
+    showerenergy_vs_numpes(inputs, results, fig, fig.ax[0, 2])
+    costhetacheff_vs_beta(inputs, results, fig, fig.ax[1, 0])
+    altdec_vs_costhetacheff(inputs, results, fig, fig.ax[1, 1])
+    showerenergy_vs_costhetacheff(inputs, results, fig, fig.ax[1, 2])
+    fig.close(
+        "eas_optical_density_overview", fig.params["save_to_file"], fig.params["pop_up"]
     )
 
-    hexbin(
-        fig,
-        ax[0, 1],
-        altDec,
-        numPEs,
-        "$Decay_\\mathrm{Altitude}$ / km",
-        "#PEs",
-        cm=cm,
-    )
 
-    hexbin(
-        fig,
-        ax[1, 1],
-        altDec,
-        costhetaChEff,
-        "Decay_\\mathrm{Altitude}$ / km",
-        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
-        cm=cm,
-    )
-
-    hexbin(
-        fig,
-        ax[0, 2],
-        showerEnergy,
-        numPEs,
-        "$E_\\mathrm{shower}$ / 100 PeV",
-        "#PEs",
-        cm=cm,
-    )
-
-    hexbin(
-        fig,
-        ax[1, 2],
-        showerEnergy,
-        costhetaChEff,
-        "$E_\\mathrm{shower}$ / 100 PeV",
-        "$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)",
-        cm=cm,
-    )
-
-    fig.suptitle("EAS Optical Cherenkov properties.")
-
-    if plotting_opts.get("pop_up") is True:
-        plt.show()
-    if plotting_opts.get("save_to_file") is True:
-        fig.savefig(
-            plotting_opts.get("filename")
-            + "_eas_optical_density."
-            + plotting_opts.get("save_as")
-        )
-
-
-def eas_optical_histogram(inputs, results, *args, **kwargs):
+def eas_optical_histogram_overview(inputs, results, plot_kwargs, *args, **kwargs):
     r"""Plot some histograms"""
 
-    # eas_self, betas, altDec, showerEnergy = inputs
-    plotting_opts = kwargs.get("kwargs")
-    if "default_color" in plotting_opts:
-        c = "C{}".format(plotting_opts.get("default_color"))
-    else:
-        c = "C0"
+    eas_self, betas, altDec, showerEnergy = inputs
     numPEs, costhetaChEff = results
 
-    fig, ax = plt.subplots(2, 1, constrained_layout=True)
-
-    ax[0].hist(numPEs, 100, log=True, facecolor=c)
-    ax[0].set_xlabel("log(#PEs)")
-    ax[0].set_ylabel("Counts")
-
-    ax[1].hist(costhetaChEff, 100, log=True, facecolor=c)
-    ax[1].set_xlabel("$\\cos(\\theta_\\mathrm{Cherenkov}$ / rad)")
-    ax[1].set_ylabel("Counts")
-
-    fig.suptitle("EAS Optical Cherenkov property Histograms")
-    if "pop_up" not in plotting_opts:
-        plt.show()
-    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
-        plt.show()
-    if plotting_opts.get("save_to_file") is True:
-        fig.savefig(
-            plotting_opts.get("filename")
-            + "_eas_optical_histogram."
-            + plotting_opts.get("save_as")
-        )
+    fig = PlotWrapper(
+        plot_kwargs, 2, 1, title="EAS Optical Cherenkov property Histograms"
+    )
+    numpes_hist(inputs, results, fig, fig.ax[0])
+    costhetacheff_hist(inputs, results, fig, fig.ax[1])
+    fig.close("eas_optical_histogram", fig.params["save_to_file"], fig.params["pop_up"])

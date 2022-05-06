@@ -40,7 +40,20 @@ from ...config import NssConfig
 from ...utils import decorators
 from ...utils.cdf import grid_cdf_sampler
 from ...utils.grid import NssGrid
-from .local_plots import taus_density_beta, taus_histogram, taus_overview, taus_pexit
+from .local_plots import (
+    beta_hist,
+    energy_hists,
+    tau_beta_hex,
+    tau_beta_hist,
+    tau_exit_prob_hex,
+    tau_exit_prob_hist,
+    tau_lorentz_hex,
+    tau_lorentz_hist,
+    taus_density_beta_overview,
+    taus_histograms_overview,
+    taus_overview,
+    taus_pexit_overview,
+)
 
 try:
     from importlib.resources import as_file, files
@@ -139,7 +152,18 @@ class Taus(object):
         return E_tau * 10 ** log_e_nu
 
     @decorators.nss_result_plot(
-        taus_density_beta, taus_histogram, taus_pexit, taus_overview
+        energy_hists,
+        beta_hist,
+        tau_beta_hist,
+        tau_lorentz_hist,
+        tau_exit_prob_hist,
+        tau_beta_hex,
+        tau_lorentz_hex,
+        tau_exit_prob_hex,
+        taus_density_beta_overview,
+        taus_histograms_overview,
+        taus_pexit_overview,
+        taus_overview,
     )
     @decorators.nss_result_store(
         "tauBeta", "tauLorentz", "tauEnergy", "showerEnergy", "tauExitProb"
@@ -179,7 +203,20 @@ class Taus(object):
 def show_plot(sim, plot, plot_kwargs):
     inputs = ("beta_rad", "log_e_nu")
     outputs = ("tauBeta", "tauLorentz", "tauEnergy", "showerEnergy", "tauExitProb")
-    plotfs = (taus_density_beta, taus_histogram, taus_pexit, taus_overview)
+    plotfs = (
+        energy_hists,
+        beta_hist,
+        tau_beta_hist,
+        tau_lorentz_hist,
+        tau_exit_prob_hist,
+        tau_beta_hex,
+        tau_lorentz_hex,
+        tau_exit_prob_hex,
+        taus_density_beta_overview,
+        taus_histograms_overview,
+        taus_pexit_overview,
+        taus_overview,
+    )
     decorators.nss_result_plot_from_file(
         sim, inputs, outputs, plotfs, plot, plot_kwargs
     )

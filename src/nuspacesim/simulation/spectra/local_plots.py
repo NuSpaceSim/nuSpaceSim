@@ -31,37 +31,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from matplotlib import pyplot as plt
+import numpy as np
+
+from ...utils.plot_wrapper import PlotWrapper
 
 
-def spectra_histogram(inputs, results, *args, **kwargs):
+def spectra_histogram(inputs, results, fig, ax, *args, **kwargs):
     r"""Plot some histograms"""
 
     N, spectrum = inputs
     log_e_nu = results
-    plotting_opts = kwargs.get("kwargs")
-    if "default_color" in plotting_opts:
-        c = "C{}".format(plotting_opts.get("default_color"))
-    else:
-        c = "C0"
-
-    fig, ax = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
-    ax[0].hist(log_e_nu, 100, log=False, color=c)
-    ax[0].set_ylabel("Counts")
-
-    ax[1].hist(log_e_nu, 100, log=True, color=c)
-    ax[1].set_xlabel("$\\log_{{10}}\\left(E_\\nu\\right)$")
-    ax[1].set_ylabel("Counts")
-
-    fig.suptitle(f"Energy Spectra Histogram of {N} events\n {spectrum}")
-    fig.tight_layout()
-    if "pop_up" not in plotting_opts:
-        plt.show()
-    elif "pop_up" in plotting_opts and plotting_opts.get("pop_up") is True:
-        plt.show()
-    if plotting_opts.get("save_to_file") is True:
-        fig.savefig(
-            plotting_opts.get("filename")
-            + "_spectra_histogram."
-            + plotting_opts.get("save_as")
-        )
+    # log_e_nu = log_e_nu + 9
+    ax.hist(
+        x=log_e_nu,
+        bins=100,
+        color=fig.params["default_colors"][0],
+        label=f"Energy spectrum histogram with {N} events\n {spectrum}",
+    )
+    fig.make_labels(
+        ax,
+        "$E_{\\nu_\\tau}$ / $\\log_\\mathrm{10}\\left(\\frac{E}{\\mathrm{eV}}\\right)$",
+        "Counts",
+        logy_scale=True,
+    )
+    ax.legend(loc="best")

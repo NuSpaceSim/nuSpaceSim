@@ -166,7 +166,7 @@ def compute(
 
     logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(
-        config.simulation.N, store=sw, plot=to_plot, kwargs=plot_kwargs
+        config.simulation.N, store=sw, plot=to_plot, plot_kwargs=plot_kwargs
     )
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
@@ -174,23 +174,28 @@ def compute(
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
-        beta_tr.shape[0], store=sw, plot=to_plot, kwargs=plot_kwargs
+        beta_tr.shape[0], store=sw, plot=to_plot, plot_kwargs=plot_kwargs
     )
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
-        beta_tr, log_e_nu, store=sw, plot=to_plot, kwargs=plot_kwargs
+        beta_tr, log_e_nu, store=sw, plot=to_plot, plot_kwargs=plot_kwargs
     )
 
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(
-        beta_tr, tauBeta, tauLorentz, store=sw, plot=to_plot, kwargs=plot_kwargs
+        beta_tr, tauBeta, tauLorentz, store=sw, plot=to_plot, plot_kwargs=plot_kwargs
     )
 
     if config.detector.method == "Optical" or config.detector.method == "Both":
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
-            beta_tr, altDec, showerEnergy, store=sw, plot=to_plot, kwargs=plot_kwargs
+            beta_tr,
+            altDec,
+            showerEnergy,
+            store=sw,
+            plot=to_plot,
+            plot_kwargs=plot_kwargs,
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")

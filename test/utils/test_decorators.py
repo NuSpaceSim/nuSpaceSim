@@ -59,6 +59,14 @@ def test_nss_result_plot():
 
     plot_written = False
     iA, iB = np.random.randn(2, 128)
+    plot_kwargs = {
+        "save_as": "pdf",
+        "pop_up": False,
+        "save_to_file": False,
+        "default_color": 0,
+        "default_colormap": "viridis",
+        "filename": "nuspacesim_run",
+    }
 
     def plotter(inputs, results, *args, **kwargs):
         nonlocal plot_written
@@ -66,7 +74,7 @@ def test_nss_result_plot():
         assert plot_written
         assert len(inputs) == 2
         assert len(results) == 2
-        assert len(args) == 0
+        assert len(args) == 2
         assert len(kwargs) == 0
         assert np.array_equal(inputs[0], iA)
         assert np.array_equal(inputs[1], iB)
@@ -84,35 +92,35 @@ def test_nss_result_plot():
 
     # test plotter is not called without a plot argument
     assert not plot_written
-    cA, cB = test_base_f(iA, iB)
+    cA, cB = test_base_f(iA, iB, plot_kwargs=plot_kwargs)
     assert not plot_written
     assert np.all(np.equal(cA, 0.0))
     assert np.all(np.equal(cB, 1.0))
 
     # test plotter is called with a callable plot argument
     plot_written = False
-    cA, cB = test_base_f(iA, iB, plot=plotter)
+    cA, cB = test_base_f(iA, iB, plot=plotter, plot_kwargs=plot_kwargs)
     assert plot_written
     assert np.all(np.equal(cA, 0.0))
     assert np.all(np.equal(cB, 1.0))
 
     # test plotter is called with a string plot argument
     plot_written = False
-    cA, cB = test_base_f(iA, iB, plot=plotter.__name__)
+    cA, cB = test_base_f(iA, iB, plot=plotter.__name__, plot_kwargs=plot_kwargs)
     assert plot_written
     assert np.all(np.equal(cA, 0.0))
     assert np.all(np.equal(cB, 1.0))
 
     # test plotter is called with a list of callable plot arguments
     plot_written = False
-    cA, cB = test_base_f(iA, iB, plot=list([plotter]))
+    cA, cB = test_base_f(iA, iB, plot=list([plotter]), plot_kwargs=plot_kwargs)
     assert plot_written
     assert np.all(np.equal(cA, 0.0))
     assert np.all(np.equal(cB, 1.0))
 
     # test plotter is called with a list of string plot arguments
     plot_written = False
-    cA, cB = test_base_f(iA, iB, plot=list([plotter.__name__]))
+    cA, cB = test_base_f(iA, iB, plot=list([plotter.__name__]), plot_kwargs=plot_kwargs)
     assert plot_written
     assert np.all(np.equal(cA, 0.0))
     assert np.all(np.equal(cB, 1.0))

@@ -36,7 +36,20 @@ import numpy as np
 from ...config import NssConfig
 from ...utils import decorators
 from .cphotang import CphotAng
-from .local_plots import eas_optical_density, eas_optical_histogram
+from .local_plots import (
+    altdec_vs_beta,
+    altdec_vs_costhetacheff,
+    altdec_vs_numpes,
+    costhetacheff_hist,
+    costhetacheff_vs_beta,
+    costhetacheff_vs_numpes,
+    eas_optical_density_overview,
+    eas_optical_histogram_overview,
+    numpes_hist,
+    numpes_vs_beta,
+    showerenergy_vs_costhetacheff,
+    showerenergy_vs_numpes,
+)
 
 __all__ = ["EAS", "show_plot"]
 
@@ -74,7 +87,19 @@ class EAS:
 
         return altDec, lenDec
 
-    @decorators.nss_result_plot(eas_optical_density, eas_optical_histogram)
+    @decorators.nss_result_plot(
+        numpes_vs_beta,
+        altdec_vs_numpes,
+        altdec_vs_beta,
+        showerenergy_vs_numpes,
+        costhetacheff_vs_beta,
+        altdec_vs_costhetacheff,
+        showerenergy_vs_costhetacheff,
+        numpes_hist,
+        costhetacheff_hist,
+        eas_optical_density_overview,
+        eas_optical_histogram_overview,
+    )
     @decorators.nss_result_store("numPEs", "costhetaChEff")
     def __call__(self, beta, altDec, showerEnergy, *args, **kwargs):
         """
@@ -117,7 +142,19 @@ class EAS:
 
 
 def show_plot(sim, plot, plot_kwargs):
-    plotfs = (eas_optical_density, eas_optical_histogram)
+    plotfs = (
+        numpes_vs_beta,
+        altdec_vs_numpes,
+        altdec_vs_beta,
+        showerenergy_vs_numpes,
+        costhetacheff_vs_beta,
+        altdec_vs_costhetacheff,
+        showerenergy_vs_costhetacheff,
+        numpes_hist,
+        costhetacheff_hist,
+        eas_optical_density_overview,
+        eas_optical_histogram_overview,
+    )
     inputs = ("beta_rad", "altDec", "showerEnergy")
     outputs = ("numPEs", "costhetaChEff")
     decorators.nss_result_plot_from_file(

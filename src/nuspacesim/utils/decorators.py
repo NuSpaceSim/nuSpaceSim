@@ -49,6 +49,8 @@ __all__ = ["nss_result_store", "nss_result_store_scalar", "nss_result_plot"]
 from functools import wraps
 from typing import Callable, Iterable, Union
 
+from nuspacesim.utils.plot_wrapper import PlotWrapper
+
 
 def nss_result_store(*names):
     r"""Store result columns in nuspacesim.ResultsTable
@@ -194,23 +196,61 @@ def nss_result_plot(*plot_fs):
 
         @wraps(func)
         def wrapper_f(
-            *args, plot: Union[None, str, Iterable, Callable] = None, **kwargs
+            *args,
+            plot: Union[None, str, Iterable, Callable] = None,
+            plot_kwargs: dict,
+            **kwargs
         ):
             values = func(*args, **kwargs)
             if isinstance(plot, str):
                 for plotf in plot_fs:
-                    if plotf.__name__ == plot:
-                        plotf(args, values, **kwargs)
+                    if "overview" in plotf.__name__:
+                        plotf(args, values, plot_kwargs, **kwargs)
+                    else:
+                        fig = PlotWrapper(plot_kwargs, 1, 1)
+                        plotf(args, values, fig, fig.ax, **kwargs)
+                        fig.close(
+                            str(plotf.__name__),
+                            fig.params["save_to_file"],
+                            fig.params["pop_up"],
+                        )
             elif callable(plot):
-                plot(args, values)
+                if "overview" in plot.__name__:
+                    plot(args, values, plot_kwargs, **kwargs)
+                else:
+                    fig = PlotWrapper(plot_kwargs, 1, 1)
+                    plot(args, values, fig, fig.ax, **kwargs)
+                    fig.close(
+                        str(plot.__name__),
+                        fig.params["save_to_file"],
+                        fig.params["pop_up"],
+                    )
             elif isinstance(plot, Iterable):
                 if all(isinstance(p, str) for p in plot):
                     for plotf in plot_fs:
                         if plotf.__name__ in plot:
-                            plotf(args, values, **kwargs)
+                            if "overview" in plotf.__name__:
+                                plotf(args, values, plot_kwargs, **kwargs)
+                            else:
+                                fig = PlotWrapper(plot_kwargs, 1, 1)
+                                plotf(args, values, fig, fig.ax, **kwargs)
+                                fig.close(
+                                    str(plotf.__name__),
+                                    fig.params["save_to_file"],
+                                    fig.params["pop_up"],
+                                )
                 elif all(callable(p) for p in plot):
                     for plotf in plot:
-                        plotf(args, values, **kwargs)
+                        if "overview" in plotf.__name__:
+                            plotf(args, values, plot_kwargs, **kwargs)
+                        else:
+                            fig = PlotWrapper(plot_kwargs, 1, 1)
+                            plotf(args, values, fig, fig.ax, **kwargs)
+                            fig.close(
+                                str(plotf.__name__),
+                                fig.params["save_to_file"],
+                                fig.params["pop_up"],
+                            )
             return values
 
         return wrapper_f
