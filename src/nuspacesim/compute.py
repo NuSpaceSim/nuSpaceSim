@@ -57,6 +57,7 @@ from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .too import *
 
 __all__ = ["compute"]
 
@@ -118,6 +119,18 @@ def compute(
 
     console = Console(width=80, log_path=False)
 
+    WANAKALAT = -35.20666735 * u.deg
+    WANAKALONG = -69.315833 * u.deg
+    WANAKAHEIGHT = 33000 * u.m
+
+    RA = 0
+    DEC = 0
+    day = 60035.5  # 04/01/2023
+    time = 3600
+    obstime = 24 * 60 * 60
+
+    source = tooevent(RA, DEC, day, time, WANAKALAT, WANAKALONG, WANAKAHEIGHT, obstime)
+
     FreqRange = (config.detector.low_freq, config.detector.high_freq)
 
     def logv(*args):
@@ -134,11 +147,14 @@ def compute(
             f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
             mcintgeo,
         )
-        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
+        logv(
+            f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:",
+            numEvPass,
+        )
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = ResultsTable(config)
-    geom = RegionGeom(config)
+    geom = RegionGeom(config, source)
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
@@ -166,10 +182,11 @@ def compute(
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
+
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
-        beta_tr.shape[0], store=sw, plot=to_plot
+        len(beta_tr), store=sw, plot=to_plot
     )
 
     logv("Computing [green] Taus.[/]")
@@ -192,7 +209,7 @@ def compute(
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
+        mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
             numPEs,
             costhetaChEff,
             tauExitProb,
@@ -224,7 +241,7 @@ def compute(
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
+        mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
             snrs,
             np.cos(thetaArr),
             tauExitProb,

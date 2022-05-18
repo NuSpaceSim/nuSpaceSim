@@ -67,10 +67,10 @@ class DetectorCharacteristics:
     """ Type of detector: Default = Optical """
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
-    ra_start: float = 0.0
-    """ Right Ascencion (Degrees). Default = 0.0 """
-    dec_start: float = 0.0
-    """ Declination (Degrees). Default = 0.0 """
+    ra_start: float = 0.0  # No Idea where else these need to be modified
+    """ Latitude in earth coords (Degrees). Default = 0.0 """
+    dec_start: float = 0.0  # No Idea where else these need to be modified
+    """ Longitude (Degrees). Default = 0.0 """
     telescope_effective_area: float = 2.5
     '"" Effective area of the detector telescope. Default = 2.5 sq.meters ""'
     quantum_efficiency: float = 0.2
@@ -122,6 +122,29 @@ class DetectorCharacteristics:
             "detNant": (self.det_Nant, "Detector: Number of Antennas"),
             "detGain": (self.det_gain, "Detector: Antenna Gain"),
         }
+
+@dataclass
+class Source:
+    sourceRA: float = 0
+    sourceDEC: float = 0
+    """Right Ascencion and Declination of the source"""
+
+    sourceDAY: float = 0
+    sourceToD: float = 0
+    """Date (mjd) and Time of Day (s) of the event should be done differently"""
+
+    sourceOBSTime: float = 24 * 60 * 60
+    """Observation time (s)"""
+
+    def __call__(self) -> dict:
+        return {
+            "sourceRA": (self.sourceRA, "Detector: Source Right Ascencion"),
+            "sourceDEC": (self.sourceDEC, "Detector: Source Declination"),
+            "sourceDAY": (self.sourceDAY, "Detector: Source day"),
+            "sourceToD": (self.sourceToD, "Detector: Source Time of day"),
+            "sourceOBSTime": (self.sourceOBSTime, "Detector: Source observation time"),
+        }
+
 
 
 @dataclass
