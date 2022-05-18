@@ -46,6 +46,9 @@ class tooevent:
 
         return self.eventcoords.transform_to(self.detframe)
 
+    def event_time(self):
+        return self.eventtime
+
 
 # WANAKALAT = -35.20666735 * u.deg
 # WANAKALONG = -69.315833 * u.deg

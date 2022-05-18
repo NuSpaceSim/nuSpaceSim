@@ -119,18 +119,6 @@ def compute(
 
     console = Console(width=80, log_path=False)
 
-    WANAKALAT = -35.20666735 * u.deg
-    WANAKALONG = -69.315833 * u.deg
-    WANAKAHEIGHT = 33000 * u.m
-
-    RA = 0
-    DEC = 0
-    day = 60035.5  # 04/01/2023
-    time = 3600
-    obstime = 24 * 60 * 60
-
-    source = tooevent(RA, DEC, day, time, WANAKALAT, WANAKALONG, WANAKAHEIGHT, obstime)
-
     FreqRange = (config.detector.low_freq, config.detector.high_freq)
 
     def logv(*args):
@@ -154,7 +142,7 @@ def compute(
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = ResultsTable(config)
-    geom = RegionGeom(config, source)
+    geom = RegionGeom(config)
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
@@ -209,14 +197,24 @@ def compute(
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
-            numPEs,
-            costhetaChEff,
-            tauExitProb,
-            config.detector.photo_electron_threshold,
-            mc_spec_norm,
-            spec_weights_sum,
-        )
+        if config.simulation.det_mode == "ToO":
+            mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
+                numPEs,
+                costhetaChEff,
+                tauExitProb,
+                config.detector.photo_electron_threshold,
+                mc_spec_norm,
+                spec_weights_sum,
+            )
+        else:
+            mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
+                numPEs,
+                costhetaChEff,
+                tauExitProb,
+                config.detector.photo_electron_threshold,
+                mc_spec_norm,
+                spec_weights_sum,
+            )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
         sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")

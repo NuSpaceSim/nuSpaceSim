@@ -123,14 +123,15 @@ class DetectorCharacteristics:
             "detGain": (self.det_gain, "Detector: Antenna Gain"),
         }
 
+
 @dataclass
 class Source:
     sourceRA: float = 0
     sourceDEC: float = 0
     """Right Ascencion and Declination of the source"""
 
-    sourceDAY: float = 0
-    sourceToD: float = 0
+    sourceDAY: float = 60035.5  # 04/01/2023
+    sourceToD: float = 3600  # 1am
     """Date (mjd) and Time of Day (s) of the event should be done differently"""
 
     sourceOBSTime: float = 24 * 60 * 60
@@ -138,13 +139,12 @@ class Source:
 
     def __call__(self) -> dict:
         return {
-            "sourceRA": (self.sourceRA, "Detector: Source Right Ascencion"),
-            "sourceDEC": (self.sourceDEC, "Detector: Source Declination"),
-            "sourceDAY": (self.sourceDAY, "Detector: Source day"),
-            "sourceToD": (self.sourceToD, "Detector: Source Time of day"),
-            "sourceOBSTime": (self.sourceOBSTime, "Detector: Source observation time"),
+            "sourceRA": (self.sourceRA, "Source: Right Ascencion"),
+            "sourceDEC": (self.sourceDEC, "Source: Declination"),
+            "sourceDAY": (self.sourceDAY, "Source: day"),
+            "sourceToD": (self.sourceToD, "Source: Time of day"),
+            "sourceOBSTime": (self.sourceOBSTime, "Source: observation time"),
         }
-
 
 
 @dataclass
@@ -215,6 +215,7 @@ class SimulationParameters:
     """Error for TEC reconstruction. Default = 0.1"""
     tau_table_version: str = "1"
     """Version of tau conversion tables."""
+    det_mode: str = "Diffuse"
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
@@ -288,3 +289,5 @@ class NssConfig:
     """The Simulation Parameters."""
     constants: const.Fund_Constants = const.Fund_Constants()
     """The Fudimental physical constants."""
+    source: Source = Source()
+    """The Source parameters."""
