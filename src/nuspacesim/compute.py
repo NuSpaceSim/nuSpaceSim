@@ -249,6 +249,7 @@ def compute(
                 config.detector.det_SNR_thres,
                 mc_spec_norm,
                 spec_weights_sum,
+                lenDec,
                 method="radio"
             )
         else:
