@@ -205,6 +205,8 @@ def compute(
                 config.detector.photo_electron_threshold,
                 mc_spec_norm,
                 spec_weights_sum,
+                lenDec,
+                method="optical"
             )
         else:
             mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
@@ -239,14 +241,25 @@ def compute(
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
-            snrs,
-            np.cos(thetaArr),
-            tauExitProb,
-            config.detector.det_SNR_thres,
-            mc_spec_norm,
-            spec_weights_sum,
-        )
+        if config.simulation.det_mode == "ToO":
+            mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
+                snrs,
+                np.cos(thetaArr),
+                tauExitProb,
+                config.detector.det_SNR_thres,
+                mc_spec_norm,
+                spec_weights_sum,
+                method="radio"
+            )
+        else:
+            mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
+                snrs,
+                np.cos(thetaArr),
+                tauExitProb,
+                config.detector.det_SNR_thres,
+                mc_spec_norm,
+                spec_weights_sum,
+            )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
         sw.add_meta("RMCINTGO", mcintgeo, "Radio MonteCarlo Integral, GEO Only")

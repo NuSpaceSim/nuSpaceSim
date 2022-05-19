@@ -215,7 +215,7 @@ class SimulationParameters:
     """Error for TEC reconstruction. Default = 0.1"""
     tau_table_version: str = "1"
     """Version of tau conversion tables."""
-    det_mode: str = "Diffuse"
+    det_mode: str = "ToO"
 
     @cached_property
     def log_nu_tau_energy(self) -> float:

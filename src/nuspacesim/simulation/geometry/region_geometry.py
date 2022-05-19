@@ -55,9 +55,9 @@ class RegionGeom:
 
         if self.detection_mode == "ToO":
             # Detector definitions
-            self.detlat = config.detector.ra_start
-            self.detlong = config.detector.dec_start
-            self.detalt = config.detector.altitude
+            self.detlat = self.config.detector.ra_start
+            self.detlong = self.config.detector.dec_start
+            self.detalt = self.config.detector.altitude
 
             # ToO definitions
             self.sourceRA = self.config.source.sourceRA
@@ -260,7 +260,7 @@ class RegionGeom:
 
         if isinstance(u, int):
             # fix to make closed in [0,1]
-            u = np.random.rand(1, u)
+            u = np.random.rand(u)
 
         if u is None:
             raise RuntimeError(
@@ -268,15 +268,13 @@ class RegionGeom:
                 "numbers in [0, 1]"
             )
 
-        if u.shape[0] != 1:
-            raise RuntimeError("u random numbers must be of shape (1, N)")
-
         # Generate the random times
         u *= self.sourceOBSTime  # in s
         u = astropy.time.TimeDelta(u, format="sec")
         u = self.too_source.eventtime + u
 
         # Calculate the local nadir angle of the source
+        self.times = u
         self.sourceNadRad = np.pi / 2 - self.too_source.localcoords(u).alt.rad
 
         # Calculate the earth emergence angle from the nadir angle
@@ -292,12 +290,12 @@ class RegionGeom:
 
         # Cut out any events that are outside the calc volume
         self.event_mask = np.logical_and(
-            np.rad2deg(self.sourcebeta) >= 0, np.rad2deg(self.sourcebeta) < 42
+            np.rad2deg(self.sourceNadRad) < 90, np.rad2deg(self.sourcebeta) < 42
         )
 
     def too_betas(self):
         """Earth-emergence angles for valid events."""
-        return np.rad2deg(too_beta_rad())
+        return np.rad2deg(self.too_beta_rad())
 
     def too_beta_rad(self):
         """Radian Earth-emergence angles for valid events."""
@@ -384,6 +382,8 @@ class RegionGeom:
         threshold,
         spec_norm,
         spec_weights_sum,
+        lenDec,
+        method="optical"
     ):
 
         # calculate the Cherenkov angle
@@ -392,16 +392,15 @@ class RegionGeom:
 
         # cossepangle = self.costhetaTrSubV[self.event_mask]
 
-        mcintfactor = self.too_pathLens() * self.too_pathLens() * tanthetaChEff**2
+        mcintfactor = (self.too_pathLens() - lenDec) * (self.too_pathLens()- lenDec) * tanthetaChEff**2
 
         # Branching ratio set to 1 to be consistent
         Bshr = 1
         mcnorm = np.pi * Bshr
 
         # Geometry Factors
-        # mcintfactor[cossepangle < costheta] = 0  # What does this do?
         mcintegralgeoonly = np.mean(mcintfactor) * mcnorm
-
+        # geo = mcintfactor * mcnorm
         # Multiply by tau exit probability
         mcintfactor *= tauexitprob
 
@@ -417,6 +416,20 @@ class RegionGeom:
         )
 
         numEvPass = np.count_nonzero(mcintfactor)
+        # if method == "optical":
+        #     print("saving")
+        #     np.savez(
+        #         str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
+        #         t=(self.times - self.too_source.eventtime)[self.event_mask].to_value("hr"),
+        #         tf=(self.times - self.too_source.eventtime).to_value("hr"),
+        #         nad=self.sourceNadRad[self.event_mask],
+        #         nadf=self.sourceNadRad,
+        #         mcint=mcintfactor,
+        #         geom=geo,
+        #         npass=numEvPass,
+        #         betas=self.too_betas()
+        #     )
+
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
