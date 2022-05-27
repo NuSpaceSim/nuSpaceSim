@@ -66,7 +66,10 @@ class ShowerParameterization:
 
         exp1 = (x_max - x_0) / gh_lambda
 
-        term1 = scaled_n_max * np.nan_to_num(((x - x_0) / (x_max - x_0)) ** exp1)
+        term1 = np.array(
+            scaled_n_max * np.nan_to_num(((x - x_0) / (x_max - x_0)) ** exp1),
+            dtype=np.float64,
+        )
 
         exp2 = (x_max - x) / gh_lambda
         term2 = np.exp(exp2)

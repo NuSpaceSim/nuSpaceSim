@@ -15,7 +15,7 @@ except ImportError:
 
 
 class CompositeShowers:
-    r"""Make composite showers with constituent electrons, gamma, and pions,
+    r"""Make composite showers with constituent electrons, gamma, and pions;
     contributions scaled by sampled tau energies.
 
     Parameters
@@ -272,7 +272,7 @@ class CompositeShowers:
         comp_showers = np.copy(composite_showers)
         comp_depths = np.copy(composite_depths)
 
-        print("Trimming {} showers.".format(np.shape(comp_showers)[0]))
+        print("\nTrimming {} showers.".format(np.shape(comp_showers)[0]))
         # get the idx of the maxiumum particle content, skip the event number
         # and decay code and offset
         nmax_idxs = np.argmax(comp_showers[:, 2:], axis=1) + 2
@@ -346,6 +346,7 @@ class CompositeShowers:
         # =====================================================================
 
         if separate_showers is True:
+            print("Separating different shower types...")
             return (
                 tuple((full_showers, full_depths)),
                 tuple((trimmed_showers, trimmed_depths)),

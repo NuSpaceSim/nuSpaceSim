@@ -1,118 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-
-warnings.filterwarnings(action="ignore", message="Mean of empty slice")
-
-# TODO: move this to utils.
-def get_decay_channel(decay_code):
-    r"""
-    PYTHIA 8 Decay Codes to Corresponding Decay Codes
-    https://drive.google.com/file/d/1MVj0FhWNI-075oZQwM8NWSwateT0xqJH/view
-    Decay Code Format — 6 digit number
-    — 1st number = number of daughters (range: 2 - 6)
-    — 2nd number = kaon flag (0 or 1)
-    — 3rd number = eta/omega flag (0 or 1)
-    — 4th number = number of pi0s (range: 0 - 4)
-    — 5th number = number of charged pions (range: 0 - 5)
-    — 6th number = number to differentiate between decays with similarities
-    in the other numbers
-    """
-    decay_dict = {
-        200011: r"$\tau \rightarrow \nu_\tau + \pi$",
-        210001: r"$\tau \rightarrow \nu_\tau + K$",
-        300001: r"$\tau \rightarrow \nu_\tau + e + \nu_e$",
-        300002: r"$\tau \rightarrow \nu_\tau + \mu + nu_mu$",
-        300111: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi$",
-        310001: r"$\tau \rightarrow \nu_\tau + K_0 + K$",
-        311001: r"$\tau \rightarrow \nu_\tau + \eta + K$",
-        310011: r"$\tau \rightarrow \nu_\tau + \pi_0 + \overline{K_0}$",
-        310101: r"$\tau \rightarrow \nu_\tau + \pi_0 + K$",
-        311002: r"$\tau \rightarrow \nu_\tau + \Omega + K$",
-        311003: r"$\tau \rightarrow \nu_\tau + \eta + K^*(892)$",
-        400211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi$",
-        400031: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- +\pi$",
-        410111: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi + \overline{K_0}$",
-        410021: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + K$",
-        410011: r"$\tau \rightarrow \nu_\tau + \pi + K^+ + K^- $",
-        410101: r"$\tau \rightarrow \nu_\tau + \pi_0 + K_0 + K$",
-        410012: r"$\tau \rightarrow \nu_\tau + \pi + KS + KL$",
-        410201: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + K$",
-        410013: r"$\tau \rightarrow \nu_\tau + \pi + KL + KL$",
-        410014: r"$\tau \rightarrow \nu_\tau + \pi + KS + KS$",
-        401111: r"$\tau \rightarrow \nu_\tau + \eta + \pi_0 + \pi$",
-        400111: r"$\tau \rightarrow \nu_\tau + \gamma + \pi_0 + \pi$",
-        500131: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi^+ + \pi^- + \pi$",
-        500311: r"$\tau \rightarrow \nu_\tau + 3\pi_0 + \pi$",
-        501031: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi + \eta$",
-        501211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi + \eta$",
-        501212: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi + \Omega$",
-        501032: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi + \Omega$",
-        510301: r"$\tau \rightarrow \nu_\tau + \3\pi_0 + K$",
-        510121: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi^+ + \pi^- + K$",
-        510211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \overline{K_0} + \pi$",
-        510031: r"$\tau \rightarrow \nu_\tau + \overline{K_0} + \pi^+ + \pi^- + \pi$",
-        510111: r"$\tau \rightarrow \nu_\tau + \pi_0 + K_0 + \overline{K_0} + \pi$",
-        510112: r"$\tau \rightarrow \nu_\tau + \pi_0 + K^+ + K^- + \pi$",
-        600231: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi^+ + \pi^- + \pi$",
-        600411: r"$\tau \rightarrow \nu_\tau + 4\pi_0 + \pi$",
-        600051: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi^+ + \pi^- + \pi$",
-    }
-    return decay_dict[decay_code]
-
-
-def mean_rms_plt(bins, showers, plot_mean_rms=False, remove_tags=True, **kwargs):
-
-    comp_showers = np.copy(showers[:, 2:])
-    bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis=1)
-
-    longest_shower_idx = np.argmax(bin_lengths)
-    longest_shower_bin = bins[longest_shower_idx, 2:]
-    # take average along each bin, ignoring nans
-    average_composites = np.nanmean(comp_showers, axis=0)
-
-    # test = average_composites  - comp_showers
-    # take the square root of the mean of the difference between the average
-    # and each particle content of each shower for one bin, squared
-    rms_error = np.sqrt(np.nanmean((average_composites - comp_showers) ** 2, axis=0))
-    rms = np.sqrt(np.nanmean((comp_showers) ** 2, axis=0))
-    std = np.nanstd(comp_showers, axis=0)
-    err_in_mean = np.nanstd(comp_showers, axis=0) / np.sqrt(
-        np.sum(~np.isnan(comp_showers), 0)
-    )
-    rms_low = average_composites - rms_error
-    rms_high = average_composites + rms_error
-    if plot_mean_rms is True:
-        plt.figure(figsize=(8, 6))
-        plt.plot(longest_shower_bin, average_composites, "--k", label="mean")
-        # plt.plot(longest_shower, rms_error ,  '--r', label='rms error')
-        # plt.plot(longest_shower, rms ,  '--g', label='rms')
-        # plt.plot(longest_shower, std ,  '--y', label='std')
-        # plt.plot(longest_shower, err_in_mean ,  '--b', label='error in mean')
-
-        plt.fill_between(
-            longest_shower_bin,
-            rms_low,
-            rms_high,
-            alpha=0.2,
-            # facecolor='crimson',
-            interpolate=True,
-            **kwargs,
-        )
-
-        plt.title("Mean and RMS Error")
-        plt.ylabel("Number of Particles")
-        # plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
-        # plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        plt.xlabel("Shower stage")
-        # plt.yscale('log')
-        plt.grid(True, which="both", linestyle="--")
-        plt.ylim(bottom=1)
-        # plt.xlim(right=1500)
-        plt.legend()
-    # plt.show()
-
-    return longest_shower_bin, average_composites, rms_low, rms_high
+from .comp_eas_utils import get_decay_channel
 
 
 def decay_channel_mult_plt(
@@ -170,6 +59,66 @@ def decay_channel_mult_plt(
                 facecolor="black",
                 zorder=20,
             )
+
+
+def mean_rms_plt(bins, showers, plot_mean_rms=False, remove_tags=True, **kwargs):
+
+    comp_showers = np.copy(showers[:, 2:])
+    bin_lengths = np.nansum(np.abs(bins[:, 2:]), axis=1)
+
+    longest_shower_idx = np.argmax(bin_lengths)
+    longest_shower_bin = bins[longest_shower_idx, 2:]
+
+    with warnings.catch_warnings():
+        # take average along each bin, ignoring nans
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+
+        average_composites = np.nanmean(comp_showers, axis=0)
+
+        # test = average_composites  - comp_showers
+        # take the square root of the mean of the difference between the average
+        # and each particle content of each shower for one bin, squared
+        rms_error = np.sqrt(
+            np.nanmean((average_composites - comp_showers) ** 2, axis=0)
+        )
+        rms = np.sqrt(np.nanmean((comp_showers) ** 2, axis=0))
+        std = np.nanstd(comp_showers, axis=0)
+        err_in_mean = np.nanstd(comp_showers, axis=0) / np.sqrt(
+            np.sum(~np.isnan(comp_showers), 0)
+        )
+    rms_low = average_composites - rms_error
+    rms_high = average_composites + rms_error
+    if plot_mean_rms is True:
+        plt.figure(figsize=(8, 6))
+        plt.plot(longest_shower_bin, average_composites, "--k", label="mean")
+        # plt.plot(longest_shower, rms_error ,  '--r', label='rms error')
+        # plt.plot(longest_shower, rms ,  '--g', label='rms')
+        # plt.plot(longest_shower, std ,  '--y', label='std')
+        # plt.plot(longest_shower, err_in_mean ,  '--b', label='error in mean')
+
+        plt.fill_between(
+            longest_shower_bin,
+            rms_low,
+            rms_high,
+            alpha=0.2,
+            # facecolor='crimson',
+            interpolate=True,
+            **kwargs,
+        )
+
+        plt.title("Mean and RMS Error")
+        plt.ylabel("Number of Particles")
+        # plt.xlabel('Slant Depth t ' + '($g \; cm^{-2}$)')
+        # plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        plt.xlabel("Shower stage")
+        # plt.yscale('log')
+        plt.grid(True, which="both", linestyle="--")
+        plt.ylim(bottom=1)
+        # plt.xlim(right=1500)
+        plt.legend()
+    # plt.show()
+
+    return longest_shower_bin, average_composites, rms_low, rms_high
 
 
 def recursive_plt(composite_dpths, composite_shwrs, lbl="None", **kwargs):

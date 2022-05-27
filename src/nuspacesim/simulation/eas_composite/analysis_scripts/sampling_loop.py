@@ -3,7 +3,11 @@ import numpy as np
 
 # relative imports are not for scripts, absolute imports here
 from nuspacesim.simulation.eas_composite.composite_eas import CompositeShowers
-from nuspacesim.simulation.eas_composite.mc_mean_shwr_sampler import MCVariedMean
+from nuspacesim.simulation.eas_composite.comp_eas_utils import (
+    decay_channel_filter,
+    separate_showers,
+)
+from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
 from nuspacesim.simulation.eas_composite.plt_routines import (
     mean_rms_plt,
     decay_channel_mult_plt,
@@ -12,51 +16,6 @@ from nuspacesim.simulation.eas_composite.plt_routines import (
 )
 
 #%%
-
-# TODO: put all these in utils
-def separate_showers(shwr_dpths, shwr_n, sep_dpth, sep_n):
-
-    dpth_idx = int(np.argwhere(shwr_dpths[0, :] == sep_dpth))
-    shwr_content_at_depth = shwr_n[:, dpth_idx]
-
-    above_n_mask = shwr_content_at_depth > sep_n
-    below_n_mask = shwr_content_at_depth <= sep_n
-
-    above_depths = shwr_dpths[above_n_mask]
-    below_depths = shwr_dpths[below_n_mask]
-    above_showers = shwr_n[above_n_mask]
-    below_showers = shwr_n[below_n_mask]
-
-    return below_depths, below_showers, above_depths, above_showers
-
-
-def decay_channel_filter(
-    shwr_dpths, shwr_n, decay_channel, nth_digit=None, digit_flag=None, discarded=None
-):
-    r"""Filter out specific decay channels or decay channel type"""
-    if nth_digit is not None and digit_flag is not None:
-
-        n_mask = shwr_dpths[:, 1][nth_digit - 1] == digit_flag
-
-        out_shwr_dpths = shwr_dpths[n_mask]
-        out_shwr_n = shwr_n[n_mask]
-
-        out_not_shwr_dpths = shwr_dpths[~n_mask]
-        out_not_shwr_n = shwr_n[~n_mask]
-    else:
-        decay_mask = shwr_dpths[:, 1] == decay_channel
-
-        out_shwr_dpths = shwr_dpths[decay_mask]
-        out_shwr_n = shwr_n[decay_mask]
-
-        out_not_shwr_dpths = shwr_dpths[~decay_mask]
-        out_not_shwr_n = shwr_n[~decay_mask]
-
-    if discarded is not None:
-        return out_shwr_dpths, out_shwr_n, out_not_shwr_dpths, out_not_shwr_n
-    else:
-        return out_shwr_dpths, out_shwr_n
-
 
 make_composites_00km = CompositeShowers(
     alt=0, shower_end=10e3, grammage=1, tau_table_start=3000
@@ -83,7 +42,7 @@ shallow_y, shallow_x = shallow
 # other plots for progress report
 
 e_dpths, e_n, not_e_dpths, not_e_n = decay_channel_filter(
-    comp_depths_00km, trimmed_showers_00km, 300001, discarded=True
+    comp_depths_00km, trimmed_showers_00km, 300001, get_discarded=True
 )
 
 x_300111, y_300111 = decay_channel_filter(
@@ -161,7 +120,7 @@ recursive_plt(
     color="tab:red",
 )
 recursive_plt(full_x, full_y, lbl="Non Rebounding", color="tab:blue")
-
+#%%
 
 for i in range(10):
     sampler = MCVariedMean(
@@ -267,8 +226,8 @@ for i in range(10):
     )
 
     sampler = MCVariedMean(
-        x_300111,
         y_300111,
+        x_300111,
         n_throws=400,
         hist_bins=30,
         sample_grammage=20,
@@ -346,7 +305,7 @@ plt.figure(figsize=(8, 6), dpi=200)
 recursive_plt(e_dpths, e_n, lbl=get_decay_channel(300001), color="tab:red")
 recursive_plt(x_300111, y_300111, lbl=get_decay_channel(300111), color="tab:purple")
 recursive_plt(x_200011, y_200011, lbl=get_decay_channel(200011), color="tab:green")
-
+#%%
 for i in range(20):
 
     sampler = MCVariedMean(
@@ -418,7 +377,7 @@ plt.yscale("log")
 plt.tick_params(axis="both", which="both", direction="in", top="on", right="on")
 plt.grid(True, which="both", linestyle="--")
 plt.legend()
-
+#%%
 plt.figure(figsize=(8, 6), dpi=200)
 plt.hist(
     elec_rms / np.mean(elec_rms),

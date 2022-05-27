@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from nuspacesim.simulation.eas_composite.plt_routines import mean_rms_plt
+from .plt_routines import mean_rms_plt
 import warnings
 
 
@@ -13,47 +13,55 @@ class MCVariedMean:
         hist_bins=30,
         sample_grammage=1,
     ):
+        print(np.shape(composite_showers)[0], "Showers have been inputed.")
+        # catch warnings when taking mean of a vertical NaN slice
+        # e.g., for trimmed showers padded with NaNs, and taking the mean for a
+        # given slant depth where all have been cut
+
         with warnings.catch_warnings():
-            # take care of taking mean of NaN slice
             warnings.simplefilter("ignore", category=RuntimeWarning)
-        self.tags = composite_showers[:, 0:2]
-        self.showers = composite_showers
-        self.depths = slant_depths
-        self.n_throws = n_throws
-        self.hist_bins = hist_bins
 
-        # find mean and depth of all composite showers
-        self.mean_depth, self.mean, _, _ = mean_rms_plt(
-            showers=self.showers,
-            bins=self.depths,
-        )
+            self.tags = composite_showers[:, 0:2]
+            self.showers = composite_showers
+            self.depths = slant_depths
+            self.n_throws = n_throws
+            self.hist_bins = hist_bins
 
-        # find where the average peaks, get that column for all showers @ that grammg.
-        max_idx = np.nanargmax(self.mean)
-        self.nmax_shwr_col = self.showers[:, max_idx].T
-        self.xmax_dpth_col = self.depths[:, max_idx].T
-        # print(max_idx)
-        # print("X-max", self.xmax_dpth_col[1])
-        # controll how much linear sampling is done
-        left_pad_width = 400
-        self.sample_dpth_col = self.depths[::, left_pad_width::sample_grammage]
-        self.sample_shwr_col = self.showers[::, left_pad_width::sample_grammage]
+            # find mean and depth of all composite showers
+            self.mean_depth, self.mean, _, _ = mean_rms_plt(
+                showers=self.showers,
+                bins=self.depths,
+            )
 
-        self.output_depth, self.output_mean, _, _ = mean_rms_plt(
-            showers=np.hstack((self.tags, self.sample_shwr_col)),
-            bins=np.hstack((self.tags, self.sample_dpth_col)),
-        )
+            # find where the average peaks, get that column for all showers @ that grammg.
+            max_idx = np.nanargmax(self.mean)
+            self.nmax_shwr_col = self.showers[:, max_idx].T
+            self.xmax_dpth_col = self.depths[:, max_idx].T
+            # print(max_idx)
+            # print("X-max", self.xmax_dpth_col[1])
+            # controll how much linear sampling is done
+            left_pad_width = 400
+            self.sample_dpth_col = self.depths[::, left_pad_width::sample_grammage]
+            self.sample_shwr_col = self.showers[::, left_pad_width::sample_grammage]
+
+            self.output_depth, self.output_mean, _, _ = mean_rms_plt(
+                showers=np.hstack((self.tags, self.sample_shwr_col)),
+                bins=np.hstack((self.tags, self.sample_dpth_col)),
+            )
 
     # print(self.sample_dpth_col.shape[1])
 
     def mc_drt_rms(self, col_depths, col_showers, plot_darts=False):
         """
         Given the particle content at a given slant depth for a set of composite showers,
-        Returns the mean and associated MC uncertainty from at that point, sampled from RMS curve.
+        Returns the mean and associated MC uncertainty from that point, sampled from
+        a histogram showing the variance.
         """
+        with warnings.catch_warnings():
+            # take care of taking mean of NaN slice
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            col_mean = np.nanmean(col_showers)  # get normalized using mean
 
-        # get normalized using mean
-        col_mean = np.nanmean(col_showers)
         col_showers = col_showers / col_mean
         col_depth = col_depths[0]  # assuming depths are stacked properly
 
@@ -144,8 +152,8 @@ class MCVariedMean:
         Iterating through the composite shower to assign rms for each depth
         by sampling each point in that depth.
         """
+        print("Sampling the shower variability at each grammage per sample grammage.")
         # left_pad_width = 500
-
         # shwr_depth = np.ones(np.shape(self.sample_shwr_col)[0])
         # shwr_mean = np.ones(np.shape(self.sample_shwr_col)[0])
         sample_shwr_rms = np.ones(self.sample_dpth_col.shape[1])
@@ -169,6 +177,7 @@ class MCVariedMean:
         Iterating through the composite shower to assign rms for each depth
         by sampling showers near nmax per slant depth. Non-uniform multipliers
         """
+        print("Sampling the shower variability at x_max per sample grammage.")
         max_sample_shwr_rms = np.ones(self.sample_dpth_col.shape[1])
 
         for i, (depths, showers) in enumerate(
@@ -188,10 +197,12 @@ class MCVariedMean:
         r"""
         Sample the rms distribution once around nmax and return uniform multipliears.
         """
+        print("Sampling the shower variability at x_max.")
         _, _, hit_rms = self.mc_drt_rms(
             col_depths=self.xmax_dpth_col,
             col_showers=self.nmax_shwr_col,
         )
+
         if return_rms_dist is True:
             return (
                 hit_rms,
