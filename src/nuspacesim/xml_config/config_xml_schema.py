@@ -132,6 +132,50 @@ xsd = StringIO(
     </xs:simpleContent>
 </xs:complexType>
 
+<xs:complexType name="DateType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Unit">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="iso"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+</xs:complexType>
+
+<xs:complexType name="DayTimeType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Unit">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="utc"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+</xs:complexType>
+
+
+<xs:complexType name="DurationType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Unit">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="s"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+</xs:complexType>
+
+
 <xs:element name="NuSpaceSimParams">
   <xs:complexType>
     <xs:sequence>
@@ -157,6 +201,11 @@ xsd = StringIO(
       <xs:element name="SimulationParameters">
         <xs:complexType>
           <xs:sequence>
+            <xs:element name="SourceRightAscension" type="AngleType"/>
+            <xs:element name="SourceDeclination" type="AngleType"/>
+            <xs:element name="SourceDay" type="DateType"/>
+            <xs:element name="SourceDayTime" type="DayTimeType"/>
+            <xs:element name="ObservationPeriod" type="DurationType"/>
             <xs:element name="MaximumCherenkovAngle" type="AngleType"/>
             <xs:element name="AngleFromLimb" type="AngleType"/>
             <xs:element name="TauShowerType" type="TSType"/>

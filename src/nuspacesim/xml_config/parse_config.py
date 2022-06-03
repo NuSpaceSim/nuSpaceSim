@@ -190,6 +190,11 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
 
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),
+        source_RA=float(simparams["SourceRightAscension"]),
+        source_DEC=float(simparams["SourceDeclination"]),
+        source_date=simparams["SourceDay"],
+        source_daytime=simparams["SourceDayTime"],
+        source_obst=float(simparams["ObservationPeriod"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
         spectrum=simparams["Spectrum"],
         e_shower_frac=float(simparams["FracETauInShower"]),

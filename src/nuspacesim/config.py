@@ -130,8 +130,8 @@ class Source:
     sourceDEC: float = 0
     """Right Ascencion and Declination of the source"""
 
-    sourceDAY: float = 60035.5  # 04/01/2023
-    sourceToD: float = 3600  # 1am
+    sourceDAY: string = "2022-06-02"
+    sourceToD: string = "01:00:00"  # 1am
     """Date (mjd) and Time of Day (s) of the event should be done differently"""
 
     sourceOBSTime: float = 24 * 60 * 60
@@ -217,6 +217,18 @@ class SimulationParameters:
     """Version of tau conversion tables."""
     det_mode: str = "ToO"
 
+    source_RA: float = 0
+    source_DEC: float = 0
+    """Right Ascencion and Declination of the source"""
+
+    source_date: string = "2022-06-02"
+    source_daytime: string = "01:00:00"  # 1am
+    """Date (mjd) and Time of Day (s) of the event should be done differently"""
+
+    source_obst: float = 24 * 60 * 60
+    """Observation time (s)"""
+
+
     @cached_property
     def log_nu_tau_energy(self) -> float:
         """log10 of nu_tau_energy."""
@@ -264,6 +276,11 @@ class SimulationParameters:
             ),
             "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
             "TECerr": (self.TECerr, "Simulation: Uniform distr. err: TEC est."),
+            "sourceRA": (self.source_RA, "Source: Right Ascencion"),
+            "sourceDEC": (self.source_DEC, "Source: Declination"),
+            "sourceDAY": (self.source_date, "Source: day"),
+            "sourceToD": (self.source_daytime, "Source: Time of day"),
+            "sourceOBSTime": (self.source_obst, "Source: observation time"),
         }
 
         d.update(self.spectrum())
@@ -289,5 +306,5 @@ class NssConfig:
     """The Simulation Parameters."""
     constants: const.Fund_Constants = const.Fund_Constants()
     """The Fudimental physical constants."""
-    source: Source = Source()
-    """The Source parameters."""
+    # source: Source = Source()
+    # """The Source parameters."""

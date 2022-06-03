@@ -18,7 +18,7 @@ class tooevent:
         detlong,
         detalt,
         obstime,
-        units="deg",
+        units="rad",
     ):
 
         if units == "rad":
@@ -28,8 +28,8 @@ class tooevent:
             self.detlong = np.rad2deg(detlong)
 
         self.eventtime = astropy.time.Time(
-            eventday, format="mjd"
-        ) + astropy.time.TimeDelta(eventtime, format="sec")
+            eventday + "T" + eventtime, format="isot", scale="utc"
+        )
 
         self.eventcoords = astropy.coordinates.SkyCoord(
             ra=RA * u.degree, dec=DEC * u.degree, frame="icrs"
