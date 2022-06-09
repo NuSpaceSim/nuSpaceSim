@@ -133,7 +133,7 @@ for shwr in showers:
     plt.xlabel(r"$g \: cm^{-2}$")
     plt.ylabel(r"$N$")
 
-    # plt.xlim(-100, 13000)
+    plt.xlim(-100, 13000)
     plt.ylim(1, 5e8)
     plt.yscale("log")
 
