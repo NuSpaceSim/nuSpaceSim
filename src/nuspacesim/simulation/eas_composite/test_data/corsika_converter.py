@@ -12,7 +12,7 @@ reading corsika 77420 binary files for gh hillas and actual particle content
 """
 
 
-in_file = "./corsika-77420/upward_proton_20evts_95degzenith_15kmobs_1030gcm2starting_1e8gev.txt"
+in_file = "./corsika-77420/downward_proton_05evts_85degzenith_05kmobs_0gcm2starting_1e8gev.txt"
 
 
 def read_corsika_binary(in_file):
@@ -116,7 +116,7 @@ for shwr in showers:
         p1=p1,
         p2=p2,
         p3=p3,
-        shower_end=12000,
+        shower_end=6000,
         grammage=1,
     )
 
@@ -129,12 +129,12 @@ for shwr in showers:
     plt.plot(depth, shower_content, "--k", label="GH Fit")
     # plt.title("Shower {}".format(shwr_num))
     # upward_proton_20evts_95degzenith_15kmobs_1030gcm2starting_1e8gev.txt"
-    plt.title(r"Upward Proton, $\theta_{zenith} = 95\degree$, 15 km obs ")
+    plt.title(r"Downward Proton, $\theta_{zenith} = 85\degree$, 5 km obs ")
     plt.xlabel(r"$g \: cm^{-2}$")
     plt.ylabel(r"$N$")
 
-    plt.xlim(-100, 13000)
-    plt.ylim(1, 5e8)
+    plt.xlim(-100, 2000)
+    # plt.ylim(1, 5e8)
     plt.yscale("log")
 
     y_minor = mpl.ticker.LogLocator(
