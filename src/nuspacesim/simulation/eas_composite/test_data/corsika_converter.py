@@ -130,6 +130,9 @@ for shwr in showers:
     # plt.title("Shower {}".format(shwr_num))
     # upward_proton_20evts_95degzenith_15kmobs_1030gcm2starting_1e8gev.txt"
     plt.title(r"Upward Proton, $\theta_{zenith} = 95\degree$, 15 km obs ")
+    plt.xlabel(r"$g \: cm^{-2}$")
+    plt.ylabel(r"$N$")
+
     # plt.xlim(-100, 13000)
     plt.ylim(1, 5e8)
     plt.yscale("log")
