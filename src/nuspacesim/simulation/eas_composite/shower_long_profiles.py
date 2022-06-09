@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 
 class ShowerParameterization:
@@ -66,16 +67,19 @@ class ShowerParameterization:
 
         exp1 = (x_max - x_0) / gh_lambda
 
-        term1 = np.array(
-            scaled_n_max * np.nan_to_num(((x - x_0) / (x_max - x_0)) ** exp1),
-            dtype=np.float64,
-        )
+        with warnings.catch_warnings():
+            # remove RuntimeWarning: overflow encountered in exp
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            term1 = np.array(
+                scaled_n_max * np.nan_to_num(((x - x_0) / (x_max - x_0)) ** exp1),
+                dtype=np.float64,
+            )
 
-        exp2 = (x_max - x) / gh_lambda
-        term2 = np.exp(exp2)
+            exp2 = (x_max - x) / gh_lambda
+            term2 = np.exp(exp2)
 
-        f = np.nan_to_num(term1 * term2)
-        f = np.round(f, 0)
+            f = np.nan_to_num(term1 * term2)
+            f = np.round(f, 0)
 
         # constrain the showers physically
 

@@ -1,0 +1,312 @@
+
+ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+   OOO      OOO     OOOO       OOOO    OO   O      O      O  
+  O   O    O   O    O    O    O    O   OO   O    O       O O 
+ O        O     O   O     O   O        OO   O  O        O   O
+ O        O     O   O    O     OOOO    OO   OO         O     O
+ O        O     O   OOOO           O   OO   O  O       OOOOOOO
+  O   O    O   O    O   O     O    O   OO   O    O     O     O
+   OOO      OOO     O     O    OOOO    OO   O      O   O     O
+
+ COSMIC RAY SIMULATION FOR KASCADE
+
+ A PROGRAM TO SIMULATE EXTENSIVE AIR SHOWERS IN ATMOSPHERE
+
+ BASED ON A PROGRAM OF P.K.F. GRIEDER, UNIVERSITY BERN, SWITZERLAND
+ EPOS MODEL ACCORDING TO K. WERNER ET AL., UNIVERSITY NANTES, FRANCE
+ HDPM MODEL ACCORDING TO J.N. CAPDEVIELLE, COLLEGE DE FRANCE, PARIS, FRANCE
+ URQMD-MODEL FROM THE URQMD-COLLABORATION, FRANKFURT(MAIN), GERMANY
+ EGS4 ACCORDING TO W.R. NELSON, H. HIRAYAMA, D.W.O. ROGERS, SLAC, STANFORD, USA
+ NKG FORMULAS FOR FAST SIMULATION OF EL.MAG. PARTICLES
+
+ REFERENCES: D. HECK, J.KNAPP, J.N. CAPDEVIELLE, G. SCHATZ, T. THOUW,
+             REPORT FZKA 6019 (1998)
+             D. HECK, J. KNAPP, REPORT FZKA 6097 (1998)
+             D. HECK, REPORT FZKA 7254 (2006)
+             SEE ALSO WEB PAGE https://www.iap.kit.edu/corsika/
+             KARLSRUHE INSTITUTE OF TECHNOLOGY (KIT)
+             INSTITUT FUER KERNPHYSIK
+             POSTFACH 3640
+             D-76021 KARLSRUHE
+             GERMANY
+
+ IN CASE OF PROBLEMS CONTACT:   Dr. Tanguy Pierog
+                      e-mail:   tanguy.pierog@kit.edu
+                         FAX:   (49) 721-608-24075 
+                       PHONE:   (49) 721-608-28134 
+   OR                       :   Dr. Dieter Heck 
+                      e-mail:   dieter.heck@partner.kit.edu
+                         FAX:   (49) 721-608-24075 
+                       PHONE:   (49) 721-608-23777 
+   AND SEND YOUR LIST-FILE BY E-MAIL
+
+ NUMBER OF VERSION :  7.7500
+ DATE   OF VERSION : SEPTEMBER  3, 2021
+
+ VERSION GENERATED FOR UNIX OR COMPATIBLE SYSTEMS
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  (RECL IS DEFINED IN BYTES)
+  WITH TIMERC DATE ROUTINE
+ ZENITH ANGLE DEPENDENCE FOR VOLUME DETECTOR
+  
+ CONEX VERSION WITH CASCADE EQUATIONS
+ ====================================
+ WARNING: DESPITE A LOT OF SUCCESSFUL TESTS,
+ THE AUTHORS COULD NOT TEST ALL POSSIBLE COMBINATIONS OF MODELS AND OBSERVABLE TYPES.
+ FOR THE MOMENT THE PRECISION EXPECTED BY THE USE OF CONEX OPTION SHOULD BE BETTER THAN 10%
+ COMPARED TO USUAL CORSIKA FOR A  FACTOR OF 10 GAIN IN CPU TIME
+ BUT IT MAY DEPEND ON THE INITIAL CONDITIONS AND OBSERVABLES.
+ AS A CONSEQUENCE THEY DECLINE ANY RESPONSABILITY IF AN ANALYSIS IS BIASED BY THE USE OF CONEX OPTION.
+ THE USER SHOULD VALIDATE HIS ANALYSIS BY THE USE OF 
+ CORSIKA WITHOUT CONEX FOR PARTICLE BASED ANALYSIS.
+ 1D SIMULATIONS BASED ON CONEX ARE ALREADY USED INTENSIVELY SINCE MANY YEARS.
+ ====================================
+
+ CURVED VERSION WITH SLIDING PLANAR ATMOSPHERE
+ =============================================
+
+ NEUTRINOS ARE EXPLICITELY GENERATED
+ ===================================
+
+ GAMMA SHOWER WITH PRESHOWER IN EARTH MAGNETIC FIELD
+ ===================================================
+
+ SLANT DEPTH FOR LONGITUDINAL DISTRIBUTIONS
+ ==========================================
+
+ THINNING IS ACTIVE
+ ==================
+
+ UPWARD VERSION FOR UPWARD GOING PARTICLES
+ =========================================
+
+  
+ ========== USERS RUN DIRECTIVES FOR THIS SIMULATION ===========================
+
+ DATA CARDS FOR RUN STEERING ARE EXPECTED FROM STANDARD INPUT
+   
+RUNNR   1                              run number
+NSHOW   10                              number of showers to generate
+PRMPAR  6                             prim. particle (1=gamma, 14=proton, ...)
+ESLOPE  -1                           slope of primary energy spectrum
+ERANGE  1.E8  1.E8                     energy range of primary particle (GeV)
+THETAP   180    180                    range of zenith angle (degree)
+PHIP    -180.  180.                       range of azimuth angle (degree)
+SEED    1   0   0                      seed for 1. random number sequence
+SEED    2   0   0                      seed for 2. random number sequence
+SEED    3   1   0                      seed for 3. random number sequence (for CONEX : has to be changed for each run)
+OBSLEV  20.e5                             observation level (in cm)
+FIXHEI  0. 0                             starting altitude (g/cm**2)
+MAGNET  20.0  42.8                     magnetic field centr. Europe
+* HADFLG  0  0  0  0  0  2               flags hadr.interact.&fragmentation
+THIN    1e-8  1. 0.
+ECUTS   1.  1.  1.e-3  1.e-3           energy cuts for particles
+CASCADE T T T
+MUADDI  T                              additional info for muons
+MUMULT  T                              muon multiple scattering angle
+ELMFLG  F   T                          em. interaction flags (NKG,EGS)
+STEPFC  1.0                            mult. scattering step length fact.
+RADNKG  200.E2                         outer radius for NKG lat.dens.distr.
+ARRANG  0.                             rotation of array to north
+LONGI   T  10.  T  T                   longit.distr. & step size & fit & out
+ECTMAP  1.E5                           cut on gamma factor for printout
+MAXPRT  0                              max. number of printed events
+EPOPAR input ../epos/epos.param        !initialization input file for epos
+EPOPAR fname inics ../epos/epos.inics  !initialization input file for epos
+EPOPAR fname iniev ../epos/epos.iniev  !initialization input file for epos
+EPOPAR fname initl ../epos/epos.initl  !initialization input file for epos
+EPOPAR fname inirj ../epos/epos.inirj  !initialization input file for epos
+EPOPAR fname inihy ../epos/epos.ini1b  !initialization input file for epos
+EPOPAR fname check none                !dummy output file for epos
+EPOPAR fname histo none                !dummy output file for epos
+EPOPAR fname data  none                !dummy output file for epos
+EPOPAR fname copy  none                !dummy output file for epos
+DIRECT  ./                             output directory
+DATBAS  F                              write .dbase file
+USER    you                            user
+PAROUT F F
+* URQMD T 2
+DEBUG   F  6  F  1000000               debug flag and log.unit for out
+EXIT                                   terminates input
+
+ END OF DATACARD INPUT
+ PARTICLES REGISTERED ON CURVED OBSLEV
+ (X,Y) ARE NOT CARTESIAN COORDINATES!
+ PLEASE READ THE USERS GUIDE
+ SEE KEYWORD: CURVOUT/FLATOUT
+ =====================================
+
+
+
+
+ ========== START OF RUN =======================================================
+
+ PRESENT TIME : 02.06.2022  14:00:32 UTC
+ RANDOM NUMBER GENERATOR AT BEGIN OF RUN :
+ SEQUENCE =  1  SEED =         1  CALLS =         0  BILLIONS =         0
+ SEQUENCE =  2  SEED =         2  CALLS =         0  BILLIONS =         0
+ SEQUENCE =  3  SEED =         3  CALLS =         0  BILLIONS =         0
+ SEQUENCE =  4  SEED =         4  CALLS =         0  BILLIONS =         0
+ SEQUENCE =  5  SEED =         5  CALLS =         0  BILLIONS =         0
+ SEQUENCE =  6  SEED =         6  CALLS =         0  BILLIONS =         0
+ SEQUENCE =  7  SEED =         3  CALLS =         1  BILLIONS =         0
+ SEQUENCE =  8  SEED = 987170455  CALLS =         0  BILLIONS =         0
+
+ LONGITUDINAL OUTPUT TO FILE: ./DAT000001.long                                                                                                                                                                                                                                               
+ CONEX IS USED WITH conex_epos_urqmd.param                                                          
+
+
+ ========== INTERACTION MODELS =================================================
+ EPOS TREATS HIGH ENERGY HADRONIC INTERACTIONS
+###################################################################
+#        EPOS 1.99     K. WERNER, T. PIEROG, S. PORTEBOEUF.       #
+#                      Contact: werner@subatech.in2p3.fr          #
+###################################################################
+application hadron
+set pnll 200 ! dummy energy
+input ../epos/epos.param        !initialization input file for epos
+echo off
+  
+fname inics ../epos/epos.inics  !initialization input file for epos
+  
+fname iniev ../epos/epos.iniev  !initialization input file for epos
+  
+fname initl ../epos/epos.initl  !initialization input file for epos
+  
+fname inirj ../epos/epos.inirj  !initialization input file for epos
+  
+fname inihy ../epos/epos.ini1b  !initialization input file for epos
+  
+fname check none                !dummy output file for epos
+  
+fname histo none                !dummy output file for epos
+  
+fname data  none                !dummy output file for epos
+  
+fname copy  none                !dummy output file for epos
+  
+runprogram
+initializations ...
+###################################################################
+#        EPOS LHC      K. WERNER, T. PIEROG                       #
+#                      Contact: tanguy.pierog@kit.edu             #
+###################################################################
+#        WARNING: This is a special retuned version !!!           #
+#     Do not publish results without contacting the authors.      #
+###################################################################
+read from ../epos/epos.iniev ...
+read from ../epos/epos.initl ...
+read from ../epos/epos.inirj.lhc ...
+read from ../epos/epos.inics.lhc ...
+  
+
+ EPOS CROSS-SECTIONS ARE TAKEN
+  NO FRAGMENTATION; EVAPORATION OF REMAINDER  (PT AFTER JACEE)
+
+ URQMD TREATS LOW ENERGY HADRONIC INTERACTIONS
+ ############################################################
+ ##                                                        ##
+ ##     UrQMD 1.3.1  University of Frankfurt               ##
+ ##                  urqmd@th.physik.uni-frankfurt.de      ##
+ ##                                                        ##
+ ############################################################
+ ##                                                        ##
+ ##     please cite when using this model:                 ##
+ ##     S.A.Bass et al. Prog.Part.Nucl.Phys. 41 (1998) 225 ##
+ ##     M.Bleicher et al. J.Phys. G25  (1999) 1859         ##
+ ##                                                        ##
+ ############################################################
+ HIGH ENERGY INTERACTION MODEL USED ABOVE    80.000 GEV LAB ENERGY   OR
+                                             12.324 GEV CM  ENERGY
+ MUON/TAU MULTIPLE SCATTERING AFTER MOLIERE
+
+
+ START EGS4  AIR SHOWER SUBROUTINE VERSION
+
+ ELECTROMAGNETIC COMPONENT SIMULATED WITH EGS4
+
+ DATASET EGSDAT6_1. AVAILABLE
+ DATA FOR MEDIUM #  1, WHICH IS: MEDIUM=AIR-NTP                 ,STERNCID=AIR-NTP                       
+ MIXT,RHO= 6.1250E-09,NE= 4,COMPOSITION IS :
+ ASYM=N ,Z= 7.,A=   14.007,PZ= 5.39228E-02,RHOZ= 7.55280E-01            
+ ASYM=O ,Z= 8.,A=   15.999,PZ= 1.44793E-02,RHOZ= 2.31660E-01            
+ ASYM=AR,Z=18.,A=   39.948,PZ= 3.20917E-04,RHOZ= 1.28200E-02            
+ ASYM=C ,Z= 6.,A=   12.011,PZ= 3.33024E-06,RHOZ= 4.00000E-05            
+ EGS SUCCESSFULLY 'HATCHED' FOR ONE MEDIUM.
+ ELECTRONS CAN BE CREATED AND ANY ELECTRON FOLLOWED DOWN TO
+                                             0.00100 GEV KINETIC ENERGY
+ GAMMAS CAN BE CREATED AND ANY GAMMA FOLLOWED DOWN TO
+                                             0.00100 GEV ENERGY
+ ELECTRON HISTORIES ARE TERMINATED AT        0.00151 GEV
+ GAMMA HISTORIES ARE TERMINATED AT           0.00100 GEV
+
+
+
+ ========== CONSTANTS AND PARAMETERS ===========================================
+
+ PHYSICAL CONSTANTS C(1) TO C(50)
+ 6.37131500E+08  6.00000000E+05  2.00000000E+06 -1.35122092E+03  0.00000000E+00
+ 4.58059654E-02  5.73089633E-01  5.28304217E-02  2.50000000E+00  2.07000000E+00
+ 8.20000000E+00  1.00000000E-01  0.00000000E+00  0.00000000E+00  1.00002339E+00
+ 9.67266333E-03  1.00000008E+00  5.75170728E-04  0.00000000E+00  0.00000000E+00
+ 3.77000000E+01  1.53287300E-04  9.38641700E+00  2.00000000E-03  2.99792458E+10
+ 1.00000000E+00  5.40302306E-01  3.14159265E+00 -1.00000000E+00  2.10000000E-02
+ 0.00000000E+00  0.00000000E+00  0.00000000E+00  2.00000000E+01  0.00000000E+00
+ 0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00
+ 0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00  2.61909598E-01
+ 8.99834275E-01  0.00000000E+00  1.03899198E+00  2.71383371E-01  1.37035999E+02
+
+
+ CONSTANTS FOR KAONS CKA(1) TO CKA(80)
+ 0.00000000E+00  1.00000000E-01  0.00000000E+00  0.00000000E+00  0.00000000E+00
+ 0.00000000E+00  2.50000000E-01  5.00000000E-01  7.50000000E-01  1.00000000E+00
+ 5.00000000E-01  2.00000000E-01  9.26406662E-01  1.12407142E+00  1.49600000E+02
+ 1.49600000E+02  2.35531824E-01  2.06000000E-01  1.35000000E-01  2.22000000E-01
+ 5.00000000E-01  0.00000000E+00  6.35600000E-01  6.92762000E-01  8.74200000E-01
+ 6.78300000E-01  4.06900000E-01  2.44320607E+00  9.12400642E-01  0.00000000E+00
+ 0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00  1.00000000E+00
+ 1.00000000E+05  0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00
+ 0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00
+ 0.00000000E+00  8.42300000E-01  8.98200000E-01  9.48900000E-01  9.82400000E-01
+-2.15400000E-01  1.20000000E-02 -1.01000000E-02  1.27000000E+00  6.38000000E-01
+ 5.70000000E-02  0.00000000E+00  1.84000000E+00  0.00000000E+00  1.00000000E+00
+ 6.78000000E-01  7.60000000E-02  9.90000000E-03  2.22000000E+00  2.98000000E-02
+ 0.00000000E+00  1.28800000E-02  2.96000000E-02  1.96000000E-02  1.19400000E-02
+ 2.82000000E-02  0.00000000E+00  1.31000000E-02  2.82000000E-02  1.38000000E-02
+ 1.24100000E-02  0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00
+
+
+ CONSTANTS FOR ETAS CETA(1) TO CETA(5)
+ 3.97200000E-01  7.26500000E-01  9.57500000E-01  9.00000000E-04  2.07000000E+00
+
+
+ CONSTANTS FOR STRANGE BARYONS CSTRBA(1) TO CSTRBA(11)
+ 0.00000000E+00  0.00000000E+00  0.00000000E+00  0.00000000E+00  6.40900000E-01
+ 5.16300000E-01  0.00000000E+00  0.00000000E+00  0.00000000E+00  6.78000000E-01
+ 9.14000000E-01
+
+
+ ========== ATMOSPHERE =========================================================
+
+  ( US STANDARD ATMOSPHERE PARAMETERIZED BY LINSLEY )
+  HEIGHT H IN KM GIVES THICKNESS OF ATMOSPHERE T IN G/CM**2
+ H =  -1.0...  4.0 KM ---> T = -1.86556E+02 + 1.2227E+03 * EXP( -H / 9.9419E+00)
+ H =   4.0... 10.0 KM ---> T = -9.49190E+01 + 1.1449E+03 * EXP( -H / 8.7815E+00)
+ H =  10.0... 40.0 KM ---> T =  6.12890E-01 + 1.3056E+03 * EXP( -H / 6.3614E+00)
+ H =  40.0...100.0 KM ---> T =  0.00000E+00 + 5.4018E+02 * EXP( -H / 7.7217E+00)
+ H = 100.0...112.8 KM ---> T =  1.12829E-02 - H / 1.0000E+04
+
+
+ ========== SHOWER PARAMETERS ==================================================
+ PRIMARY PARTICLE IDENTIFICATION IS            6
+ PRIMARY ENERGY IS FIXED AT            1.0000E+08 GEV
+ THETA OF INCIDENCE CHOSEN FROM     180.00...    180.00 DEGREES
+ ANGULAR THETA DEPENDENCE ACCORDING TO VOLUME DETECTOR
+ PHI   OF INCIDENCE CHOSEN FROM    -180.00...    180.00 DEGREES
+ HEIGHT OF FIRST INTERACTION IS CHOSEN RANDOMLY
+ TARGET OF FIRST INTERACTION IS AT RANDOM
+ UNALLOWED STARTING ALTITUDE AT        0.000 G/CM**2  WHICH IS ABOVE OBSERVATION LEVEL
+
+ PLEASE READ THE USERS GUIDE
+ SEE KEYWORD: FIXCHI
