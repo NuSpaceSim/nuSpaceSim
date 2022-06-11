@@ -12,7 +12,9 @@ reading corsika 77420 binary files for gh hillas and actual particle content
 """
 
 
-in_file = "./corsika-77420/downward_proton_05evts_85degzenith_05kmobs_0gcm2starting_1e8gev.txt"
+in_file = (
+    "./corsika-77420/upward_muon_20evts_95degzenith_15kmobs_00gcm2starting_1e8gev.txt"
+)
 
 
 def read_corsika_binary(in_file):
@@ -103,22 +105,22 @@ for shwr in showers:
     p2 = gh_params[4]
     p3 = gh_params[5]
 
-    shower = ShowerParameterization(
-        table_decay_e=1,
-        event_tag=1,
-        decay_tag=1,
-    )
+    # shower = ShowerParameterization(
+    #     table_decay_e=1,
+    #     event_tag=1,
+    #     decay_tag=1,
+    # )
 
-    depth, shower_content = shower.gaisser_hillas(
-        n_max=nmax,
-        x_max=xmax,
-        x_0=x0,
-        p1=p1,
-        p2=p2,
-        p3=p3,
-        shower_end=6000,
-        grammage=1,
-    )
+    # depth, shower_content = shower.gaisser_hillas(
+    #     n_max=nmax,
+    #     x_max=xmax,
+    #     x_0=x0,
+    #     p1=p1,
+    #     p2=p2,
+    #     p3=p3,
+    #     shower_end=6000,
+    #     grammage=1,
+    # )
 
     plt.scatter(corsika_depths, corsika_charge, label="charged", s=2, alpha=0.5)
     plt.scatter(corsika_depths, corsika_positron, label="e-", s=2, alpha=0.5)
@@ -126,14 +128,14 @@ for shwr in showers:
 
     plt.scatter(corsika_depths, corsika_combined, label="combined", s=2, alpha=0.5)
 
-    plt.plot(depth, shower_content, "--k", label="GH Fit")
+    # plt.plot(depth, shower_content, "--k", label="GH Fit")
     # plt.title("Shower {}".format(shwr_num))
     # upward_proton_20evts_95degzenith_15kmobs_1030gcm2starting_1e8gev.txt"
-    plt.title(r"Downward Proton, $\theta_{zenith} = 85\degree$, 5 km obs ")
+    plt.title(r"Upward Muon, $\theta_{zenith} = 95\degree$, 15 km obs ")
     plt.xlabel(r"$g \: cm^{-2}$")
     plt.ylabel(r"$N$")
 
-    plt.xlim(-100, 2000)
+    # plt.xlim(-100, 2000)
     # plt.ylim(1, 5e8)
     plt.yscale("log")
 
