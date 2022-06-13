@@ -266,7 +266,7 @@ def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot, plot_kwargs):
     def f(*args, **kwargs):
         return results
 
-    f(None, *f_input, plot=plot, kwargs=plot_kwargs)
+    f(None, *f_input, plot=plot, plot_kwargs=plot_kwargs)
 
 
 def ensure_plot_registry(*plot_fs):
