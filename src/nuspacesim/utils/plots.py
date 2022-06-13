@@ -153,10 +153,10 @@ def tau_lorentz(sim, fig, ax):
     )
 
 
-def tau_pexit_hist(sim, fig, ax):
+def tau_pexit_hist(sim, _, ax):
     ax.hist(sim["tauExitProb"], 100, log=True, facecolor="g")
     ax.set_ylabel("Counts")
-    ax.set_xlabel(r"$\log(P_\mathrm{exit}(\tau))$")
+    ax.set_xlabel(r"$\P_\mathrm{exit}(\tau)$")
 
 
 def tau_pexit_density(sim, fig, ax):
