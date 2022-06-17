@@ -33,14 +33,14 @@
 
 import numpy as np
 
-from ...utils.plot_wrapper import PlotWrapper
+from ...utils.plots import get_profile, hexbin, make_labels
 
 r"""Single plots"""
 
 
-def energy_hists(inputs, results, fig, ax, *args, **kwargs):
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+def energy_hists(inputs, results, fig, ax, *_, **kwargs):
+    _, _, log_e_nu = inputs
+    _, _, tauEnergy, showerEnergy, _ = results
     log_e_nu = log_e_nu + 9
     tauEnergy = tauEnergy * 1e9
     showerEnergy = showerEnergy * 1e9 * 1e8
@@ -52,25 +52,26 @@ def energy_hists(inputs, results, fig, ax, *args, **kwargs):
     ax.hist(
         x=log_e_nu,
         bins=binning_e,
-        color=fig.params["default_colors"][0],
+        color=kwargs["color"][0],
         alpha=0.6,
         label="$E_{\\nu_\\tau}$",
     )
     ax.hist(
         x=np.log10(tauEnergy),
         bins=binning_e,
-        color=fig.params["default_colors"][1],
+        color=kwargs["color"][1],
         alpha=0.6,
         label="$E_\\tau$",
     )
     ax.hist(
         x=np.log10(showerEnergy),
         bins=binning_e,
-        color=fig.params["default_colors"][2],
+        color=kwargs["color"][2],
         alpha=0.6,
         label="$E_\\mathrm{shower}$",
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "Energy / $\\log_\\mathrm{10}\\left(\\frac{E}{\\mathrm{eV}}\\right)$",
         "Counts",
@@ -79,63 +80,63 @@ def energy_hists(inputs, results, fig, ax, *args, **kwargs):
     ax.legend(loc="best")
 
 
-def beta_hist(inputs, results, fig, ax, *args, **kwargs):
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+def beta_hist(inputs, _, fig, ax, *__, **kwargs):
+    _, betas, _ = inputs
     binning_b = np.arange(
         np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
     )
     ax.hist(
         x=np.degrees(betas),
         bins=binning_b,
-        color=fig.params["default_colors"][0],
+        color=kwargs["color"][0],
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "Earth emergence angle $\\beta$ / $^{\\circ}$",
         "Counts",
     )
 
 
-def tau_beta_hist(inputs, results, fig, ax, *args, **kwargs):
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+def tau_beta_hist(_, results, fig, ax, *__, **kwargs):
+    tauBeta, *_ = results
     ax.hist(
         x=tauBeta,
         bins=np.linspace(min(tauBeta), max(tauBeta), 100),
-        color=fig.params["default_colors"][0],
+        color=kwargs["color"][0],
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "$\\tau_\\beta$",
         "Counts",
     )
 
 
-def tau_lorentz_hist(inputs, results, fig, ax, *args, **kwargs):
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+def tau_lorentz_hist(_, results, fig, ax, *__, **kwargs):
+    _, tauLorentz, *_ = results
     ax.hist(
         x=tauLorentz,
         bins=np.linspace(min(tauLorentz), max(tauLorentz), 100),
-        color=fig.params["default_colors"][0],
+        color=kwargs["color"][0],
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "$\\tau_\\mathrm{Lorentz}$",
         "Counts",
     )
 
 
-def tau_exit_prob_hist(inputs, results, fig, ax, *args, **kwargs):
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+def tau_exit_prob_hist(_, results, fig, ax, *__, **kwargs):
+    *_, tauExitProb = results
     ax.hist(
         x=tauExitProb,
         bins=np.linspace(min(tauExitProb), max(tauExitProb), 100),
-        color=fig.params["default_colors"][0],
+        color=kwargs["color"][0],
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "$P_\\mathrm{Exit}(\\tau)$",
         "Counts",
@@ -148,14 +149,16 @@ def tau_beta_hex(inputs, results, fig, ax, *args, **kwargs):
     binning_b = np.arange(
         np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
     )
-    im = fig.hexbin(
+    im = hexbin(
         ax,
         x=np.degrees(betas),
         y=tauBeta,
         gs=len(binning_b),
         logy_scale=True,
+        cmap=kwargs["cmap"],
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "Earth emergence angle $\\beta$ / $^{\\circ}$",
         "$\\tau_\\beta$",
@@ -171,14 +174,15 @@ def tau_lorentz_hex(inputs, results, fig, ax, *args, **kwargs):
     binning_b = np.arange(
         np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
     )
-    im = fig.hexbin(
+    im = hexbin(
         ax,
         x=np.degrees(betas),
         y=tauLorentz,
         gs=len(binning_b),
         logy_scale=True,
+        cmap=kwargs["cmap"],
     )
-    bincenter, mean, std, binwidth = fig.get_profile(
+    bincenter, mean, std, binwidth = get_profile(
         np.degrees(betas), tauLorentz, 10, useStd=True
     )
     ax.errorbar(
@@ -186,12 +190,13 @@ def tau_lorentz_hex(inputs, results, fig, ax, *args, **kwargs):
         mean,
         xerr=binwidth,
         yerr=std,
-        color=fig.params["default_colors"][1],
+        color=kwargs["color"][0],
         fmt=".",
         label="Profile",
     )
     ax.legend(loc="best")
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "Earth emergence angle $\\beta$ / $^{\\circ}$",
         "$\\tau_\\mathrm{Lorentz}$",
@@ -203,18 +208,20 @@ def tau_lorentz_hex(inputs, results, fig, ax, *args, **kwargs):
 
 def tau_exit_prob_hex(inputs, results, fig, ax, *args, **kwargs):
     _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
+    *_, tauExitProb = results
     binning_b = np.arange(
         np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
     )
-    im = fig.hexbin(
+    im = hexbin(
         ax,
         x=np.degrees(betas),
         y=tauExitProb,
         gs=len(binning_b),
         logy_scale=True,
+        cmap=kwargs["cmap"],
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "Earth emergence angle $\\beta$ / $^{\\circ}$",
         "$P_\\mathrm{Exit}(\\tau)$",
@@ -227,65 +234,59 @@ def tau_exit_prob_hex(inputs, results, fig, ax, *args, **kwargs):
 r"""Multiplot collections"""
 
 
-def taus_density_beta_overview(inputs, results, plot_kwargs, *args, **kwargs):
+def taus_density_beta_overview(inputs, results, fig, ax, *args, **kwargs):
     r"""Plot some density plots"""
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
 
-    fig = PlotWrapper(
-        plot_kwargs,
-        1,
-        3,
-        (15, 4),
-        "Tau interaction properties vs. Earth emergence angles $\\beta$",
-    )
-    tau_beta_hex(inputs, results, fig, fig.ax[0])
-    tau_lorentz_hex(inputs, results, fig, fig.ax[1])
-    tau_exit_prob_hex(inputs, results, fig, fig.ax[2])
+    ax.remove()
+    fig.set_size_inches(15, 4)
+    ax = fig.subplots(nrows=1, ncols=3)
+    fig.suptitle("Tau interaction properties vs. Earth emergence angles $\\beta$")
+    tau_beta_hex(inputs, results, fig, ax[0], *args, **kwargs)
+    tau_lorentz_hex(inputs, results, fig, ax[1], *args, **kwargs)
+    tau_exit_prob_hex(inputs, results, fig, ax[2], *args, **kwargs)
 
-    fig.close("taus_density_beta", fig.params["save_to_file"], fig.params["pop_up"])
+    return "taus_density_beta"
 
 
-def taus_histograms_overview(inputs, results, plot_kwargs, *args, **kwargs):
+def taus_histograms_overview(inputs, results, fig, ax, *args, **kwargs):
     r"""Plot some histograms"""
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
 
-    fig = PlotWrapper(
-        plot_kwargs, 1, 3, (15, 4), "$\\tau$ interaction property Histograms"
-    )
+    ax.remove()
+    fig.set_size_inches(15, 4)
+    ax = fig.subplots(nrows=1, ncols=3)
+    fig.suptitle("$\\tau$ interaction property Histograms")
 
-    tau_beta_hist(inputs, results, fig, fig.ax[0])
-    tau_lorentz_hist(inputs, results, fig, fig.ax[1])
-    tau_exit_prob_hist(inputs, results, fig, fig.ax[2])
-    fig.close("taus_histogram", fig.params["save_to_file"], fig.params["pop_up"])
+    tau_beta_hist(inputs, results, fig, ax[0], *args, **kwargs)
+    tau_lorentz_hist(inputs, results, fig, ax[1], *args, **kwargs)
+    tau_exit_prob_hist(inputs, results, fig, ax[2], *args, **kwargs)
 
-
-def taus_pexit_overview(inputs, results, plot_kwargs, *args, **kwargs):
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
-
-    fig = PlotWrapper(plot_kwargs, 1, 2, (10, 4), "$\\tau$ exit probability")
-
-    tau_exit_prob_hex(inputs, results, fig, fig.ax[0])
-    tau_exit_prob_hist(inputs, results, fig, fig.ax[1])
-    fig.close("taus_pexit", fig.params["save_to_file"], fig.params["pop_up"])
+    return "taus_histogram"
 
 
-def taus_overview(inputs, results, plot_kwargs, *args, **kwargs):
+def taus_pexit_overview(inputs, results, fig, ax, *args, **kwargs):
+
+    ax.remove()
+    fig.set_size_inches(10, 4)
+    ax = fig.subplots(nrows=1, ncols=2)
+    fig.suptitle("$\\tau$ exit probability")
+
+    tau_exit_prob_hex(inputs, results, fig, ax[0], *args, **kwargs)
+    tau_exit_prob_hist(inputs, results, fig, ax[1], *args, **kwargs)
+
+    return "taus_pexit"
+
+
+def taus_overview(inputs, results, fig, ax, *args, **kwargs):
     r"""Overview plot for taus"""
-    _, betas, log_e_nu = inputs
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = results
-    fig = PlotWrapper(
-        plot_kwargs,
-        rows=2,
-        cols=2,
-        size=(10, 8),
-        title="Overview of Tau interaction properties",
-    )
-    energy_hists(inputs, results, fig, fig.ax[0, 0])
-    beta_hist(inputs, results, fig, fig.ax[0, 1])
-    tau_lorentz_hex(inputs, results, fig, fig.ax[1, 0])
-    tau_exit_prob_hex(inputs, results, fig, fig.ax[1, 1])
 
-    fig.close("taus_overview", fig.params["save_to_file"], fig.params["pop_up"])
+    ax.remove()
+    fig.set_size_inches(10, 8)
+    ax = fig.subplots(nrows=2, ncols=2)
+    fig.suptitle("Overview of Tau interaction properties")
+
+    energy_hists(inputs, results, fig, ax[0, 0], *args, **kwargs)
+    beta_hist(inputs, results, fig, ax[0, 1], *args, **kwargs)
+    tau_lorentz_hex(inputs, results, fig, ax[1, 0], *args, **kwargs)
+    tau_exit_prob_hex(inputs, results, fig, ax[1, 1], *args, **kwargs)
+
+    return "taus_overview"

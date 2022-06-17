@@ -94,13 +94,15 @@ class Taus(object):
 
         # grid of pexit table
         with as_file(
-            files("nuspacesim.data.nupyprop_tables") / "nu2tau_pexit.hdf5"
+            files("nuspacesim.data.nupyprop_tables")
+            / f"nu2tau_pexit.{config.simulation.tau_table_version}.h5"
         ) as file:
             self.pexit_grid = NssGrid.read(file, path="pexit_regen", format="hdf5")
 
         # grid of tau_cdf tables
         with as_file(
-            files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.hdf5"
+            files("nuspacesim.data.nupyprop_tables")
+            / f"nu2tau_cdf.{config.simulation.tau_table_version}.h5"
         ) as file:
             self.tau_cdf_grid = NssGrid.read(file, format="hdf5")
 
@@ -115,6 +117,8 @@ class Taus(object):
         beta_high = betas > beta_max
         valid = ~beta_low & ~beta_high
 
+        self.pexit_grid.data[self.pexit_grid.data <= 0] = np.finfo(np.float32).eps
+
         pexit_interp = RegularGridInterpolator(
             self.pexit_grid.axes, np.log10(self.pexit_grid.data)
         )
@@ -125,9 +129,9 @@ class Taus(object):
         Pexit[beta_low] = pexit_interp((log_e_nu[beta_low], beta_min))
         Pexit[beta_high] = np.log10(np.finfo(np.float32).eps)
 
-        return 10 ** Pexit
+        return 10**Pexit
 
-    def tau_energy(self, betas, log_e_nu):
+    def tau_energy(self, betas, log_e_nu, u=None):
         """
         Tau energies interpolated from tau_cdf_sampler for given beta index.
         """
@@ -143,13 +147,13 @@ class Taus(object):
 
         E_tau = np.zeros_like(betas)
 
-        E_tau[valid] = tau_cdf_sample(log_e_nu[valid], betas[valid])
+        E_tau[valid] = tau_cdf_sample(log_e_nu[valid], betas[valid], u)
         E_tau[beta_low] = tau_cdf_sample(
-            log_e_nu[beta_low], np.full(betas[beta_low].shape, beta_min)
+            log_e_nu[beta_low], np.full(betas[beta_low].shape, beta_min), u
         )
         E_tau[beta_high] = np.finfo(np.float32).eps
 
-        return E_tau * 10 ** log_e_nu
+        return E_tau * (10**log_e_nu)
 
     @decorators.nss_result_plot(
         energy_hists,
@@ -195,12 +199,12 @@ class Taus(object):
         showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1e8
 
         tauLorentz = tauEnergy / self.config.constants.massTau
-        tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz ** 2))
+        tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz**2))
 
         return tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb
 
 
-def show_plot(sim, plot, plot_kwargs):
+def show_plot(sim, plot_wrapper):
     inputs = ("beta_rad", "log_e_nu")
     outputs = ("tauBeta", "tauLorentz", "tauEnergy", "showerEnergy", "tauExitProb")
     plotfs = (
@@ -217,6 +221,4 @@ def show_plot(sim, plot, plot_kwargs):
         taus_pexit_overview,
         taus_overview,
     )
-    decorators.nss_result_plot_from_file(
-        sim, inputs, outputs, plotfs, plot, plot_kwargs
-    )
+    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot_wrapper)

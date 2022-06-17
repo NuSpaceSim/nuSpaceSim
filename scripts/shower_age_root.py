@@ -14,7 +14,7 @@ def shower_age_newton():
     z_max = 65.0
     beta_tr = np.radians(1)
     theta_tr = (np.pi / 2) - beta_tr
-    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+    param_beta = np.log(10**8 / (0.710 / 8.36))
 
     np.set_printoptions(linewidth=256)
     Lmax = length_along_prop_axis(alt_dec, z_max, beta_tr, earth_radius)
@@ -89,7 +89,7 @@ def shower_age_newton():
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
 
-    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+    param_beta = np.log(10**8 / (0.710 / 8.36))
 
     def rns(s):
         return (

@@ -31,24 +31,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import numpy as np
-
-from ...utils.plot_wrapper import PlotWrapper
+from ...utils.plots import make_labels
 
 
-def spectra_histogram(inputs, results, fig, ax, *args, **kwargs):
+def spectra_histogram(inputs, results, fig, ax, *_, **kwargs):
     r"""Plot some histograms"""
 
     N, spectrum = inputs
     log_e_nu = results
-    # log_e_nu = log_e_nu + 9
     ax.hist(
         x=log_e_nu,
         bins=100,
-        color=fig.params["default_colors"][0],
+        color=kwargs["color"][0],
         label=f"Energy spectrum histogram with {N} events\n {spectrum}",
     )
-    fig.make_labels(
+    make_labels(
+        fig,
         ax,
         "$E_{\\nu_\\tau}$ / $\\log_\\mathrm{10}\\left(\\frac{E}{\\mathrm{eV}}\\right)$",
         "Counts",

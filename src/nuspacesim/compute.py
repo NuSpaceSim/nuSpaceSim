@@ -57,6 +57,7 @@ from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .utils.plot_wrapper import PlotWrapper
 
 __all__ = ["compute"]
 
@@ -64,9 +65,9 @@ __all__ = ["compute"]
 def compute(
     config: NssConfig,
     verbose: bool = False,
-    output_file: str = None,
-    to_plot: list = [],
-    plot_kwargs: dict = {},
+    plot: list = [],
+    plot_config=None,
+    output_file=None,
     write_stages=False,
 ) -> ResultsTable:
     r"""Simulate an upward going shower.
@@ -106,10 +107,8 @@ def compute(
         Flag enabling verbose output.
     output_file: str, optional
         Name of file to write intermediate stages
-    to_plot: list, optional
-        Call the listed plotting functions as appropritate.
-    plot_kwargs: dict, option
-        Set the contained plotting specifications
+    plot_wrapper: PlotWrapper, optional
+        The contained plotting specifications
     write_stages: bool, optional
         Enable writing intermediate results to the output_file.
 
@@ -131,13 +130,14 @@ def compute(
     if verbose:
         console.rule("[bold blue] NuSpaceSim")
 
-    def mc_logv(mcint, mcintgeo, numEvPass, method):
+    def mc_logv(mcint, mcintgeo, numEvPass, mcunc, method):
         logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]:", mcint)
         logv(
             f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
             mcintgeo,
         )
         logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
+        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
@@ -145,8 +145,12 @@ def compute(
     tau = Taus(config)
     eas = EAS(config)
     eas_radio = EASRadio(config)
-    if "filename" not in plot_kwargs:
-        plot_kwargs["filename"] = "nuspacesim_run_" + sim.meta["simTime"][0]
+
+    plot_wrapper = PlotWrapper(
+        to_plot=plot,
+        filename=sim.output_file_basename(output_file),
+        plotconfig=plot_config,
+    )
 
     class StagedWriter:
         """Optionally write intermediate values to file"""
@@ -166,7 +170,7 @@ def compute(
 
     logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(
-        config.simulation.N, store=sw, plot=to_plot, plot_kwargs=plot_kwargs
+        config.simulation.N, store=sw, plot_wrapper=plot_wrapper
     )
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
@@ -174,32 +178,25 @@ def compute(
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
-        beta_tr.shape[0], store=sw, plot=to_plot, plot_kwargs=plot_kwargs
+        beta_tr.shape[0], store=sw, plot_wrapper=plot_wrapper
     )
     logv("Computing [green] Taus.[/]")
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
-        beta_tr, log_e_nu, store=sw, plot=to_plot, plot_kwargs=plot_kwargs
+    tauBeta, tauLorentz, _, showerEnergy, tauExitProb = tau(
+        beta_tr, log_e_nu, store=sw, plot_wrapper=plot_wrapper
     )
 
     logv("Computing [green] Decay Altitudes.[/]")
-    altDec, lenDec = eas.altDec(
-        beta_tr, tauBeta, tauLorentz, store=sw, plot=to_plot, plot_kwargs=plot_kwargs
-    )
+    altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
     if config.detector.method == "Optical" or config.detector.method == "Both":
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
-            beta_tr,
-            altDec,
-            showerEnergy,
-            store=sw,
-            plot=to_plot,
-            plot_kwargs=plot_kwargs,
+            beta_tr, altDec, showerEnergy, store=sw, plot_wrapper=plot_wrapper
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV = geom.mcintegral(
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             numPEs,
             costhetaChEff,
             tauExitProb,
@@ -211,8 +208,9 @@ def compute(
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
         sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")
         sw.add_meta("ONEVPASS", passEV, "Optical Number of Passing Events")
+        sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
-        mc_logv(mcint, mcintgeo, passEV, "Optical")
+        mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
 
     if config.detector.method == "Radio" or config.detector.method == "Both":
         logv("Computing [green] EAS Radio signal.[/]")
@@ -230,7 +228,7 @@ def compute(
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV = geom.mcintegral(
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             snrs,
             np.cos(thetaArr),
             tauExitProb,
@@ -242,8 +240,9 @@ def compute(
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
         sw.add_meta("RMCINTGO", mcintgeo, "Radio MonteCarlo Integral, GEO Only")
         sw.add_meta("RNEVPASS", passEV, "Radio Number of Passing Events")
+        sw.add_meta("RMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
-        mc_logv(mcint, mcintgeo, passEV, "Radio")
+        mc_logv(mcint, mcintgeo, passEV, mcunc, "Radio")
 
     logv("\n :sparkles: [cyan]Done[/] :sparkles:")
 

@@ -40,6 +40,7 @@
     NssGrid
     NssGridRead
     NssGridWrite
+    grid_concatenate
     fits_nssgrid_reader
     fits_nssgrid_writer
     hdf5_nssgrid_reader
@@ -59,6 +60,7 @@ __all__ = [
     "NssGrid",
     "NssGridRead",
     "NssGridWrite",
+    "grid_concatenate",
     "fits_nssgrid_reader",
     "fits_nssgrid_writer",
     "hdf5_nssgrid_reader",
@@ -265,6 +267,23 @@ class NssGrid(NDDataArray):
             # Catching TypeError in case the object has no __getitem__ method.
             # But let IndexError raise.
             raise RuntimeWarning("Axes object has no __getitem__.")
+
+
+def grid_concatenate(g1, g2, axis):
+    # grids have same ndim
+    assert g1.ndim == g2.ndim
+    # grids have same axis names
+    assert g1.axis_names
+    # grids have same shape everywhere except the axis dimension
+    assert (
+        g1.shape[:axis] + g1.shape[axis + 1 :] == g2.shape[:axis] + g2.shape[axis + 1 :]
+    )
+
+    new_axes = g1.axes
+    new_axes[axis] = np.concatenate((g1.axes[axis], g2.axes[axis]))
+    new_data = np.concatenate((g1.data, g2.data), axis=axis)
+
+    return NssGrid(new_data, new_axes, g1.axis_names)
 
 
 def fits_nssgrid_reader(filename, **kwargs):

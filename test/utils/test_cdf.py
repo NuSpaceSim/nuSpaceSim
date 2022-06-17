@@ -12,7 +12,7 @@ except ImportError:
 def test_grid_inverse_sampler():
     # Currently only used for tau cdf tables.
     # grid of tau_cdf tables
-    with as_file(files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.hdf5") as file:
+    with as_file(files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.1.h5") as file:
         tau_cdf_grid = NssGrid.read(file, format="hdf5")
 
     tau_cdf_sampler = cdf.grid_inverse_sampler(tau_cdf_grid, 8.0)
@@ -24,7 +24,7 @@ def test_grid_inverse_sampler():
 
 def test_grid_cdf_sampler():
 
-    with as_file(files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.hdf5") as file:
+    with as_file(files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.1.h5") as file:
         tau_cdf_grid = NssGrid.read(file, format="hdf5")
 
     N = int(1e6)

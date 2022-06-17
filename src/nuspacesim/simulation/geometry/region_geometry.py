@@ -45,7 +45,7 @@ class RegionGeom:
     def __init__(self, config):
         self.config = config
 
-        self.earth_rad_2 = self.config.constants.earth_radius ** 2
+        self.earth_rad_2 = self.config.constants.earth_radius**2
 
         self.core_alt = (
             self.config.constants.earth_radius + self.config.detector.altitude
@@ -64,22 +64,22 @@ class RegionGeom:
 
         # Line of Sight path length
         self.minLOSpathLen = self.core_alt * np.cos(alphaMin) - minChordLen / 2
-        self.maxLOSpathLen = np.sqrt(self.core_alt ** 2 - self.earth_rad_2)
+        self.maxLOSpathLen = np.sqrt(self.core_alt**2 - self.earth_rad_2)
 
         self.sinOfMaxThetaTrSubV = np.sin(config.simulation.theta_ch_max)
 
         self.maxPhiS = config.simulation.max_azimuth_angle / 2
         self.minPhiS = -config.simulation.max_azimuth_angle / 2
 
-        normThetaTrSubV = 2 / self.sinOfMaxThetaTrSubV ** 2
+        normThetaTrSubV = 2 / self.sinOfMaxThetaTrSubV**2
         normPhiTrSubV = np.reciprocal(2 * np.pi)
         normPhiS = np.reciprocal(self.maxPhiS - self.minPhiS)
 
         bracketForNormThetaS = (
-            (self.core_alt ** 2 - self.earth_rad_2) * self.maxLOSpathLen
-            - (1.0 / 3.0) * self.maxLOSpathLen ** 3
-            - (self.core_alt ** 2 - self.earth_rad_2) * self.minLOSpathLen
-            + (1.0 / 3.0) * self.minLOSpathLen ** 3
+            (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen
+            - (1.0 / 3.0) * self.maxLOSpathLen**3
+            - (self.core_alt**2 - self.earth_rad_2) * self.minLOSpathLen
+            + (1.0 / 3.0) * self.minLOSpathLen**3
         )
 
         normThetaS = 2.0 * self.core_alt * self.earth_rad_2 / bracketForNormThetaS
@@ -114,19 +114,19 @@ class RegionGeom:
         # detector nadir perspective)
 
         b = (
-            3 * (self.core_alt ** 2 - self.earth_rad_2) * self.maxLOSpathLen
-            - self.maxLOSpathLen ** 3
-            - 3 * (self.core_alt ** 2 - self.earth_rad_2) * self.minLOSpathLen
-            + self.minLOSpathLen ** 3
+            3 * (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen
+            - self.maxLOSpathLen**3
+            - 3 * (self.core_alt**2 - self.earth_rad_2) * self.minLOSpathLen
+            + self.minLOSpathLen**3
         )
-        q = -(self.core_alt ** 2 - self.earth_rad_2)
+        q = -(self.core_alt**2 - self.earth_rad_2)
         r = (
-            -1.5 * (self.core_alt ** 2 - self.earth_rad_2) * self.maxLOSpathLen
-            + 0.5 * self.maxLOSpathLen ** 3
+            -1.5 * (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen
+            + 0.5 * self.maxLOSpathLen**3
             + 0.5 * b * u4
         )
 
-        psi = np.arccos(r / np.sqrt(-(q ** 3)))
+        psi = np.arccos(r / np.sqrt(-(q**3)))
         v1 = 2 * np.sqrt(-q) * np.cos(psi / 3)
         v2 = 2 * np.sqrt(-q) * np.cos((psi + 2 * np.pi) / 3)
         v3 = 2 * np.sqrt(-q) * np.cos((psi + 4 * np.pi) / 3)
@@ -153,12 +153,12 @@ class RegionGeom:
         # )
 
         rvsqrd = self.losPathLen * self.losPathLen
-        costhetaS = (self.core_alt ** 2 + self.earth_rad_2 - rvsqrd) / (
+        costhetaS = (self.core_alt**2 + self.earth_rad_2 - rvsqrd) / (
             2 * self.config.constants.earth_radius * self.core_alt
         )
         self.thetaS = np.arccos(costhetaS)
 
-        self.costhetaNSubV = (self.core_alt ** 2 - self.earth_rad_2 - rvsqrd) / (
+        self.costhetaNSubV = (self.core_alt**2 - self.earth_rad_2 - rvsqrd) / (
             2 * self.config.constants.earth_radius * self.losPathLen
         )
 
@@ -277,16 +277,17 @@ class RegionGeom:
         # PE threshold
         mcintfactor[triggers < threshold] = 0
         mcintegral = np.mean(mcintfactor) * mcnorm
+        mcintegraluncert = (
+            np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor)) * mcnorm
+        )
 
         numEvPass = np.count_nonzero(mcintfactor)
 
-        return mcintegral, mcintegralgeoonly, numEvPass
+        return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
 
-def show_plot(sim, plot, plot_kwargs):
+def show_plot(sim, plot_wrapper):
     plotfs = tuple([geom_beta_tr_hist, path_length_to_detector])
     inputs = tuple([0])
     outputs = ("beta_rad", "theta_rad", "path_len")
-    decorators.nss_result_plot_from_file(
-        sim, inputs, outputs, plotfs, plot, plot_kwargs
-    )
+    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot_wrapper)

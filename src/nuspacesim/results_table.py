@@ -119,6 +119,13 @@ class ResultsTable(AstropyTable):
 
         self.meta[name] = (value, comment)
 
+    def output_file_basename(self, filename: Union[str, None] = None) -> str:
+        return (
+            filename.rpartition(".")[0]
+            if filename
+            else f"nuspacesim_run_{self.meta['simTime'][0]}"
+        )
+
     def write(self, filename: Union[str, None] = None, **kwargs) -> None:
         r"""Write the simulation results to a file.
 
@@ -135,34 +142,20 @@ class ResultsTable(AstropyTable):
         ValueError:
             If the input format value is not one of fits or hdf5.
         """
+        file_basename = self.output_file_basename(filename)
 
         if "format" not in kwargs:
             kwargs["format"] = "fits"
 
         if kwargs["format"] == "fits":
-
-            filename = (
-                f"nuspacesim_run_{self.meta['simTime'][0]}.fits"
-                if filename is None
-                else filename
-            )
-            super().write(filename, **kwargs)
-
+            super().write(file_basename + ".fits", **kwargs)
         elif kwargs["format"] == "hdf5":
-
-            filename = (
-                f"nuspacesim_run_{self.meta['simTime'][0]}.hdf5"
-                if filename is None
-                else filename
-            )
-
             if "path" not in kwargs:
                 kwargs["path"] = "/"
             if "overwrite" not in kwargs:
                 kwargs["overwrite"] = True
             kwargs["serialize_meta"] = True
-
-            super().write(filename, **kwargs)
+            super().write(file_basename + ".hdf5", **kwargs)
 
         else:
             raise ValueError(f"File output format {format} not in {{ fits, hdf5 }}!")

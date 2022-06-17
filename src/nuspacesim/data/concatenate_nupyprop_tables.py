@@ -1,6 +1,6 @@
 # The Clear BSD License
 #
-# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# Copyright (c) 2022 Alexander Reustle and the NuSpaceSim Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,48 +31,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import numpy as np
+from nuspacesim.utils.grid import NssGrid, grid_concatenate
 
-from ...utils.plots import hexbin, make_labels
+pexit_v0 = NssGrid.read(
+    "nupyprop_tables/nu2tau_pexit.0.h5", path="pexit_regen", format="hdf5"
+)
+pexit_v1 = NssGrid.read(
+    "nupyprop_tables/nu2tau_pexit.1.h5", path="pexit_regen", format="hdf5"
+)
+new_pexit = grid_concatenate(pexit_v1[:, :9], pexit_v0, 1)
+new_pexit.write(
+    "nupyprop_tables/nu2tau_pexit.2.h5",
+    path="/pexit_regen",
+    overwrite=True,
+    format="hdf5",
+)
 
-
-def geom_beta_tr_hist(inputs, results, fig, ax, *_, **kwargs):
-    r"""Plot a histgram of beta trajectories."""
-
-    betas, _, _ = results
-    ax.hist(
-        x=np.degrees(betas),
-        bins=np.linspace(min(np.degrees(betas)), max(np.degrees(betas)), 50),
-        color=kwargs["color"][0],
-    )
-    make_labels(
-        fig=fig,
-        ax=ax,
-        xlabel="Earth emergence angle $\\beta$ / $^{\\circ}$",
-        ylabel="Counts",
-    )
-
-
-def path_length_to_detector(inputs, results, fig, ax, *_, **kwargs):
-    r"""Plot a histgram of beta trajectories."""
-
-    _ = inputs
-    betas, _, path_lens = results
-    binning_b = np.arange(
-        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
-    )
-    im = hexbin(
-        ax,
-        x=np.degrees(betas),
-        y=path_lens,
-        gs=len(binning_b),
-        cmap=kwargs["cmap"],
-    )
-    make_labels(
-        fig,
-        ax,
-        "Earth emergence angle $\\beta$ / $^{\\circ}$",
-        "Path length to detector / km",
-        clabel="Counts",
-        im=im,
-    )
+cdf_v0 = NssGrid.read("nupyprop_tables/nu2tau_cdf.0.h5", path="/", format="hdf5")
+cdf_v1 = NssGrid.read("nupyprop_tables/nu2tau_cdf.1.h5", path="/", format="hdf5")
+new_cdf = grid_concatenate(cdf_v1[:, :9, :], cdf_v0, 1)
+new_cdf.write(
+    "nupyprop_tables/nu2tau_cdf.2.h5",
+    overwrite=True,
+    format="hdf5",
+)

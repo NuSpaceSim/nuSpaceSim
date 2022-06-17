@@ -66,7 +66,7 @@ class EAS:
         self.CphotAng = CphotAng(self.config.detector.altitude)
 
     @decorators.nss_result_store("altDec", "lenDec")
-    def altDec(self, beta, tauBeta, tauLorentz, u=None, *args, **kwargs):
+    def altDec(self, beta, tauBeta, tauLorentz, u=None, *_, **kwargs):
         """
         get decay altitude
         """
@@ -78,8 +78,8 @@ class EAS:
         lenDec = tDec * tauBeta * self.config.constants.c
 
         altDec = np.sqrt(
-            self.config.constants.earth_radius ** 2
-            + lenDec ** 2
+            self.config.constants.earth_radius**2
+            + lenDec**2
             + 2.0 * self.config.constants.earth_radius * lenDec * np.sin(beta)
         )
 
@@ -101,7 +101,7 @@ class EAS:
         eas_optical_histogram_overview,
     )
     @decorators.nss_result_store("numPEs", "costhetaChEff")
-    def __call__(self, beta, altDec, showerEnergy, *args, **kwargs):
+    def __call__(self, beta, altDec, showerEnergy, *_, **kwargs):
         """
         Electromagnetic Air Shower operation.
         """
@@ -141,7 +141,7 @@ class EAS:
         return numPEs, costhetaChEff
 
 
-def show_plot(sim, plot, plot_kwargs):
+def show_plot(sim, plot_wrapper):
     plotfs = (
         numpes_vs_beta,
         altdec_vs_numpes,
@@ -157,6 +157,4 @@ def show_plot(sim, plot, plot_kwargs):
     )
     inputs = ("beta_rad", "altDec", "showerEnergy")
     outputs = ("numPEs", "costhetaChEff")
-    decorators.nss_result_plot_from_file(
-        sim, inputs, outputs, plotfs, plot, plot_kwargs
-    )
+    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot_wrapper)

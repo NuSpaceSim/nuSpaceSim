@@ -55,5 +55,5 @@ EAS Optical
 
 __all__ = ["EAS", "atmospheric_models", "local_plots"]
 
-from . import atmospheric_models
+from . import atmospheric_models, local_plots
 from .eas import EAS

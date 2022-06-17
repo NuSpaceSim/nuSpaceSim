@@ -46,6 +46,15 @@ r""" Utility classes and methods
    plot_wrapper
 """
 
-__all__ = ["cdf", "decorators", "grid", "interp", "misc", "plots", "plot_wrapper"]
+__all__ = [
+    "cdf",
+    "dashboard_plot",
+    "decorators",
+    "grid",
+    "interp",
+    "misc",
+    "plots",
+    "plot_wrapper",
+]
 
-from . import cdf, decorators, grid, interp, misc, plot_wrapper, plots
+from . import cdf, dashboard_plot, decorators, grid, interp, misc, plot_wrapper, plots

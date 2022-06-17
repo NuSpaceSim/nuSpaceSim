@@ -47,9 +47,6 @@
 __all__ = ["nss_result_store", "nss_result_store_scalar", "nss_result_plot"]
 
 from functools import wraps
-from typing import Callable, Iterable, Union
-
-from nuspacesim.utils.plot_wrapper import PlotWrapper
 
 
 def nss_result_store(*names):
@@ -195,62 +192,9 @@ def nss_result_plot(*plot_fs):
             registry.add(plotname)
 
         @wraps(func)
-        def wrapper_f(
-            *args,
-            plot: Union[None, str, Iterable, Callable] = None,
-            plot_kwargs: dict,
-            **kwargs
-        ):
+        def wrapper_f(*args, plot_wrapper, **kwargs):
             values = func(*args, **kwargs)
-            if isinstance(plot, str):
-                for plotf in plot_fs:
-                    if "overview" in plotf.__name__:
-                        plotf(args, values, plot_kwargs, **kwargs)
-                    else:
-                        fig = PlotWrapper(plot_kwargs, 1, 1)
-                        plotf(args, values, fig, fig.ax, **kwargs)
-                        fig.close(
-                            str(plotf.__name__),
-                            fig.params["save_to_file"],
-                            fig.params["pop_up"],
-                        )
-            elif callable(plot):
-                if "overview" in plot.__name__:
-                    plot(args, values, plot_kwargs, **kwargs)
-                else:
-                    fig = PlotWrapper(plot_kwargs, 1, 1)
-                    plot(args, values, fig, fig.ax, **kwargs)
-                    fig.close(
-                        str(plot.__name__),
-                        fig.params["save_to_file"],
-                        fig.params["pop_up"],
-                    )
-            elif isinstance(plot, Iterable):
-                if all(isinstance(p, str) for p in plot):
-                    for plotf in plot_fs:
-                        if plotf.__name__ in plot:
-                            if "overview" in plotf.__name__:
-                                plotf(args, values, plot_kwargs, **kwargs)
-                            else:
-                                fig = PlotWrapper(plot_kwargs, 1, 1)
-                                plotf(args, values, fig, fig.ax, **kwargs)
-                                fig.close(
-                                    str(plotf.__name__),
-                                    fig.params["save_to_file"],
-                                    fig.params["pop_up"],
-                                )
-                elif all(callable(p) for p in plot):
-                    for plotf in plot:
-                        if "overview" in plotf.__name__:
-                            plotf(args, values, plot_kwargs, **kwargs)
-                        else:
-                            fig = PlotWrapper(plot_kwargs, 1, 1)
-                            plotf(args, values, fig, fig.ax, **kwargs)
-                            fig.close(
-                                str(plotf.__name__),
-                                fig.params["save_to_file"],
-                                fig.params["pop_up"],
-                            )
+            plot_wrapper(args, values, plot_fs, **kwargs)
             return values
 
         return wrapper_f
@@ -258,15 +202,15 @@ def nss_result_plot(*plot_fs):
     return decorator_plot
 
 
-def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot, plot_kwargs):
+def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot_wrapper):
     f_input = tuple() if inputs is None else tuple(sim[i] for i in inputs)
     results = tuple() if outputs is None else tuple(sim[o] for o in outputs)
 
     @nss_result_plot(*plotfs)
-    def f(*args, **kwargs):
+    def f(*_, **__):
         return results
 
-    f(None, *f_input, plot=plot, plot_kwargs=plot_kwargs)
+    f(None, *f_input, plot_wrapper=plot_wrapper)
 
 
 def ensure_plot_registry(*plot_fs):

@@ -31,61 +31,107 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from matplotlib import pyplot as plt
 
-from ..simulation import *
-from . import decorators
-from .plot_wrapper import PlotWrapper
-
-__all__ = ["dashboard", "show_plot"]
+__all__ = ["make_labels", "get_profile", "hexbin", "hist2d"]
 
 
-def dashboard(sim, plot_kwargs={}):
-    """Full dashboard of plots"""
-    fig = PlotWrapper(plot_kwargs, 3, 4, (15, 8), "Nuspacesim Results Dashboard")
+def make_labels(
+    fig,
+    ax,
+    xlabel,
+    ylabel,
+    clabel=None,
+    im=None,
+    logx=False,
+    logy=False,
+    logx_scale=False,
+    logy_scale=False,
+):
 
-    tau_input = None, sim["beta_rad"], sim["log_e_nu"]
-    tau_results = (
-        sim["tauBeta"],
-        sim["tauLorentz"],
-        sim["tauEnergy"],
-        sim["showerEnergy"],
-        sim["tauExitProb"],
+    xl = "$\\log_{10}$" + f"({xlabel})" if logx else xlabel
+    yl = "$\\log_{10}$" + f"({ylabel})" if logy else ylabel
+    xs = "log" if logx_scale else "linear"
+    ys = "log" if logy_scale else "linear"
+
+    ax.set_xlabel(xl)
+    ax.set_ylabel(yl)
+    ax.set_xscale(xs)
+    ax.set_yscale(ys)
+    if clabel is not None:
+        cbar = fig.colorbar(im, ax=ax, pad=0.0)
+        cbar.set_label(clabel)
+
+
+def get_profile(x, y, nbins, useStd=True):
+
+    if sum(np.isnan(y)) > 0:
+        x = x[~np.isnan(y)]
+        y = y[~np.isnan(y)]
+    n, _ = np.histogram(x, bins=nbins)
+    sy, _ = np.histogram(x, bins=nbins, weights=y)
+    sy2, _ = np.histogram(x, bins=nbins, weights=y * y)
+    mean = sy / n
+    std = np.sqrt(sy2 / n - mean * mean)
+    if not useStd:
+        std /= np.sqrt(n)
+    bincenter = (_[1:] + _[:-1]) / 2
+    binwidth = bincenter - _[1:]
+
+    return bincenter, mean, std, binwidth
+
+
+def hexbin(
+    ax,
+    x,
+    y,
+    gs=25,
+    logx=False,
+    logy=False,
+    logx_scale=False,
+    logy_scale=False,
+    cmap=None,
+):
+
+    xf = np.log10 if logx else lambda q: q
+    yf = np.log10 if logy else lambda q: q
+
+    xs = "log" if logx_scale else "linear"
+    ys = "log" if logy_scale else "linear"
+
+    xmask = x > 0 if logx else np.full(x.shape, True)
+    ymask = y > 0 if logy else np.full(y.shape, True)
+    m = xmask & ymask
+
+    im = ax.hexbin(
+        x=xf(x[m]),
+        y=yf(y[m]),
+        gridsize=gs,
+        mincnt=1,
+        xscale=xs,
+        yscale=ys,
+        cmap=cmap,
+        edgecolors="none",
     )
-
-    eas_input = None, sim["beta_rad"], sim["altDec"], sim["showerEnergy"]
-    eas_results = sim["numPEs"], sim["costhetaChEff"]
-
-    taus.local_plots.energy_hists(tau_input, tau_results, fig, fig.ax[0, 0])
-    taus.local_plots.tau_exit_prob_hist(tau_input, tau_results, fig, fig.ax[1, 0])
-    taus.local_plots.tau_lorentz_hex(tau_input, tau_results, fig, fig.ax[2, 0])
-
-    taus.local_plots.beta_hist(tau_input, tau_results, fig, fig.ax[0, 1])
-    taus.local_plots.tau_exit_prob_hex(tau_input, tau_results, fig, fig.ax[1, 1])
-    eas_optical.local_plots.altdec_vs_beta(eas_input, eas_results, fig, fig.ax[2, 1])
-
-    eas_optical.local_plots.numpes_hist(eas_input, eas_results, fig, fig.ax[0, 2])
-    eas_optical.local_plots.numpes_vs_beta(eas_input, eas_results, fig, fig.ax[1, 2])
-    eas_optical.local_plots.altdec_vs_numpes(eas_input, eas_results, fig, fig.ax[2, 2])
-
-    # eas_input_density(sim, fig, ax[0, 3])
-    eas_optical.local_plots.costhetacheff_hist(
-        eas_input, eas_results, fig, fig.ax[0, 3]
-    )
-    eas_optical.local_plots.costhetacheff_vs_numpes(
-        eas_input, eas_results, fig, fig.ax[1, 3]
-    )
-    eas_optical.local_plots.costhetacheff_vs_beta(
-        eas_input, eas_results, fig, fig.ax[2, 3]
-    )
-
-    # tau_betas(sim, fig, ax[1, 2])
-    fig.close("dashboard", fig.params["save_to_file"], fig.params["pop_up"])
+    return im
 
 
-@decorators.ensure_plot_registry(dashboard)
-def show_plot(sim, plot, plot_kwargs={}):
-    if dashboard.__name__ in plot:
-        dashboard(sim, plot_kwargs)
+def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
 
-    # dashboard(sim, plot)
+    xf = np.log10 if logx else lambda q: q
+    yf = np.log10 if logy else lambda q: q
+
+    xl = f"log({xlab})" if logx else xlab
+    yl = f"log({ylab})" if logy else ylab
+
+    xmask = x > 0 if logx else np.full(x.shape, True)
+    ymask = y > 0 if logy else np.full(y.shape, True)
+    m = xmask & ymask
+
+    _, _, _, im = ax.hist2d(x=xf(x[m]), y=yf(y[m]), bins=(50, 50), cmin=1, cmap=cmap)
+
+    ax.set_xlabel(xl)
+    ax.set_ylabel(yl)
+
+    ax.set_title(f"{yl} vs {xl}")
+    cbar = fig.colorbar(im, ax=ax, pad=0.0)
+    cbar.set_label("Counts")

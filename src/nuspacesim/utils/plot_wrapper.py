@@ -1,5 +1,37 @@
-import numpy as np
+import configparser
+from os.path import exists
+
 from matplotlib import pyplot as plt
+
+
+def read_plot_config(configfile):
+    if configfile is None:
+        return [], {}
+    if not exists(configfile):
+        return [], {}
+    plot_list = []
+    cfg = configparser.ConfigParser()
+    cfg.read(configfile)
+    plot_kwargs = {
+        "title": cfg["General"]["title"],
+        "rows": cfg["General"].getint("rows"),
+        "columns": cfg["General"].getint("columns"),
+        "figsize": eval(cfg["General"]["figsize"]),
+        "save_as": cfg["General"]["save_as"],
+        "pop_up": cfg["General"].getboolean("pop_up"),
+        "save_to_file": cfg["General"].getboolean("save_to_file"),
+        "default_color": cfg["General"].getint("default_color"),
+        "default_colormap": cfg["General"].get("default_colormap"),
+        # "output_path": cfg["General"]["output_path"],
+    }
+    for sec in cfg.sections()[1:]:
+        for key in cfg[sec]:
+            try:
+                if cfg[sec].getboolean(key):
+                    plot_list.append(key)
+            except Exception as e:
+                print(e, "Config file contains non-valid option")
+    return plot_list, plot_kwargs
 
 
 class PlotWrapper:
@@ -9,129 +41,97 @@ class PlotWrapper:
 
     def __init__(
         self,
-        plot_kwargs={
-            "save_as": "pdf",
-            "pop_up": True,
-            "save_to_file": True,
-            "default_color": 0,
-            "default_colormap": "viridis",
-            "filename": "nuspacesim_run",
-        },
-        rows=1,
-        cols=1,
-        size=(8, 7),
+        to_plot=[],
+        rows=None,
+        cols=None,
+        figsize=None,
         title=None,
+        save_as=None,
+        pop_up=None,
+        save_to_file=None,
+        default_color=None,
+        default_colormap=None,
+        filename=None,
+        output_path=None,
+        plotconfig=None,
     ):
         """
         initialize figure
+
         rows = number of rows of plots
         cols = number of cols of plots
         default is 1 for single plot, but can be changed to add subplots for making a multiplot
         """
-        self.params = {
-            "save_to_file": plot_kwargs["save_to_file"],
-            "save_as": plot_kwargs["save_as"],
-            "pop_up": plot_kwargs["pop_up"],
-            "default_colors": [
-                "C{}".format(plot_kwargs["default_color"]),
-                "C{}".format(plot_kwargs["default_color"] + 1),
-                "C{}".format(plot_kwargs["default_color"] + 2),
-            ],
-            "default_colormap": plot_kwargs["default_colormap"],
-            "filename": plot_kwargs["filename"],
-        }
-        # initialize figure as subplots
-        self.fig, self.ax = plt.subplots(nrows=rows, ncols=cols, figsize=size)
-        self.fig.suptitle(title)
 
-    def make_labels(
-        self,
-        ax,
-        xlabel,
-        ylabel,
-        clabel=None,
-        im=None,
-        logx=False,
-        logy=False,
-        logx_scale=False,
-        logy_scale=False,
-    ):
+        cfg_list, cfg_args = read_plot_config(plotconfig)
 
-        xl = "$\\log_{10}$" + f"({xlabel})" if logx else xlabel
-        yl = "$\\log_{10}$" + f"({ylabel})" if logy else ylabel
-        xs = "log" if logx_scale else "linear"
-        ys = "log" if logy_scale else "linear"
+        cfg_args.setdefault("rows", 1)
+        cfg_args.setdefault("cols", 1)
+        cfg_args.setdefault("figsize", (8, 7))
+        cfg_args.setdefault("title", "nuspacesim_run")
+        cfg_args.setdefault("save_as", "pdf")
+        cfg_args.setdefault("pop_up", True)
+        cfg_args.setdefault("save_to_file", False)
+        cfg_args.setdefault("default_color", 0)
+        cfg_args.setdefault("default_colormap", "jet")
+        cfg_args.setdefault("filename", "NuSpaceSim")
+        cfg_args.setdefault("output_path", ".")
 
-        ax.set_xlabel(xl)
-        ax.set_ylabel(yl)
-        ax.set_xscale(xs)
-        ax.set_yscale(ys)
-        if clabel is not None:
-            cbar = self.fig.colorbar(im, ax=ax, pad=0.0)
-            cbar.set_label(clabel)
-
-    def get_profile(self, x, y, nbins, useStd=True):
-
-        if sum(np.isnan(y)) > 0:
-            x = x[~np.isnan(y)]
-            y = y[~np.isnan(y)]
-        n, _ = np.histogram(x, bins=nbins)
-        sy, _ = np.histogram(x, bins=nbins, weights=y)
-        sy2, _ = np.histogram(x, bins=nbins, weights=y * y)
-        mean = sy / n
-        std = np.sqrt(sy2 / n - mean * mean)
-        if not useStd:
-            std /= np.sqrt(n)
-        bincenter = (_[1:] + _[:-1]) / 2
-        binwidth = bincenter - _[1:]
-
-        return bincenter, mean, std, binwidth
-
-    def hexbin(
-        self,
-        ax,
-        x,
-        y,
-        gs=25,
-        logx=False,
-        logy=False,
-        logx_scale=False,
-        logy_scale=False,
-    ):
-
-        xf = np.log10 if logx else lambda q: q
-        yf = np.log10 if logy else lambda q: q
-
-        xs = "log" if logx_scale else "linear"
-        ys = "log" if logy_scale else "linear"
-
-        xmask = x > 0 if logx else np.full(x.shape, True)
-        ymask = y > 0 if logy else np.full(y.shape, True)
-        m = xmask & ymask
-
-        im = ax.hexbin(
-            x=xf(x[m]),
-            y=yf(y[m]),
-            gridsize=gs,
-            mincnt=1,
-            xscale=xs,
-            yscale=ys,
-            cmap=self.params["default_colormap"],
-            edgecolors="none",
+        self.to_plot = list(set(list(to_plot) + cfg_list))
+        self.rows = rows if rows else cfg_args["rows"]
+        self.cols = cols if cols else cfg_args["cols"]
+        self.figsize = figsize if figsize else cfg_args["figsize"]
+        self.title = title if title else cfg_args["title"]
+        self.save_as = save_as if save_as else cfg_args["save_as"]
+        self.pop_up = pop_up if pop_up is not None else cfg_args["pop_up"]
+        self.save_to_file = (
+            save_to_file if save_to_file is not None else cfg_args["save_to_file"]
         )
-        return im
+        self.filename = filename if filename else cfg_args["filename"]
+        self.output_path = output_path if output_path else cfg_args["output_path"]
+        self.default_colormap = (
+            default_colormap if default_colormap else cfg_args["default_colormap"]
+        )
+        self.default_color = [
+            f"C{i+(default_color if default_color else cfg_args['default_color'])}"
+            for i in range(3)
+        ]
 
-    def close(self, plot_name, save_to_file=True, pop_up=True):
-        self.fig.tight_layout()
-        if save_to_file:
-            self.fig.savefig(
-                fname=self.params["filename"]
-                + "_"
-                + plot_name
-                + "."
-                + self.params["save_as"],
+    def artist_params(self):
+
+        return {
+            "rows": self.rows,
+            "cols": self.cols,
+            "figsize": self.figsize,
+            "title": self.title,
+            "cmap": self.default_colormap,
+            "color": self.default_color,
+        }
+
+    def init_fig(self, append_title=None):
+        # initialize figure as subplots
+        fig, ax = plt.subplots(nrows=self.rows, ncols=self.cols, figsize=self.figsize)
+        fig.suptitle(f"{self.title}\n{append_title}")
+        fig.tight_layout()
+        return fig, ax
+
+    def __call__(self, args, values, plot_fs, **kwargs):
+        def do_plot(p):
+            fig, ax = self.init_fig(p.__name__)
+            title = p(args, values, fig, ax, **self.artist_params(), **kwargs)
+            self.close(fig, title if title else p.__name__)
+
+        # plot_fs_prs = map(lambda p: (p.__name__, p), plot_fs)
+        to_plot_now = filter(lambda p: p.__name__ in self.to_plot, plot_fs)
+        for p in to_plot_now:
+            do_plot(p)
+
+    def close(self, fig, plot_name):
+        if self.save_to_file:
+            fig.savefig(
+                fname=f"{self.filename}_{plot_name}.{self.save_as}",
                 bbox_inches="tight",
             )
-        if pop_up:
+        if self.pop_up:
             plt.show()
-        plt.close(self.fig)
+        plt.close(fig)
