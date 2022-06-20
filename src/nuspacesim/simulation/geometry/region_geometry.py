@@ -62,23 +62,13 @@ class RegionGeom:
             # ToO definitions
             self.sourceRA = self.config.simulation.source_RA
             self.sourceDEC = self.config.simulation.source_DEC
-            self.sourceDAY = self.config.simulation.source_date
-            self.sourceToD = self.config.simulation.source_daytime
+            self.sourceDATE = self.config.simulation.source_date
             self.sourceOBSTime = self.config.simulation.source_obst
 
-            print(self.sourceRA,
-                self.sourceDEC,
-                self.sourceDAY,
-                self.sourceToD,
-                self.detlat,
-                self.detlong,
-                self.detalt,
-                self.sourceOBSTime)
             self.too_source = tooevent(
                 self.sourceRA,
                 self.sourceDEC,
-                self.sourceDAY,
-                self.sourceToD,
+                self.sourceDATE,
                 self.detlat,
                 self.detlong,
                 self.detalt,
@@ -90,10 +80,11 @@ class RegionGeom:
             self.detlong = np.radians(config.detector.dec_start)
             self.detalt = config.detector.altitude
 
-        alphaHorizon = np.pi / 2 - np.arccos(
+        self.alphaHorizon = np.pi / 2 - np.arccos(
             self.config.constants.earth_radius / self.core_alt
         )
-        alphaMin = alphaHorizon - config.simulation.ang_from_limb
+
+        alphaMin = self.alphaHorizon - config.simulation.ang_from_limb
 
         minChordLen = 2 * np.sqrt(
             self.earth_rad_2 - (self.core_alt * np.sin(alphaMin)) ** 2
@@ -283,7 +274,11 @@ class RegionGeom:
 
         # Calculate the local nadir angle of the source
         self.times = u
-        self.sourceNadRad = np.pi / 2 - self.too_source.localcoords(u).alt.rad
+        self.sourceNadRad = np.pi / 2 + self.too_source.localcoords(u).alt.rad
+
+        below_limb_mask = self.sourceNadRad < self.alphaHorizon
+        self.sourceNadRad = self.sourceNadRad[below_limb_mask]
+        self.times = self.times[below_limb_mask]
 
         # Calculate the earth emergence angle from the nadir angle
         self.sourcebeta = np.arccos(
@@ -391,7 +386,7 @@ class RegionGeom:
         spec_norm,
         spec_weights_sum,
         lenDec,
-        method="optical"
+        method="optical",
     ):
 
         # calculate the Cherenkov angle
@@ -400,7 +395,11 @@ class RegionGeom:
 
         # cossepangle = self.costhetaTrSubV[self.event_mask]
 
-        mcintfactor = (self.too_pathLens() - lenDec) * (self.too_pathLens()- lenDec) * tanthetaChEff**2
+        mcintfactor = (
+            (self.too_pathLens() - lenDec)
+            * (self.too_pathLens() - lenDec)
+            * tanthetaChEff**2
+        )
 
         # Branching ratio set to 1 to be consistent
         Bshr = 1
@@ -428,16 +427,17 @@ class RegionGeom:
             print("saving")
             np.savez(
                 str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
-                t=(self.times - self.too_source.eventtime)[self.event_mask].to_value("hr"),
+                t=(self.times - self.too_source.eventtime)[self.event_mask].to_value(
+                    "hr"
+                ),
                 tf=(self.times - self.too_source.eventtime).to_value("hr"),
                 nad=self.sourceNadRad[self.event_mask],
                 nadf=self.sourceNadRad,
                 mcint=mcintfactor,
                 geom=geo,
                 npass=numEvPass,
-                betas=self.too_betas()
+                betas=self.too_betas(),
             )
-
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 

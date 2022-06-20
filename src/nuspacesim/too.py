@@ -4,7 +4,7 @@ import numpy as np
 
 import astropy.coordinates
 import astropy.time
-import astropy.units as u
+import astropy.units
 
 
 class tooevent:
@@ -13,7 +13,6 @@ class tooevent:
         RA,
         DEC,
         eventday,
-        eventtime,
         detlat,
         detlong,
         detalt,
@@ -28,38 +27,23 @@ class tooevent:
             self.detlong = np.rad2deg(detlong)
 
         self.eventtime = astropy.time.Time(
-            eventday + "T" + eventtime, format="isot", scale="utc"
+            eventday[0], format=eventday[1], scale="utc"
         )
 
         self.eventcoords = astropy.coordinates.SkyCoord(
-            ra=RA * u.degree, dec=DEC * u.degree, frame="icrs"
+            ra=RA * astropy.units.degree,
+            dec=DEC * astropy.units.degree,
+            frame="icrs"
         )
 
         self.detcords = astropy.coordinates.EarthLocation(
-            lat=detlat, lon=detlong, height=detalt
+            lat=detlat,
+            lon=detlong,
+            height=detalt
         )
 
         self.obstime = obstime
 
     def localcoords(self, time):
-        self.detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
-
-        return self.eventcoords.transform_to(self.detframe)
-
-    def event_time(self):
-        return self.eventtime
-
-
-# WANAKALAT = -35.20666735 * u.deg
-# WANAKALONG = -69.315833 * u.deg
-# WANAKAHEIGHT = 30000 * u.m
-
-# RA = 0
-# DEC = 0
-# day = 60035.5  # 04/01/2023
-# time = 3600
-
-# event = tooevent(RA, DEC, day, time, WANAKALAT, WANAKALONG, WANAKAHEIGHT)
-# time = event.eventtime
-
-# print(event.localcoords(time))
+        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
+        return self.eventcoords.transform_to(detframe)

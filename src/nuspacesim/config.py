@@ -276,11 +276,10 @@ class SimulationParameters:
             ),
             "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
             "TECerr": (self.TECerr, "Simulation: Uniform distr. err: TEC est."),
-            "sourceRA": (self.source_RA, "Source: Right Ascencion"),
-            "sourceDEC": (self.source_DEC, "Source: Declination"),
-            "sourceDAY": (self.source_date, "Source: day"),
-            "sourceToD": (self.source_daytime, "Source: Time of day"),
-            "sourceOBSTime": (self.source_obst, "Source: observation time"),
+            "sourRA": (self.source_RA, "Source: Right Ascencion"),
+            "sourDEC": (self.source_DEC, "Source: Declination"),
+            "sourDATE": (self.source_date, "Source: date"),
+            "sourOBST": (self.source_obst, "Source: observation time"),
         }
 
         d.update(self.spectrum())

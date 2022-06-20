@@ -135,24 +135,28 @@ xsd = StringIO(
 <xs:complexType name="DateType">
     <xs:simpleContent>
       <xs:extension base="xs:string">
-        <xs:attribute name="Unit">
+        <xs:attribute name="Format">
           <xs:simpleType>
             <xs:restriction base="xs:string">
+              <xs:enumeration value="byear"/>
+              <xs:enumeration value="byear_str"/>
+              <xs:enumeration value="cxcsec"/>
+              <xs:enumeration value="datetime"/>
+              <xs:enumeration value="decimalyear"/>
+              <xs:enumeration value="fits"/>
+              <xs:enumeration value="gps"/>
               <xs:enumeration value="iso"/>
-            </xs:restriction>
-          </xs:simpleType>
-        </xs:attribute>
-      </xs:extension>
-    </xs:simpleContent>
-</xs:complexType>
-
-<xs:complexType name="DayTimeType">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="Unit">
-          <xs:simpleType>
-            <xs:restriction base="xs:string">
-              <xs:enumeration value="utc"/>
+              <xs:enumeration value="isot"/>
+              <xs:enumeration value="jd"/>
+              <xs:enumeration value="jyear"/>
+              <xs:enumeration value="jyear_str"/>
+              <xs:enumeration value="mjd"/>
+              <xs:enumeration value="plot_date"/>
+              <xs:enumeration value="unix"/>
+              <xs:enumeration value="unix_tai"/>
+              <xs:enumeration value="yday"/>
+              <xs:enumeration value="ymdhms"/>
+              <xs:enumeration value="datetime64"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:attribute>
@@ -167,7 +171,10 @@ xsd = StringIO(
         <xs:attribute name="Unit">
           <xs:simpleType>
             <xs:restriction base="xs:string">
-              <xs:enumeration value="s"/>
+              <xs:enumeration value="sec"/>
+              <xs:enumeration value="min"/>
+              <xs:enumeration value="hour"/>
+              <xs:enumeration value="day"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:attribute>
@@ -203,8 +210,7 @@ xsd = StringIO(
           <xs:sequence>
             <xs:element name="SourceRightAscension" type="AngleType"/>
             <xs:element name="SourceDeclination" type="AngleType"/>
-            <xs:element name="SourceDay" type="DateType"/>
-            <xs:element name="SourceDayTime" type="DayTimeType"/>
+            <xs:element name="SourceDate" type="DateType"/>
             <xs:element name="ObservationPeriod" type="DurationType"/>
             <xs:element name="MaximumCherenkovAngle" type="AngleType"/>
             <xs:element name="AngleFromLimb" type="AngleType"/>

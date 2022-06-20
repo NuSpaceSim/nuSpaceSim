@@ -180,20 +180,30 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
                     simparams["Spectrum"] = FileSpectrum(
                         path=str(node.spectrum_type("FilePath").text)
                     )
+
+        elif node.tag == "SourceDate":
+            sourcetime = (str(node.text), node.attrib["Format"])
+
         else:
             simparams[node.tag] = str(node.text)
 
-        # Convert Degrees to Radians
+        # Convert Degrees to Radians and time to sec
         if "Unit" in node.attrib:
             if node.attrib["Unit"] == "Degrees":
                 simparams[node.tag] = np.radians(float(node.text))
+            elif node.attrib["Unit"] == "min":
+                simparams[node.tag] = float(node.text) * 60
+            elif node.attrib["Unit"] == "hour":
+                simparams[node.tag] = float(node.text) * 60 * 60
+            elif node.attrib["Unit"] == "day":
+                simparams[node.tag] = float(node.text) * 60 * 60 * 24
+
 
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),
         source_RA=float(simparams["SourceRightAscension"]),
         source_DEC=float(simparams["SourceDeclination"]),
-        source_date=simparams["SourceDay"],
-        source_daytime=simparams["SourceDayTime"],
+        source_date=sourcetime,
         source_obst=float(simparams["ObservationPeriod"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
         spectrum=simparams["Spectrum"],
