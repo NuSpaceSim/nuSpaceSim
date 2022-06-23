@@ -6,7 +6,9 @@ from nuspacesim.simulation.eas_optical.atmospheric_models import (
 )
 
 
-def depth_to_alt_lookup(slant_depths, angle, max_alt=50, direction="up", s=1000):
+def depth_to_alt_lookup(
+    slant_depths, angle, starting_depth, max_alt=50, direction="up", s=2000
+):
     angle = np.radians(angle)
 
     altitudes = np.linspace(0, max_alt, s)

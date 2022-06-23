@@ -56,14 +56,14 @@ class ShowerParameterization:
         fit_break_thresh: float = 1e10,
     ):
         #!!! arbitrary pad length can brake the program if not big enough
-        padded_vec_len = (shower_end / grammage) + 400  # arbitrary pad length
+        padded_vec_len = (shower_end / grammage) + 800  # arbitrary pad length
         scaled_n_max = n_max * self.table_decay_e
 
         # allows negative starting depths
         x = np.arange(np.round(x_0), shower_end + 1, grammage)  # slant depths g/cm^2
         # print(np.round(x_0))
         # calculating gaisser-hillas function
-        gh_lambda = p1 + p2 * x + p3 * (x ** 2)
+        gh_lambda = p1 + p2 * x + p3 * (x**2)
 
         exp1 = (x_max - x_0) / gh_lambda
 
