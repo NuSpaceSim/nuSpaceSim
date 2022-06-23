@@ -1,3 +1,14 @@
+"""
+Demo for fitting fluctuated shower by increasing corsika's lambda parameter by
+1 dof.
+
+Increasing the 1 dof does not add any additional inflection points to the GH
+so the effective degree of freedom for the entire function seems to be unchanged.
+If anything, fitting using another free paremter makes the function more sensitive
+and dependent on the intial guesses. Requiring more accurate ones that could lead
+to conversion. Other wise, the fit fails and the program throws an error.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
@@ -96,19 +107,6 @@ plt.grid(True, which="both", linestyle="--")
 from scipy import optimize
 
 
-def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
-
-    particles = (
-        n_max
-        * np.nan_to_num(
-            ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
-        )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
-
-    return particles
-
-
 def modified_gh_cubic_lambda(x, n_max, x_max, x_0, p1, p2, p3, p4):
 
     particles = (
@@ -122,167 +120,31 @@ def modified_gh_cubic_lambda(x, n_max, x_max, x_0, p1, p2, p3, p4):
     return particles
 
 
-def modified_gh_quartic_lambda(x, n_max, x_max, x_0, p1, p2, p3, p4, p5):
-
-    particles = (
-        n_max
-        * np.nan_to_num(
-            ((x - x_0) / (x_max - x_0))
-            ** (
-                (x_max - x_0)
-                / (p1 + p2 * x + p3 * (x ** 2) + p4 * (x ** 3) + p5 * (x ** 3))
-            )
-        )
-    ) * (
-        np.exp(
-            (x_max - x) / (p1 + p2 * x + p3 * (x ** 2) + p4 * (x ** 3) + p5 * (x ** 3))
-        )
-    )
-
-    return particles
-
-
-def gaisser_hillas(x, n_max, x_max, x_0, gh_lambda):
-
-    particles = (
-        n_max
-        * np.nan_to_num(((x - x_0) / (x_max - x_0)) ** ((x_max - x_0) / gh_lambda))
-    ) * (np.exp((x_max - x) / gh_lambda))
-
-    return particles
-
-
 parameters = []
 
+
+modified_gh_cubic_lambda
 # for shower in fluctuated_showers:
-#     mask = (grammages[0] <= 4000) & (shower != np.nan)  # mask to fudge fits
-#     grammage_to_fit = grammages[0][mask]
-#     shower_to_fit = shower[mask]
-#     num_fit_params = 4
-
-#     guess_n_max, guess_x_max = bin_nmax_xmax(grammages[0], shower)
-#     fit_params, covariance = optimize.curve_fit(
-#         f=modified_gh,
-#         xdata=grammage_to_fit,
-#         ydata=shower_to_fit,
-#         p0=[guess_n_max, guess_x_max, 0, 10, -0.01, 1e-05],
-#         bounds=(
-#             [0, 0, -np.inf, -np.inf, -np.inf, -np.inf],
-#             [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
-#         ),
-#     )
-#     theory_n = modified_gh(grammages[0][mask], *fit_params)
-
-#     chisquare = np.sum((shower_to_fit - theory_n) ** 2 / theory_n)
-#     dof = np.size(theory_n) - num_fit_params
-#     reduced_chisquare = chisquare / dof
-#     p_value = stats.chi2.sf(chisquare, dof)
-
-#     parameters.append(fit_params)
-#     plt.figure(figsize=(8, 6), dpi=200)
-#     plt.plot(
-#         grammage_to_fit,
-#         theory_n,
-#         label=r"Fit: $\chi_{{\nu}}^2$ = {:.2e}, $P(\chi^2, \nu)$ = {:.2f}".format(
-#             reduced_chisquare, p_value
-#         ),
-#     )
-#     plt.plot(
-#         grammages[0],
-#         shower,
-#         color="violet",
-#         zorder=20,
-#         linewidth=2,
-#         # label="Uncut Showers, Not Reaching 1%",
-#         label="All Showers",
-#     )
-#     plt.ylim(bottom=1e0)
-#     plt.title("Showers Fitted Up to 8000 ")
-#     plt.xlabel("slant depth (g cm$^{-2}$)")
-#     plt.ylabel("$N$")
-#     plt.yscale("log")
-#     plt.tick_params(axis="both", which="both", direction="in", top="on", right="on")
-#     plt.grid(True, which="both", linestyle="--")
-#     plt.legend()
-
-# modified_gh_cubic_lambda
-# for shower in fluctuated_showers:
-#     mask = (grammages[0] <= 10000) & (~np.isnan(shower))  # mask to fudge fits
-
-#     grammage_to_fit = grammages[0][mask]
-#     shower_to_fit = shower[mask]
-#     num_fit_params = 5
-
-#     guess_n_max, guess_x_max = bin_nmax_xmax(grammages[0], shower_to_fit)
-#     fit_params, covariance = optimize.curve_fit(
-#         f=modified_gh_cubic_lambda,
-#         xdata=grammage_to_fit,
-#         ydata=shower_to_fit,
-#         p0=[guess_n_max, guess_x_max, 0, 70, -0.01, 1e-05, 0],
-#         bounds=(
-#             [0, 0, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf],
-#             [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
-#         ),
-#     )
-#     theory_n = modified_gh_cubic_lambda(grammage_to_fit, *fit_params)
-
-#     chisquare = np.sum((shower_to_fit - theory_n) ** 2 / theory_n)
-#     dof = np.size(theory_n) - num_fit_params
-#     reduced_chisquare = chisquare / dof
-#     p_value = stats.chi2.sf(chisquare, dof)
-
-#     parameters.append(fit_params)
-#     plt.figure(figsize=(8, 6), dpi=200)
-#     plt.plot(
-#         grammage_to_fit,
-#         theory_n,
-#         label=r"Fit: $\chi_{{\nu}}^2$ = {:.2e}, $P(\chi^2, \nu)$ = {:.2f}".format(
-#             reduced_chisquare, p_value
-#         ),
-#     )
-#     plt.plot(
-#         grammage_to_fit,
-#         shower_to_fit,
-#         color="violet",
-#         zorder=20,
-#         linewidth=2,
-#         # label="Uncut Showers, Not Reaching 1%",
-#         # label="Cut Showers, Reaching 1%",
-#         label="All Showers",
-#     )
-#     plt.ylim(bottom=1e0)
-#     plt.title("Cubic Lambda ")
-#     plt.xlabel("slant depth (g cm$^{-2}$)")
-#     plt.ylabel("$N$")
-#     plt.yscale("log")
-#     plt.tick_params(axis="both", which="both", direction="in", top="on", right="on")
-#     plt.grid(True, which="both", linestyle="--")
-#     plt.legend()
-
-
-# modified_gh_quartic_lambda
 shower = sample_shwr
+grammages = sample_grm
+mask = (grammages <= 10000) & (~np.isnan(shower))  # mask to fudge fits
 
-mask = (sample_grm <= 10000) & (~np.isnan(shower))  # mask to fudge fits
-
-grammage_to_fit = sample_grm[mask]
+grammage_to_fit = grammages[mask]
 shower_to_fit = shower[mask]
-num_fit_params = 5
+num_fit_params = 7
 
-guess_n_max, guess_x_max = bin_nmax_xmax(sample_grm, shower_to_fit)
+guess_n_max, guess_x_max = bin_nmax_xmax(grammages, shower_to_fit)
 fit_params, covariance = optimize.curve_fit(
-    f=modified_gh_quartic_lambda,
+    f=modified_gh_cubic_lambda,
     xdata=grammage_to_fit,
     ydata=shower_to_fit,
-    p0=[guess_n_max, guess_x_max, -1, 30, -0.01, 1e-05, 0, 0],
+    p0=[guess_n_max, guess_x_max, 0, 70, -0.01, 1e-05, 0],
     bounds=(
-        [0, 0, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -1],
-        [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 1],
+        [0, 0, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf],
+        [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
     ),
 )
-print(fit_params)
-
-theory_n = modified_gh_quartic_lambda(grammage_to_fit, *fit_params)
+theory_n = modified_gh_cubic_lambda(grammage_to_fit, *fit_params)
 
 chisquare = np.sum((shower_to_fit - theory_n) ** 2 / theory_n)
 dof = np.size(theory_n) - num_fit_params
@@ -304,18 +166,20 @@ plt.plot(
     color="violet",
     zorder=20,
     linewidth=2,
-    label="Uncut Showers, Not Reaching 1%",
+    # label="Uncut Showers, Not Reaching 1%",
     # label="Cut Showers, Reaching 1%",
-    # label="All Showers",
+    label="All Showers",
 )
 plt.ylim(bottom=1e0)
-plt.title("Quartic Lambda")
+plt.title("Cubic Lambda ")
 plt.xlabel("slant depth (g cm$^{-2}$)")
 plt.ylabel("$N$")
 plt.yscale("log")
 plt.tick_params(axis="both", which="both", direction="in", top="on", right="on")
 plt.grid(True, which="both", linestyle="--")
 plt.legend()
+
+
 #%% save the best fit parameters
 # header = (
 #     "\t Shower Number \t"

@@ -55,8 +55,8 @@ class ShowerParameterization:
         pad_tails_with: float = 0,
         fit_break_thresh: float = 1e10,
     ):
-
-        padded_vec_len = (shower_end / grammage) + 400
+        #!!! arbitrary pad length can brake the program if not big enough
+        padded_vec_len = (shower_end / grammage) + 400  # arbitrary pad length
         scaled_n_max = n_max * self.table_decay_e
 
         # allows negative starting depths

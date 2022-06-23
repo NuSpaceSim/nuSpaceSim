@@ -1,3 +1,8 @@
+"""
+Demo for generating fluctuated showers by sampling the nmax variability distribution
+using a rudimentary dartboard MC.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 

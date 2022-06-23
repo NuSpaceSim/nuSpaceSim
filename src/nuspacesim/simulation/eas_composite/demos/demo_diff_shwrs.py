@@ -1,3 +1,7 @@
+"""
+Demo for making composite showers and getting specific decay channels.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import optimize
@@ -6,9 +10,7 @@ from scipy import stats
 # relative imports are not for scripts, absolute imports here
 from nuspacesim.simulation.eas_composite.composite_eas import CompositeShowers
 from nuspacesim.simulation.eas_composite.comp_eas_utils import (
-    bin_nmax_xmax,
     decay_channel_filter,
-    separate_showers,
 )
 from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
 from nuspacesim.simulation.eas_composite.plt_routines import (
