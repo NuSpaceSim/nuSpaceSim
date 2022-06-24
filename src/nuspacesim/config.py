@@ -221,9 +221,9 @@ class SimulationParameters:
     source_DEC: float = 0
     """Right Ascencion and Declination of the source"""
 
-    source_date: string = "2022-06-02"
-    source_daytime: string = "01:00:00"  # 1am
-    """Date (mjd) and Time of Day (s) of the event should be done differently"""
+    source_date: string = "2022-06-02T01:00:00"
+    source_date_format: string = "isot"
+    """Date of the event and format"""
 
     source_obst: float = 24 * 60 * 60
     """Observation time (s)"""
@@ -279,6 +279,7 @@ class SimulationParameters:
             "sourRA": (self.source_RA, "Source: Right Ascencion"),
             "sourDEC": (self.source_DEC, "Source: Declination"),
             "sourDATE": (self.source_date, "Source: date"),
+            "sourDATF": (self.source_date_format, "Source: date format"),
             "sourOBST": (self.source_obst, "Source: observation time"),
         }
 

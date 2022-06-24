@@ -13,6 +13,7 @@ class tooevent:
         RA,
         DEC,
         eventday,
+        time_format,
         detlat,
         detlong,
         detalt,
@@ -27,7 +28,7 @@ class tooevent:
             self.detlong = np.rad2deg(detlong)
 
         self.eventtime = astropy.time.Time(
-            eventday[0], format=eventday[1], scale="utc"
+            eventday, format=time_format, scale="utc"
         )
 
         self.eventcoords = astropy.coordinates.SkyCoord(

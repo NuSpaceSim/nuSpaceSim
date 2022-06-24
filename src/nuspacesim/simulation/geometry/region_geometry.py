@@ -63,12 +63,14 @@ class RegionGeom:
             self.sourceRA = self.config.simulation.source_RA
             self.sourceDEC = self.config.simulation.source_DEC
             self.sourceDATE = self.config.simulation.source_date
+            self.sourceDateFormat = self.config.simulation.source_date_format
             self.sourceOBSTime = self.config.simulation.source_obst
 
             self.too_source = tooevent(
                 self.sourceRA,
                 self.sourceDEC,
                 self.sourceDATE,
+                self.sourceDateFormat,
                 self.detlat,
                 self.detlong,
                 self.detalt,

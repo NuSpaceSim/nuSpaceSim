@@ -182,7 +182,8 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
                     )
 
         elif node.tag == "SourceDate":
-            sourcetime = (str(node.text), node.attrib["Format"])
+            sourcetime = str(node.text)
+            sourcetimeformat = node.attrib["Format"]
 
         else:
             simparams[node.tag] = str(node.text)
@@ -204,6 +205,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         source_RA=float(simparams["SourceRightAscension"]),
         source_DEC=float(simparams["SourceDeclination"]),
         source_date=sourcetime,
+        source_date_format=sourcetimeformat,
         source_obst=float(simparams["ObservationPeriod"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
         spectrum=simparams["Spectrum"],
