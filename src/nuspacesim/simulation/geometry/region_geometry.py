@@ -96,7 +96,7 @@ class RegionGeom:
         self.minLOSpathLen = self.core_alt * np.cos(alphaMin) - minChordLen / 2
         self.maxLOSpathLen = np.sqrt(self.core_alt**2 - self.earth_rad_2)
 
-        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.theta_ch_max)  # self?
+        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.theta_ch_max)
 
         self.maxPhiS = config.simulation.max_azimuth_angle / 2
         self.minPhiS = -config.simulation.max_azimuth_angle / 2
@@ -278,9 +278,15 @@ class RegionGeom:
         self.times = u
         self.sourceNadRad = np.pi / 2 + self.too_source.localcoords(u).alt.rad
 
+        # Define a cut if the source is below the horizon
         below_limb_mask = self.sourceNadRad < self.alphaHorizon
         self.sourceNadRad = self.sourceNadRad[below_limb_mask]
         self.times = self.times[below_limb_mask]
+
+        # Define a cut based on sun and moon position
+        sun_moon_cut = self.too_source.sun_moon_cut(self.times)
+        self.sourceNadRad = self.sourceNadRad[sun_moon_cut]
+        self.times = self.times[sun_moon_cut]
 
         # Calculate the earth emergence angle from the nadir angle
         self.sourcebeta = np.arccos(
