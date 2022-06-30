@@ -5,6 +5,10 @@ from nuspacesim.simulation.eas_composite.shower_long_profiles import (
     ShowerParameterization,
 )
 from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup
+from nuspacesim.simulation.eas_composite.depth_to_altitude import (
+    depth_to_altitude,
+    slant_depth_to_depth,
+)
 from nuspacesim.simulation.eas_optical.atmospheric_models import (
     cummings_atmospheric_density,
 )
@@ -14,12 +18,16 @@ import matplotlib as mpl
 """
 reading corsika 77420 binary files for gh hillas and actual particle content
 """
-corsika_angle = 45
-observing_height = 5
-start_depth = 0
-shower_type = "Downward Proton Primary"
-direction = "down"
-in_file = "./corsika-77420/new_runs/down_proton_1e8gev_theta45deg_start0gcm2_obs5km.txt"
+corsika_angle = 95
+observing_height = 15
+start_depth = 1030
+azimuthal_angle = 85
+start_z = float(depth_to_altitude(np.array([start_depth])))  # km
+shower_type = "Upward Proton Primary"
+direction = "up"
+in_file = (
+    "./corsika-77420/new_runs/up_proton_1e8gev_theta95deg_start1030gcm2_obs15km.txt"
+)
 
 
 def read_corsika_binary(in_file):
@@ -84,7 +92,7 @@ for num, dists, gh in zip(shower_nums, cleaned_distributions, gh_params):
     hadrons = data[:, 6]
     charged = data[:, 7]
 
-    showers.append((num, gh, depths, charged, positrons, electrons, muons))
+    showers.append((num, gh, depths, charged, positrons, electrons, muons, hadrons))
 
 
 # plt.figure(figsize=(6, 4), dpi=300)
@@ -173,6 +181,7 @@ for shwr in showers:
     corsika_positron = shwr[4]
     corsika_electron = shwr[5]
     corsika_muon = shwr[6]
+    corsika_hadron = shwr[7]
     # corsika_combined = corsika_charge + corsika_positron + corsika_electrons
 
     nmax = gh_params[0]
@@ -199,11 +208,11 @@ for shwr in showers:
         grammage=1,
     )
     fig, ax = plt.subplots(
-        nrows=4,
+        nrows=5,
         ncols=1,
         sharex=True,
-        gridspec_kw={"height_ratios": [6, 2, 2, 2]},
-        figsize=(6, 9),
+        gridspec_kw={"height_ratios": [6, 2, 2, 2, 2]},
+        figsize=(6, 10),
         dpi=300,
     )
     ax[0].plot(depth, shower_content, "--k", label="GH Fit")
@@ -213,8 +222,10 @@ for shwr in showers:
     ax[0].scatter(corsika_depths, corsika_electron, label=r"e$^{-}$", s=4, alpha=1)
     ax[0].scatter(corsika_depths, corsika_positron, label=r"e$^{+}$", s=4, alpha=1)
     ax[0].scatter(corsika_depths, corsika_muon, label=r"$\mu^{-}$", s=4, alpha=1)
+    ax[0].scatter(corsika_depths, corsika_hadron, label=r"hadron", s=4, alpha=1)
     # ax[0].set_title(r"Upward Shower, Proton Primary")
     ax[0].set_ylabel(r"$N$")
+    ax[3].set_xlabel(r"slant depth (g/cm$^2$)")
     ax[0].set_yscale("log")
     ax[0].set_ylim(bottom=1)
     ax[0].legend(
@@ -227,23 +238,39 @@ for shwr in showers:
             "\: z_{{obs}} = {} \mathrm{{km}}$,"
         ).format(shower_type, start_depth, corsika_angle, observing_height),
         ncol=2,
+        loc="lower left",
     )
 
     # muon over electron ratio
     ax[1].scatter(corsika_depths, corsika_muon / corsika_electron, s=4, color="salmon")
-    ax[1].set_xlabel(r"$g \: cm^{-2}$")
     ax[1].set_ylabel(r"$\mu^{-} / e^{-}$")
-    ax[1].set_yscale("log")
+    ax[1].set_ylim(top=10)
+    # ax[1].set_yscale("log")
 
     altitudes = depth_to_alt_lookup(
-        slant_depths=corsika_depths, angle=corsika_angle, direction=direction
+        slant_depths=corsika_depths,
+        angle=corsika_angle,
+        starting_alt=start_z,
+        direction=direction,
     )
-    ax[2].scatter(corsika_depths, altitudes, s=4, color="seagreen")
+    vert_depth = slant_depth_to_depth(corsika_depths, azimuthal_angle)
+    alt = depth_to_altitude(vert_depth)
+
+    ax[2].scatter(corsika_depths, altitudes, s=4, color="seagreen", label="table")
+    ax[2].scatter(
+        corsika_depths, np.flip(alt), s=4, color="darkorange", label="rough vert depth"
+    )  # !!! flipped if upward
     ax[2].set_ylabel(r"Altitude (km)")
+    ax[2].set_ylim(top=50)
+    ax[2].legend()
+
+    ax[3].scatter(corsika_depths, vert_depth, s=4, color="brown")
+    ax[3].set_ylabel(r"Vert. Depth (km)")
 
     atm_dense = cummings_atmospheric_density(altitudes)
-    ax[3].scatter(corsika_depths, atm_dense, s=4, color="mediumpurple")
-    ax[3].set_ylabel(r"$\mathrm{\rho_{atm}} \: \mathrm{(g \: cm^{-3})}$")
+    ax[4].scatter(corsika_depths, atm_dense, s=4, color="mediumpurple")
+    # ax[3].set_ylim(top=0.0007)
+    ax[4].set_ylabel(r"$\mathrm{\rho_{atm}} \: \mathrm{(g \: cm^{-3})}$")
     # ax[3].set_yscale("log")
 
     ax[0].set_xlim(left=corsika_depths.min())
