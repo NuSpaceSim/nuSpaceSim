@@ -206,7 +206,7 @@ def compute(
                 mc_spec_norm,
                 spec_weights_sum,
                 lenDec,
-                method="optical"
+                method="optical",
             )
         else:
             mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
@@ -250,7 +250,7 @@ def compute(
                 mc_spec_norm,
                 spec_weights_sum,
                 lenDec,
-                method="radio"
+                method="radio",
             )
         else:
             mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

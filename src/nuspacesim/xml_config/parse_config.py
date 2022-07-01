@@ -80,6 +80,27 @@ def is_valid_xml(xmlfile: str) -> bool:
     return xmlschema.validate(ET.parse(xmlfile))
 
 
+def unit_conversion(value, unit):
+    if unit == "km":
+        return float(value)
+    if unit == "m":
+        return float(value) / 1000
+    if unit == "Degrees":
+        return np.radians(float(value))
+    if unit == "Radians":
+        return float(value)
+    if unit == "Hz":
+        return float(value) / 1000**2
+    if unit == "kHz":
+        return float(value) / 1000
+    if unit == "MHz":
+        return float(value)
+    if unit == "GHz":
+        return float(value) * 1000
+    if unit == "Sq.Meters":
+        return float(value)
+
+
 def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     r"""Parse the XML file into a DetectorCharacteristics object.
 
@@ -109,18 +130,28 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
 
         # Convert Degrees to Radians
         if "Unit" in node.attrib:
-            if node.tag in [
-                "InitialDetectorRightAscension",
-                "InitialDetectorDeclination",
-            ]:
-                x = float(node.text)
-                detchar[node.tag] = (
-                    x if node.attrib["Unit"] == "Degrees" else np.radians(x)
-                )
+            detchar[node.tag] = unit_conversion(node.text, node.attrib["Unit"])
 
-                np.degrees(float(node.text))
-            elif node.attrib["Unit"] == "Degrees":
-                detchar[node.tag] = np.radians(float(node.text))
+        if node.tag == "SunMoonCuts":
+            if node.attrib["ApplyCuts"] == "true":
+                detchar[node.tag] = True
+                detchar["SunAltitudeCut"] = unit_conversion(
+                    node.find("SunAltitudeCut").text,
+                    node.find("SunAltitudeCut").attrib["Unit"],
+                )
+                detchar["MoonAltitudeCut"] = unit_conversion(
+                    node.find("MoonAltitudeCut").text,
+                    node.find("MoonAltitudeCut").attrib["Unit"],
+                )
+                detchar["MoonMinPhaseAngleCut"] = unit_conversion(
+                    node.find("MoonMinPhaseAngleCut").text,
+                    node.find("MoonMinPhaseAngleCut").attrib["Unit"],
+                )
+            else:
+                detchar[node.tag] = False
+                detchar["SunAltitudeCut"] = 0
+                detchar["MoonAltitudeCut"] = 0
+                detchar["MoonMinPhaseAngleCut"] = 0
 
     return DetectorCharacteristics(
         method=detchar["Method"],
@@ -135,6 +166,10 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
         det_SNR_thres=float(detchar["SNRThreshold"]),
         det_Nant=int(detchar["NAntennas"]),
         det_gain=float(detchar["AntennaGain"]),
+        sun_moon_cuts=detchar["SunMoonCuts"],
+        sun_alt_cut=detchar["SunAltitudeCut"],
+        moon_alt_cut=detchar["MoonAltitudeCut"],
+        MoonMinPhaseAngleCut=detchar["MoonMinPhaseAngleCut"],
     )
 
 
@@ -198,7 +233,6 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
                 simparams[node.tag] = float(node.text) * 60 * 60
             elif node.attrib["Unit"] == "day":
                 simparams[node.tag] = float(node.text) * 60 * 60 * 24
-
 
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),

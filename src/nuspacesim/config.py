@@ -87,6 +87,14 @@ class DetectorCharacteristics:
     """ Number of radio antennas: Default = 10 """
     det_gain: float = 1.8
     """ Antenna gain in dB: Default = 1.8 """
+    sun_moon_cuts: bool = True
+    """ Apply cut for sun and moon: Default = True """
+    sun_alt_cut: float = -13.5
+    """ Sun altitude beyond which no observations are possible: Default = -12 """
+    moon_alt_cut: float = 0
+    """ Moon altitude beyond which no observations are possible: Default = 0 """
+    MoonMinPhaseAngleCut: float = 150
+    """ Moon phase angle below which, when moon is above moon_alt_cut no observations are possible: Default = 150 """
 
     def __call__(self) -> dict[str, tuple[Any, str]]:
         r"""Dictionary representation of DetectorCharacteristics instance.
@@ -121,29 +129,6 @@ class DetectorCharacteristics:
             "SNRthres": (self.det_SNR_thres, "Detector: Radio SNR threshold"),
             "detNant": (self.det_Nant, "Detector: Number of Antennas"),
             "detGain": (self.det_gain, "Detector: Antenna Gain"),
-        }
-
-
-@dataclass
-class Source:
-    sourceRA: float = 0
-    sourceDEC: float = 0
-    """Right Ascencion and Declination of the source"""
-
-    sourceDAY: string = "2022-06-02"
-    sourceToD: string = "01:00:00"  # 1am
-    """Date (mjd) and Time of Day (s) of the event should be done differently"""
-
-    sourceOBSTime: float = 24 * 60 * 60
-    """Observation time (s)"""
-
-    def __call__(self) -> dict:
-        return {
-            "sourceRA": (self.sourceRA, "Source: Right Ascencion"),
-            "sourceDEC": (self.sourceDEC, "Source: Declination"),
-            "sourceDAY": (self.sourceDAY, "Source: day"),
-            "sourceToD": (self.sourceToD, "Source: Time of day"),
-            "sourceOBSTime": (self.sourceOBSTime, "Source: observation time"),
         }
 
 
@@ -227,7 +212,6 @@ class SimulationParameters:
 
     source_obst: float = 24 * 60 * 60
     """Observation time (s)"""
-
 
     @cached_property
     def log_nu_tau_energy(self) -> float:

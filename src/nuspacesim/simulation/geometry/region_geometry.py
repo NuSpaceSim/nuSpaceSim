@@ -51,31 +51,13 @@ class RegionGeom:
         self.core_alt = (
             self.config.constants.earth_radius + self.config.detector.altitude
         )
-        self.detection_mode = config.simulation.det_mode
+        self.detection_mode = self.config.simulation.det_mode
+        self.sun_moon_cut = self.config.detector.sun_moon_cuts
 
         if self.detection_mode == "ToO":
-            # Detector definitions
-            self.detlat = self.config.detector.ra_start
-            self.detlong = self.config.detector.dec_start
-            self.detalt = self.config.detector.altitude
-
-            # ToO definitions
-            self.sourceRA = self.config.simulation.source_RA
-            self.sourceDEC = self.config.simulation.source_DEC
-            self.sourceDATE = self.config.simulation.source_date
-            self.sourceDateFormat = self.config.simulation.source_date_format
             self.sourceOBSTime = self.config.simulation.source_obst
+            self.too_source = tooevent(self.config)
 
-            self.too_source = tooevent(
-                self.sourceRA,
-                self.sourceDEC,
-                self.sourceDATE,
-                self.sourceDateFormat,
-                self.detlat,
-                self.detlong,
-                self.detalt,
-                self.sourceOBSTime,
-            )
         else:
             # Detector definitions
             self.detlat = np.radians(config.detector.ra_start)
@@ -283,11 +265,6 @@ class RegionGeom:
         self.sourceNadRad = self.sourceNadRad[below_limb_mask]
         self.times = self.times[below_limb_mask]
 
-        # Define a cut based on sun and moon position
-        sun_moon_cut = self.too_source.sun_moon_cut(self.times)
-        self.sourceNadRad = self.sourceNadRad[sun_moon_cut]
-        self.times = self.times[sun_moon_cut]
-
         # Calculate the earth emergence angle from the nadir angle
         self.sourcebeta = np.arccos(
             ((self.core_alt) / self.config.constants.earth_radius)
@@ -408,6 +385,14 @@ class RegionGeom:
             * (self.too_pathLens() - lenDec)
             * tanthetaChEff**2
         )
+        # Define a cut based on sun and moon position
+        if self.sun_moon_cut and method == "optical":
+            sun_moon_cut_mask = self.too_source.sun_moon_cut(
+                self.times[self.event_mask]
+            )
+            mcintfactor = mcintfactor[sun_moon_cut_mask]
+            tauexitprob = tauexitprob[sun_moon_cut_mask]
+            triggers = triggers[sun_moon_cut_mask]
 
         # Branching ratio set to 1 to be consistent
         Bshr = 1
