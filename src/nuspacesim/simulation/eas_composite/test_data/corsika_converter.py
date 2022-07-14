@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 from nuspacesim.simulation.eas_composite.shower_long_profiles import (
     ShowerParameterization,
 )
-from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup
+from nuspacesim.simulation.eas_composite.x_to_z_lookup import (
+    depth_to_alt_lookup,
+    depth_to_alt_lookup_v2,
+)
 from nuspacesim.simulation.eas_composite.depth_to_altitude import (
     depth_to_altitude,
     slant_depth_to_depth,
@@ -19,14 +22,14 @@ import matplotlib as mpl
 reading corsika 77420 binary files for gh hillas and actual particle content
 """
 corsika_angle = 95
-observing_height = 15
-start_depth = 1030
+observing_height = 20
+start_depth = 269
 azimuthal_angle = 85
 start_z = float(depth_to_altitude(np.array([start_depth])))  # km
 shower_type = "Upward Proton Primary"
 direction = "up"
 in_file = (
-    "./corsika-77420/new_runs/up_proton_1e8gev_theta95deg_start1030gcm2_obs15km.txt"
+    "./corsika-77420/new_runs/up_proton_1e8gev_theta95deg_start269gcm2_obs20km.txt"
 )
 
 
@@ -244,10 +247,10 @@ for shwr in showers:
     # muon over electron ratio
     ax[1].scatter(corsika_depths, corsika_muon / corsika_electron, s=4, color="salmon")
     ax[1].set_ylabel(r"$\mu^{-} / e^{-}$")
-    ax[1].set_ylim(top=10)
+    ax[1].set_ylim(top=1)
     # ax[1].set_yscale("log")
 
-    altitudes = depth_to_alt_lookup(
+    altitudes = depth_to_alt_lookup_v2(
         slant_depths=corsika_depths,
         angle=corsika_angle,
         starting_alt=start_z,
@@ -256,15 +259,15 @@ for shwr in showers:
     vert_depth = slant_depth_to_depth(corsika_depths, azimuthal_angle)
     alt = depth_to_altitude(vert_depth)
 
-    ax[2].scatter(corsika_depths, altitudes, s=4, color="seagreen", label="table")
-    ax[2].scatter(
-        corsika_depths, np.flip(alt), s=4, color="darkorange", label="rough vert depth"
-    )  # !!! flipped if upward
+    ax[2].plot(corsika_depths, altitudes, color="seagreen", label="new")
+    # ax[2].scatter(
+    #     corsika_depths, np.flip(alt), s=4, color="darkorange", label="rough vert depth"
+    # )  # !!! flipped if upward
     ax[2].set_ylabel(r"Altitude (km)")
-    ax[2].set_ylim(top=50)
+    # ax[2].set_ylim(top=50)
     ax[2].legend()
 
-    ax[3].scatter(corsika_depths, vert_depth, s=4, color="brown")
+    ax[3].scatter(corsika_depths, np.flip(vert_depth), s=4, color="brown")
     ax[3].set_ylabel(r"Vert. Depth (km)")
 
     atm_dense = cummings_atmospheric_density(altitudes)

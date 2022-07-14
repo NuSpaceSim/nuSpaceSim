@@ -139,8 +139,8 @@ def slant_depth_integrand(z, theta_tr, rho=polyrho, earth_radius=const.earth_rad
 
     theta_tr = np.asarray(theta_tr)
 
-    i = earth_radius**2 * np.cos(theta_tr) ** 2
-    j = z**2
+    i = earth_radius ** 2 * np.cos(theta_tr) ** 2
+    j = z ** 2
     k = 2 * z * earth_radius
 
     ijk = i + j + k
@@ -148,12 +148,15 @@ def slant_depth_integrand(z, theta_tr, rho=polyrho, earth_radius=const.earth_rad
     return 1e5 * rho(z) * ((z + earth_radius) / np.sqrt(ijk))
 
 
+#!!! changed abs and rel
 def slant_depth(
     z_lo,
     z_hi,
     theta_tr,
     earth_radius=const.earth_radius,
     func=slant_depth_integrand,
+    # epsabs=100,
+    # epsrel=100,
     epsabs=1e-2,
     epsrel=1e-2,
     *args,

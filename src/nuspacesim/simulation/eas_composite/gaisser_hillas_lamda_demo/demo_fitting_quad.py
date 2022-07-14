@@ -54,9 +54,10 @@ stacked_y = np.vstack((full_y, trimmed_y))
 # here were throwing darts at a distribution
 # 400 throws at a distribution with 30 bins
 # also, the sample mean will be returned with grammage resolution of 20 g/cm2
+
 mc = MCVariedMean(
-    slant_depths=full_x,  # !!! only full showers
-    composite_showers=full_y,
+    slant_depths=stacked_x,  # !!! all showers
+    composite_showers=stacked_y,
     n_throws=400,
     hist_bins=30,
     sample_grammage=1,
@@ -64,10 +65,12 @@ mc = MCVariedMean(
 
 # throw darts using intialized parameters, return a scaling factor,
 # the sampled grammage, and the samples shower mean
-
-mc_rms, sample_grm, sample_shwr, variability_dist = mc.sampling_nmax_once(
-    return_rms_dist=True
-)
+sample_mcs = []
+for i in range(1000):
+    mc_rms, sample_grm, sample_shwr, variability_dist = mc.sampling_nmax_once(
+        return_rms_dist=True
+    )
+    sample_mcs.append(mc_rms)
 
 
 # def polynomial(x, a, b, c, d, e, f):
@@ -126,7 +129,7 @@ def gaisser_hillas(x, n_max, x_max, x_0, gh_lambda):
 parameters = []
 
 
-mask = (sample_grm <= 4000) & (sample_shwr != np.nan)  # mask to fudge fits
+mask = (sample_grm <= 10000) & (sample_shwr != np.nan)  # mask to fudge fits
 grammage_to_fit = sample_grm[mask]
 sample_shwr_to_fit = sample_shwr[mask]
 num_fit_params = 4
@@ -164,7 +167,7 @@ plt.plot(
     sample_grm,
     sample_shwr,
     color="violet",
-    zorder=20,
+    # zorder=20,
     linewidth=2,
     # label="Uncut sample_shwrs, Not Reaching 1%",
     label="All sample_shwrs",
@@ -180,18 +183,18 @@ plt.legend()
 
 
 #%% save the best fit parameters
-# header = (
-#     "\t Shower Number \t"
-#     "\t lg_10(E) \t"
-#     "\t zenith(deg) \t"
-#     "\t azimuth(deg) \t"
-#     "\t GH Nmax \t"
-#     "\t GH Xmax \t"
-#     "\t GH X0 \t"
-#     "\t quad GH p1 \t"
-#     "\t quad GH p2 \t"
-#     "\t quad GH p3 "
-# )
+header = (
+    "\t Shower Number \t"
+    "\t lg_10(E) \t"
+    "\t zenith(deg) \t"
+    "\t azimuth(deg) \t"
+    "\t GH Nmax \t"
+    "\t GH Xmax \t"
+    "\t GH X0 \t"
+    "\t\t quad GH p1 \t"
+    "\t quad GH p2 \t"
+    "\t quad GH p3 "
+)
 
 # header = (
 #     "\t Shower Number \t"
@@ -205,17 +208,30 @@ plt.legend()
 # )
 
 # number_fluc_shwrs = np.shape(np.array(parameters))[0]
-# extra_info = np.vstack(
-#     (
-#         np.arange(number_fluc_shwrs),
-#         17 * np.ones(number_fluc_shwrs),
-#         95 * np.ones(number_fluc_shwrs),
-#         np.zeros(number_fluc_shwrs),
-#     )
-# ).T
-# save_data = np.hstack((extra_info, np.array(parameters)))
-# np.savetxt("fluctuated_10_shwrs_0_km_gh.txt", X=save_data, header=header)
+extra_info = np.vstack(
+    (
+        np.arange(1),
+        17 * np.ones(1),
+        95 * np.ones(1),
+        np.zeros(1),
+    )
+).T
+save_data = np.hstack((extra_info, np.array(parameters)))
+np.savetxt("mean_gh_of_1683_composites.txt", X=save_data, header=header)
 
+#%%
+header = "\t SlantDepth[g/cm^2] \t Particle Content"
+save_data = np.vstack((sample_grm, sample_shwr)).T
+np.savetxt("mean_of_1683_composites.txt", X=save_data, header=header)
+#%%
+header = "\t Particle Content at Xmax"
+save_data = variability_dist.T
+np.savetxt("N_at_xmax_of_1683_composites.txt", X=save_data, header=header)
+
+#%%
+header = "\t Sampled Nmax Distribution / Shower Mean Nmax"
+save_data = sample_mcs
+np.savetxt("sample_var_dist_1000_samples.txt", X=save_data, header=header)
 #%% save the fluctuated shower themselves
 # header = "\t First line: grammage; Following lines are fluctuated showers\t"
 # save_data = np.vstack((sample_grm, fluctuated_showers))
