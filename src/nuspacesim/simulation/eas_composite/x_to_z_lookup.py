@@ -45,7 +45,7 @@ def depth_to_alt_lookup(slant_depths, angle, starting_alt, direction="up", s=200
     return out_alts
 
 
-def depth_to_alt_lookup_v2(slant_depths, angle, starting_alt, direction="up", s=2000):
+def depth_to_alt_lookup_v2(slant_depths, angle, starting_alt, direction="up", s=8000):
     max_alt = 256  # the nominal stopping point of the atm in km
     angle = np.radians(angle)
 

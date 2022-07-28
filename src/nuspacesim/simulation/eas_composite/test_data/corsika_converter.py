@@ -22,14 +22,14 @@ import matplotlib as mpl
 reading corsika 77420 binary files for gh hillas and actual particle content
 """
 corsika_angle = 95
-observing_height = 20
-start_depth = 269
+observing_height = 5
+start_depth = 1030
 azimuthal_angle = 85
 start_z = float(depth_to_altitude(np.array([start_depth])))  # km
 shower_type = "Upward Proton Primary"
 direction = "up"
 in_file = (
-    "./corsika-77420/new_runs/up_proton_1e8gev_theta95deg_start269gcm2_obs20km.txt"
+    "./corsika-77420/new_runs/up_proton_1e8gev_theta95deg_start1030gcm2_obs5km.txt"
 )
 
 
