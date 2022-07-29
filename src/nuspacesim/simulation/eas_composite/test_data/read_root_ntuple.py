@@ -59,7 +59,7 @@ def conex_to_text(file_path: str, output_file: str, num_showers=1):
 
 
 #%%
-fname = "conex_eposlhc_100degzenith_000000001_100.root"
+fname = "eposlhc_5kmobserving_5000gcm2startslantdepth_95deg_eposlhc_1553520984_100.root"
 ntuple = uproot.open(fname)
 shwr = ntuple["Shower;{}".format(1)]
 lg_10_e = shwr["lgE"].array(library="np")
@@ -76,7 +76,8 @@ gh_p3 = shwr["p3"].array(library="np")
 slt_depth = shwr["X"].array(library="np")
 height_km = shwr["H"].array(library="np") / 1e3
 height_first_interact_km = shwr["Hfirst"].array(library="np") / 1e3
-electrons = shwr["N"].array(library="np")
+charged = shwr["N"].array(library="np")
+elect_pos = shwr["Electrons"].array(library="np")
 gammas = shwr["Gamma"].array(library="np")
 hadrons = shwr["Hadrons"].array(library="np")
 
@@ -102,25 +103,10 @@ def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
 depths = np.linspace(0, slt_depth[0].max(), 1000)
 shower_content = modified_gh(depths, gh_n_max, gh_x_max, gh_x0, gh_p1, gh_p2, gh_p3)
 
-#%%
-
-
-from nuspacesim.simulation.eas_composite.x_to_z_lookup import (
-    depth_to_alt_lookup,
-    depth_to_alt_lookup_v2,
-)
-
-# altitudes = depth_to_alt_lookup_v2(
-#     slant_depths=np.round(slt_depth[0], 4),
-#     angle=80,
-#     starting_alt=0,
-#     direction="up",
-#     s=int(1e5),
-# )
-
 
 plt.figure(figsize=(4, 3), dpi=100)
-plt.scatter(slt_depth[0], electrons[0], label="charged", s=1)
+plt.scatter(slt_depth[0], charged[0], label="charged", s=1)
+plt.scatter(slt_depth[0], elect_pos[0], label="electron/positron", s=1)
 plt.scatter(slt_depth[0], gammas[0], label="gammas", s=1)
 plt.scatter(slt_depth[0], hadrons[0], label="hadrons", s=1)
 plt.plot(depths, shower_content, "--k", label="conex gh fit")
@@ -135,7 +121,7 @@ plt.ylabel("N")
 plt.yscale("log")
 plt.ylim(bottom=1)
 plt.xlim(left=slt_depth[0].min(), right=slt_depth[0].max())
-
+plt.legend()
 
 alt = plt.twiny()
 alt.set_xlim(left=height_km[0].min(), right=height_km[0].max())
@@ -248,9 +234,31 @@ for shwr in showers:
 #     # figsize=(6, 10),
 #     dpi=300,
 # )
+
+from nuspacesim.simulation.eas_composite.x_to_z_lookup import (
+    depth_to_alt_lookup,
+    depth_to_alt_lookup_v2,
+)
+
+altitudes = depth_to_alt_lookup_v2(
+    slant_depths=np.round(slt_depth[0], 4),
+    angle=80,
+    starting_alt=0,
+    direction="up",
+    s=int(1e4),
+)
+#%%
+plt.figure(figsize=(4, 3), dpi=300)
 plt.plot(gh_depths, corsika_n, "--k", label="Corsika GH Fit")
 plt.plot(corsika_depths, corsika_charge, "--", label="Charged", alpha=1)
 plt.plot(corsika_depths, corsika_electron, "--", label=r"e$^{-}$", alpha=1)
 plt.plot(corsika_depths, corsika_positron, "--", label=r"e$^{+}$", alpha=1)
 plt.plot(corsika_depths, corsika_muon, "--", label=r"$\mu^{-}$", alpha=1)
 plt.plot(corsika_depths, corsika_hadron, "--", label=r"hadron", alpha=1)
+plt.yscale("log")
+
+alt_ax = plt.twiny()
+
+# alt.plot(altitudes, electrons[0], color="red", label="calculated altitude")
+alt_ax.set_xlim(left=altitudes.min(), right=altitudes.max())
+alt_ax.set_xlabel("altiude (km)")

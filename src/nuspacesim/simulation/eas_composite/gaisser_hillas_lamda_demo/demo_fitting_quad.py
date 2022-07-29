@@ -163,6 +163,13 @@ plt.plot(
         reduced_chisquare, p_value
     ),
 )
+
+from scipy.interpolate import CubicSpline
+
+s = CubicSpline(grammage_to_fit, sample_shwr_to_fit)
+x_range = np.arange(grammage_to_fit.min(), grammage_to_fit.max(), 1)
+
+
 plt.plot(
     sample_grm,
     sample_shwr,
@@ -172,6 +179,8 @@ plt.plot(
     # label="Uncut sample_shwrs, Not Reaching 1%",
     label="All sample_shwrs",
 )
+
+plt.plot(x_range, s(x_range), "--k", label="Cubic Spline")
 plt.ylim(bottom=1e0)
 plt.title("Showers Fitted Up to 8000 ")
 plt.xlabel("slant depth (g cm$^{-2}$)")
