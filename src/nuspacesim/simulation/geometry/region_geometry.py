@@ -362,6 +362,7 @@ class RegionGeom:
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
+
     def tooMcIntegral(
         self,
         triggers,
@@ -385,14 +386,6 @@ class RegionGeom:
             * (self.too_pathLens() - lenDec)
             * tanthetaChEff**2
         )
-        # Define a cut based on sun and moon position
-        if self.sun_moon_cut and method == "optical":
-            sun_moon_cut_mask = self.too_source.sun_moon_cut(
-                self.times[self.event_mask]
-            )
-            mcintfactor = mcintfactor[sun_moon_cut_mask]
-            tauexitprob = tauexitprob[sun_moon_cut_mask]
-            triggers = triggers[sun_moon_cut_mask]
 
         # Branching ratio set to 1 to be consistent
         Bshr = 1
@@ -410,27 +403,35 @@ class RegionGeom:
 
         # PE threshold
         mcintfactor[triggers < threshold] = 0
+
+        # Define a cut based on sun and moon position
+        if self.sun_moon_cut and method == "optical":
+            sun_moon_cut_mask = self.too_source.sun_moon_cut(
+                self.times[self.event_mask]
+            )
+            mcintfactor[~sun_moon_cut_mask] = 0
+
         mcintegral = np.mean(mcintfactor) * mcnorm
         mcintegraluncert = (
             np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor)) * mcnorm
         )
 
         numEvPass = np.count_nonzero(mcintfactor)
-        if method == "optical":
-            print("saving")
-            np.savez(
-                str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
-                t=(self.times - self.too_source.eventtime)[self.event_mask].to_value(
-                    "hr"
-                ),
-                tf=(self.times - self.too_source.eventtime).to_value("hr"),
-                nad=self.sourceNadRad[self.event_mask],
-                nadf=self.sourceNadRad,
-                mcint=mcintfactor,
-                geom=geo,
-                npass=numEvPass,
-                betas=self.too_betas(),
-            )
+        # if method == "optical":
+            # print("saving")
+            # np.savez(
+            #     str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
+            #     t=(self.times - self.too_source.eventtime)[self.event_mask].to_value(
+            #         "hr"
+            #     ),
+            #     tf=(self.times - self.too_source.eventtime).to_value("hr"),
+            #     nad=self.sourceNadRad[self.event_mask],
+            #     nadf=self.sourceNadRad,
+            #     mcint=mcintfactor,
+            #     geom=geo,
+            #     npass=numEvPass,
+            #     betas=self.too_betas(),
+            # )
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 

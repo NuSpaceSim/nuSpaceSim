@@ -37,6 +37,8 @@ Module contains functions for parsing and interacting with XML configuration fil
 
 import lxml.etree as ET
 import numpy as np
+from dataclasses import dataclass, field
+from astropy import units as u
 
 from .. import constants as const
 from ..config import (
@@ -80,29 +82,99 @@ def is_valid_xml(xmlfile: str) -> bool:
     return xmlschema.validate(ET.parse(xmlfile))
 
 
-def unit_conversion(value, unit):
-    if unit == "km":
-        return float(value)
-    if unit == "m":
-        return float(value) / 1000
-    if unit == "Degrees":
-        return np.radians(float(value))
-    if unit == "Radians":
-        return float(value)
-    if unit == "Hz":
-        return float(value) / 1000**2
-    if unit == "kHz":
-        return float(value) / 1000
-    if unit == "MHz":
-        return float(value)
-    if unit == "GHz":
-        return float(value) * 1000
-    if unit == "Sq.Meters":
-        return float(value)
+@dataclass
+class BaseUnits:
+    """
+    Class that defines the base units used in the rest of the
+    program and a function to automatically convert to these units
+    """
+
+    # List of the base units
+    energy_base: u.Quantity = u.eV
+    time_base: u.Quantity = u.second
+    distance_base: u.Quantity = u.m
+    angle_base: u.Quantity = u.rad
+    frequency_base: u.Quantity = u.Hz * 1000**2
+    area_base: u.Quantity = u.m * u.m
+
+    # Declare the allowed units
+    energy_units: list = field(default_factory=list)
+    time_units: list = field(default_factory=list)
+    distance_units: list = field(default_factory=list)
+    angle_units: list = field(default_factory=list)
+
+    def __post_init__(self):
+        """Function to define the units that are allowed as input"""
+        self.energy_units = ["eV", "keV", "MeV", "GeV", "TeV", "PeV", "EeV", "J"]
+        self.time_units = ["sec", "min", "hour", "day", "month", "year"]
+        self.distance_units = ["mm", "cm", "m", "km", "lyr", "pc"]
+        self.angle_units = ["arcsec", "arcmin", "deg", "rad", "Degrees", "Radians"]
+        self.frequency_units = ["mHz", "Hz", "kHz", "MHz", "GHz"]
+        self.area_units = ["Sq.Meters"]
+
+    def unit_conversion(self, value: float, unit: str) -> float:
+        """
+        Function to convert the given value and unit to the corresponding
+        base unit
+        """
+        if unit in self.energy_units:
+            quantity = u.Quantity(value, unit)
+            return quantity.to(self.energy_base).value
+        if unit in self.time_units:
+            if unit == "month":
+                value = float(value) * 30
+                unit = "day"
+            quantity = u.Quantity(value, unit)
+            return quantity.to(self.time_base).value
+        if unit in self.distance_units:
+            quantity = u.Quantity(value, unit)
+            return quantity.to(self.distance_base).value
+        if unit in self.angle_units:
+            if unit == "Degrees":
+                unit = "deg"
+            if unit == "Radians":
+                unit = "rad"
+            quantity = u.Quantity(value, unit)
+            return quantity.to(self.angle_base).value
+        if unit in self.frequency_units:
+            # I don't think astropy has these units implemented...
+            if unit == "mHz":
+                return float(value) / 1000**3
+            if unit == "Hz":
+                return float(value) / 1000**2
+            if unit == "kHz":
+                return float(value) / 1000
+            if unit == "MHz":
+                return float(value)
+            if unit == "GHz":
+                return float(value) * 1000
+        if unit in self.area_units:
+            if unit == "Sq.Meters":
+                return float(value)
+        raise Exception(
+            f"\
+            Unit {unit} has not been found!\n\
+            For energies use: {self.energy_units}\n\
+            For times use: {self.time_units}\n\
+            For distances use: {self.distance_units}\n\
+            For angles use: {self.angle_units}\n\
+            For frequencies use: {self.frequency_units}\n\
+            For areas use: {self.area_units}\n\
+            "
+        )
+
+def check_unit(node, units: BaseUnits):
+    if "Unit" in node.attrib:
+        return units.unit_conversion(
+            node.text,
+            node.attrib["Unit"]
+        )
+    return str(node.text)
 
 
 def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
-    r"""Parse the XML file into a DetectorCharacteristics object.
+    r"""Parse the XML file into a DetectorCharacteristics object and if possible apply
+    unit conversions
 
     Parameters
     ----------
@@ -114,7 +186,7 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     DetectorCharacteristics
         The detector characteristics object.
     """
-
+    units = BaseUnits()
     detchar: dict[str, str] = {}
     tree = ET.parse(xmlfile)
     root = tree.getroot()
@@ -130,28 +202,36 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
 
         # Convert Degrees to Radians
         if "Unit" in node.attrib:
-            detchar[node.tag] = unit_conversion(node.text, node.attrib["Unit"])
+            detchar[node.tag] = units.unit_conversion(node.text, node.attrib["Unit"])
 
         if node.tag == "SunMoonCuts":
             if node.attrib["ApplyCuts"] == "true":
-                detchar[node.tag] = True
-                detchar["SunAltitudeCut"] = unit_conversion(
-                    node.find("SunAltitudeCut").text,
-                    node.find("SunAltitudeCut").attrib["Unit"],
-                )
-                detchar["MoonAltitudeCut"] = unit_conversion(
-                    node.find("MoonAltitudeCut").text,
-                    node.find("MoonAltitudeCut").attrib["Unit"],
-                )
-                detchar["MoonMinPhaseAngleCut"] = unit_conversion(
-                    node.find("MoonMinPhaseAngleCut").text,
-                    node.find("MoonMinPhaseAngleCut").attrib["Unit"],
-                )
+                try:
+                    detchar[node.tag] = True
+                    detchar["SunAngleBelowHorizonCut"] = units.unit_conversion(
+                        node.find("SunAngleBelowHorizonCut").text,
+                        node.find("SunAngleBelowHorizonCut").attrib["Unit"],
+                    )
+                    detchar["MoonAngleBelowHorizonCut"] = units.unit_conversion(
+                        node.find("MoonAngleBelowHorizonCut").text,
+                        node.find("MoonAngleBelowHorizonCut").attrib["Unit"],
+                    )
+                    detchar["MoonMinPhaseAngleCut"] = units.unit_conversion(
+                        node.find("MoonMinPhaseAngleCut").text,
+                        node.find("MoonMinPhaseAngleCut").attrib["Unit"],
+                    )
+                except KeyError:
+                    raise Exception("\
+                    Please provide cut values for: \
+                    \"SunAngleBelowHorizonCut\", \"SunAngleBelowHorizonCut\" and \"MoonMinPhaseAngleCut\" \
+                    If only a subset are needed provide values for those and use default values of (0,0,180)\
+                    for the other two."
+                                    )
             else:
                 detchar[node.tag] = False
-                detchar["SunAltitudeCut"] = 0
-                detchar["MoonAltitudeCut"] = 0
-                detchar["MoonMinPhaseAngleCut"] = 0
+                detchar["SunAngleBelowHorizonCut"] = 0
+                detchar["MoonAngleBelowHorizonCut"] = 0
+                detchar["MoonMinPhaseAngleCut"] = 180
 
     return DetectorCharacteristics(
         method=detchar["Method"],
@@ -167,8 +247,8 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
         det_Nant=int(detchar["NAntennas"]),
         det_gain=float(detchar["AntennaGain"]),
         sun_moon_cuts=detchar["SunMoonCuts"],
-        sun_alt_cut=detchar["SunAltitudeCut"],
-        moon_alt_cut=detchar["MoonAltitudeCut"],
+        sun_alt_cut=detchar["SunAngleBelowHorizonCut"],
+        moon_alt_cut=detchar["MoonAngleBelowHorizonCut"],
         MoonMinPhaseAngleCut=detchar["MoonMinPhaseAngleCut"],
     )
 
@@ -186,7 +266,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
     SimulationParameters
         The Simulation Parameters object.
     """
-
+    units = BaseUnits()
     simparams = {}
     tree = ET.parse(xmlfile)
     root = tree.getroot()
@@ -216,36 +296,37 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
                         path=str(node.spectrum_type("FilePath").text)
                     )
 
-        elif node.tag == "SourceDate":
-            sourcetime = str(node.text)
-            sourcetimeformat = node.attrib["Format"]
-
         else:
-            simparams[node.tag] = str(node.text)
+            simparams[node.tag] = check_unit(node, units)
 
-        # Convert Degrees to Radians and time to sec
-        if "Unit" in node.attrib:
-            if node.attrib["Unit"] == "Degrees":
-                simparams[node.tag] = np.radians(float(node.text))
-            elif node.attrib["Unit"] == "min":
-                simparams[node.tag] = float(node.text) * 60
-            elif node.attrib["Unit"] == "hour":
-                simparams[node.tag] = float(node.text) * 60 * 60
-            elif node.attrib["Unit"] == "day":
-                simparams[node.tag] = float(node.text) * 60 * 60 * 24
+        if simparams["SimulationParameters"] == "ToO" and node.tag == "ToOSourceParameters":
+            try:
+                simparams["SourceRightAscension"] = check_unit(node.find("SourceRightAscension"), units)
+                simparams["SourceDeclination"] = check_unit(node.find("SourceDeclination"), units)
+                simparams["SourceDate"] = node.find("SourceDate").text
+                simparams["SourceDateFormat"] = node.find("SourceDate").attrib["Format"]
+                simparams["ObservationPeriod"] = check_unit(node.find("ObservationPeriod"), units)
+
+            except KeyError:
+                raise Exception("\
+                Please provide values for: \
+                \"SourceRightAscension\", \"SourceRightAscension\",\
+                \"SourceDate\" and \"ObservationPeriod\"")
+
 
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),
-        source_RA=float(simparams["SourceRightAscension"]),
-        source_DEC=float(simparams["SourceDeclination"]),
-        source_date=sourcetime,
-        source_date_format=sourcetimeformat,
-        source_obst=float(simparams["ObservationPeriod"]),
-        theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
+        det_mode=simparams["SimulationParameters"],
+        source_RA=simparams["SourceRightAscension"],
+        source_DEC=simparams["SourceDeclination"],
+        source_date=simparams["SourceDate"],
+        source_date_format=simparams["SourceDateFormat"],
+        source_obst=simparams["ObservationPeriod"],
+        theta_ch_max=simparams["MaximumCherenkovAngle"],
         spectrum=simparams["Spectrum"],
         e_shower_frac=float(simparams["FracETauInShower"]),
-        ang_from_limb=float(simparams["AngleFromLimb"]),
-        max_azimuth_angle=float(simparams["AzimuthalAngle"]),
+        ang_from_limb=simparams["AngleFromLimb"],
+        max_azimuth_angle=simparams["AzimuthalAngle"],
         model_ionosphere=bool(int(simparams["ModelIonosphere"])),
         TEC=float(simparams["TEC"]),
         TECerr=np.abs(float(simparams["TECerr"])),

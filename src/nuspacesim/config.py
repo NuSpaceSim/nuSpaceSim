@@ -206,12 +206,12 @@ class SimulationParameters:
     source_DEC: float = 0
     """Right Ascencion and Declination of the source"""
 
-    source_date: string = "2022-06-02T01:00:00"
-    source_date_format: string = "isot"
+    source_date: str = "2022-06-02T01:00:00"
+    source_date_format: str = "isot"
     """Date of the event and format"""
 
     source_obst: float = 24 * 60 * 60
-    """Observation time (s)"""
+    """Observation time (s). Default = 1 day"""
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
