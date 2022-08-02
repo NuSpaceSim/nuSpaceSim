@@ -92,7 +92,7 @@ class BaseUnits:
     # List of the base units
     energy_base: u.Quantity = u.eV
     time_base: u.Quantity = u.second
-    distance_base: u.Quantity = u.m
+    distance_base: u.Quantity = u.km
     angle_base: u.Quantity = u.rad
     frequency_base: u.Quantity = u.Hz * 1000**2
     area_base: u.Quantity = u.m * u.m
@@ -197,52 +197,40 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
             detchar[node.tag] = str(node.attrib["Preset"])
             if node.attrib["Preset"] == "true":
                 detchar["NPE"] = str(node.find("NPE").text)
-        else:
-            detchar[node.tag] = str(node.text)
-
-        # Convert Degrees to Radians
-        if "Unit" in node.attrib:
-            detchar[node.tag] = units.unit_conversion(node.text, node.attrib["Unit"])
-
-        if node.tag == "SunMoonCuts":
+        elif node.tag == "SunMoonCuts":
             if node.attrib["ApplyCuts"] == "true":
                 try:
                     detchar[node.tag] = True
-                    detchar["SunAngleBelowHorizonCut"] = units.unit_conversion(
-                        node.find("SunAngleBelowHorizonCut").text,
-                        node.find("SunAngleBelowHorizonCut").attrib["Unit"],
+                    detchar["SunAngleBelowHorizonCut"] = check_unit(node.find("SunAngleBelowHorizonCut"), units)
+                    detchar["MoonAngleBelowHorizonCut"] = check_unit(node.find("MoonAngleBelowHorizonCut"), units)
+                    detchar["MoonMinPhaseAngleCut"] = check_unit(node.find("MoonMinPhaseAngleCut"), units)
+
+                except AttributeError:
+                    raise Exception(
+                        "Please provide cut values for: "
+                        + "\"SunAngleBelowHorizonCut\", \"SunAngleBelowHorizonCut\" and \"MoonMinPhaseAngleCut\" "
+                        + "If only a subset are needed provide values for those and use default values of (0,0,180) "
+                        + "for the other two."
                     )
-                    detchar["MoonAngleBelowHorizonCut"] = units.unit_conversion(
-                        node.find("MoonAngleBelowHorizonCut").text,
-                        node.find("MoonAngleBelowHorizonCut").attrib["Unit"],
-                    )
-                    detchar["MoonMinPhaseAngleCut"] = units.unit_conversion(
-                        node.find("MoonMinPhaseAngleCut").text,
-                        node.find("MoonMinPhaseAngleCut").attrib["Unit"],
-                    )
-                except KeyError:
-                    raise Exception("\
-                    Please provide cut values for: \
-                    \"SunAngleBelowHorizonCut\", \"SunAngleBelowHorizonCut\" and \"MoonMinPhaseAngleCut\" \
-                    If only a subset are needed provide values for those and use default values of (0,0,180)\
-                    for the other two."
-                                    )
             else:
                 detchar[node.tag] = False
                 detchar["SunAngleBelowHorizonCut"] = 0
                 detchar["MoonAngleBelowHorizonCut"] = 0
                 detchar["MoonMinPhaseAngleCut"] = 180
+        else:
+            detchar[node.tag] = check_unit(node, units)
+
 
     return DetectorCharacteristics(
         method=detchar["Method"],
-        altitude=float(detchar["DetectorAltitude"]),
-        ra_start=float(detchar["InitialDetectorRightAscension"]),
-        dec_start=float(detchar["InitialDetectorDeclination"]),
-        telescope_effective_area=float(detchar["TelescopeEffectiveArea"]),
+        altitude=detchar["DetectorAltitude"],
+        ra_start=detchar["InitialDetectorRightAscension"],
+        dec_start=detchar["InitialDetectorDeclination"],
+        telescope_effective_area=detchar["TelescopeEffectiveArea"],
         quantum_efficiency=float(detchar["QuantumEfficiency"]),
         photo_electron_threshold=float(detchar["NPE"]),
-        low_freq=float(detchar["LowFrequency"]),
-        high_freq=float(detchar["HighFrequency"]),
+        low_freq=detchar["LowFrequency"],
+        high_freq=detchar["HighFrequency"],
         det_SNR_thres=float(detchar["SNRThreshold"]),
         det_Nant=int(detchar["NAntennas"]),
         det_gain=float(detchar["AntennaGain"]),
@@ -296,23 +284,29 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
                         path=str(node.spectrum_type("FilePath").text)
                     )
 
+        elif node.tag == "ToOSourceParameters":
+            if simparams["SimulationParameters"] == "ToO":
+                try:
+                    simparams["SourceRightAscension"] = check_unit(node.find("SourceRightAscension"), units)
+                    simparams["SourceDeclination"] = check_unit(node.find("SourceDeclination"), units)
+                    simparams["SourceDate"] = node.find("SourceDate").text
+                    simparams["SourceDateFormat"] = node.find("SourceDate").attrib["Format"]
+                    simparams["ObservationPeriod"] = check_unit(node.find("ObservationPeriod"), units)
+
+                except AttributeError:
+                    raise Exception("\
+                    Please provide values for: \
+                    \"SourceRightAscension\", \"SourceRightAscension\",\
+                    \"SourceDate\" and \"ObservationPeriod\"")
+            else:
+                simparams["SourceRightAscension"] = 0
+                simparams["SourceDeclination"] = 0
+                simparams["SourceDate"] = "2022-05-02T00:00:00"
+                simparams["SourceDateFormat"] = "isot"
+                simparams["ObservationPeriod"] = 0
+
         else:
             simparams[node.tag] = check_unit(node, units)
-
-        if simparams["SimulationParameters"] == "ToO" and node.tag == "ToOSourceParameters":
-            try:
-                simparams["SourceRightAscension"] = check_unit(node.find("SourceRightAscension"), units)
-                simparams["SourceDeclination"] = check_unit(node.find("SourceDeclination"), units)
-                simparams["SourceDate"] = node.find("SourceDate").text
-                simparams["SourceDateFormat"] = node.find("SourceDate").attrib["Format"]
-                simparams["ObservationPeriod"] = check_unit(node.find("ObservationPeriod"), units)
-
-            except KeyError:
-                raise Exception("\
-                Please provide values for: \
-                \"SourceRightAscension\", \"SourceRightAscension\",\
-                \"SourceDate\" and \"ObservationPeriod\"")
-
 
     return SimulationParameters(
         N=int(simparams["NumTrajs"]),
