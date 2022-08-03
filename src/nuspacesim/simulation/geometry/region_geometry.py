@@ -362,17 +362,28 @@ class RegionGeom:
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
+    @decorators.nss_result_store("times", "tmcint")
+    def apply_sun_moon_cuts(self, mcintfactor, *args, **kwargs):
+        times = self.times[self.event_mask]
+        if self.sun_moon_cut and kwargs["method"] == "optical":
+            sun_moon_cut_mask = self.too_source.sun_moon_cut(times)
+            mcintfactor[~sun_moon_cut_mask] = 0
+
+        times = np.sort(times)
+        mcintfactor = np.take_along_axis(mcintfactor, np.argsort(times), 0)
+        return times, mcintfactor
+
 
     def tooMcIntegral(
-        self,
-        triggers,
-        costhetaChEff,
-        tauexitprob,
-        threshold,
-        spec_norm,
-        spec_weights_sum,
-        lenDec,
-        method="optical",
+            self,
+            triggers,
+            costhetaChEff,
+            tauexitprob,
+            threshold,
+            spec_norm,
+            spec_weights_sum,
+            lenDec,
+            *args, **kwargs
     ):
 
         # calculate the Cherenkov angle
@@ -391,9 +402,11 @@ class RegionGeom:
         Bshr = 1
         mcnorm = np.pi * Bshr
 
+        mcintfactor *= mcnorm
+
         # Geometry Factors
-        mcintegralgeoonly = np.mean(mcintfactor) * mcnorm
-        geo = mcintfactor * mcnorm
+        mcintegralgeoonly = np.mean(mcintfactor)
+
         # Multiply by tau exit probability
         mcintfactor *= tauexitprob
 
@@ -405,33 +418,31 @@ class RegionGeom:
         mcintfactor[triggers < threshold] = 0
 
         # Define a cut based on sun and moon position
-        if self.sun_moon_cut and method == "optical":
-            sun_moon_cut_mask = self.too_source.sun_moon_cut(
-                self.times[self.event_mask]
-            )
-            mcintfactor[~sun_moon_cut_mask] = 0
+        _, mcintfactor = self.apply_sun_moon_cuts(mcintfactor,
+                                                  method=kwargs["method"],
+                                                  store=kwargs["store"])
 
-        mcintegral = np.mean(mcintfactor) * mcnorm
+        mcintegral = np.mean(mcintfactor)
         mcintegraluncert = (
-            np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor)) * mcnorm
+            np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor))
         )
 
         numEvPass = np.count_nonzero(mcintfactor)
         # if method == "optical":
-            # print("saving")
-            # np.savez(
-            #     str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
-            #     t=(self.times - self.too_source.eventtime)[self.event_mask].to_value(
-            #         "hr"
-            #     ),
-            #     tf=(self.times - self.too_source.eventtime).to_value("hr"),
-            #     nad=self.sourceNadRad[self.event_mask],
-            #     nadf=self.sourceNadRad,
-            #     mcint=mcintfactor,
-            #     geom=geo,
-            #     npass=numEvPass,
-            #     betas=self.too_betas(),
-            # )
+        #     print("saving")
+        #     np.savez(
+        #         str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
+        #         t=(self.times - self.too_source.eventtime)[self.event_mask].to_value(
+        #             "hr"
+        #         ),
+        #         tf=(self.times - self.too_source.eventtime).to_value("hr"),
+        #         nad=self.sourceNadRad[self.event_mask],
+        #         nadf=self.sourceNadRad,
+        #         mcint=mcintfactor,
+        #         geom=geo,
+        #         npass=numEvPass,
+        #         betas=self.too_betas(),
+        #     )
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
