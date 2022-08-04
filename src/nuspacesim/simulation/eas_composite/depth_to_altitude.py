@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.optimize import fsolve
+import matplotlib.pyplot as plt
 
 
 def altittude_to_depth(z):
@@ -64,20 +66,86 @@ def shabita_depth_to_altitude(x):
     return altitude_out
 
 
-x = np.linspace(1, 1030, 10)
-z = depth_to_altitude(x)
-z_1 = shabita_depth_to_altitude(x)
-x_1 = altittude_to_depth(z)
+# x = np.linspace(1, 1030, 100)
+# z = depth_to_altitude(x)
+# plt.plot(z, x)
+# z_1 = shabita_depth_to_altitude(x)
+# x_1 = altittude_to_depth(z)
 
 
-def slant_depth_to_depth(slant_depth, view_zenith_ang):
-    depth = slant_depth * np.cos(np.radians(view_zenith_ang))
+def slant_depth_to_depth(slant_depth, corrected_angles):
+    depth = slant_depth * np.cos(np.radians(corrected_angles))
     return depth
 
 
-# depth = slant_depth_to_depth(np.linspace(1, 2000, 10), 85)
+def calc_alpha(obs_height, earth_emergence_angle):
+    """
+    calculate the angle of the detector’s line of sight (respect to the local zenith),
+    alpha
+    """
 
+    def f(xy, r_earth=6371):
+
+        x, y = xy
+        z = np.array(
+            [
+                y
+                - (np.cos(np.radians(earth_emergence_angle)) / (r_earth + obs_height)),
+                y - (np.cos(x) / r_earth),
+            ]
+        )
+        return z
+
+    alpha_rads = fsolve(f, [0, 1])[0]
+    print(fsolve(f, [0, 1])[1])
+    alpha_degs = np.degrees(alpha_rads) % 360
+    print(alpha_degs)
+    if alpha_degs >= 180:
+        alpha_degs = 360 - alpha_degs
+
+    return alpha_degs
+
+
+altitude_array = np.linspace(0, 100, 100)  # determines the step in altitude
+lower_vertical_depths = altittude_to_depth(altitude_array[:-1])
+upper_vertical_depths = altittude_to_depth(altitude_array[1:])
+delta_vertical_depth = lower_vertical_depths - upper_vertical_depths
+
+obs_height = 33
+beta = 5
+r_earth = 6371
+# calculate alpha given earth emergance angle and beta by setting a equal to 0
+alpha_deg = calc_alpha(obs_height, earth_emergence_angle=beta)
+beta_prime = np.degrees(
+    np.arccos(
+        (np.sin(np.radians(alpha_deg)) * (r_earth + obs_height))
+        / (r_earth + altitude_array[1:])
+    )
+)
+corrected_path_length = delta_vertical_depth / np.cos(np.radians(beta_prime))
+
+plt.figure(dpi=300)
+plt.plot(altitude_array[1:], delta_vertical_depth, label="path length")
+plt.plot(altitude_array[1:], corrected_path_length, label="corrected path length")
+plt.xlabel("altitude (km)")
+plt.ylabel("$\Delta X$")
+plt.ylim(-5, 1000)
+plt.legend(title=r"$\beta = {}\degree$".format(beta))
+
+plt.figure(dpi=300)
+plt.plot(altitude_array[1:], beta_prime)
+plt.xlabel("altitude (km)")
+plt.ylabel(r"$\beta'$")
+plt.legend(title=r"$\beta = {}\degree$".format(beta))
+
+plt.figure(dpi=300)
+plt.plot(altitude_array[1:], lower_vertical_depths, label="vertical depth")
+plt.xlabel("altitude (km)")
+plt.ylabel(r"$g / cm^{-2}$")
+plt.legend(title=r"$\beta = {}\degree$".format(beta))
+# depth = slant_depth_to_depth(np.linspace(1, 2000, 10), 85)
 #%%
+
 # from scipy.integrate import quad
 
 

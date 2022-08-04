@@ -59,7 +59,7 @@ def conex_to_text(file_path: str, output_file: str, num_showers=1):
 
 
 #%%
-fname = "eposlhc_5kmobserving_5000gcm2startslantdepth_95deg_eposlhc_1553520984_100.root"
+fname = "conex_sibyll23c_951767192_100.root"
 ntuple = uproot.open(fname)
 shwr = ntuple["Shower;{}".format(1)]
 lg_10_e = shwr["lgE"].array(library="np")
@@ -105,6 +105,7 @@ shower_content = modified_gh(depths, gh_n_max, gh_x_max, gh_x0, gh_p1, gh_p2, gh
 
 
 plt.figure(figsize=(4, 3), dpi=100)
+mask = slt_depth[0] <= 2000
 plt.scatter(slt_depth[0], charged[0], label="charged", s=1)
 plt.scatter(slt_depth[0], elect_pos[0], label="electron/positron", s=1)
 plt.scatter(slt_depth[0], gammas[0], label="gammas", s=1)
@@ -235,30 +236,30 @@ for shwr in showers:
 #     dpi=300,
 # )
 
-from nuspacesim.simulation.eas_composite.x_to_z_lookup import (
-    depth_to_alt_lookup,
-    depth_to_alt_lookup_v2,
-)
+# from nuspacesim.simulation.eas_composite.x_to_z_lookup import (
+#     depth_to_alt_lookup,
+#     depth_to_alt_lookup_v2,
+# )
 
-altitudes = depth_to_alt_lookup_v2(
-    slant_depths=np.round(slt_depth[0], 4),
-    angle=80,
-    starting_alt=0,
-    direction="up",
-    s=int(1e4),
-)
-#%%
-plt.figure(figsize=(4, 3), dpi=300)
-plt.plot(gh_depths, corsika_n, "--k", label="Corsika GH Fit")
-plt.plot(corsika_depths, corsika_charge, "--", label="Charged", alpha=1)
-plt.plot(corsika_depths, corsika_electron, "--", label=r"e$^{-}$", alpha=1)
-plt.plot(corsika_depths, corsika_positron, "--", label=r"e$^{+}$", alpha=1)
-plt.plot(corsika_depths, corsika_muon, "--", label=r"$\mu^{-}$", alpha=1)
-plt.plot(corsika_depths, corsika_hadron, "--", label=r"hadron", alpha=1)
-plt.yscale("log")
+# altitudes = depth_to_alt_lookup_v2(
+#     slant_depths=np.round(slt_depth[0], 4),
+#     angle=80,
+#     starting_alt=0,
+#     direction="up",
+#     s=int(1e4),
+# )
+# #%%
+# plt.figure(figsize=(4, 3), dpi=300)
+# plt.plot(gh_depths, corsika_n, "--k", label="Corsika GH Fit")
+# plt.plot(corsika_depths, corsika_charge, "--", label="Charged", alpha=1)
+# plt.plot(corsika_depths, corsika_electron, "--", label=r"e$^{-}$", alpha=1)
+# plt.plot(corsika_depths, corsika_positron, "--", label=r"e$^{+}$", alpha=1)
+# plt.plot(corsika_depths, corsika_muon, "--", label=r"$\mu^{-}$", alpha=1)
+# plt.plot(corsika_depths, corsika_hadron, "--", label=r"hadron", alpha=1)
+# plt.yscale("log")
 
-alt_ax = plt.twiny()
+# alt_ax = plt.twiny()
 
-# alt.plot(altitudes, electrons[0], color="red", label="calculated altitude")
-alt_ax.set_xlim(left=altitudes.min(), right=altitudes.max())
-alt_ax.set_xlabel("altiude (km)")
+# # alt.plot(altitudes, electrons[0], color="red", label="calculated altitude")
+# alt_ax.set_xlim(left=altitudes.min(), right=altitudes.max())
+# alt_ax.set_xlabel("altiude (km)")
