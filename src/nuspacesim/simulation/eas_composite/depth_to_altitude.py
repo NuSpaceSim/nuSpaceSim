@@ -106,23 +106,31 @@ def calc_alpha(obs_height, earth_emergence_angle):
     return alpha_degs
 
 
-altitude_array = np.linspace(0, 100, 100)  # determines the step in altitude
-lower_vertical_depths = altittude_to_depth(altitude_array[:-1])
-upper_vertical_depths = altittude_to_depth(altitude_array[1:])
+altitude_array = np.linspace(0, 100, 1000)  # determines the step in altitude
+depths = altittude_to_depth(altitude_array)
+lower_vertical_depths = depths[:-1]
+upper_vertical_depths = depths[1:]
 delta_vertical_depth = lower_vertical_depths - upper_vertical_depths
 
 obs_height = 33
-beta = 5
+beta = 60
+
 r_earth = 6371
 # calculate alpha given earth emergance angle and beta by setting a equal to 0
-alpha_deg = calc_alpha(obs_height, earth_emergence_angle=beta)
+# alpha_deg = calc_alpha(obs_height, earth_emergence_angle=beta)
+
+alpha_deg = np.degrees(
+    np.arcsin((np.cos(np.radians(beta)) * r_earth) / (r_earth + obs_height))
+)
 beta_prime = np.degrees(
     np.arccos(
         (np.sin(np.radians(alpha_deg)) * (r_earth + obs_height))
         / (r_earth + altitude_array[1:])
     )
 )
-corrected_path_length = delta_vertical_depth / np.cos(np.radians(beta_prime))
+corrected_path_length = delta_vertical_depth / np.sin(np.radians(beta_prime))
+
+upper_slant_depth = np.cumsum(corrected_path_length)
 
 plt.figure(dpi=300)
 plt.plot(altitude_array[1:], delta_vertical_depth, label="path length")
@@ -139,7 +147,14 @@ plt.ylabel(r"$\beta'$")
 plt.legend(title=r"$\beta = {}\degree$".format(beta))
 
 plt.figure(dpi=300)
-plt.plot(altitude_array[1:], lower_vertical_depths, label="vertical depth")
+plt.plot(altitude_array[1:], upper_vertical_depths, label="vertical depth")
+plt.plot(
+    altitude_array[1:],
+    upper_slant_depth,
+    label="cumulative sum of corrected path length",
+)
+# plt.axvline(0.5)
+# plt.axhline(800)
 plt.xlabel("altitude (km)")
 plt.ylabel(r"$g / cm^{-2}$")
 plt.legend(title=r"$\beta = {}\degree$".format(beta))
