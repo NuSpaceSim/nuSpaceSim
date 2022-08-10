@@ -59,7 +59,7 @@ def conex_to_text(file_path: str, output_file: str, num_showers=1):
 
 
 #%%
-fname = "conex_sibyll23c_951767192_100.root"
+fname = "v7.5_default_eposlhc_951767192_100.root"
 ntuple = uproot.open(fname)
 shwr = ntuple["Shower;{}".format(1)]
 lg_10_e = shwr["lgE"].array(library="np")
@@ -80,6 +80,7 @@ charged = shwr["N"].array(library="np")
 elect_pos = shwr["Electrons"].array(library="np")
 gammas = shwr["Gamma"].array(library="np")
 hadrons = shwr["Hadrons"].array(library="np")
+muons = shwr["Mu"].array(library="np")
 
 shower = ShowerParameterization(
     table_decay_e=1,
@@ -94,9 +95,9 @@ def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
         n_max
         * np.nan_to_num(
             ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
+            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x**2)))
         )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
+    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x**2))))
     return particles
 
 
@@ -110,6 +111,8 @@ plt.scatter(slt_depth[0], charged[0], label="charged", s=1)
 plt.scatter(slt_depth[0], elect_pos[0], label="electron/positron", s=1)
 plt.scatter(slt_depth[0], gammas[0], label="gammas", s=1)
 plt.scatter(slt_depth[0], hadrons[0], label="hadrons", s=1)
+plt.scatter(slt_depth[0], muons[0], label="muons", s=1)
+
 plt.plot(depths, shower_content, "--k", label="conex gh fit")
 
 
@@ -122,7 +125,7 @@ plt.ylabel("N")
 plt.yscale("log")
 plt.ylim(bottom=1)
 plt.xlim(left=slt_depth[0].min(), right=slt_depth[0].max())
-plt.legend()
+plt.legend(ncol=2)
 
 alt = plt.twiny()
 alt.set_xlim(left=height_km[0].min(), right=height_km[0].max())
