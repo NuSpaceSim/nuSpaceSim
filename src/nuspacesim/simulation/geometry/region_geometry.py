@@ -362,7 +362,7 @@ class RegionGeom:
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
-    @decorators.nss_result_store("times", "tmcint")
+    # @decorators.nss_result_store("times", "tmcint")
     def apply_sun_moon_cuts(self, mcintfactor, *args, **kwargs):
         times = self.times[self.event_mask]
         if self.sun_moon_cut and kwargs["method"] == "optical":
