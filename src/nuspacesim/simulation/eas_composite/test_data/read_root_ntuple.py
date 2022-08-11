@@ -3,10 +3,11 @@ import numpy as np
 from nuspacesim.simulation.eas_composite.shower_long_profiles import (
     ShowerParameterization,
 )
+from nuspacesim.simulation.eas_composite.comp_eas_utils import bin_nmax_xmax
 import matplotlib.pyplot as plt
 
-#%%
-def conex_to_text(file_path: str, output_file: str, num_showers=1):
+
+def conexgh_to_text(file_path: str, output_file: str, num_showers=1):
     ntuple = uproot.open(file_path)
 
     params = []
@@ -58,80 +59,204 @@ def conex_to_text(file_path: str, output_file: str, num_showers=1):
     np.savetxt(output_file, X=save_data, header=header)
 
 
-#%%
-fname = "v7.5_default_eposlhc_951767192_100.root"
-ntuple = uproot.open(fname)
-shwr = ntuple["Shower;{}".format(1)]
-lg_10_e = shwr["lgE"].array(library="np")
-zenith_ang_deg = shwr["zenith"].array(library="np")
-azimuth_ang_deg = shwr["azimuth"].array(library="np")
+class ReadConex:
+    def __init__(self, file_name: str, shower_header_name=2):
+        self.file_name = file_name
+        self.ntuple = uproot.open(self.file_name)
+        self.shwr = self.ntuple["Shower;{}".format(shower_header_name)]
+        # lg_10_e = shwr["lgE"].array(library="np")
+        # zenith_ang_deg = shwr["zenith"].array(library="np")
+        # azimuth_ang_deg = shwr["azimuth"].array(library="np")
 
-gh_n_max = shwr["Nmax"].array(library="np")
-gh_x_max = shwr["Xmax"].array(library="np")
-gh_x0 = shwr["X0"].array(library="np")
-gh_p1 = shwr["p1"].array(library="np")
-gh_p2 = shwr["p2"].array(library="np")
-gh_p3 = shwr["p3"].array(library="np")
+    def modified_gh(self, x, n_max, x_max, x_0, p1, p2, p3):
 
-slt_depth = shwr["X"].array(library="np")
-height_km = shwr["H"].array(library="np") / 1e3
-height_first_interact_km = shwr["Hfirst"].array(library="np") / 1e3
-charged = shwr["N"].array(library="np")
-elect_pos = shwr["Electrons"].array(library="np")
-gammas = shwr["Gamma"].array(library="np")
-hadrons = shwr["Hadrons"].array(library="np")
-muons = shwr["Mu"].array(library="np")
+        particles = (
+            n_max
+            * np.nan_to_num(
+                ((x - x_0) / (x_max - x_0))
+                ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
+            )
+        ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
+        return particles
 
-shower = ShowerParameterization(
-    table_decay_e=1,
-    event_tag=1,
-    decay_tag=1,
-)
+    def gh_fits(self):
+        slt_depths = self.shwr["X"].array(library="np")
+        gh_n_max = self.shwr["Nmax"].array(library="np")
+        gh_x_max = self.shwr["Xmax"].array(library="np")
+        gh_x0 = self.shwr["X0"].array(library="np")
+        gh_p1 = self.shwr["p1"].array(library="np")
+        gh_p2 = self.shwr["p2"].array(library="np")
+        gh_p3 = self.shwr["p3"].array(library="np")
+
+        shower_fits = np.zeros((int(slt_depths.size), int(slt_depths[0].size)))
+        for i, x in enumerate(slt_depths):
+            gh = self.modified_gh(
+                x=x,
+                n_max=gh_n_max[i],
+                x_max=gh_x_max[i],
+                x_0=gh_x0[i],
+                p1=gh_p1[i],
+                p2=gh_p2[i],
+                p3=gh_p3[i],
+            )
+            shower_fits[i, :] = gh
+        return shower_fits
+
+    def get_depths(self):
+        slt_depth = self.shwr["X"].array(library="np")
+        x = np.zeros((int(slt_depth.size), int(slt_depth[0].size)))
+        for i, depths in enumerate(slt_depth):
+            x[i, :] = depths
+        return x
+
+    def get_alts(self):
+        height_km = self.shwr["H"].array(library="np") / 1e3
+        z = np.zeros((int(height_km.size), int(height_km[0].size)))
+        for i, height in enumerate(height_km):
+            z[i, :] = height
+        return z
+
+    def get_charged(self):
+        charged = self.shwr["N"].array(library="np")
+        c = np.zeros((int(charged.size), int(charged[0].size)))
+        for i, charged_particles in enumerate(charged):
+            c[i, :] = charged_particles
+        return c
+
+    def get_elec_pos(self):
+        elect_pos = self.shwr["Electrons"].array(library="np")
+        e = np.zeros((int(elect_pos.size), int(elect_pos[0].size)))
+        for i, elec in enumerate(elect_pos):
+            e[i, :] = elec
+        return e
+
+    def get_gamma(self):
+        gammas = self.shwr["Gamma"].array(library="np")
+        g = np.zeros((int(gammas.size), int(gammas[0].size)))
+        for i, gamm in enumerate(gammas):
+            g[i, :] = gamm
+        return g
+
+    def get_hadrons(self):
+        hadrons = self.shwr["Hadrons"].array(library="np")
+        h = np.zeros((int(hadrons.size), int(hadrons[0].size)))
+        for i, had in enumerate(hadrons):
+            h[i, :] = had
+        return h
+
+    def get_muons(self):
+        muons = self.shwr["Mu"].array(library="np")
+        m = np.zeros((int(muons.size), int(muons[0].size)))
+        for i, mu in enumerate(muons):
+
+            m[i, :] = mu
+        return m
 
 
-def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
+# labels = ["1eV_5deg", "100PeV_5deg", "10EeV_5deg"]
+# fnames = [
+#     "./conex_7_50_runs/1eV_10shwrs_5degearthemergence_eposlhc_1456378716_100.root",
+#     "./conex_7_50_runs/100PeV_10shwrs_5degearthemergence_eposlhc_1324240290_100.root",
+#     "./conex_7_50_runs/10EeV_10shwrs_5degearthemergence_eposlhc_660227399_100.root",
+# ]
+colors = ["tab:red", "tab:blue", "tab:green"]
+labels = ["1deg", "5deg", "35deg"]
+fnames = [
+    "./conex_7_50_runs/100PeV_10shwrs_1degearthemergence_eposlhc_1284567109_100.root",
+    "./conex_7_50_runs/100PeV_10shwrs_5degearthemergence_eposlhc_1324240290_100.root",
+    "./conex_7_50_runs/100PeV_10shwrs_35degearthemergence_eposlhc_1404866740_100.root",
+]
 
-    particles = (
-        n_max
-        * np.nan_to_num(
-            ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x**2)))
-        )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x**2))))
-    return particles
+plt.figure(figsize=(4, 3), dpi=300)
+for label, fname, color in zip(labels, fnames, colors):
+    conex = ReadConex(fname)
+    fits = conex.gh_fits()
+    depths = conex.get_depths()
+    alts = conex.get_alts()
+    mus = conex.get_muons()
+    el = conex.get_elec_pos()
+    charges = conex.get_charged()
 
+    for i, x in enumerate(depths):
+        if i == 1:
+            plt.plot(x, charges[i], label=label, c=color, alpha=0.5, lw=1)
 
-depths = np.linspace(0, slt_depth[0].max(), 1000)
-shower_content = modified_gh(depths, gh_n_max, gh_x_max, gh_x0, gh_p1, gh_p2, gh_p3)
+        else:
+            plt.plot(x, charges[i], c=color, alpha=0.5, lw=1)
 
-
-plt.figure(figsize=(4, 3), dpi=100)
-mask = slt_depth[0] <= 2000
-plt.scatter(slt_depth[0], charged[0], label="charged", s=1)
-plt.scatter(slt_depth[0], elect_pos[0], label="electron/positron", s=1)
-plt.scatter(slt_depth[0], gammas[0], label="gammas", s=1)
-plt.scatter(slt_depth[0], hadrons[0], label="hadrons", s=1)
-plt.scatter(slt_depth[0], muons[0], label="muons", s=1)
-
-plt.plot(depths, shower_content, "--k", label="conex gh fit")
-
-
-plt.xlabel(
-    "slant depth (g/cm^2) \n {} \n altitude of first interaction {:.0f} km".format(
-        fname, height_first_interact_km[0]
-    )
-)
+#!!! showers with different inclinations can't be on the same twin axis.
+# plt.xlabel("slant depth (g/cm^2) \n {}  ".format(fname))
+plt.xlabel("slant depth (g/cm^2) \n {}  ".format("charged"))
 plt.ylabel("N")
 plt.yscale("log")
 plt.ylim(bottom=1)
-plt.xlim(left=slt_depth[0].min(), right=slt_depth[0].max())
+plt.xlim(left=x.min(), right=x.max())
 plt.legend(ncol=2)
 
-alt = plt.twiny()
-alt.set_xlim(left=height_km[0].min(), right=height_km[0].max())
-# alt.plot(altitudes, electrons[0], color="red", label="calculated altitude")
-alt.set_xlabel("height (km)")
 
+alt = plt.twiny()
+alt.set_xlim(left=alts.min(), right=alts.max())
+alt.set_xlabel("height (km)")
+#%%
+colors = ["tab:red", "tab:blue", "tab:green"]
+labels = ["1deg", "5deg", "35deg"]
+fnames = [
+    "./conex_7_50_runs/100PeV_10shwrs_1degearthemergence_eposlhc_1284567109_100.root",
+    "./conex_7_50_runs/100PeV_10shwrs_5degearthemergence_eposlhc_1324240290_100.root",
+    "./conex_7_50_runs/100PeV_10shwrs_35degearthemergence_eposlhc_1404866740_100.root",
+]
+
+
+def pwr_law(x, a, coeff):
+    return coeff * x ** a
+
+
+plt.figure(figsize=(4, 3), dpi=300)
+
+# muons_x = []
+# muons
+# gammas_to_fit = []
+
+for label, fname, color in zip(labels, fnames, colors):
+    conex = ReadConex(fname)
+    fits = conex.gh_fits()
+    depths = conex.get_depths()
+    alts = conex.get_alts()
+    mus = conex.get_muons()
+    charges = conex.get_charged()
+    el = conex.get_elec_pos()
+    had = conex.get_hadrons()
+    gam = conex.get_gamma()
+    # line plot
+    # for i, x in enumerate(depths):
+    #     if i == 1:
+    #         plt.plot(x, charges[i], label=label, c=color, alpha=0.5, lw=1)
+
+    #     else:
+    #         plt.plot(x, charges[i], c=color, alpha=0.5, lw=1)
+
+    particle_comps = [mus, el, had, gam]
+    particle_type_labels = [" mouns", " electrons", " hadrons", " gammas"]
+    mtype = ["^", "x", "s", "o"]
+    for l, ptype in enumerate(particle_comps):
+        bin_nmaxs, bin_xmaxs = bin_nmax_xmax(depths, ptype)
+        plt.scatter(
+            bin_xmaxs.mean(),
+            bin_nmaxs.mean(),
+            c=color,
+            marker=mtype[l],
+            label=label + particle_type_labels[l],
+        )
+
+
+plt.title("Taking the mean of 10 shower components for each point \n ")
+# plt.yscale("log")
+# plt.xscale("log")
+# plt.xlim(100, 3000)
+# plt.ylim(5e5, 8e9)
+plt.legend(fontsize=5)
+plt.xlabel("bin xmax")
+plt.ylabel("bin nmax")
 #%%
 
 in_file = (
