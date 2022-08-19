@@ -5,6 +5,8 @@ import warnings
 
 
 class MCVariedMean:
+    r""" """
+
     def __init__(
         self,
         composite_showers,
