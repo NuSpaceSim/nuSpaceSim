@@ -78,9 +78,9 @@ def lin_func(x, m, b):
     return (m * x) + b
 
 
-# plot_type = "log_log_nmax_vs_xmax"
+plot_type = "log_log_nmax_vs_xmax"
 # plot_type = "lin_log_xmax_vs_energy"
-plot_type = "log_log_nmax_vs_energy"
+# plot_type = "log_log_nmax_vs_energy"
 
 ptype = ["muons", "charged", "hadrons", "gammas"]
 mtype = ["^", "x", "s", "o"]
