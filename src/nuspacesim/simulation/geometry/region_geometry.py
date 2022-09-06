@@ -362,18 +362,6 @@ class RegionGeom:
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
-    # @decorators.nss_result_store("times", "tmcint")
-    def apply_sun_moon_cuts(self, mcintfactor, *args, **kwargs):
-        times = self.times[self.event_mask]
-        if self.sun_moon_cut and kwargs["method"] == "optical":
-            sun_moon_cut_mask = self.too_source.sun_moon_cut(times)
-            mcintfactor[~sun_moon_cut_mask] = 0
-
-        times = np.sort(times)
-        mcintfactor = np.take_along_axis(mcintfactor, np.argsort(times), 0)
-        return times, mcintfactor
-
-
     def tooMcIntegral(
             self,
             triggers,
@@ -383,7 +371,8 @@ class RegionGeom:
             spec_norm,
             spec_weights_sum,
             lenDec,
-            *args, **kwargs
+            method="optical",
+            store=None
     ):
 
         # calculate the Cherenkov angle
@@ -418,9 +407,25 @@ class RegionGeom:
         mcintfactor[triggers < threshold] = 0
 
         # Define a cut based on sun and moon position
-        _, mcintfactor = self.apply_sun_moon_cuts(mcintfactor,
-                                                  method=kwargs["method"],
-                                                  store=kwargs["store"])
+
+        times = self.times[self.event_mask]
+        if self.sun_moon_cut and method == "optical":
+            sun_moon_cut_mask = self.too_source.sun_moon_cut(times)
+            mcintfactor[~sun_moon_cut_mask] = 0
+
+
+        if store is not None:
+            if self.config.detector.method == "optical":
+                store(["times", "tmcintopt"], [np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0)])
+            elif self.config.detector.method == "radio":
+                store(["times", "tmcintrad"], [np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0)])
+            elif self.config.detector.method == "both":
+                if method == "optical":
+                    store(["times", "tmcintopt"], [np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0)])
+                if method == "radio":
+                    store(["tmcintrad"], [np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0)])
+
+
 
         mcintegral = np.mean(mcintfactor)
         mcintegraluncert = (
