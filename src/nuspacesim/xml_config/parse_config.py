@@ -163,12 +163,10 @@ class BaseUnits:
             "
         )
 
+
 def check_unit(node, units: BaseUnits):
     if "Unit" in node.attrib:
-        return units.unit_conversion(
-            node.text,
-            node.attrib["Unit"]
-        )
+        return units.unit_conversion(node.text, node.attrib["Unit"])
     return str(node.text)
 
 
@@ -192,34 +190,43 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     root = tree.getroot()
     eldetchar = root.find("DetectorCharacteristics")
     detchar["Method"] = eldetchar.attrib["Method"]
+
+    """Define a preset value for the unneeded parameters"""
+    detchar["SunMoonCuts"] = False
+    detchar["SunAngleBelowHorizonCut"] = 0
+    detchar["MoonAngleBelowHorizonCut"] = 0
+    detchar["MoonMinPhaseAngleCut"] = 0
+
     for node in tree.find("./DetectorCharacteristics"):
+
         if node.tag == "PhotoElectronThreshold":
             detchar[node.tag] = str(node.attrib["Preset"])
             if node.attrib["Preset"] == "true":
                 detchar["NPE"] = str(node.find("NPE").text)
-        elif node.tag == "SunMoonCuts":
-            if node.attrib["ApplyCuts"] == "true":
-                try:
-                    detchar[node.tag] = True
-                    detchar["SunAngleBelowHorizonCut"] = check_unit(node.find("SunAngleBelowHorizonCut"), units)
-                    detchar["MoonAngleBelowHorizonCut"] = check_unit(node.find("MoonAngleBelowHorizonCut"), units)
-                    detchar["MoonMinPhaseAngleCut"] = check_unit(node.find("MoonMinPhaseAngleCut"), units)
 
-                except AttributeError:
-                    raise Exception(
-                        "Please provide cut values for: "
-                        + "\"SunAngleBelowHorizonCut\", \"SunAngleBelowHorizonCut\" and \"MoonMinPhaseAngleCut\" "
-                        + "If only a subset are needed provide values for those and use default values of (0,0,180) "
-                        + "for the other two."
-                    )
-            else:
-                detchar[node.tag] = False
-                detchar["SunAngleBelowHorizonCut"] = 0
-                detchar["MoonAngleBelowHorizonCut"] = 0
-                detchar["MoonMinPhaseAngleCut"] = 180
+        elif node.tag == "SunMoonCuts":
+            try:
+                detchar[node.tag] = True
+                detchar["SunAngleBelowHorizonCut"] = check_unit(
+                    node.find("SunAngleBelowHorizonCut"), units
+                )
+                detchar["MoonAngleBelowHorizonCut"] = check_unit(
+                    node.find("MoonAngleBelowHorizonCut"), units
+                )
+                detchar["MoonMinPhaseAngleCut"] = check_unit(
+                    node.find("MoonMinPhaseAngleCut"), units
+                )
+
+            except AttributeError:
+                raise Exception(
+                    "Please provide cut values for: "
+                    + '"SunAngleBelowHorizonCut", "SunAngleBelowHorizonCut" and "MoonMinPhaseAngleCut" '
+                    + "If only a subset are needed provide values for those and use default values of (0, 0, 0) "
+                    + "for the other two."
+                )
+
         else:
             detchar[node.tag] = check_unit(node, units)
-
 
     return DetectorCharacteristics(
         method=detchar["Method"],
@@ -261,6 +268,13 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
     elsimparams = root.find("SimulationParameters")
     simparams[elsimparams.tag] = elsimparams.attrib["DetectionMode"]
 
+    """Define a preset value for the unneeded parameters"""
+    simparams["SourceRightAscension"] = 0
+    simparams["SourceDeclination"] = 0
+    simparams["SourceDate"] = "0000-00-00T00:00:00"
+    simparams["SourceDateFormat"] = "isot"
+    simparams["ObservationPeriod"] = 0
+
     for node in tree.find("./SimulationParameters"):
         if node.tag == "TauShowerType":
             simparams[node.tag] = node.attrib["Preset"]
@@ -287,17 +301,27 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         elif node.tag == "ToOSourceParameters":
             if simparams["SimulationParameters"] == "ToO":
                 try:
-                    simparams["SourceRightAscension"] = check_unit(node.find("SourceRightAscension"), units)
-                    simparams["SourceDeclination"] = check_unit(node.find("SourceDeclination"), units)
+                    simparams["SourceRightAscension"] = check_unit(
+                        node.find("SourceRightAscension"), units
+                    )
+                    simparams["SourceDeclination"] = check_unit(
+                        node.find("SourceDeclination"), units
+                    )
                     simparams["SourceDate"] = node.find("SourceDate").text
-                    simparams["SourceDateFormat"] = node.find("SourceDate").attrib["Format"]
-                    simparams["ObservationPeriod"] = check_unit(node.find("ObservationPeriod"), units)
+                    simparams["SourceDateFormat"] = node.find("SourceDate").attrib[
+                        "Format"
+                    ]
+                    simparams["ObservationPeriod"] = check_unit(
+                        node.find("ObservationPeriod"), units
+                    )
 
                 except AttributeError:
-                    raise Exception("\
+                    raise Exception(
+                        '\
                     Please provide values for: \
-                    \"SourceRightAscension\", \"SourceRightAscension\",\
-                    \"SourceDate\" and \"ObservationPeriod\"")
+                    "SourceRightAscension", "SourceRightAscension",\
+                    "SourceDate" and "ObservationPeriod"'
+                    )
             else:
                 simparams["SourceRightAscension"] = 0
                 simparams["SourceDeclination"] = 0

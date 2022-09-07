@@ -89,7 +89,7 @@ class DetectorCharacteristics:
     """ Antenna gain in dB: Default = 1.8 """
     sun_moon_cuts: bool = True
     """ Apply cut for sun and moon: Default = True """
-    sun_alt_cut: float = -13.5
+    sun_alt_cut: float = -12
     """ Sun altitude beyond which no observations are possible: Default = -12 """
     moon_alt_cut: float = 0
     """ Moon altitude beyond which no observations are possible: Default = 0 """

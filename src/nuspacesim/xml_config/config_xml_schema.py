@@ -207,14 +207,13 @@ xsd = StringIO(
               <xs:element name="SNRThreshold" type="xs:decimal"/>
               <xs:element name="NAntennas" type="xs:integer"/>
               <xs:element name="AntennaGain" type="xs:decimal"/>
-              <xs:element name="SunMoonCuts">
+              <xs:element minOccurs="0" name="SunMoonCuts">
                 <xs:complexType>
                   <xs:sequence>
                     <xs:element minOccurs="0" name="SunAngleBelowHorizonCut" type="AngleType"/>
                     <xs:element minOccurs="0" name="MoonAngleBelowHorizonCut" type="AngleType"/>
                     <xs:element minOccurs="0" name="MoonMinPhaseAngleCut" type="AngleType"/>
                   </xs:sequence>
-                  <xs:attribute name="ApplyCuts" type="xs:string"/>
                 </xs:complexType>
               </xs:element>
             </xs:sequence>

@@ -163,7 +163,9 @@ def compute(
 
     sw = StagedWriter()
 
-    logv(f"Running NuSpaceSim in {config.simulation.det_mode}-mode with Energy Spectrum ({config.simulation.spectrum})")
+    logv(
+        f"Running NuSpaceSim in {config.simulation.det_mode}-mode with Energy Spectrum ({config.simulation.spectrum})"
+    )
 
     logv("Computing [green] Geometries.[/]")
     beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
@@ -207,7 +209,7 @@ def compute(
                 spec_weights_sum,
                 lenDec,
                 method="optical",
-                store=sw
+                store=sw,
             )
         else:
             mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
@@ -252,7 +254,7 @@ def compute(
                 spec_weights_sum,
                 lenDec,
                 method="radio",
-                store=sw
+                store=sw,
             )
         else:
             mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
