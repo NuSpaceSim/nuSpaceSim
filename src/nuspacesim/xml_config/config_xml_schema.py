@@ -192,7 +192,7 @@ xsd = StringIO(
 
   <xs:element name="NuSpaceSimParams">
     <xs:complexType>
-      <xs:sequence> 
+      <xs:sequence>
         <xs:element name="DetectorCharacteristics">
           <xs:complexType>
             <xs:sequence>
