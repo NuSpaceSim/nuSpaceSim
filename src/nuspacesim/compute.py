@@ -208,7 +208,7 @@ def compute(
                 mc_spec_norm,
                 spec_weights_sum,
                 lenDec,
-                method="optical",
+                method="Optical",
                 store=sw,
             )
         else:
@@ -253,7 +253,7 @@ def compute(
                 mc_spec_norm,
                 spec_weights_sum,
                 lenDec,
-                method="radio",
+                method="Radio",
                 store=sw,
             )
         else:

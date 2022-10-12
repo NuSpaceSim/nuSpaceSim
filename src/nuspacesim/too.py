@@ -15,8 +15,8 @@ class tooevent:
         self.MoonMinPhaseAngleCut = self.config.detector.MoonMinPhaseAngleCut
 
         # Detector definitions
-        self.detlat = self.config.detector.ra_start
-        self.detlong = self.config.detector.dec_start
+        self.detlat = self.config.detector.detlat
+        self.detlong = self.config.detector.detlong
         self.detalt = self.config.detector.altitude
 
         # ToO definitions
@@ -36,13 +36,10 @@ class tooevent:
             frame="icrs",
         )
 
+        # Note: these are geodetic coordinates
         self.detcords = astropy.coordinates.EarthLocation(
             lat=self.detlat, lon=self.detlong, height=self.detalt
         )
-
-        self.moon_alt_cutoff = 0
-        self.sun_alt_cutoff = -13.5
-        self.moon_phase_cut = 150
 
     def localcoords(self, time):
         detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)

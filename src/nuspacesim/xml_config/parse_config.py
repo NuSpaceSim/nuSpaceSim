@@ -231,8 +231,8 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     return DetectorCharacteristics(
         method=detchar["Method"],
         altitude=detchar["DetectorAltitude"],
-        ra_start=detchar["InitialDetectorRightAscension"],
-        dec_start=detchar["InitialDetectorDeclination"],
+        detlat=detchar["InitialDetectorLatitude"],
+        detlong=detchar["InitialDetectorLongitude"],
         telescope_effective_area=detchar["TelescopeEffectiveArea"],
         quantum_efficiency=float(detchar["QuantumEfficiency"]),
         photo_electron_threshold=float(detchar["NPE"]),
@@ -436,11 +436,11 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     detalt.set("Unit", "km")
     detalt.text = str(config.detector.altitude)
 
-    detra = ET.SubElement(detchar, "InitialDetectorRightAscension")
+    detra = ET.SubElement(detchar, "InitialDetectorLatitude")
     detra.set("Unit", "Degrees")
     detra.text = str(config.detector.ra_start)
 
-    detdec = ET.SubElement(detchar, "InitialDetectorDeclination")
+    detdec = ET.SubElement(detchar, "InitialDetectorLongitude")
     detdec.set("Unit", "Degrees")
     detdec.text = str(config.detector.dec_start)
 

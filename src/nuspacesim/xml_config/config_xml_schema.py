@@ -200,8 +200,8 @@ xsd = StringIO(
               <xs:element name="TelescopeEffectiveArea" type="AreaType"/>
               <xs:element name="PhotoElectronThreshold" type="PETType"/>
               <xs:element name="DetectorAltitude" type="DistType"/>
-              <xs:element name="InitialDetectorRightAscension" type="AngleType"/>
-              <xs:element name="InitialDetectorDeclination" type="AngleType"/>
+              <xs:element name="InitialDetectorLatitude" type="AngleType"/>
+              <xs:element name="InitialDetectorLongitude" type="AngleType"/>
               <xs:element name="LowFrequency" type="FreqType"/>
               <xs:element name="HighFrequency" type="FreqType"/>
               <xs:element name="SNRThreshold" type="xs:decimal"/>

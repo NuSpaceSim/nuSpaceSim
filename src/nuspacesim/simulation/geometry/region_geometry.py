@@ -60,8 +60,8 @@ class RegionGeom:
 
         else:
             # Detector definitions
-            self.detlat = np.radians(config.detector.ra_start)
-            self.detlong = np.radians(config.detector.dec_start)
+            self.detlat = np.radians(config.detector.detlat)
+            self.detlong = np.radians(config.detector.detlong)
             self.detalt = config.detector.altitude
 
         self.alphaHorizon = np.pi / 2 - np.arccos(
@@ -184,35 +184,35 @@ class RegionGeom:
 
         self.betaTrSubN = np.degrees(0.5 * np.pi - self.thetaTrSubN)
 
-        rsindecS = np.sin(self.config.detector.dec_start) * costhetaS - np.cos(
-            self.config.detector.dec_start
+        rsindecS = np.sin(self.config.detector.detlong) * costhetaS - np.cos(
+            self.config.detector.detlong
         ) * np.sin(self.thetaS) * np.cos(self.phiS)
 
         self.decS = np.degrees(np.arcsin(rsindecS))
 
         rxS = (
-            np.sin(self.config.detector.dec_start)
-            * np.cos(self.config.detector.ra_start)
+            np.sin(self.config.detector.detlong)
+            * np.cos(self.config.detector.detlat)
             * np.sin(self.thetaS)
             * np.cos(self.phiS)
-            - np.sin(self.config.detector.ra_start)
+            - np.sin(self.config.detector.detlat)
             * np.sin(self.thetaS)
             * np.sin(self.phiS)
-            + np.cos(self.config.detector.dec_start)
-            * np.cos(self.config.detector.ra_start)
+            + np.cos(self.config.detector.detlong)
+            * np.cos(self.config.detector.detlat)
             * np.cos(self.thetaS)
         )
 
         ryS = (
-            np.sin(self.config.detector.dec_start)
-            * np.sin(self.config.detector.ra_start)
+            np.sin(self.config.detector.detlong)
+            * np.sin(self.config.detector.detlat)
             * np.sin(self.thetaS)
             * np.cos(self.phiS)
-            + np.cos(self.config.detector.ra_start)
+            + np.cos(self.config.detector.detlat)
             * np.sin(self.thetaS)
             * np.sin(self.phiS)
-            + np.cos(self.config.detector.dec_start)
-            * np.sin(self.config.detector.ra_start)
+            + np.cos(self.config.detector.detlong)
+            * np.sin(self.config.detector.detlat)
             * np.cos(self.thetaS)
         )
 
@@ -371,7 +371,7 @@ class RegionGeom:
         spec_norm,
         spec_weights_sum,
         lenDec,
-        method="optical",
+        method="Optical",
         store=None,
     ):
 
@@ -407,46 +407,35 @@ class RegionGeom:
         mcintfactor[triggers < threshold] = 0
 
         # Define a cut based on sun and moon position
-
         times = self.times[self.event_mask]
-        if self.sun_moon_cut and method == "optical":
+        if self.sun_moon_cut and method == "Optical":
             sun_moon_cut_mask = self.too_source.sun_moon_cut(times)
             mcintfactor[~sun_moon_cut_mask] = 0
 
+        # Store data into fits file
         if store is not None:
-            if self.config.detector.method == "optical":
-                store(
-                    ["times", "tmcintopt"],
-                    [
-                        np.sort(times),
-                        np.take_along_axis(mcintfactor, np.argsort(times), 0),
-                    ],
-                )
-            elif self.config.detector.method == "radio":
-                store(
-                    ["times", "tmcintrad"],
-                    [
-                        np.sort(times),
-                        np.take_along_axis(mcintfactor, np.argsort(times), 0),
-                    ],
-                )
-            elif self.config.detector.method == "both":
-                if method == "optical":
-                    store(
-                        ["times", "tmcintopt"],
-                        [
-                            np.sort(times),
-                            np.take_along_axis(mcintfactor, np.argsort(times), 0),
-                        ],
-                    )
-                if method == "radio":
-                    store(
-                        ["tmcintrad"],
-                        [
-                            np.sort(times),
-                            np.take_along_axis(mcintfactor, np.argsort(times), 0),
-                        ],
-                    )
+            if self.config.detector.method == "Optical":
+                names = ("times", "tmcintopt")
+                values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
+            elif self.config.detector.method == "Radio":
+                names = ("times", "tmcintrad")
+                values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
+            elif self.config.detector.method == "Both":
+                if method == "Optical":
+                    names = ("times", "tmcintopt")
+                    values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
+                if method == "Radio":
+                    names = ["tmcintrad"]
+                    values = [np.take_along_axis(mcintfactor, np.argsort(times), 0)]
+
+            assert len(names) == len(values)
+            if isinstance(values, tuple):
+                print(f"storing [{names}]")
+                store(names, [*values])
+            else:
+                print(f"storing [{names}]")
+                store(names, [values])
+
 
         mcintegral = np.mean(mcintfactor)
         mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor))
