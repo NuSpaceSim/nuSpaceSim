@@ -207,7 +207,7 @@ class RegionGeom:
         self.raS = np.degrees(np.arctan2(ryS, rxS)) % 360.0
 
         self.event_mask = np.logical_and(self.costhetaTrSubN >= 0, self.betaTrSubN < 42)
-        #self.event_mask = np.logical_and(self.betaTrSubN >= 0, self.betaTrSubN < 42)
+        # self.event_mask = np.logical_and(self.betaTrSubN >= 0, self.betaTrSubN < 42)
 
     def betas(self):
         """Earth-emergence angles for valid events."""
@@ -269,7 +269,7 @@ class RegionGeom:
 
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0
-        #mcintegralgeoonly = np.mean(mcintfactor) * mcnorm
+        # mcintegralgeoonly = np.mean(mcintfactor) * mcnorm
         mcintegralgeoonly = np.sum(mcintfactor) * mcnorm / numTrajs
 
         # Multiply by tau exit probability
@@ -281,14 +281,12 @@ class RegionGeom:
 
         # PE threshold
         mcintfactor[triggers < threshold] = 0
-        #mcintegral = np.mean(mcintfactor) * mcnorm
+        # mcintegral = np.mean(mcintfactor) * mcnorm
         mcintegral = np.sum(mcintfactor) * mcnorm / numTrajs
-        #mcintegraluncert = (
+        # mcintegraluncert = (
         #    np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor)) * mcnorm
-        #)
-        mcintegraluncert = (
-            np.sqrt(np.var(mcintfactor, ddof=1) / numTrajs) * mcnorm
-        )
+        # )
+        mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / numTrajs) * mcnorm
 
         numEvPass = np.count_nonzero(mcintfactor)
 
