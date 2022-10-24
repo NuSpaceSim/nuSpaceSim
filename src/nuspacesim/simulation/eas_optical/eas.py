@@ -84,7 +84,6 @@ class EAS:
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
         mask = (altDec < 0.0) | (altDec > 20.0)
-        # mask |= beta > np.radians(25.0)
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.
