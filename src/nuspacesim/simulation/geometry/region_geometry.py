@@ -269,7 +269,6 @@ class RegionGeom:
 
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0
-        #mcintegralgeoonly = np.mean(mcintfactor) * mcnorm
         mcintegralgeoonly = np.sum(mcintfactor) * mcnorm / numTrajs
 
         # Multiply by tau exit probability
@@ -281,14 +280,8 @@ class RegionGeom:
 
         # PE threshold
         mcintfactor[triggers < threshold] = 0
-        #mcintegral = np.mean(mcintfactor) * mcnorm
         mcintegral = np.sum(mcintfactor) * mcnorm / numTrajs
-        #mcintegraluncert = (
-        #    np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor)) * mcnorm
-        #)
-        mcintegraluncert = (
-            np.sqrt(np.var(mcintfactor, ddof=1) / numTrajs) * mcnorm
-        )
+        mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / numTrajs) * mcnorm
 
         numEvPass = np.count_nonzero(mcintfactor)
 
