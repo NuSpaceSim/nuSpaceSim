@@ -67,9 +67,9 @@ class DetectorCharacteristics:
     """ Type of detector: Default = Optical """
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
-    detlat: float = 0.0  # No Idea where else these need to be modified
+    detlat: float = 0.0
     """ Latitude in earth coords (Degrees). Default = 0.0 """
-    detlong: float = 0.0  # No Idea where else these need to be modified
+    detlong: float = 0.0
     """ Longitude (Degrees). Default = 0.0 """
     telescope_effective_area: float = 2.5
     '"" Effective area of the detector telescope. Default = 2.5 sq.meters ""'
@@ -93,7 +93,7 @@ class DetectorCharacteristics:
     """ Sun altitude beyond which no observations are possible: Default = -12 """
     moon_alt_cut: float = 0
     """ Moon altitude beyond which no observations are possible: Default = 0 """
-    MoonMinPhaseAngleCut: float = 150
+    MoonMinPhaseAngleCut: float = radians(150)
     """ Moon phase angle below which, when moon is above moon_alt_cut no observations are possible: Default = 150 """
 
     def __call__(self) -> dict[str, tuple[Any, str]]:

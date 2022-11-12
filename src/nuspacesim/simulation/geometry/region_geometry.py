@@ -32,10 +32,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-
+import astropy
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
-from ...too import *
+from .too import ToOEvent
+
 
 __all__ = ["RegionGeom"]
 
@@ -56,7 +57,7 @@ class RegionGeom:
 
         if self.detection_mode == "ToO":
             self.sourceOBSTime = self.config.simulation.source_obst
-            self.too_source = tooevent(self.config)
+            self.too_source = ToOEvent(self.config)
 
         else:
             # Detector definitions
@@ -413,28 +414,28 @@ class RegionGeom:
             mcintfactor[~sun_moon_cut_mask] = 0
 
         # Store data into fits file
-        if store is not None:
-            if self.config.detector.method == "Optical":
-                names = ("times", "tmcintopt")
-                values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
-            elif self.config.detector.method == "Radio":
-                names = ("times", "tmcintrad")
-                values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
-            elif self.config.detector.method == "Both":
-                if method == "Optical":
-                    names = ("times", "tmcintopt")
-                    values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
-                if method == "Radio":
-                    names = ["tmcintrad"]
-                    values = [np.take_along_axis(mcintfactor, np.argsort(times), 0)]
+        # if store is not None:
+        #     if self.config.detector.method == "Optical":
+        #         names = ("times", "tmcintopt")
+        #         values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
+        #     elif self.config.detector.method == "Radio":
+        #         names = ("times", "tmcintrad")
+        #         values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
+        #     elif self.config.detector.method == "Both":
+        #         if method == "Optical":
+        #             names = ("times", "tmcintopt")
+        #             values = (np.sort(times), np.take_along_axis(mcintfactor, np.argsort(times), 0))
+        #         if method == "Radio":
+        #             names = ["tmcintrad"]
+        #             values = [np.take_along_axis(mcintfactor, np.argsort(times), 0)]
 
-            assert len(names) == len(values)
-            if isinstance(values, tuple):
-                print(f"storing [{names}]")
-                store(names, [*values])
-            else:
-                print(f"storing [{names}]")
-                store(names, [values])
+        #     assert len(names) == len(values)
+        #     if isinstance(values, tuple):
+        #         print(f"storing [{names}]")
+        #         store(names, [*values])
+        #     else:
+        #         print(f"storing [{names}]")
+        #         store(names, [values])
 
 
         mcintegral = np.mean(mcintfactor)

@@ -1,13 +1,11 @@
-#!/usr/bin/python
-
 import numpy as np
 
 import astropy.coordinates
 import astropy.time
-import astropy.units
+import astropy.units as u
 
 
-class tooevent:
+class ToOEvent:
     def __init__(self, config):
         self.config = config
         self.sun_alt_cut = self.config.detector.sun_alt_cut
@@ -38,7 +36,7 @@ class tooevent:
 
         # Note: these are geodetic coordinates
         self.detcords = astropy.coordinates.EarthLocation(
-            lat=self.detlat, lon=self.detlong, height=self.detalt
+            lat=self.detlat * u.deg, lon=self.detlong * u.deg, height=self.detalt * 1000 * u.m
         )
 
     def localcoords(self, time):
@@ -56,7 +54,12 @@ class tooevent:
         return moon_coord.transform_to(detframe)
 
     @staticmethod
-    def moon_phase_angle(time):
+    def moon_phase_angle(time: astropy.time.Time) -> float:
+        '''
+        Returns the moon phase angle in rad
+        0 -> full moon
+        pi -> new moon
+        '''
         sun = astropy.coordinates.get_sun(time)
         moon = astropy.coordinates.get_moon(time)
         elongation = sun.separation(moon)
@@ -65,11 +68,14 @@ class tooevent:
             moon.distance - sun.distance * np.cos(elongation),
         )
 
-    def sun_moon_cut(self, time):
+    def sun_moon_cut(self, time: astropy.time.Time) -> bool:
+        '''
+        Function to calculate the time during which sun and moon allow observation
+        True -> observation possible
+        False -> no observation posible
+        '''
         sun_alt = self.get_sun(time).alt.degree < self.sun_alt_cut
         moon_alt = self.get_moon(time).alt.degree < self.moon_alt_cut
-        moon_phase = (
-            np.rad2deg(self.moon_phase_angle(time).value) > self.MoonMinPhaseAngleCut
-        )
+        moon_phase = self.moon_phase_angle(time).value > self.MoonMinPhaseAngleCut
         moon_cut = np.logical_or(moon_phase, moon_alt)
         return np.logical_and(sun_alt, moon_cut)

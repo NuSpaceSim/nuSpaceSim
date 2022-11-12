@@ -57,7 +57,7 @@ from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
-from .too import *
+from .simulation.geometry.too import *
 
 __all__ = ["compute"]
 
