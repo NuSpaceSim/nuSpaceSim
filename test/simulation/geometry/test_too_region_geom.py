@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 from astropy.time import Time
 
 from nuspacesim.config import NssConfig

@@ -35,9 +35,10 @@
 Module contains functions for parsing and interacting with XML configuration files.
 """
 
+from dataclasses import dataclass, field
+
 import lxml.etree as ET
 import numpy as np
-from dataclasses import dataclass, field
 from astropy import units as u
 
 from .. import constants as const
@@ -162,6 +163,7 @@ class BaseUnits:
             For areas use: {self.area_units}\n\
             "
         )
+
 
 def check_unit(node, units: BaseUnits):
     if "Unit" in node.attrib:

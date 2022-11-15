@@ -500,8 +500,9 @@ class RegionGeomToO:
 
         numEvPass = np.count_nonzero(mcintfactor)
 
-        # if store is not None:
-        #     self.store_fits(store, method, times, mcintfactor)
+        if store is not None:
+            pass
+            # self.store_fits(store, method, times, mcintfactor)
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 

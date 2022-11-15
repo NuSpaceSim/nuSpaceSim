@@ -1,8 +1,7 @@
-import numpy as np
-
 import astropy.coordinates
 import astropy.time
 import astropy.units as u
+import numpy as np
 
 
 class ToOEvent:

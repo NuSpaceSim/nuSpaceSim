@@ -55,9 +55,9 @@ from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
+from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
-from .simulation.geometry.too import *
 
 __all__ = ["compute"]
 
