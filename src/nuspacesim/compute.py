@@ -215,7 +215,6 @@ def compute(
             store=sw,
         )
 
-
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
         sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")
         sw.add_meta("ONEVPASS", passEV, "Optical Number of Passing Events")

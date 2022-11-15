@@ -84,10 +84,10 @@ class RegionGeom:
         normPhiS = np.reciprocal(self.maxPhiS - self.minPhiS)
 
         bracketForNormThetaS = (
-            (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen -
-            (1.0 / 3.0) * self.maxLOSpathLen**3 -
-            (self.core_alt**2 - self.earth_rad_2) * self.minLOSpathLen +
-            (1.0 / 3.0) * self.minLOSpathLen**3
+            (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen
+            - (1.0 / 3.0) * self.maxLOSpathLen**3
+            - (self.core_alt**2 - self.earth_rad_2) * self.minLOSpathLen
+            + (1.0 / 3.0) * self.minLOSpathLen**3
         )
 
         normThetaS = 2.0 * self.core_alt * self.earth_rad_2 / bracketForNormThetaS
@@ -122,16 +122,16 @@ class RegionGeom:
         # detector nadir perspective)
 
         b = (
-            3 * (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen -
-            self.maxLOSpathLen**3 -
-            3 * (self.core_alt**2 - self.earth_rad_2) * self.minLOSpathLen +
-            self.minLOSpathLen**3
+            3 * (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen
+            - self.maxLOSpathLen**3
+            - 3 * (self.core_alt**2 - self.earth_rad_2) * self.minLOSpathLen
+            + self.minLOSpathLen**3
         )
         q = -(self.core_alt**2 - self.earth_rad_2)
         r = (
-            -1.5 * (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen +
-            0.5 * self.maxLOSpathLen**3 +
-            0.5 * b * u4
+            -1.5 * (self.core_alt**2 - self.earth_rad_2) * self.maxLOSpathLen
+            + 0.5 * self.maxLOSpathLen**3
+            + 0.5 * b * u4
         )
 
         psi = np.arccos(r / np.sqrt(-(q**3)))
@@ -187,29 +187,29 @@ class RegionGeom:
         self.decS = np.degrees(np.arcsin(rsindecS))
 
         rxS = (
-            np.sin(self.config.detector.detlong) *
-            np.cos(self.config.detector.detlat) *
-            np.sin(self.thetaS) *
-            np.cos(self.phiS) -
-            np.sin(self.config.detector.detlat) *
-            np.sin(self.thetaS) *
-            np.sin(self.phiS) +
-            np.cos(self.config.detector.detlong) *
-            np.cos(self.config.detector.detlat) *
-            np.cos(self.thetaS)
+            np.sin(self.config.detector.detlong)
+            * np.cos(self.config.detector.detlat)
+            * np.sin(self.thetaS)
+            * np.cos(self.phiS)
+            - np.sin(self.config.detector.detlat)
+            * np.sin(self.thetaS)
+            * np.sin(self.phiS)
+            + np.cos(self.config.detector.detlong)
+            * np.cos(self.config.detector.detlat)
+            * np.cos(self.thetaS)
         )
 
         ryS = (
-            np.sin(self.config.detector.detlong) *
-            np.sin(self.config.detector.detlat) *
-            np.sin(self.thetaS) *
-            np.cos(self.phiS) +
-            np.cos(self.config.detector.detlat) *
-            np.sin(self.thetaS) *
-            np.sin(self.phiS) +
-            np.cos(self.config.detector.detlong) *
-            np.sin(self.config.detector.detlat) *
-            np.cos(self.thetaS)
+            np.sin(self.config.detector.detlong)
+            * np.sin(self.config.detector.detlat)
+            * np.sin(self.thetaS)
+            * np.cos(self.phiS)
+            + np.cos(self.config.detector.detlat)
+            * np.sin(self.thetaS)
+            * np.sin(self.phiS)
+            + np.cos(self.config.detector.detlong)
+            * np.sin(self.config.detector.detlat)
+            * np.cos(self.thetaS)
         )
 
         self.raS = np.degrees(np.arctan2(ryS, rxS)) % 360.0
@@ -262,16 +262,16 @@ class RegionGeom:
         threshold,
         spec_norm,
         spec_weights_sum,
-        **kwargs
+        **kwargs,
     ):
         """Monte Carlo integral."""
 
         cossepangle = self.costhetaTrSubV[self.event_mask]
 
         mcintfactor = (
-            self.valid_costhetaTrSubN() /
-            self.valid_costhetaNSubV() /
-            self.valid_costhetaTrSubV()
+            self.valid_costhetaTrSubN()
+            / self.valid_costhetaNSubV()
+            / self.valid_costhetaTrSubV()
         )
 
         mcnorm = self.mcnorm
@@ -299,8 +299,7 @@ class RegionGeom:
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
 
-
-class RegionGeomToO():
+class RegionGeomToO:
     def __init__(self, config):
         self.config = config
 
@@ -324,10 +323,9 @@ class RegionGeomToO():
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
-
-    def throw(self, times = None) -> None:
+    def throw(self, times=None) -> None:
         """Throw N events with 1 * u random numbers for the ToO detection mode"""
-        
+
         # Calculate the local nadir angle of the source
         self.times = self.generate_times(times)
         self.sourceNadRad = np.pi / 2 + self.too_source.localcoords(self.times).alt.rad
@@ -342,17 +340,19 @@ class RegionGeomToO():
         self.volume_mask = self.sourcebeta < np.radians(42)
 
         # Calculate the pathlength through the atmosphere
-        self.losPathLen = self.get_path_length(self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad))
+        self.losPathLen = self.get_path_length(
+            self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
+        )
 
         # self.test_plot_nadir_angle()
 
     def generate_times(self, times) -> np.ndarray:
-        '''
+        """
         Function to generate random times within the simulation time period
-        '''
+        """
         if isinstance(times, int):
             times = np.random.rand(times)
-        
+
         if times is None:
             raise RuntimeError(
                 "Provide a number of trajectories, or a 2D set of uniform random "
@@ -366,15 +366,13 @@ class RegionGeomToO():
 
     def get_beta_angle(self, nadir_angle):
         return np.arccos(
-            ((self.core_alt) / self.config.constants.earth_radius)
-            * np.sin(nadir_angle)
+            ((self.core_alt) / self.config.constants.earth_radius) * np.sin(nadir_angle)
         )
 
     def get_path_length(self, beta, nadir_angle):
-        return (
-            self.config.constants.earth_radius * np.cos(beta) 
-            - self.core_alt * np.cos(nadir_angle + beta)
-        )
+        return self.config.constants.earth_radius * np.cos(
+            beta
+        ) - self.core_alt * np.cos(nadir_angle + beta)
 
     def event_mask(self, x):
         return x[self.horizon_mask][self.volume_mask]
@@ -402,17 +400,28 @@ class RegionGeomToO():
         # Store data into fits file
         if self.config.detector.method == "Optical":
             names = ("times", "tmcintopt")
-            values = (np.sort(self.val_times()), np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0))
+            values = (
+                np.sort(self.val_times()),
+                np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0),
+            )
         elif self.config.detector.method == "Radio":
             names = ("times", "tmcintrad")
-            values = (np.sort(self.val_times()), np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0))
+            values = (
+                np.sort(self.val_times()),
+                np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0),
+            )
         elif self.config.detector.method == "Both":
             if method == "Optical":
                 names = ("times", "tmcintopt")
-                values = (np.sort(self.val_times()), np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0))
+                values = (
+                    np.sort(self.val_times()),
+                    np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0),
+                )
             if method == "Radio":
                 names = ["tmcintrad"]
-                values = [np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0)]
+                values = [
+                    np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0)
+                ]
 
         assert len(names) == len(values)
         if isinstance(values, tuple):
@@ -425,9 +434,7 @@ class RegionGeomToO():
     def np_save(self, mcintfactor, numEvPass):
         np.savez(
             str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
-            t=(self.times - self.too_source.eventtime)[self.event_mask].to_value(
-                "hr"
-            ),
+            t=(self.times - self.too_source.eventtime)[self.event_mask].to_value("hr"),
             tf=(self.times - self.too_source.eventtime).to_value("hr"),
             nad=self.sourceNadRad[self.event_mask],
             nadf=self.sourceNadRad,
@@ -444,7 +451,7 @@ class RegionGeomToO():
         threshold,
         spec_norm,
         spec_weights_sum,
-        **kwargs
+        **kwargs,
     ):
 
         lenDec = kwargs["lenDec"]
@@ -461,9 +468,7 @@ class RegionGeomToO():
         # cossepangle = self.costhetaTrSubV[self.event_mask]
 
         mcintfactor = (
-            (self.pathLens() - lenDec) *
-            (self.pathLens() - lenDec) *
-            tanthetaChEff**2
+            (self.pathLens() - lenDec) * (self.pathLens() - lenDec) * tanthetaChEff**2
         )
 
         # Branching ratio set to 1 to be consistent
@@ -502,15 +507,24 @@ class RegionGeomToO():
 
     def test_plot_nadir_angle(self):
         import matplotlib.pyplot as plt
+
         plt.figure()
-        plt.plot(self.times.gps, np.rad2deg(self.sourceNadRad), ".", label="not visible")
-        plt.plot(self.event_mask(self.times.gps), np.rad2deg(self.event_mask(self.sourceNadRad)), ".", label="visible")
+        plt.plot(
+            self.times.gps, np.rad2deg(self.sourceNadRad), ".", label="not visible"
+        )
+        plt.plot(
+            self.event_mask(self.times.gps),
+            np.rad2deg(self.event_mask(self.sourceNadRad)),
+            ".",
+            label="visible",
+        )
         plt.axhline(np.rad2deg(self.alphaHorizon), label="Horizon")
         plt.axhline(np.rad2deg(self.get_beta_angle(np.radians(42))), label="End of sim")
         plt.legend()
         plt.xlabel("GPS time in s")
         plt.ylabel("Nadir angle in deg")
         plt.show()
+
 
 def show_plot(sim, plot):
     plotfs = tuple([geom_beta_tr_hist])

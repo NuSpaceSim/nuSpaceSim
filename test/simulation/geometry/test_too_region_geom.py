@@ -5,6 +5,7 @@ from astropy.time import Time
 from nuspacesim.config import NssConfig
 from nuspacesim.simulation.geometry import region_geometry
 
+
 @pytest.fixture
 def nss_config_event():
     conf = NssConfig()
@@ -28,6 +29,7 @@ def nss_config_event():
     conf.simulation.source_obst: float = 24 * 60 * 60
     return conf
 
+
 @pytest.fixture
 def region(nss_config_event):
     region_geom = region_geometry.RegionGeomToO(nss_config_event)
@@ -37,7 +39,10 @@ def region(nss_config_event):
 def test_too_traj(region):
     u = np.array([0, 1, 2], dtype=float)
     region.throw(u)
-    assert np.rad2deg(region.sourceNadRad[0]) == pytest.approx(np.rad2deg(region.sourceNadRad[1]) - 360/365, abs = 0.01)
+    assert np.rad2deg(region.sourceNadRad[0]) == pytest.approx(
+        np.rad2deg(region.sourceNadRad[1]) - 360 / 365, abs=0.01
+    )
+
 
 def test_too_times(region):
     assert len(region.generate_times(1000)) == 1000
