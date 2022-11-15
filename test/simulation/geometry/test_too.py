@@ -3,7 +3,6 @@ import numpy as np
 from astropy.time import Time
 
 from nuspacesim.config import NssConfig
-from nuspacesim.simulation.geometry import region_geometry
 from nuspacesim.simulation.geometry import too
 
 @pytest.fixture

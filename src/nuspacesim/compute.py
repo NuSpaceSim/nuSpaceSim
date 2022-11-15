@@ -54,7 +54,7 @@ from .results_table import ResultsTable
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
-from .simulation.geometry.region_geometry import RegionGeom
+from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
 from .simulation.geometry.too import *
@@ -142,11 +142,15 @@ def compute(
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = ResultsTable(config)
-    geom = RegionGeom(config)
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
     eas_radio = EASRadio(config)
+
+    if config.simulation.det_mode == "ToO":
+        geom = RegionGeomToO(config)
+    else:
+        geom = RegionGeom(config)
 
     class StagedWriter:
         """Optionally write intermediate values to file"""
@@ -199,27 +203,18 @@ def compute(
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
-        if config.simulation.det_mode == "ToO":
-            mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
-                numPEs,
-                costhetaChEff,
-                tauExitProb,
-                config.detector.photo_electron_threshold,
-                mc_spec_norm,
-                spec_weights_sum,
-                lenDec,
-                method="Optical",
-                store=sw,
-            )
-        else:
-            mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
-                numPEs,
-                costhetaChEff,
-                tauExitProb,
-                config.detector.photo_electron_threshold,
-                mc_spec_norm,
-                spec_weights_sum,
-            )
+        mcint, mcintgeo, passEV, mcunc = geom.McIntegral(
+            numPEs,
+            costhetaChEff,
+            tauExitProb,
+            config.detector.photo_electron_threshold,
+            mc_spec_norm,
+            spec_weights_sum,
+            lenDec=lenDec,
+            method="Optical",
+            store=sw,
+        )
+
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
         sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")
@@ -244,27 +239,17 @@ def compute(
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
-        if config.simulation.det_mode == "ToO":
-            mcint, mcintgeo, passEV, mcunc = geom.tooMcIntegral(
-                snrs,
-                np.cos(thetaArr),
-                tauExitProb,
-                config.detector.det_SNR_thres,
-                mc_spec_norm,
-                spec_weights_sum,
-                lenDec,
-                method="Radio",
-                store=sw,
-            )
-        else:
-            mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
-                snrs,
-                np.cos(thetaArr),
-                tauExitProb,
-                config.detector.det_SNR_thres,
-                mc_spec_norm,
-                spec_weights_sum,
-            )
+        mcint, mcintgeo, passEV, mcunc = geom.McIntegral(
+            snrs,
+            np.cos(thetaArr),
+            tauExitProb,
+            config.detector.det_SNR_thres,
+            mc_spec_norm,
+            spec_weights_sum,
+            lenDec=lenDec,
+            method="Radio",
+            store=sw,
+        )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
         sw.add_meta("RMCINTGO", mcintgeo, "Radio MonteCarlo Integral, GEO Only")
