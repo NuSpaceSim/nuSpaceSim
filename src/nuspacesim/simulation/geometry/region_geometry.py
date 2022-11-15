@@ -31,12 +31,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import numpy as np
 import astropy
+import numpy as np
+
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
 from .too import ToOEvent
-
 
 __all__ = ["RegionGeom", "RegionGeomToO"]
 

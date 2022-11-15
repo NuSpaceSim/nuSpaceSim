@@ -51,5 +51,4 @@ Geometry
 __all__ = ["RegionGeom", "ToOEvent"]
 
 from .region_geometry import RegionGeom
-
-from. too import ToOEvent
+from .too import ToOEvent
