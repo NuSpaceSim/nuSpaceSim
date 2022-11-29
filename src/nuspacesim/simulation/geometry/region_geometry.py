@@ -330,6 +330,10 @@ class RegionGeomToO:
         self.times = self.generate_times(times)
         self.sourceNadRad = np.pi / 2 + self.too_source.localcoords(self.times).alt.rad
 
+        self.alt_deg = self.too_source.localcoords(self.times).alt.deg
+        self.az_deg = self.too_source.localcoords(self.times).az.deg
+        self.mask = np.ones_like(times)
+        
         # Define a cut if the source is below the horizon
         self.horizon_mask = self.sourceNadRad < self.alphaHorizon
 
@@ -495,14 +499,17 @@ class RegionGeomToO:
             sun_moon_cut_mask = self.too_source.sun_moon_cut(self.val_times())
             mcintfactor[~sun_moon_cut_mask] = 0
 
-        mcintegral = np.mean(mcintfactor)
-        mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / len(mcintfactor))
+        mcintegral = np.sum(mcintfactor) / len(self.times)
+        mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / len(self.times))
 
         numEvPass = np.count_nonzero(mcintfactor)
 
         if store is not None:
             pass
-            # self.store_fits(store, method, times, mcintfactor)
+
+        np.savez("./too_slide.npz", 
+            alt=self.event_mask(self.alt_deg), az = self.event_mask(self.az_deg), mcintfactor=mcintfactor
+        )
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
