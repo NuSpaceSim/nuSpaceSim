@@ -332,8 +332,41 @@ class RegionGeomToO:
 
         self.alt_deg = self.too_source.localcoords(self.times).alt.deg
         self.az_deg = self.too_source.localcoords(self.times).az.deg
-        self.mask = np.ones_like(times)
         
+        print(self.alt_deg, self.az_deg)
+        print(np.rad2deg(self.too_source.sourceRA), np.rad2deg(self.too_source.sourceDEC))
+        print(self.too_source.detcords)
+
+
+        import matplotlib.pyplot as plt
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.times.gps, ".")
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.alt_deg, ".")
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.az_deg, ".")
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.az_deg, self.alt_deg, ".")
+
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='mollweide')
+        ax.set_facecolor("k")
+
+        ax.plot(np.radians(self.az_deg)-np.pi, np.radians(self.alt_deg), ".")
+        ax.tick_params(axis='x', colors='white')
+        ax.grid(True, color="white")
+        plt.show()
+        quit()
+
         # Define a cut if the source is below the horizon
         self.horizon_mask = self.sourceNadRad < self.alphaHorizon
 
@@ -341,13 +374,12 @@ class RegionGeomToO:
         self.sourcebeta = self.get_beta_angle(self.sourceNadRad[self.horizon_mask])
 
         # Define a cut if the source is below the horizon
-        self.volume_mask = self.sourcebeta < np.radians(42)
+        self.volume_mask = self.sourcebeta < np.min([np.radians(42), self.get_beta_angle(self.config.simulation.ang_from_limb)])
 
         # Calculate the pathlength through the atmosphere
         self.losPathLen = self.get_path_length(
             self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
         )
-
         # self.test_plot_nadir_angle()
 
     def generate_times(self, times) -> np.ndarray:
@@ -507,9 +539,13 @@ class RegionGeomToO:
         if store is not None:
             pass
 
-        np.savez("./too_slide.npz", 
-            alt=self.event_mask(self.alt_deg), az = self.event_mask(self.az_deg), mcintfactor=mcintfactor
-        )
+        if method == "Optical":
+            np.savez("./too_slide.npz", 
+                times=self.event_mask(self.times),
+                alt=self.event_mask(self.alt_deg), 
+                az=self.event_mask(self.az_deg), 
+                mcint=mcintfactor
+            )
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 

@@ -25,13 +25,13 @@ class ToOEvent:
 
         self.eventtime = astropy.time.Time(
             self.sourceDATE, format=self.sourceDateFormat, scale="utc"
-        )
+        ) # note make scale variable
 
         self.eventcoords = astropy.coordinates.SkyCoord(
             ra=self.sourceRA * astropy.units.degree,
             dec=self.sourceDEC * astropy.units.degree,
             frame="icrs",
-        )
+        ) # note make frame variable
 
         # Note: these are geodetic coordinates
         self.detcords = astropy.coordinates.EarthLocation(
