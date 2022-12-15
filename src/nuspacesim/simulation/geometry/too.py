@@ -15,7 +15,6 @@ class ToOEvent:
         self.detlat = self.config.detector.detlat
         self.detlong = self.config.detector.detlong
         self.detalt = self.config.detector.altitude
-
         # ToO definitions
         self.sourceRA = self.config.simulation.source_RA
         self.sourceDEC = self.config.simulation.source_DEC
@@ -28,15 +27,15 @@ class ToOEvent:
         ) # note make scale variable
 
         self.eventcoords = astropy.coordinates.SkyCoord(
-            ra=self.sourceRA * astropy.units.degree,
-            dec=self.sourceDEC * astropy.units.degree,
+            ra=self.sourceRA * u.rad,
+            dec=self.sourceDEC * u.rad,
             frame="icrs",
         ) # note make frame variable
 
         # Note: these are geodetic coordinates
         self.detcords = astropy.coordinates.EarthLocation(
-            lat=self.detlat * u.deg,
-            lon=self.detlong * u.deg,
+            lat=self.detlat * u.rad,
+            lon=self.detlong * u.rad,
             height=self.detalt * 1000 * u.m,
         )
 

@@ -33,6 +33,8 @@
 
 import astropy
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
@@ -328,44 +330,22 @@ class RegionGeomToO:
 
         # Calculate the local nadir angle of the source
         self.times = self.generate_times(times)
-        self.sourceNadRad = np.pi / 2 + self.too_source.localcoords(self.times).alt.rad
+        local_coords = self.too_source.localcoords(self.times)
+        self.sourceNadRad = np.pi / 2 + local_coords.alt.rad
 
-        self.alt_deg = self.too_source.localcoords(self.times).alt.deg
-        self.az_deg = self.too_source.localcoords(self.times).az.deg
+        self.alt_deg = local_coords.alt.deg
+        self.az_deg = local_coords.az.deg
+                
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot((self.times.gps - np.amin(self.times.gps))/3600, ".")
+        ax.set_xlabel("Number of thrown event")
+        ax.set_ylabel("Time in h")
+        ax.grid(True)
+        plt.savefig("Thrown_times.png")
         
-        print(self.alt_deg, self.az_deg)
-        print(np.rad2deg(self.too_source.sourceRA), np.rad2deg(self.too_source.sourceDEC))
-        print(self.too_source.detcords)
-
-
-        import matplotlib.pyplot as plt
-        
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.times.gps, ".")
-        
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.alt_deg, ".")
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.az_deg, ".")
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.az_deg, self.alt_deg, ".")
-
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='mollweide')
-        ax.set_facecolor("k")
-
-        ax.plot(np.radians(self.az_deg)-np.pi, np.radians(self.alt_deg), ".")
-        ax.tick_params(axis='x', colors='white')
-        ax.grid(True, color="white")
-        plt.show()
-        quit()
+        # plt.show()
+        # quit()
 
         # Define a cut if the source is below the horizon
         self.horizon_mask = self.sourceNadRad < self.alphaHorizon
@@ -546,8 +526,45 @@ class RegionGeomToO:
                 az=self.event_mask(self.az_deg), 
                 mcint=mcintfactor
             )
+            # norm_mcint = mcintfactor/np.amax(mcintfactor)
+            # self.test_skymap_plot(norm_mcint)
 
+            # self.test_plot_mcint(mcintfactor)
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
+
+    def test_skymap_plot(self, mcint):
+        from matplotlib import cm
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='mollweide')
+        ax.set_facecolor("k")
+        color = cm.coolwarm
+        az = self.event_mask(self.alt_deg)
+        alt = self.event_mask(self.alt_deg)
+        for i in range(len(mcint)):
+        # color = [cmap(mcint[i]) for i in mcint]
+            ax.plot(
+                np.radians(az[i])-np.pi, 
+                np.radians(alt[i]),
+                ".",
+                color = color(mcint[i])
+                )
+        ax.tick_params(axis='x', colors='white')
+        ax.grid(True, color="white")
+        ax.set_title(f"Source: {np.rad2deg(self.config.simulation.source_RA)}°, {np.rad2deg(self.config.simulation.source_DEC)}°(RA, DEC)\n Detector: {np.rad2deg(self.config.detector.detlat)}°N, {np.rad2deg(self.config.detector.detlong)}°W, {self.config.detector.altitude}km")
+        plt.savefig("Movement_over_sky_5.png")
+        plt.show()
+
+
+    def test_plot_mcint(self, mcint):
+        times = np.sort(self.event_mask(self.times.gps - np.amin(self.times.gps))/3600)
+        mcint = np.take_along_axis(mcint, np.argsort(self.event_mask(self.times.gps - np.amin(self.times.gps))/3600), 0)
+        plt.figure()
+        plt.plot(times, mcint, ".")
+        plt.grid(True)
+        plt.yscale("log")
+        plt.xlabel("Observation time in hours")
+        plt.ylabel("MC Integral factor")
+        plt.savefig("Mcint_vs_time.png")
 
     def test_plot_nadir_angle(self):
         import matplotlib.pyplot as plt
