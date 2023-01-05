@@ -32,9 +32,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import astropy
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
@@ -335,15 +334,15 @@ class RegionGeomToO:
 
         self.alt_deg = local_coords.alt.deg
         self.az_deg = local_coords.az.deg
-                
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot((self.times.gps - np.amin(self.times.gps))/3600, ".")
+        ax.plot((self.times.gps - np.amin(self.times.gps)) / 3600, ".")
         ax.set_xlabel("Number of thrown event")
         ax.set_ylabel("Time in h")
         ax.grid(True)
         plt.savefig("Thrown_times.png")
-        
+
         # plt.show()
         # quit()
 
@@ -354,7 +353,9 @@ class RegionGeomToO:
         self.sourcebeta = self.get_beta_angle(self.sourceNadRad[self.horizon_mask])
 
         # Define a cut if the source is below the horizon
-        self.volume_mask = self.sourcebeta < np.min([np.radians(42), self.get_beta_angle(self.config.simulation.ang_from_limb)])
+        self.volume_mask = self.sourcebeta < np.min(
+            [np.radians(42), self.get_beta_angle(self.config.simulation.ang_from_limb)]
+        )
 
         # Calculate the pathlength through the atmosphere
         self.losPathLen = self.get_path_length(
@@ -520,11 +521,12 @@ class RegionGeomToO:
             pass
 
         if method == "Optical":
-            np.savez("./too_slide.npz", 
+            np.savez(
+                "./too_slide.npz",
                 times=self.event_mask(self.times),
-                alt=self.event_mask(self.alt_deg), 
-                az=self.event_mask(self.az_deg), 
-                mcint=mcintfactor
+                alt=self.event_mask(self.alt_deg),
+                az=self.event_mask(self.az_deg),
+                mcint=mcintfactor,
             )
             # norm_mcint = mcintfactor/np.amax(mcintfactor)
             # self.test_skymap_plot(norm_mcint)
@@ -534,30 +536,40 @@ class RegionGeomToO:
 
     def test_skymap_plot(self, mcint):
         from matplotlib import cm
+
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='mollweide')
+        ax = fig.add_subplot(111, projection="mollweide")
         ax.set_facecolor("k")
         color = cm.coolwarm
         az = self.event_mask(self.alt_deg)
         alt = self.event_mask(self.alt_deg)
         for i in range(len(mcint)):
-        # color = [cmap(mcint[i]) for i in mcint]
+            # color = [cmap(mcint[i]) for i in mcint]
             ax.plot(
-                np.radians(az[i])-np.pi, 
+                np.radians(az[i]) - np.pi,
                 np.radians(alt[i]),
                 ".",
-                color = color(mcint[i])
-                )
-        ax.tick_params(axis='x', colors='white')
+                color=color(mcint[i]),
+            )
+        ax.tick_params(axis="x", colors="white")
         ax.grid(True, color="white")
-        ax.set_title(f"Source: {np.rad2deg(self.config.simulation.source_RA)}°, {np.rad2deg(self.config.simulation.source_DEC)}°(RA, DEC)\n Detector: {np.rad2deg(self.config.detector.detlat)}°N, {np.rad2deg(self.config.detector.detlong)}°W, {self.config.detector.altitude}km")
+        ax.set_title(
+            f"Source: {np.rad2deg(self.config.simulation.source_RA)}°, {np.rad2deg(self.config.simulation.source_DEC)}°(RA, DEC)\n Detector: {np.rad2deg(self.config.detector.detlat)}°N, {np.rad2deg(self.config.detector.detlong)}°W, {self.config.detector.altitude}km"
+        )
         plt.savefig("Movement_over_sky_5.png")
         plt.show()
 
-
     def test_plot_mcint(self, mcint):
-        times = np.sort(self.event_mask(self.times.gps - np.amin(self.times.gps))/3600)
-        mcint = np.take_along_axis(mcint, np.argsort(self.event_mask(self.times.gps - np.amin(self.times.gps))/3600), 0)
+        times = np.sort(
+            self.event_mask(self.times.gps - np.amin(self.times.gps)) / 3600
+        )
+        mcint = np.take_along_axis(
+            mcint,
+            np.argsort(
+                self.event_mask(self.times.gps - np.amin(self.times.gps)) / 3600
+            ),
+            0,
+        )
         plt.figure()
         plt.plot(times, mcint, ".")
         plt.grid(True)
