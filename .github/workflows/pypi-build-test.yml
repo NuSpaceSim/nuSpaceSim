@@ -1,6 +1,8 @@
 name: CI/CD 📝
 
 on:
+  schedule:
+    - cron: "55 4 * * *"
   push:
     branches: [ main ]
     paths:
