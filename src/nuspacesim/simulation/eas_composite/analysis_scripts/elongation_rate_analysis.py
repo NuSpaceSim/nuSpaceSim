@@ -7,8 +7,9 @@ from scipy.optimize import curve_fit
 import h5py
 
 
-tup_folder = "../conex_7_50_runs"
-ntuples = sorted(os.listdir(tup_folder))[:-1]
+# tup_folder = "../conex_7_50_runs"
+tup_folder = "/home/fabg/conex_runs"
+ntuples = sorted(os.listdir(tup_folder))  # [:-1]
 
 energies = []
 angles = []
@@ -18,6 +19,9 @@ mean_mus_xmax = []
 
 mean_char_nmax = []
 mean_char_xmax = []
+
+mean_el_nmax = []
+mean_el_xmax = []
 
 mean_had_nmax = []
 mean_had_xmax = []
@@ -29,7 +33,7 @@ mean_gam_xmax = []
 for tup in ntuples:
     log_energy = int(tup.split("_")[1])
     beta = int(tup.split("_")[4])
-
+    # print(beta)
     energies.append(log_energy)
     angles.append(beta)
 
@@ -46,7 +50,7 @@ for tup in ntuples:
 
     mus_nmaxs, mus_xmaxs = bin_nmax_xmax(depths, mus)
     char_nmaxs, char_xmaxs = bin_nmax_xmax(depths, char)
-    # el_nmaxs, el_xmaxs = bin_nmax_xmax(depths, el)
+    el_nmaxs, el_xmaxs = bin_nmax_xmax(depths, el)
     had_nmaxs, had_xmaxs = bin_nmax_xmax(depths, had)
     gam_nmaxs, gam_xmaxs = bin_nmax_xmax(depths, gam)
 
@@ -55,6 +59,9 @@ for tup in ntuples:
 
     mean_char_nmax.append(char_nmaxs.mean())
     mean_char_xmax.append(char_xmaxs.mean())
+
+    mean_el_nmax.append(el_nmaxs.mean())
+    mean_el_xmax.append(el_xmaxs.mean())
 
     mean_had_nmax.append(had_nmaxs.mean())
     mean_had_xmax.append(had_xmaxs.mean())
@@ -68,6 +75,8 @@ mean_mus_nmax = np.array(mean_mus_nmax)
 mean_mus_xmax = np.array(mean_mus_xmax)
 mean_char_nmax = np.array(mean_char_nmax)
 mean_char_xmax = np.array(mean_char_xmax)
+mean_el_nmax = np.array(mean_el_nmax)
+mean_el_xmax = np.array(mean_el_xmax)
 mean_had_nmax = np.array(mean_had_nmax)
 mean_had_xmax = np.array(mean_had_xmax)
 mean_gam_nmax = np.array(mean_gam_nmax)
@@ -78,12 +87,12 @@ def lin_func(x, m, b):
     return (m * x) + b
 
 
-plot_type = "log_log_nmax_vs_xmax"
-# plot_type = "lin_log_xmax_vs_energy"
+# plot_type = "log_log_nmax_vs_xmax"
+plot_type = "lin_log_xmax_vs_energy"
 # plot_type = "log_log_nmax_vs_energy"
 
-ptype = ["muons", "charged", "hadrons", "gammas"]
-mtype = ["^", "x", "s", "o"]
+ptype = ["muons", "charged", "electron_positron", "hadrons", "gammas"]
+mtype = ["^", "s", "x", "o", "+"]
 if plot_type == "log_log_nmax_vs_xmax":
     # plot mean nmax as a function of mean xmax with a color bar indicating energy.
 
@@ -102,6 +111,8 @@ if plot_type == "log_log_nmax_vs_xmax":
         masked_mus_xmax = mean_mus_xmax[mask]
         masked_char_nmax = mean_char_nmax[mask]
         masked_char_xmax = mean_char_xmax[mask]
+        masked_el_nmax = mean_el_nmax[mask]
+        masked_el_xmax = mean_el_xmax[mask]
         masked_had_nmax = mean_had_nmax[mask]
         masked_had_xmax = mean_had_xmax[mask]
         masked_gam_nmax = mean_gam_nmax[mask]
@@ -112,16 +123,17 @@ if plot_type == "log_log_nmax_vs_xmax":
         particle_xmaxs = [
             masked_mus_xmax,
             masked_char_xmax,
+            masked_el_xmax,
             masked_had_xmax,
             masked_gam_xmax,
         ]
         particle_nmaxs = [
             masked_mus_nmax,
             masked_char_nmax,
+            masked_el_nmax,
             masked_had_nmax,
             masked_gam_nmax,
         ]
-
         for idx, p in enumerate(ptype):
             params, uncertainty = curve_fit(
                 f=lin_func,
@@ -142,6 +154,7 @@ if plot_type == "log_log_nmax_vs_xmax":
                 label=r"{} ($\log_{{10}}(y)$ = {:.2f} $\log_{{10}}(x) $+ {:.2f})".format(
                     p, *params
                 ),
+                alpha=0.5,
             )
 
             three_angles.append(a)
@@ -156,6 +169,7 @@ if plot_type == "log_log_nmax_vs_xmax":
 
         ax.set_xlabel("log10 mean xmax $(g/cm^2)$")
         ax.set_ylabel("log10 mean nmax (N)")
+
         # ax.set_xscale("log")
         # ax.set_yscale("log")
 
@@ -163,7 +177,7 @@ if plot_type == "log_log_nmax_vs_xmax":
         ax.legend(
             title=r"$\beta = {} \degree$".format(angle),
             loc="upper center",
-            bbox_to_anchor=(0.5, 1.4),
+            bbox_to_anchor=(0.5, 1.5),
             fontsize=8,
         )
 
@@ -176,8 +190,12 @@ if plot_type == "lin_log_xmax_vs_energy":
     slope_uncertainty = []
     intercept = []
     intercept_uncertainty = []
+    fig, ax = plt.subplots(
+        nrows=3, ncols=2, sharex=True, sharey=True, figsize=(12, 8), dpi=300
+    )
+    ax = ax.ravel()
+    for angle_idx, a in enumerate(sorted(list(set(angles)))):
 
-    for a in sorted(list(set(angles))):
         angle = a
         mask = angles == angle
         masked_energies = energies[mask]
@@ -185,6 +203,8 @@ if plot_type == "lin_log_xmax_vs_energy":
         masked_mus_xmax = mean_mus_xmax[mask]
         masked_char_nmax = mean_char_nmax[mask]
         masked_char_xmax = mean_char_xmax[mask]
+        masked_el_nmax = mean_el_nmax[mask]
+        masked_el_xmax = mean_el_xmax[mask]
         masked_had_nmax = mean_had_nmax[mask]
         masked_had_xmax = mean_had_xmax[mask]
         masked_gam_nmax = mean_gam_nmax[mask]
@@ -193,16 +213,18 @@ if plot_type == "lin_log_xmax_vs_energy":
         particle_xmaxs = [
             masked_mus_xmax,
             masked_char_xmax,
+            masked_el_xmax,
             masked_had_xmax,
             masked_gam_xmax,
         ]
         particle_nmaxs = [
             masked_mus_nmax,
             masked_char_nmax,
+            masked_el_nmax,
             masked_had_nmax,
             masked_gam_nmax,
         ]
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 3.5), dpi=300)
+
         for idx, p in enumerate(ptype):
 
             params, uncertainty = curve_fit(
@@ -212,12 +234,15 @@ if plot_type == "lin_log_xmax_vs_energy":
             )
             uncertainties = np.sqrt(np.diag(uncertainty))
             theory_x = np.linspace(14, 21, 100)
-            ax.plot(theory_x, lin_func(theory_x, *params), ls="--", alpha=0.8)
-            mus_scatter = ax.scatter(
+            ax[angle_idx].plot(
+                theory_x, lin_func(theory_x, *params), ls="--", alpha=0.8
+            )
+            mus_scatter = ax[angle_idx].scatter(
                 masked_energies,
                 particle_xmaxs[idx],
                 marker=mtype[idx],
                 label=r"{} (y = {:.2f} $\log_{{10}}(x)$ + {:.2f})".format(p, *params),
+                alpha=0.5,
             )
 
             three_angles.append(a)
@@ -226,19 +251,20 @@ if plot_type == "lin_log_xmax_vs_energy":
             slope_uncertainty.append(uncertainties[0])
             intercept.append(params[1])
             intercept_uncertainty.append(uncertainties[1])
-
-        ax.set_xlabel("log10 Energy $(eV)$")
-        ax.set_ylabel("mean Xmax (N)")
-        # ax.set_xscale("log")
-        # ax.set_yscale("log")
-
-        # ax.set_xlim(100, 3000)
-        ax.legend(
+        ax[angle_idx].legend(
             title=r"$\beta = {} \degree$".format(angle),
             loc="upper center",
-            bbox_to_anchor=(0.5, 1.4),
-            fontsize=8,
+            bbox_to_anchor=(0.5, 1.5),
+            fontsize=7,
         )
+    # ax[2].set_xlabel("log10 Energy $(eV)$")
+    ax[4].set_xlabel("log10 Energy $(eV)$")
+    ax[2].set_ylabel("mean Xmax (g/cm^2)")
+
+    # ax.set_xscale("log")
+    # ax.set_yscale("log")
+    ax[2].set_ylim(200, 1200)
+    # ax.set_xlim(100, 3000)
 
 
 if plot_type == "log_log_nmax_vs_energy":
@@ -257,6 +283,8 @@ if plot_type == "log_log_nmax_vs_energy":
         masked_mus_xmax = mean_mus_xmax[mask]
         masked_char_nmax = mean_char_nmax[mask]
         masked_char_xmax = mean_char_xmax[mask]
+        masked_el_nmax = mean_el_nmax[mask]
+        masked_el_xmax = mean_el_xmax[mask]
         masked_had_nmax = mean_had_nmax[mask]
         masked_had_xmax = mean_had_xmax[mask]
         masked_gam_nmax = mean_gam_nmax[mask]
@@ -265,12 +293,14 @@ if plot_type == "log_log_nmax_vs_energy":
         particle_xmaxs = [
             masked_mus_xmax,
             masked_char_xmax,
+            masked_el_xmax,
             masked_had_xmax,
             masked_gam_xmax,
         ]
         particle_nmaxs = [
             masked_mus_nmax,
             masked_char_nmax,
+            masked_el_nmax,
             masked_had_nmax,
             masked_gam_nmax,
         ]
@@ -293,6 +323,7 @@ if plot_type == "log_log_nmax_vs_energy":
                 label=r"{} ($\log_{{10}}(y)$ = {:.2f} $\log_{{10}}(x)$ + {:.2f})".format(
                     p, *params
                 ),
+                alpha=0.5,
             )
 
             three_angles.append(a)
@@ -304,12 +335,12 @@ if plot_type == "log_log_nmax_vs_energy":
 
         ax.set_xlabel("log10 Energy $(eV)$")
         ax.set_ylabel("log10  mean Nmax (N)")
-
+        ax.set_ylim(1, 12)
         # ax.set_xlim(100, 3000)
         ax.legend(
             title=r"$\beta = {} \degree$".format(angle),
             loc="upper center",
-            bbox_to_anchor=(0.5, 1.4),
+            bbox_to_anchor=(0.5, 1.5),
             fontsize=8,
         )
 
@@ -323,149 +354,236 @@ slope_uncertainty = np.array(slope_uncertainty)
 intercept = np.array(intercept)
 intercept_uncertainty = np.array(intercept_uncertainty)
 
-muon_1deg_data = np.concatenate(
-    (
-        np.array([1]),
-        slope[(three_angles == 1) & (particle_types == "muons")],
-        slope_uncertainty[(three_angles == 1) & (particle_types == "muons")],
-        intercept[(three_angles == 1) & (particle_types == "muons")],
-        intercept_uncertainty[(three_angles == 1) & (particle_types == "muons")],
-    )
-)
-
-muon_5deg_data = np.concatenate(
-    (
-        np.array([5]),
-        slope[(three_angles == 5) & (particle_types == "muons")],
-        slope_uncertainty[(three_angles == 5) & (particle_types == "muons")],
-        intercept[(three_angles == 5) & (particle_types == "muons")],
-        intercept_uncertainty[(three_angles == 5) & (particle_types == "muons")],
-    )
-)
-
-muon_35deg_data = np.concatenate(
-    (
-        np.array([35]),
-        slope[(three_angles == 35) & (particle_types == "muons")],
-        slope_uncertainty[(three_angles == 35) & (particle_types == "muons")],
-        intercept[(three_angles == 35) & (particle_types == "muons")],
-        intercept_uncertainty[(three_angles == 35) & (particle_types == "muons")],
-    )
-)
-
-charged_1deg_data = np.concatenate(
-    (
-        np.array([1]),
-        slope[(three_angles == 1) & (particle_types == "charged")],
-        slope_uncertainty[(three_angles == 1) & (particle_types == "charged")],
-        intercept[(three_angles == 1) & (particle_types == "charged")],
-        intercept_uncertainty[(three_angles == 1) & (particle_types == "charged")],
-    )
-)
-
-charged_5deg_data = np.concatenate(
-    (
-        np.array([5]),
-        slope[(three_angles == 5) & (particle_types == "charged")],
-        slope_uncertainty[(three_angles == 5) & (particle_types == "charged")],
-        intercept[(three_angles == 5) & (particle_types == "charged")],
-        intercept_uncertainty[(three_angles == 5) & (particle_types == "charged")],
-    )
-)
-
-charged_35deg_data = np.concatenate(
-    (
-        np.array([35]),
-        slope[(three_angles == 35) & (particle_types == "charged")],
-        slope_uncertainty[(three_angles == 35) & (particle_types == "charged")],
-        intercept[(three_angles == 35) & (particle_types == "charged")],
-        intercept_uncertainty[(three_angles == 35) & (particle_types == "charged")],
-    )
-)
-
-hadrons_1deg_data = np.concatenate(
-    (
-        np.array([1]),
-        slope[(three_angles == 1) & (particle_types == "hadrons")],
-        slope_uncertainty[(three_angles == 1) & (particle_types == "hadrons")],
-        intercept[(three_angles == 1) & (particle_types == "hadrons")],
-        intercept_uncertainty[(three_angles == 1) & (particle_types == "hadrons")],
-    )
-)
-
-hadrons_5deg_data = np.concatenate(
-    (
-        np.array([5]),
-        slope[(three_angles == 5) & (particle_types == "hadrons")],
-        slope_uncertainty[(three_angles == 5) & (particle_types == "hadrons")],
-        intercept[(three_angles == 5) & (particle_types == "hadrons")],
-        intercept_uncertainty[(three_angles == 5) & (particle_types == "hadrons")],
-    )
-)
-
-hadrons_35deg_data = np.concatenate(
-    (
-        np.array([35]),
-        slope[(three_angles == 35) & (particle_types == "hadrons")],
-        slope_uncertainty[(three_angles == 35) & (particle_types == "hadrons")],
-        intercept[(three_angles == 35) & (particle_types == "hadrons")],
-        intercept_uncertainty[(three_angles == 35) & (particle_types == "hadrons")],
-    )
-)
-
-
-gammas_1deg_data = np.concatenate(
-    (
-        np.array([1]),
-        slope[(three_angles == 1) & (particle_types == "gammas")],
-        slope_uncertainty[(three_angles == 1) & (particle_types == "gammas")],
-        intercept[(three_angles == 1) & (particle_types == "gammas")],
-        intercept_uncertainty[(three_angles == 1) & (particle_types == "gammas")],
-    )
-)
-
-gammas_5deg_data = np.concatenate(
-    (
-        np.array([5]),
-        slope[(three_angles == 5) & (particle_types == "gammas")],
-        slope_uncertainty[(three_angles == 5) & (particle_types == "gammas")],
-        intercept[(three_angles == 5) & (particle_types == "gammas")],
-        intercept_uncertainty[(three_angles == 5) & (particle_types == "gammas")],
-    )
-)
-
-gammas_35deg_data = np.concatenate(
-    (
-        np.array([35]),
-        slope[(three_angles == 35) & (particle_types == "gammas")],
-        slope_uncertainty[(three_angles == 35) & (particle_types == "gammas")],
-        intercept[(three_angles == 35) & (particle_types == "gammas")],
-        intercept_uncertainty[(three_angles == 35) & (particle_types == "gammas")],
-    )
-)
+ptypes = ["muons", "charged", "hadrons", "gammas", "electron_positron"]
+earth_emer_angles = sorted(list(set(angles)))
 
 with h5py.File("{}.h5".format(plot_type), "w") as f:
+    for t in ptypes:
+        # aggregate across earth emergence angles
+        particle_data = []
 
-    f.create_dataset(
-        "muons",
-        data=np.vstack((muon_1deg_data, muon_5deg_data, muon_35deg_data)),
-        dtype="f",
-    )
+        for ang in earth_emer_angles:
+            ang_data = np.concatenate(
+                (
+                    np.array([ang]),
+                    slope[(three_angles == ang) & (particle_types == t)],
+                    slope_uncertainty[(three_angles == ang) & (particle_types == t)],
+                    intercept[(three_angles == ang) & (particle_types == t)],
+                    intercept_uncertainty[
+                        (three_angles == ang) & (particle_types == t)
+                    ],
+                )
+            )
 
-    f.create_dataset(
-        "charged",
-        data=np.vstack((charged_1deg_data, charged_5deg_data, charged_35deg_data)),
-        dtype="f",
-    )
+            particle_data.append(ang_data)
 
-    f.create_dataset(
-        "hadrons",
-        data=np.vstack((hadrons_1deg_data, hadrons_5deg_data, hadrons_35deg_data)),
-        dtype="f",
-    )
+        f.create_dataset(
+            t,
+            data=np.array(particle_data),
+            dtype="f",
+        )
 
-    f.create_dataset(
-        "gammas",
-        data=np.vstack((gammas_1deg_data, gammas_5deg_data, gammas_35deg_data)),
-        dtype="f",
-    )
+
+# muon_5deg_data = np.concatenate(
+#     (
+#         np.array([5]),
+#         slope[(three_angles == 5) & (particle_types == "muons")],
+#         slope_uncertainty[(three_angles == 5) & (particle_types == "muons")],
+#         intercept[(three_angles == 5) & (particle_types == "muons")],
+#         intercept_uncertainty[(three_angles == 5) & (particle_types == "muons")],
+#     )
+# )
+
+# muon_35deg_data = np.concatenate(
+#     (
+#         np.array([35]),
+#         slope[(three_angles == 35) & (particle_types == "muons")],
+#         slope_uncertainty[(three_angles == 35) & (particle_types == "muons")],
+#         intercept[(three_angles == 35) & (particle_types == "muons")],
+#         intercept_uncertainty[(three_angles == 35) & (particle_types == "muons")],
+#     )
+# )
+
+# charged_1deg_data = np.concatenate(
+#     (
+#         np.array([1]),
+#         slope[(three_angles == 1) & (particle_types == "charged")],
+#         slope_uncertainty[(three_angles == 1) & (particle_types == "charged")],
+#         intercept[(three_angles == 1) & (particle_types == "charged")],
+#         intercept_uncertainty[(three_angles == 1) & (particle_types == "charged")],
+#     )
+# )
+
+# charged_5deg_data = np.concatenate(
+#     (
+#         np.array([5]),
+#         slope[(three_angles == 5) & (particle_types == "charged")],
+#         slope_uncertainty[(three_angles == 5) & (particle_types == "charged")],
+#         intercept[(three_angles == 5) & (particle_types == "charged")],
+#         intercept_uncertainty[(three_angles == 5) & (particle_types == "charged")],
+#     )
+# )
+
+# charged_35deg_data = np.concatenate(
+#     (
+#         np.array([35]),
+#         slope[(three_angles == 35) & (particle_types == "charged")],
+#         slope_uncertainty[(three_angles == 35) & (particle_types == "charged")],
+#         intercept[(three_angles == 35) & (particle_types == "charged")],
+#         intercept_uncertainty[(three_angles == 35) & (particle_types == "charged")],
+#     )
+# )
+
+# hadrons_1deg_data = np.concatenate(
+#     (
+#         np.array([1]),
+#         slope[(three_angles == 1) & (particle_types == "hadrons")],
+#         slope_uncertainty[(three_angles == 1) & (particle_types == "hadrons")],
+#         intercept[(three_angles == 1) & (particle_types == "hadrons")],
+#         intercept_uncertainty[(three_angles == 1) & (particle_types == "hadrons")],
+#     )
+# )
+
+# hadrons_5deg_data = np.concatenate(
+#     (
+#         np.array([5]),
+#         slope[(three_angles == 5) & (particle_types == "hadrons")],
+#         slope_uncertainty[(three_angles == 5) & (particle_types == "hadrons")],
+#         intercept[(three_angles == 5) & (particle_types == "hadrons")],
+#         intercept_uncertainty[(three_angles == 5) & (particle_types == "hadrons")],
+#     )
+# )
+
+# hadrons_35deg_data = np.concatenate(
+#     (
+#         np.array([35]),
+#         slope[(three_angles == 35) & (particle_types == "hadrons")],
+#         slope_uncertainty[(three_angles == 35) & (particle_types == "hadrons")],
+#         intercept[(three_angles == 35) & (particle_types == "hadrons")],
+#         intercept_uncertainty[(three_angles == 35) & (particle_types == "hadrons")],
+#     )
+# )
+
+
+# gammas_1deg_data = np.concatenate(
+#     (
+#         np.array([1]),
+#         slope[(three_angles == 1) & (particle_types == "gammas")],
+#         slope_uncertainty[(three_angles == 1) & (particle_types == "gammas")],
+#         intercept[(three_angles == 1) & (particle_types == "gammas")],
+#         intercept_uncertainty[(three_angles == 1) & (particle_types == "gammas")],
+#     )
+# )
+
+# gammas_5deg_data = np.concatenate(
+#     (
+#         np.array([5]),
+#         slope[(three_angles == 5) & (particle_types == "gammas")],
+#         slope_uncertainty[(three_angles == 5) & (particle_types == "gammas")],
+#         intercept[(three_angles == 5) & (particle_types == "gammas")],
+#         intercept_uncertainty[(three_angles == 5) & (particle_types == "gammas")],
+#     )
+# )
+
+# gammas_35deg_data = np.concatenate(
+#     (
+#         np.array([35]),
+#         slope[(three_angles == 35) & (particle_types == "gammas")],
+#         slope_uncertainty[(three_angles == 35) & (particle_types == "gammas")],
+#         intercept[(three_angles == 35) & (particle_types == "gammas")],
+#         intercept_uncertainty[(three_angles == 35) & (particle_types == "gammas")],
+#     )
+# )
+
+
+# electrons_1deg_data = np.concatenate(
+#     (
+#         np.array([1]),
+#         slope[(three_angles == 1) & (particle_types == "electrons")],
+#         slope_uncertainty[(three_angles == 1) & (particle_types == "electrons")],
+#         intercept[(three_angles == 1) & (particle_types == "electrons")],
+#         intercept_uncertainty[(three_angles == 1) & (particle_types == "electrons")],
+#     )
+# )
+
+# electrons_5deg_data = np.concatenate(
+#     (
+#         np.array([5]),
+#         slope[(three_angles == 5) & (particle_types == "electrons")],
+#         slope_uncertainty[(three_angles == 5) & (particle_types == "electrons")],
+#         intercept[(three_angles == 5) & (particle_types == "electrons")],
+#         intercept_uncertainty[(three_angles == 5) & (particle_types == "electrons")],
+#     )
+# )
+
+# electrons_35deg_data = np.concatenate(
+#     (
+#         np.array([35]),
+#         slope[(three_angles == 35) & (particle_types == "electrons")],
+#         slope_uncertainty[(three_angles == 35) & (particle_types == "electrons")],
+#         intercept[(three_angles == 35) & (particle_types == "electrons")],
+#         intercept_uncertainty[(three_angles == 35) & (particle_types == "electrons")],
+#     )
+# )
+
+# positrons_1deg_data = np.concatenate(
+#     (
+#         np.array([1]),
+#         slope[(three_angles == 1) & (particle_types == "positrons")],
+#         slope_uncertainty[(three_angles == 1) & (particle_types == "positrons")],
+#         intercept[(three_angles == 1) & (particle_types == "positrons")],
+#         intercept_uncertainty[(three_angles == 1) & (particle_types == "positrons")],
+#     )
+# )
+
+# positrons_5deg_data = np.concatenate(
+#     (
+#         np.array([5]),
+#         slope[(three_angles == 5) & (particle_types == "positrons")],
+#         slope_uncertainty[(three_angles == 5) & (particle_types == "positrons")],
+#         intercept[(three_angles == 5) & (particle_types == "positrons")],
+#         intercept_uncertainty[(three_angles == 5) & (particle_types == "positrons")],
+#     )
+# )
+
+# positrons_35deg_data = np.concatenate(
+#     (
+#         np.array([35]),
+#         slope[(three_angles == 35) & (particle_types == "positrons")],
+#         slope_uncertainty[(three_angles == 35) & (particle_types == "positrons")],
+#         intercept[(three_angles == 35) & (particle_types == "positrons")],
+#         intercept_uncertainty[(three_angles == 35) & (particle_types == "positrons")],
+#     )
+# )
+
+# with h5py.File("{}.h5".format(plot_type), "w") as f:
+
+#     f.create_dataset(
+#         "muons",
+#         data=np.vstack((muon_1deg_data, muon_5deg_data, muon_35deg_data)),
+#         dtype="f",
+#     )
+
+#     f.create_dataset(
+#         "charged",
+#         data=np.vstack((charged_1deg_data, charged_5deg_data, charged_35deg_data)),
+#         dtype="f",
+#     )
+
+#     f.create_dataset(
+#         "hadrons",
+#         data=np.vstack((hadrons_1deg_data, hadrons_5deg_data, hadrons_35deg_data)),
+#         dtype="f",
+#     )
+
+#     f.create_dataset(
+#         "gammas",
+#         data=np.vstack((gammas_1deg_data, gammas_5deg_data, gammas_35deg_data)),
+#         dtype="f",
+#     )
+
+#     f.create_dataset(
+#         "electrons_positrons",
+#         data=np.vstack((gammas_1deg_data, gammas_5deg_data, gammas_35deg_data)),
+#         dtype="f",
+# )
