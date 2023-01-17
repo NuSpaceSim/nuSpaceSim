@@ -518,20 +518,20 @@ class RegionGeomToO:
         numEvPass = np.count_nonzero(mcintfactor)
 
         if store is not None:
-            pass
+            self.store_fits(store, method, mcintfactor)
 
-        if method == "Optical":
-            np.savez(
-                "./too_slide.npz",
-                times=self.event_mask(self.times),
-                alt=self.event_mask(self.alt_deg),
-                az=self.event_mask(self.az_deg),
-                mcint=mcintfactor,
-            )
-            # norm_mcint = mcintfactor/np.amax(mcintfactor)
-            # self.test_skymap_plot(norm_mcint)
+        # if method == "Optical":
+        #     np.savez(
+        #         "./too_slide.npz",
+        #         times=self.event_mask(self.times),
+        #         alt=self.event_mask(self.alt_deg),
+        #         az=self.event_mask(self.az_deg),
+        #         mcint=mcintfactor,
+        #     )
+        # norm_mcint = mcintfactor/np.amax(mcintfactor)
+        # self.test_skymap_plot(norm_mcint)
 
-            # self.test_plot_mcint(mcintfactor)
+        # self.test_plot_mcint(mcintfactor)
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
     def test_skymap_plot(self, mcint):
