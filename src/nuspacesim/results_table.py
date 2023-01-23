@@ -119,40 +119,50 @@ class ResultsTable(AstropyTable):
 
         self.meta[name] = (value, comment)
 
+    def write(self, filename: Union[str, None] = None, **kwargs) -> None:
+        r"""Write the simulation results to a file.
 
-class ResultsWriter:
-    def __init__(self, filename, **kwargs):
-        """
-        The filename of the output file. If None, return default with timestamp."""
-
-        now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
-        self.filename = f"nuspacesim_run_{now}.fits" if filename is None else filename
-
-        self.kwargs = kwargs
-        self.kwargs["format"] = "fits" if "format" not in kwargs else kwargs["format"]
-
-        if self.kwargs["format"] not in ["fits", "hdf5"]:
-            raise ValueError(
-                f"File output format {self.kwargs['format']} not in {{ fits, hdf5 }}!"
-            )
-
-        if self.kwargs["format"] == "hdf5":
-            self.kwargs["path"] = "/" if "path" not in kwargs else kwargs["path"]
-            self.kwargs["overwrite"] = (
-                True if "overwrite" not in kwargs else kwargs["overwrite"]
-            )
-            self.kwargs["serialize_meta"] = True
-
-    def __call__(self, *tables):
-        r"""Write the simulation results to a Fits file.
-
-        Uses the astropy.table.Table write method of the ResultsTable base class to
-        populate the contents of a FITS file with 1 or more tables.
+        Uses the astropy.table.Table write method of the ResultsTable base class to write
+        FITS file.
 
         Parameters
         ----------
-        tables: {ResultsTable}
+        filename: {str, None}, optional
+            The filename of the output file. If None, return default with timestamp.
+
+        Raises
+        ------
+        ValueError:
+            If the input format value is not one of fits or hdf5.
         """
 
-        for table in tables:
-            table.super().write(self.filename, **self.kwargs)
+        if "format" not in kwargs:
+            kwargs["format"] = "fits"
+
+        if kwargs["format"] == "fits":
+
+            filename = (
+                f"nuspacesim_run_{self.meta['simTime'][0]}.fits"
+                if filename is None
+                else filename
+            )
+            super().write(filename, **kwargs)
+
+        elif kwargs["format"] == "hdf5":
+
+            filename = (
+                f"nuspacesim_run_{self.meta['simTime'][0]}.hdf5"
+                if filename is None
+                else filename
+            )
+
+            if "path" not in kwargs:
+                kwargs["path"] = "/"
+            if "overwrite" not in kwargs:
+                kwargs["overwrite"] = True
+            kwargs["serialize_meta"] = True
+
+            super().write(filename, **kwargs)
+
+        else:
+            raise ValueError(f"File output format {format} not in {{ fits, hdf5 }}!")
