@@ -32,9 +32,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import astropy
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
@@ -319,11 +318,11 @@ class RegionGeomToO:
         )
 
     @decorators.nss_result_plot(geom_beta_tr_hist)
-    @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")
+    @decorators.nss_result_store("beta_rad", "theta_rad", "path_len", "times")
     def __call__(self, numtrajs, *args, **kwargs):
         """Throw numtrajs events and return valid betas."""
         self.throw(numtrajs)
-        return self.beta_rad(), self.thetas(), self.pathLens()
+        return self.beta_rad(), self.thetas(), self.pathLens(), self.val_times()
 
     def throw(self, times=None) -> None:
         """Throw N events with 1 * u random numbers for the ToO detection mode"""
@@ -335,17 +334,6 @@ class RegionGeomToO:
 
         self.alt_deg = local_coords.alt.deg
         self.az_deg = local_coords.az.deg
-                
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot((self.times.gps - np.amin(self.times.gps))/3600, ".")
-        ax.set_xlabel("Number of thrown event")
-        ax.set_ylabel("Time in h")
-        ax.grid(True)
-        plt.savefig("Thrown_times.png")
-        
-        # plt.show()
-        # quit()
 
         # Define a cut if the source is below the horizon
         self.horizon_mask = self.sourceNadRad < self.alphaHorizon
@@ -354,7 +342,9 @@ class RegionGeomToO:
         self.sourcebeta = self.get_beta_angle(self.sourceNadRad[self.horizon_mask])
 
         # Define a cut if the source is below the horizon
-        self.volume_mask = self.sourcebeta < np.min([np.radians(42), self.get_beta_angle(self.config.simulation.ang_from_limb)])
+        self.volume_mask = self.sourcebeta < np.min(
+            [np.radians(42), self.get_beta_angle(self.config.simulation.ang_from_limb)]
+        )
 
         # Calculate the pathlength through the atmosphere
         self.losPathLen = self.get_path_length(
@@ -375,6 +365,7 @@ class RegionGeomToO:
                 "numbers in [0, 1]"
             )
 
+        times = np.sort(times)
         times *= self.sourceOBSTime  # in s
         times = astropy.time.TimeDelta(times, format="sec")
         times = self.too_source.eventtime + times
@@ -412,41 +403,6 @@ class RegionGeomToO:
         """View angles for valid events."""
         return self.losPathLen
 
-    def store_fits(self, store, method, mcintfactor):
-        # Store data into fits file
-        if self.config.detector.method == "Optical":
-            names = ("times", "tmcintopt")
-            values = (
-                np.sort(self.val_times()),
-                np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0),
-            )
-        elif self.config.detector.method == "Radio":
-            names = ("times", "tmcintrad")
-            values = (
-                np.sort(self.val_times()),
-                np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0),
-            )
-        elif self.config.detector.method == "Both":
-            if method == "Optical":
-                names = ("times", "tmcintopt")
-                values = (
-                    np.sort(self.val_times()),
-                    np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0),
-                )
-            if method == "Radio":
-                names = ["tmcintrad"]
-                values = [
-                    np.take_along_axis(mcintfactor, np.argsort(self.val_times()), 0)
-                ]
-
-        assert len(names) == len(values)
-        if isinstance(values, tuple):
-            print(f"storing [{names}]")
-            store(names, [*values])
-        else:
-            print(f"storing [{names}]")
-            store(names, [values])
-
     def np_save(self, mcintfactor, numEvPass):
         np.savez(
             str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
@@ -476,6 +432,9 @@ class RegionGeomToO:
             store = kwargs["store"]
         else:
             store = None
+
+        if method not in ["Optical", "Radio"]:
+            raise ValueError("method must be Optical or Radio")
 
         # calculate the Cherenkov angle
         thetaChEff = np.arccos(costhetaChEff)
@@ -517,47 +476,47 @@ class RegionGeomToO:
         numEvPass = np.count_nonzero(mcintfactor)
 
         if store is not None:
-            pass
+            col_name = "tmcintopt" if method == "Optical" else "tmcintrad"
+            store([col_name], [mcintfactor])
 
-        if method == "Optical":
-            np.savez("./too_slide.npz", 
-                times=self.event_mask(self.times),
-                alt=self.event_mask(self.alt_deg), 
-                az=self.event_mask(self.az_deg), 
-                mcint=mcintfactor
-            )
-            # norm_mcint = mcintfactor/np.amax(mcintfactor)
-            # self.test_skymap_plot(norm_mcint)
-
-            # self.test_plot_mcint(mcintfactor)
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
     def test_skymap_plot(self, mcint):
         from matplotlib import cm
+
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='mollweide')
+        ax = fig.add_subplot(111, projection="mollweide")
         ax.set_facecolor("k")
         color = cm.coolwarm
         az = self.event_mask(self.alt_deg)
         alt = self.event_mask(self.alt_deg)
         for i in range(len(mcint)):
-        # color = [cmap(mcint[i]) for i in mcint]
+            # color = [cmap(mcint[i]) for i in mcint]
             ax.plot(
-                np.radians(az[i])-np.pi, 
+                np.radians(az[i]) - np.pi,
                 np.radians(alt[i]),
                 ".",
-                color = color(mcint[i])
-                )
-        ax.tick_params(axis='x', colors='white')
+                color=color(mcint[i]),
+            )
+        ax.tick_params(axis="x", colors="white")
         ax.grid(True, color="white")
-        ax.set_title(f"Source: {np.rad2deg(self.config.simulation.source_RA)}°, {np.rad2deg(self.config.simulation.source_DEC)}°(RA, DEC)\n Detector: {np.rad2deg(self.config.detector.detlat)}°N, {np.rad2deg(self.config.detector.detlong)}°W, {self.config.detector.altitude}km")
+        ax.set_title(
+            f"Source: {np.rad2deg(self.config.simulation.source_RA)}°, {np.rad2deg(self.config.simulation.source_DEC)}°(RA, DEC)\n Detector: {np.rad2deg(self.config.detector.detlat)}°N, {np.rad2deg(self.config.detector.detlong)}°W, {self.config.detector.altitude}km"
+        )
         plt.savefig("Movement_over_sky_5.png")
         plt.show()
 
-
     def test_plot_mcint(self, mcint):
-        times = np.sort(self.event_mask(self.times.gps - np.amin(self.times.gps))/3600)
-        mcint = np.take_along_axis(mcint, np.argsort(self.event_mask(self.times.gps - np.amin(self.times.gps))/3600), 0)
+        times = np.sort(
+            self.event_mask(self.times.gps - np.amin(self.times.gps)) / 3600
+        )
+        mcint = np.take_along_axis(
+            mcint,
+            np.argsort(
+                self.event_mask(self.times.gps - np.amin(self.times.gps)) / 3600
+            ),
+            0,
+        )
         plt.figure()
         plt.plot(times, mcint, ".")
         plt.grid(True)

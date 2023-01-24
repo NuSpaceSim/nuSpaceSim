@@ -42,7 +42,6 @@ date: 2021 August 12
 """
 
 import numpy as np
-import quadpy as qp
 import scipy.integrate
 from numpy.polynomial import Polynomial
 
@@ -189,5 +188,5 @@ def slant_depth(
         y = np.multiply.outer(z_hi - z_lo, x).T + z_lo
         return (func(y, theta_tr=theta_tr, earth_radius=earth_radius) * (z_hi - z_lo)).T
 
-    return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel, **kwargs)
+    # return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel, **kwargs)
     # return scipy.integrate.nquad(f, [0.0, 1.0], **kwargs)

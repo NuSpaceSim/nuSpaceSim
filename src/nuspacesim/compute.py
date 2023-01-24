@@ -46,7 +46,10 @@ NuSpaceSim Simulation
    compute
 
 """
+from typing import Any, Iterable, Union
+
 import numpy as np
+from numpy.typing import ArrayLike
 from rich.console import Console
 
 from .config import NssConfig
@@ -141,7 +144,7 @@ def compute(
         )
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
-    sim = ResultsTable(config)
+    sim = ResultsTable()
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
@@ -155,13 +158,19 @@ def compute(
     class StagedWriter:
         """Optionally write intermediate values to file"""
 
-        def __call__(self, *args, **kwargs):
-            sim(*args, **kwargs)
+        def __call__(
+            self,
+            col_names: Iterable[str],
+            columns: Iterable[ArrayLike],
+            *args,
+            **kwargs,
+        ):
+            sim.add_columns(columns, names=col_names, *args, **kwargs)
             if write_stages:
                 sim.write(output_file, overwrite=True)
 
-        def add_meta(self, *args, **kwargs):
-            sim.add_meta(*args, **kwargs)
+        def add_meta(self, name: str, value: Any, comment: str):
+            sim.meta[name] = (value, comment)
             if write_stages:
                 sim.write(output_file, overwrite=True)
 
@@ -172,7 +181,7 @@ def compute(
     )
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
+    beta_tr, thetaArr, pathLenArr, _ = geom(config.simulation.N, store=sw, plot=to_plot)
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
