@@ -98,7 +98,7 @@ class ReadConex:
         mean_gam_xmax.append(gam_xmaxs.mean())
     """
 
-    def __init__(self, file_name: str, shower_header_name=2):
+    def __init__(self, file_name: str, shower_header_name=101):
         self.file_name = file_name
         self.ntuple = uproot.open(self.file_name)
         self.shwr = self.ntuple["Shower;{}".format(shower_header_name)]

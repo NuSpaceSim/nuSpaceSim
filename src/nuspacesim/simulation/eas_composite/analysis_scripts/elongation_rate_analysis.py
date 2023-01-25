@@ -8,8 +8,8 @@ import h5py
 
 
 # tup_folder = "../conex_7_50_runs"
-tup_folder = "/home/fabg/conex_runs"
-ntuples = sorted(os.listdir(tup_folder))  # [:-1]
+tup_folder = "/home/fabg/conex_runs/100_showers"
+ntuples = sorted(os.listdir(tup_folder))[1:]
 
 energies = []
 angles = []
@@ -88,8 +88,8 @@ def lin_func(x, m, b):
 
 
 # plot_type = "log_log_nmax_vs_xmax"
-plot_type = "lin_log_xmax_vs_energy"
-# plot_type = "log_log_nmax_vs_energy"
+# plot_type = "lin_log_xmax_vs_energy"
+plot_type = "log_log_nmax_vs_energy"
 
 ptype = ["muons", "charged", "electron_positron", "hadrons", "gammas"]
 mtype = ["^", "s", "x", "o", "+"]
@@ -191,9 +191,10 @@ if plot_type == "lin_log_xmax_vs_energy":
     intercept = []
     intercept_uncertainty = []
     fig, ax = plt.subplots(
-        nrows=3, ncols=2, sharex=True, sharey=True, figsize=(12, 8), dpi=300
+        nrows=3, ncols=2, sharex=True, sharey=True, figsize=(10, 8), dpi=300
     )
     ax = ax.ravel()
+    plt.subplots_adjust(wspace=0, hspace=0)
     for angle_idx, a in enumerate(sorted(list(set(angles)))):
 
         angle = a
@@ -241,7 +242,10 @@ if plot_type == "lin_log_xmax_vs_energy":
                 masked_energies,
                 particle_xmaxs[idx],
                 marker=mtype[idx],
-                label=r"{} (y = {:.2f} $\log_{{10}}(x)$ + {:.2f})".format(p, *params),
+                label=r"{} ({:.2f}, {:.2f})".format(p, *params),
+                # label=r"{} ({:.1f} $\pm$ {:.1f})".format(
+                #     p, params[0], uncertainties[0]
+                # ),
                 alpha=0.5,
             )
 
@@ -252,18 +256,22 @@ if plot_type == "lin_log_xmax_vs_energy":
             intercept.append(params[1])
             intercept_uncertainty.append(uncertainties[1])
         ax[angle_idx].legend(
-            title=r"$\beta = {} \degree$".format(angle),
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.5),
+            title=r"$\beta = {} \degree$ (slope, intercept)".format(angle),
+            # loc="upper center",
+            # bbox_to_anchor=(0.5, 1.5),
             fontsize=7,
+            title_fontsize=7,
+            ncol=2,
         )
+        ax[angle_idx].grid()
     # ax[2].set_xlabel("log10 Energy $(eV)$")
-    ax[4].set_xlabel("log10 Energy $(eV)$")
-    ax[2].set_ylabel("mean Xmax (g/cm^2)")
+    ax[4].set_xlabel("$\log_{10}$ Energy (eV)")
+    ax[5].set_xlabel("$\log_{10}$ Energy (eV)")
+    ax[2].set_ylabel(r"mean Xmax (g/cm$^2$)")
 
     # ax.set_xscale("log")
     # ax.set_yscale("log")
-    ax[2].set_ylim(200, 1200)
+    ax[2].set_ylim(bottom=0)
     # ax.set_xlim(100, 3000)
 
 
@@ -274,8 +282,13 @@ if plot_type == "log_log_nmax_vs_energy":
     slope_uncertainty = []
     intercept = []
     intercept_uncertainty = []
+    fig, ax = plt.subplots(
+        nrows=3, ncols=2, sharex=True, sharey=True, figsize=(10, 8), dpi=300
+    )
+    plt.subplots_adjust(wspace=0, hspace=0)
+    ax = ax.ravel()
 
-    for a in sorted(list(set(angles))):
+    for angle_idx, a in enumerate(sorted(list(set(angles)))):
         angle = a
         mask = angles == angle
         masked_energies = energies[mask]
@@ -304,7 +317,7 @@ if plot_type == "log_log_nmax_vs_energy":
             masked_had_nmax,
             masked_gam_nmax,
         ]
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 3.5), dpi=300)
+
         for idx, p in enumerate(ptype):
 
             params, uncertainty = curve_fit(
@@ -315,14 +328,14 @@ if plot_type == "log_log_nmax_vs_energy":
             uncertainties = np.sqrt(np.diag(uncertainty))
 
             theory_x = np.linspace(14, 21, 100)
-            ax.plot(theory_x, lin_func(theory_x, *params), ls="--", alpha=0.8)
-            mus_scatter = ax.scatter(
+            ax[angle_idx].plot(
+                theory_x, lin_func(theory_x, *params), ls="--", alpha=0.8
+            )
+            mus_scatter = ax[angle_idx].scatter(
                 masked_energies,
                 np.log10(particle_nmaxs[idx]),
                 marker=mtype[idx],
-                label=r"{} ($\log_{{10}}(y)$ = {:.2f} $\log_{{10}}(x)$ + {:.2f})".format(
-                    p, *params
-                ),
+                label=r"{} ({:.2f}, {:.2f})".format(p, *params),
                 alpha=0.5,
             )
 
@@ -332,17 +345,26 @@ if plot_type == "log_log_nmax_vs_energy":
             slope_uncertainty.append(uncertainties[0])
             intercept.append(params[1])
             intercept_uncertainty.append(uncertainties[1])
-
-        ax.set_xlabel("log10 Energy $(eV)$")
-        ax.set_ylabel("log10  mean Nmax (N)")
-        ax.set_ylim(1, 12)
-        # ax.set_xlim(100, 3000)
-        ax.legend(
-            title=r"$\beta = {} \degree$".format(angle),
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.5),
-            fontsize=8,
+        ax[angle_idx].legend(
+            title=r"$\beta = {} \degree$ (slope, intercept)".format(angle),
+            # loc="upper center",
+            # bbox_to_anchor=(0.5, 1.5),
+            fontsize=7,
+            title_fontsize=7,
+            ncol=2,
         )
+        ax[angle_idx].grid()
+    ax[4].set_xlabel("log10 Energy (eV)")
+    ax[5].set_xlabel("log10 Energy (eV)")
+    ax[2].set_ylabel("log10  mean Nmax (N)")
+    ax[2].set_ylim(1, 15)
+    # ax.set_xlim(100, 3000)
+    # ax.legend(
+    #     title=r"$\beta = {} \degree$".format(angle),
+    #     loc="upper center",
+    #     bbox_to_anchor=(0.5, 1.5),
+    #     fontsize=8,
+    # )
 
 #%% save
 
@@ -357,7 +379,7 @@ intercept_uncertainty = np.array(intercept_uncertainty)
 ptypes = ["muons", "charged", "hadrons", "gammas", "electron_positron"]
 earth_emer_angles = sorted(list(set(angles)))
 
-with h5py.File("{}.h5".format(plot_type), "w") as f:
+with h5py.File("./100evts/{}.h5".format(plot_type), "w") as f:
     for t in ptypes:
         # aggregate across earth emergence angles
         particle_data = []
