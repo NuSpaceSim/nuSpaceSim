@@ -8,7 +8,7 @@ import h5py
 
 
 # tup_folder = "../conex_7_50_runs"
-tup_folder = "/home/fabg/conex_runs/100_showers"
+tup_folder = "/home/fabg/conex_runs/1000_showers"
 ntuples = sorted(os.listdir(tup_folder))[1:]
 
 energies = []
@@ -88,8 +88,8 @@ def lin_func(x, m, b):
 
 
 # plot_type = "log_log_nmax_vs_xmax"
-# plot_type = "lin_log_xmax_vs_energy"
-plot_type = "log_log_nmax_vs_energy"
+plot_type = "lin_log_xmax_vs_energy"
+# plot_type = "log_log_nmax_vs_energy"
 
 ptype = ["muons", "charged", "electron_positron", "hadrons", "gammas"]
 mtype = ["^", "s", "x", "o", "+"]

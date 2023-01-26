@@ -101,7 +101,10 @@ class ReadConex:
     def __init__(self, file_name: str, shower_header_name=101):
         self.file_name = file_name
         self.ntuple = uproot.open(self.file_name)
-        self.shwr = self.ntuple["Shower;{}".format(shower_header_name)]
+        try:
+            self.shwr = self.ntuple["Shower;{}".format(shower_header_name)]
+        except:
+            self.shwr = self.ntuple["Shower;{}".format(102)]
         # lg_10_e = shwr["lgE"].array(library="np")
         # zenith_ang_deg = shwr["zenith"].array(library="np")
         # azimuth_ang_deg = shwr["azimuth"].array(library="np")

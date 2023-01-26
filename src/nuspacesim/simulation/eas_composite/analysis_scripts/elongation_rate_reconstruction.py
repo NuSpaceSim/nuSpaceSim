@@ -197,7 +197,7 @@ ax[1].plot(
 ax[0].set(yscale="log", ylim=(10, 1e9), ylabel="$N$")
 ax[0].legend(title=r"$\beta = 15$  degrees")
 ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
-ax[1].legend()
+ax[1].legend(title="MUON", ncol=2)
 ax[1].axhline(y=1, ls="--", c="k")
 #%%
 
@@ -282,7 +282,7 @@ ax[1].plot(
 ax[0].set(yscale="log", ylim=(10, 1e9), ylabel="$N$")
 ax[0].legend(title=r"$\beta = 15$  degrees")
 ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
-ax[1].legend()
+ax[1].legend(title="CHARGED", ncol=2)
 ax[1].axhline(y=1, ls="--", c="k")
 
 #%%
@@ -371,5 +371,5 @@ ax[1].plot(
 ax[0].set(yscale="log", ylim=(10, 1e9), ylabel="$N$")
 ax[0].legend(title=r"$\beta = 15$  degrees")
 ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
-ax[1].legend()
+ax[1].legend(title="ELECTRON/POSITRON", ncol=2)
 ax[1].axhline(y=1, ls="--", c="k")
