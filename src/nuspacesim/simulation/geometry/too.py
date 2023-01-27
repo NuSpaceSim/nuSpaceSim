@@ -74,8 +74,8 @@ class ToOEvent:
         True -> observation possible
         False -> no observation posible
         """
-        sun_alt = self.get_sun(time).alt.degree < self.sun_alt_cut
-        moon_alt = self.get_moon(time).alt.degree < self.moon_alt_cut
+        sun_alt = self.get_sun(time).alt.rad < self.sun_alt_cut
+        moon_alt = self.get_moon(time).alt.rad < self.moon_alt_cut
         moon_phase = self.moon_phase_angle(time).value > self.MoonMinPhaseAngleCut
         moon_cut = np.logical_or(moon_phase, moon_alt)
         return np.logical_and(sun_alt, moon_cut)
