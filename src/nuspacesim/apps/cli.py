@@ -222,19 +222,21 @@ def run(
 )
 @click.option(
     "--diffuse",
-    'diffuse_calc_method',
+    "diffuse_calc_method",
     default=True,
-    flag_value='diffuse',
+    flag_value="diffuse",
     help="Diffuse calculation method, (Diffuse) or ToO",
 )
 @click.option(
     "--too",
-    'diffuse_calc_method',
-    flag_value='too',
+    "diffuse_calc_method",
+    flag_value="too",
     help="ToO calculation method, Diffuse or (ToO)",
 )
 @click.argument("filename")
-def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum, diffuse_calc_method) -> None:
+def create_config(
+    filename: str, numtrajs: float, monospectrum, powerspectrum, diffuse_calc_method
+) -> None:
     """Generate a configuration file from the given parameters.
 
     \f
@@ -264,10 +266,14 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum, d
     # spec = FileSpectrum()
 
     if diffuse_calc_method == "diffuse":
-        simulation = SimulationParameters(N=int(numtrajs), spectrum=spec, det_mode='Diffuse')
+        simulation = SimulationParameters(
+            N=int(numtrajs), spectrum=spec, det_mode="Diffuse"
+        )
         create_xml(filename, NssConfig(simulation=simulation))
     else:
-        simulation = SimulationParameters(N=int(numtrajs), spectrum=spec, det_mode='ToO')
+        simulation = SimulationParameters(
+            N=int(numtrajs), spectrum=spec, det_mode="ToO"
+        )
         create_xml_too(filename, NssConfig(simulation=simulation))
 
 

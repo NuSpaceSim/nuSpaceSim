@@ -439,13 +439,13 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     detalt.set("Unit", "km")
     detalt.text = str(config.detector.altitude)
 
-    detra = ET.SubElement(detchar, "InitialDetectorLatitude")
-    detra.set("Unit", "Degrees")
-    detra.text = str(config.detector.detlat)
+    detlat = ET.SubElement(detchar, "InitialDetectorLatitude")
+    detlat.set("Unit", "Degrees")
+    detlat.text = str(config.detector.detlat)
 
-    detdec = ET.SubElement(detchar, "InitialDetectorLongitude")
-    detdec.set("Unit", "Degrees")
-    detdec.text = str(config.detector.detlong)
+    detlong = ET.SubElement(detchar, "InitialDetectorLongitude")
+    detlong.set("Unit", "Degrees")
+    detlong.text = str(config.detector.detlong)
 
     npe = ET.SubElement(pethres, "NPE")
     npe.text = str(config.detector.photo_electron_threshold)
@@ -466,6 +466,19 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     detGain = ET.SubElement(detchar, "AntennaGain")
     detGain.text = str(config.detector.det_gain)
+
+    detSunMoon = ET.SubElement(detchar, "SunMoonCuts")
+    dethigh_freq = ET.SubElement(detSunMoon, "SunAngleBelowHorizonCut")
+    dethigh_freq.set("Unit", "Degrees")
+    dethigh_freq.text = str(config.detector.sun_alt_cut)
+
+    dethigh_freq = ET.SubElement(detSunMoon, "MoonAngleBelowHorizonCut")
+    dethigh_freq.set("Unit", "Degrees")
+    dethigh_freq.text = str(config.detector.moon_alt_cut)
+
+    dethigh_freq = ET.SubElement(detSunMoon, "MoonMinPhaseAngleCut")
+    dethigh_freq.set("Unit", "Degrees")
+    dethigh_freq.text = str(config.detector.MoonMinPhaseAngleCut)
 
     simparams = ET.SubElement(nuspacesimparams, "SimulationParameters")
     simparams.set("DetectionMode", "Diffuse")
@@ -603,6 +616,19 @@ def create_xml_too(filename: str, config: NssConfig = NssConfig()) -> None:
 
     detGain = ET.SubElement(detchar, "AntennaGain")
     detGain.text = str(config.detector.det_gain)
+
+    detSunMoon = ET.SubElement(detchar, "SunMoonCuts")
+    dethigh_freq = ET.SubElement(detSunMoon, "SunAngleBelowHorizonCut")
+    dethigh_freq.set("Unit", "Degrees")
+    dethigh_freq.text = str(config.detector.sun_alt_cut)
+
+    dethigh_freq = ET.SubElement(detSunMoon, "MoonAngleBelowHorizonCut")
+    dethigh_freq.set("Unit", "Degrees")
+    dethigh_freq.text = str(config.detector.moon_alt_cut)
+
+    dethigh_freq = ET.SubElement(detSunMoon, "MoonMinPhaseAngleCut")
+    dethigh_freq.set("Unit", "Degrees")
+    dethigh_freq.text = str(config.detector.MoonMinPhaseAngleCut)
 
     simparams = ET.SubElement(nuspacesimparams, "SimulationParameters")
     simparams.set("DetectionMode", "ToO")
