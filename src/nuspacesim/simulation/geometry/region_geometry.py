@@ -377,9 +377,7 @@ class RegionGeomToO:
         )
 
     def get_path_length(self, beta, nadir_angle):
-        return self.config.constants.earth_radius * np.cos(
-            beta
-        ) - self.core_alt * np.cos(nadir_angle + beta)
+        return self.core_alt * np.cos(nadir_angle + beta) / np.cos(beta)
 
     def event_mask(self, x):
         return x[self.horizon_mask][self.volume_mask]
