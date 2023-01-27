@@ -339,14 +339,14 @@ class RegionGeomToO:
 
         # Define a cut if the source is below the horizon
         self.volume_mask = self.sourcebeta < np.min(
-            [np.radians(42), self.get_beta_angle(self.config.simulation.ang_from_limb)]
+            [np.radians(42), self.get_beta_angle(self.alphaHorizon - self.config.simulation.ang_from_limb)]
         )
-
+        print(np.rad2deg(self.config.simulation.ang_from_limb), np.rad2deg(self.get_beta_angle(self.alphaHorizon - self.config.simulation.ang_from_limb)))
         # Calculate the pathlength through the atmosphere
         self.losPathLen = self.get_path_length(
             self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
         )
-        # self.test_plot_nadir_angle()
+        self.test_plot_nadir_angle()
 
     def generate_times(self, times) -> np.ndarray:
         """
@@ -533,6 +533,7 @@ class RegionGeomToO:
             label="visible",
         )
         plt.axhline(np.rad2deg(self.alphaHorizon), label="Horizon")
+        plt.axhline(np.rad2deg(self.alphaHorizon - self.config.simulation.ang_from_limb), label="angle from limb", color="k")
         plt.axhline(np.rad2deg(self.get_beta_angle(np.radians(42))), label="End of sim")
         plt.legend()
         plt.xlabel("GPS time in s")
