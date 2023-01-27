@@ -79,6 +79,8 @@ ax.legend(ncol=2, fontsize=8)
 
 #%% try to reconstruct it using soleley the elenogation rate
 
+beta = 5
+
 
 def muon_elongation_rate(log_e):
     y = muons[0, 1:][0] * log_e + muons[0, 1:][2]
@@ -130,11 +132,11 @@ def reco_shower(ref_shwr, reco_shwr, reco_e, elong, e_scaler, component):
 reco_fit_18, ref_17, reco_18 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root",
+        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_18_eV_1000shwrs_15_degearthemergence_eposlhc_1021731681_100.root",
+        "log_18_eV_1000shwrs_5_degearthemergence_eposlhc_342620766_100.root",
     ),
     reco_e=18,
     elong=muon_elongation_rate,
@@ -145,11 +147,11 @@ reco_fit_18, ref_17, reco_18 = reco_shower(
 reco_fit_16, _, reco_16 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root",
+        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_16_eV_1000shwrs_15_degearthemergence_eposlhc_1728792184_100.root",
+        "log_16_eV_1000shwrs_5_degearthemergence_eposlhc_371114479_100.root",
     ),
     reco_e=16,
     elong=muon_elongation_rate,
@@ -160,21 +162,21 @@ reco_fit_16, _, reco_16 = reco_shower(
 fig, ax = plt.subplots(
     nrows=2, ncols=1, figsize=(5, 5), gridspec_kw={"height_ratios": [3, 1]}, dpi=300
 )
-ax[0].plot(ref_17[0], ref_17[1], lw=1, label="lg 17 eV mean and rms")
+ax[0].plot(ref_17[0], ref_17[1], lw=1, label="log 17 eV")
 ax[0].fill_between(
     ref_17[0],
     ref_17[1] - ref_17[2],
     ref_17[1] + ref_17[2],
     alpha=0.5,
 )
-ax[0].plot(reco_18[0], reco_18[1], lw=1, label="lg 18 eV mean and rms")
+ax[0].plot(reco_18[0], reco_18[1], lw=1, label="log 18 eV")
 ax[0].fill_between(
     reco_18[0],
     reco_18[1] - reco_18[2],
     reco_18[1] + reco_18[2],
     alpha=0.5,
 )
-ax[0].plot(reco_16[0], reco_16[1], lw=1, label="lg 16 eV mean and rms")
+ax[0].plot(reco_16[0], reco_16[1], lw=1, label="log 16 eV")
 ax[0].fill_between(
     reco_16[0],
     reco_16[1] - reco_16[2],
@@ -195,10 +197,19 @@ ax[1].plot(
 
 
 ax[0].set(yscale="log", ylim=(10, 1e9), ylabel="$N$")
-ax[0].legend(title=r"$\beta = 15$  degrees")
+ax[0].legend(title=r"$\beta = {:}$  degrees".format(beta))
 ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
 ax[1].legend(title="MUON", ncol=2)
-ax[1].axhline(y=1, ls="--", c="k")
+ax[1].axhline(y=1, c="k", ls=":")
+
+plt.savefig(
+    os.path.expanduser(
+        "~/g_drive/Research/NASA/Work/muon_scaling_beta{}.pdf".format(beta)
+    ),
+    dpi=400,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
 #%%
 
 
@@ -215,11 +226,11 @@ def charged_decade_scaler(log_e):
 reco_fit_18, ref_17, reco_18 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root",
+        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_18_eV_1000shwrs_15_degearthemergence_eposlhc_1021731681_100.root",
+        "log_18_eV_1000shwrs_5_degearthemergence_eposlhc_342620766_100.root",
     ),
     reco_e=18,
     elong=charged_elongation_rate,
@@ -230,11 +241,11 @@ reco_fit_18, ref_17, reco_18 = reco_shower(
 reco_fit_16, _, reco_16 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root",
+        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_16_eV_1000shwrs_15_degearthemergence_eposlhc_1728792184_100.root",
+        "log_16_eV_1000shwrs_5_degearthemergence_eposlhc_371114479_100.root",
     ),
     reco_e=16,
     elong=charged_elongation_rate,
@@ -245,21 +256,21 @@ reco_fit_16, _, reco_16 = reco_shower(
 fig, ax = plt.subplots(
     nrows=2, ncols=1, figsize=(5, 5), gridspec_kw={"height_ratios": [3, 1]}, dpi=300
 )
-ax[0].plot(ref_17[0], ref_17[1], lw=1, label="lg 17 eV mean and rms")
+ax[0].plot(ref_17[0], ref_17[1], lw=1, label="log 17 eV")
 ax[0].fill_between(
     ref_17[0],
     ref_17[1] - ref_17[2],
     ref_17[1] + ref_17[2],
     alpha=0.5,
 )
-ax[0].plot(reco_18[0], reco_18[1], lw=1, label="lg 18 eV mean and rms")
+ax[0].plot(reco_18[0], reco_18[1], lw=1, label="log 18 eV")
 ax[0].fill_between(
     reco_18[0],
     reco_18[1] - reco_18[2],
     reco_18[1] + reco_18[2],
     alpha=0.5,
 )
-ax[0].plot(reco_16[0], reco_16[1], lw=1, label="lg 16 eV mean and rms")
+ax[0].plot(reco_16[0], reco_16[1], lw=1, label="log 16 eV")
 ax[0].fill_between(
     reco_16[0],
     reco_16[1] - reco_16[2],
@@ -280,11 +291,19 @@ ax[1].plot(
 
 
 ax[0].set(yscale="log", ylim=(10, 1e9), ylabel="$N$")
-ax[0].legend(title=r"$\beta = 15$  degrees")
+ax[0].legend(title=r"$\beta = {:}$  degrees".format(beta))
 ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
 ax[1].legend(title="CHARGED", ncol=2)
-ax[1].axhline(y=1, ls="--", c="k")
+ax[1].axhline(y=1, c="k", ls=":")
 
+plt.savefig(
+    os.path.expanduser(
+        "~/g_drive/Research/NASA/Work/charged_scaling_beta{}.pdf".format(beta)
+    ),
+    dpi=400,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
 #%%
 
 
@@ -304,11 +323,11 @@ def elec_pos_decade_scaler(log_e):
 reco_fit_18, ref_17, reco_18 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root",
+        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_18_eV_1000shwrs_15_degearthemergence_eposlhc_1021731681_100.root",
+        "log_18_eV_1000shwrs_5_degearthemergence_eposlhc_342620766_100.root",
     ),
     reco_e=18,
     elong=elec_pos_elongation_rate,
@@ -319,11 +338,11 @@ reco_fit_18, ref_17, reco_18 = reco_shower(
 reco_fit_16, _, reco_16 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root",
+        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_16_eV_1000shwrs_15_degearthemergence_eposlhc_1728792184_100.root",
+        "log_16_eV_1000shwrs_5_degearthemergence_eposlhc_371114479_100.root",
     ),
     reco_e=16,
     elong=elec_pos_elongation_rate,
@@ -334,21 +353,21 @@ reco_fit_16, _, reco_16 = reco_shower(
 fig, ax = plt.subplots(
     nrows=2, ncols=1, figsize=(5, 5), gridspec_kw={"height_ratios": [3, 1]}, dpi=300
 )
-ax[0].plot(ref_17[0], ref_17[1], lw=1, label="lg 17 eV mean and rms")
+ax[0].plot(ref_17[0], ref_17[1], lw=1, label="log 17 eV")
 ax[0].fill_between(
     ref_17[0],
     ref_17[1] - ref_17[2],
     ref_17[1] + ref_17[2],
     alpha=0.5,
 )
-ax[0].plot(reco_18[0], reco_18[1], lw=1, label="lg 18 eV mean and rms")
+ax[0].plot(reco_18[0], reco_18[1], lw=1, label="log 18 eV")
 ax[0].fill_between(
     reco_18[0],
     reco_18[1] - reco_18[2],
     reco_18[1] + reco_18[2],
     alpha=0.5,
 )
-ax[0].plot(reco_16[0], reco_16[1], lw=1, label="lg 16 eV mean and rms")
+ax[0].plot(reco_16[0], reco_16[1], lw=1, label="log 16 eV")
 ax[0].fill_between(
     reco_16[0],
     reco_16[1] - reco_16[2],
@@ -369,7 +388,16 @@ ax[1].plot(
 
 
 ax[0].set(yscale="log", ylim=(10, 1e9), ylabel="$N$")
-ax[0].legend(title=r"$\beta = 15$  degrees")
+ax[0].legend(title=r"$\beta = {:}$  degrees".format(beta))
 ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
 ax[1].legend(title="ELECTRON/POSITRON", ncol=2)
-ax[1].axhline(y=1, ls="--", c="k")
+ax[1].axhline(y=1, c="k", ls=":")
+
+plt.savefig(
+    os.path.expanduser(
+        "~/g_drive/Research/NASA/Work/ep_scaling_beta{}.pdf".format(beta)
+    ),
+    dpi=400,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
