@@ -248,12 +248,8 @@ class RegionGeom:
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")
     def __call__(self, numtrajs, *args, **kwargs):
         """Throw numtrajs events and return valid betas."""
-        if self.detection_mode == "ToO":
-            self.too_throw(numtrajs)
-            return self.too_beta_rad(), self.too_thetas(), self.too_pathLens()
-        else:
-            self.throw(numtrajs)
-            return self.beta_rad(), self.thetas(), self.pathLens()
+        self.throw(numtrajs)
+        return self.beta_rad(), self.thetas(), self.pathLens()
 
     def McIntegral(
         self,
