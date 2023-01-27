@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Upware Going Extensive Air Shower calculations and properties.
+Upward Going Extensive Air Shower calculations and properties.
 
 author: Alexander Reustle
 date: 2023 January 23
@@ -43,19 +43,11 @@ from scipy.optimize import newton
 from .atmospheric_models import us_std_atm_density
 
 
-def viewing_angle(beta_tr, Zdet, Re=6378.1):
-    return np.arcsin((Re / (Re + Zdet)) * np.cos(beta_tr))
-
-
 def propagation_angle(beta_tr, z, Re=6378.1):
     return np.arccos((Re / (Re + z)) * np.cos(beta_tr))
 
 
-# def length_along_prop_axis(z_start, z_stop, beta_tr, Re=6378.1):
-#     L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
-#     L2 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start ** 2
-#     L = np.sqrt(L1) - np.sqrt(L2)
-#     return L
+propagation_theta = propagation_angle
 
 
 def path_length_tau_atm(z, beta_tr, Re=6378.1, xp=np):
@@ -66,36 +58,9 @@ def path_length_tau_atm(z, beta_tr, Re=6378.1, xp=np):
     return xp.sqrt(Resinb ** 2 + (Re + z) ** 2 - Re ** 2) - Resinb
 
 
-# def altitude_along_prop_axis(L, z_start, beta_tr, Re=6378.1):
-#     r1 = Re ** 2
-#     r2 = 2 * Re * z_start
-#     r3 = z_start ** 2
-#     return -Re + np.sqrt(
-#         L ** 2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
-#     )
-
-
 def altitude_along_path_length(s, beta_tr, Re=6378.1, xp=np):
     """Derived by solving for z in path_length_tau_atm."""
-    # (s + B)**2 = B**2 + (Re + z)**2 - Re**2
-    # (s + B)**2 - B**2 + Re**2 = (Re + z)**2
-    # s**2 + 2sB + B**2 - B**2 + Re**2 = (Re + z)**2
-    # s**2 + 2sB + Re**2 = (Re + z)**2
-    # Re + z = sqrt(s**2 + 2sB + Re**2)
-    # z = sqrt(s**2 + 2sB + Re**2) - Re
     return xp.sqrt(s ** 2 + 2.0 * s * Re * xp.sin(beta_tr) + Re ** 2) - Re
-
-
-# def gain_in_altitude_along_prop_axis(L, z_start, beta_tr, Re=6378.1):
-#     return altitude_along_prop_axis(L, z_start, beta_tr, Re) - z_start
-
-
-def distance_to_detector(beta_tr, z, z_det, earth_radius=6378.1):
-    """Unsure how I derived this."""
-    theta_view = viewing_angle(beta_tr, z_det, earth_radius)
-    theta_prop = propagation_angle(beta_tr, z, earth_radius)
-    ang_e = np.pi / 2 - theta_view - theta_prop
-    return np.sin(ang_e) / np.sin(theta_view) * (z + earth_radius)
 
 
 def index_of_refraction_air(X_v):
@@ -110,33 +75,40 @@ def index_of_refraction_air(X_v):
     return n
 
 
-def rad_len_atm_depth(x, L0=36.66):
+def rad_len_atm_depth(x, L0recip=0.02727768685):
     """
     T is X / L0, units of radiation length scaled g/cm^2
+    default L0 = 36.66
     """
-    T = x / L0
-    return T
+    return x * L0recip
 
 
-def shower_age(T, param_beta=np.log(10 ** 8 / (0.710 / 8.36))):
+def shower_age(T):
     r"""Shower age (s) as a function of atmospheric depth in mass units (g/cm^2)
 
 
     Hillas 1475 eqn (1)
 
     s = 3 * T / (T + 2 * beta)
+    where from EASCherGen beta = ln(10 ** 8 / (0.710 / 8.36))
+    so 2 * beta = 41.773258959991503347439824715462431074518643532553348404286170740...
     """
-    return 3.0 * T / (T + 2.0 * param_beta)
+    return 3.0 * T / (T + 41.77325895999150334743982471)
 
 
-def greisen_particle_count(T, s, param_beta=np.log(10 ** 8 / (0.710 / 8.36))):
+def greisen_particle_count(T, s):
     r"""Particle count as a function of radiation length from atmospheric depth
 
     Hillas 1461 eqn (6)
 
-    N_e(T) where y is beta in EASCherGen
+    N_e(T) where y is beta in EASCherGen, thus
+    (0.31 / sqrt (10^8 / (0.710 / 8.36)))
+    = 0.0678308895484773316048795658058110209448440898800928880798622962...
     """
-    N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
+    # , param_beta=np.log(10 ** 8 / (0.710 / 8.36))
+    # N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
+    # N_e[N_e < 0] = 0.0
+    N_e = 0.067830889548477331 * np.exp(T * (1.0 - 1.5 * np.log(s)))
     N_e[N_e < 0] = 0.0
     return N_e
 
@@ -144,18 +116,25 @@ def greisen_particle_count(T, s, param_beta=np.log(10 ** 8 / (0.710 / 8.36))):
 def shower_age_of_greisen_particle_count(target_count, x0=2):
 
     # for target_count = 2, shower_age = 1.899901462640018
-
-    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+    # param_beta = np.log(10 ** 8 / (0.710 / 8.36))
 
     def rns(s):
         return (
-            0.31
-            * np.exp((2 * param_beta * s * (1.5 * np.log(s) - 1)) / (s - 3))
-            / np.sqrt(param_beta)
+            0.067830889548477331
+            * np.exp(
+                (41.77325895999150334743982471 * s * (1.5 * np.log(s) - 1)) / (s - 3.0)
+            )
             - target_count
         )
 
     return newton(rns, x0)
+
+
+# def gaisser_hillas_particle_count(X, X0, Xmax, invlam):
+#     # return ((X - X0) / (Xmax - X0)) ** xmax * np.exp((Xmax - X) * invlam)
+#     xmax = (Xmax - X0) * invlam
+#     x = (X - X0) * invlam
+#     return (x / xmax) ** xmax * np.exp(xmax - x)
 
 
 def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
@@ -171,7 +150,7 @@ def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
     sd_hi = np.where(z_hi >= z_max, fmax, approx_slant_depth(z_hi))
     sd_lo = np.where(z_lo >= z_max, fmax, approx_slant_depth(z_lo))
 
-    return sd_hi - sd_lo
+    return sd_hi - sd_lo  # type: ignore
 
 
 def slant_depth_trig_behind_ahead(z_lo, z, z_hi, theta_tr, z_max=100.0):
@@ -188,7 +167,7 @@ def slant_depth_trig_behind_ahead(z_lo, z, z_hi, theta_tr, z_max=100.0):
     sd_mid = np.where(z >= z_max, fmax, approx_slant_depth(z))
     sd_lo = np.where(z_lo >= z_max, fmax, approx_slant_depth(z_lo))
 
-    return sd_mid - sd_lo, sd_hi - sd_mid
+    return sd_mid - sd_lo, sd_hi - sd_mid  # type: ignore
 
 
 def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
