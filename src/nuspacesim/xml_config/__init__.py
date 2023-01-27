@@ -72,8 +72,8 @@ __all__ = [
 from . import parse_config
 from .parse_config import (
     config_from_xml,
-    create_xml_too,
     create_xml,
+    create_xml_too,
     is_valid_xml,
     parse_detector_chars,
     parse_simulation_params,
