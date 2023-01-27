@@ -58,7 +58,7 @@ from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
 from ..results_table import ResultsTable
 from ..utils import plots
 from ..utils.plot_function_registry import registry
-from ..xml_config import config_from_xml, create_xml
+from ..xml_config import config_from_xml, create_xml, create_xml_too
 
 __all__ = ["create_config", "run", "show_plot"]
 
@@ -220,8 +220,21 @@ def run(
     default=None,
     help="Power Spectrum index, lower_bound, upper_bound.",
 )
+@click.option(
+    "--diffuse",
+    'diffuse_calc_method',
+    default=True,
+    flag_value='diffuse',
+    help="Diffuse calculation method, (Diffuse) or ToO",
+)
+@click.option(
+    "--too",
+    'diffuse_calc_method',
+    flag_value='too',
+    help="ToO calculation method, Diffuse or (ToO)",
+)
 @click.argument("filename")
-def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -> None:
+def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum, diffuse_calc_method) -> None:
     """Generate a configuration file from the given parameters.
 
     \f
@@ -250,9 +263,12 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
         spec = PowerSpectrum(*powerspectrum)
     # spec = FileSpectrum()
 
-    simulation = SimulationParameters(N=int(numtrajs), spectrum=spec)
-
-    create_xml(filename, NssConfig(simulation=simulation))
+    if diffuse_calc_method == "diffuse":
+        simulation = SimulationParameters(N=int(numtrajs), spectrum=spec, det_mode='Diffuse')
+        create_xml(filename, NssConfig(simulation=simulation))
+    else:
+        simulation = SimulationParameters(N=int(numtrajs), spectrum=spec, det_mode='ToO')
+        create_xml_too(filename, NssConfig(simulation=simulation))
 
 
 @cli.command()
