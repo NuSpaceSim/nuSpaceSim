@@ -123,9 +123,11 @@ class BaseUnits:
             return quantity.to(self.energy_base).value
         if unit in self.time_units:
             if unit == "month":
-                value = float(value) * 30
-                unit = "day"
-            quantity = u.Quantity(value, unit)
+                quantity = u.Quantity(float(value) * 30, u.day)
+            if unit == "sec":
+                quantity = u.Quantity(value, u.s)
+            else:
+                quantity = u.Quantity(value, unit)
             return quantity.to(self.time_base).value
         if unit in self.distance_units:
             quantity = u.Quantity(value, unit)
@@ -439,11 +441,11 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     detra = ET.SubElement(detchar, "InitialDetectorLatitude")
     detra.set("Unit", "Degrees")
-    detra.text = str(config.detector.ra_start)
+    detra.text = str(config.detector.detlat)
 
     detdec = ET.SubElement(detchar, "InitialDetectorLongitude")
     detdec.set("Unit", "Degrees")
-    detdec.text = str(config.detector.dec_start)
+    detdec.text = str(config.detector.detlong)
 
     npe = ET.SubElement(pethres, "NPE")
     npe.text = str(config.detector.photo_electron_threshold)
@@ -467,6 +469,160 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     simparams = ET.SubElement(nuspacesimparams, "SimulationParameters")
     simparams.set("DetectionMode", "Diffuse")
+
+    cherangmax = ET.SubElement(simparams, "MaximumCherenkovAngle")
+    cherangmax.set("Unit", "Radians")
+    cherangmax.text = str(config.simulation.theta_ch_max)
+
+    limbang = ET.SubElement(simparams, "AngleFromLimb")
+    limbang.set("Unit", "Radians")
+    limbang.text = str(config.simulation.ang_from_limb)
+
+    eshowtype = ET.SubElement(simparams, "TauShowerType")
+    eshowtype.set("Preset", "true")
+
+    fraceshow = ET.SubElement(eshowtype, "FracETauInShower")
+    fraceshow.text = str(config.simulation.e_shower_frac)
+
+    nutauspectype = ET.SubElement(simparams, "NuTauEnergySpecType")
+
+    if isinstance(config.simulation.spectrum, MonoSpectrum):
+        mono = ET.SubElement(nutauspectype, "MonoSpectrum")
+        nutauen = ET.SubElement(mono, "LogNuEnergy")
+        nutauen.text = str(config.simulation.spectrum.log_nu_tau_energy)
+
+    if isinstance(config.simulation.spectrum, PowerSpectrum):
+        power = ET.SubElement(nutauspectype, "PowerSpectrum")
+        sp1 = ET.SubElement(power, "PowerLawIndex")
+        sp2 = ET.SubElement(power, "LowerBound")
+        sp3 = ET.SubElement(power, "UpperBound")
+        sp1.text = str(config.simulation.spectrum.index)
+        sp2.text = str(config.simulation.spectrum.lower_bound)
+        sp3.text = str(config.simulation.spectrum.upper_bound)
+
+    if isinstance(config.simulation.spectrum, FileSpectrum):
+        filespec = ET.SubElement(nutauspectype, "FileSpectrum")
+        sp1 = ET.SubElement(filespec, "FilePath")
+        sp1.text = str(config.simulation.spectrum.path)
+
+    azimuthang = ET.SubElement(simparams, "AzimuthalAngle")
+    azimuthang.set("Unit", "Radians")
+    azimuthang.text = str(config.simulation.max_azimuth_angle)
+
+    numtrajs = ET.SubElement(simparams, "NumTrajs")
+    numtrajs.text = str(config.simulation.N)
+
+    ionosphere = ET.SubElement(simparams, "ModelIonosphere")
+    ionosphere.text = str(config.simulation.model_ionosphere)
+
+    tec = ET.SubElement(simparams, "TEC")
+    tec.text = str(config.simulation.TEC)
+
+    tecerr = ET.SubElement(simparams, "TECerr")
+    tecerr.text = str(config.simulation.TECerr)
+
+    TauTableVer = ET.SubElement(simparams, "TauTableVer")
+    TauTableVer.text = str(config.simulation.tau_table_version)
+
+    def indent(elem, level=0):
+        i = "\n" + level * "  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+            for elem in elem:
+                indent(elem, level + 1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = i
+
+    indent(nuspacesimparams)
+
+    tree = ET.ElementTree(nuspacesimparams)
+    tree.write(filename, encoding="utf-8", xml_declaration=True, method="xml")
+
+
+def create_xml_too(filename: str, config: NssConfig = NssConfig()) -> None:
+    r"""Create an XML configuration file.
+
+    Parameters
+    ----------
+    filename: str
+        The name of the output xml file.
+    config: NssConfig
+        A NssConfig object from which to build the XML file.
+    """
+
+    nuspacesimparams = ET.Element("NuSpaceSimParams")
+
+    detchar = ET.SubElement(nuspacesimparams, "DetectorCharacteristics")
+    detchar.set("Type", "Satellite")
+    detchar.set("Method", "Both")
+
+    qeff = ET.SubElement(detchar, "QuantumEfficiency")
+    qeff.text = str(config.detector.quantum_efficiency)
+
+    telaeff = ET.SubElement(detchar, "TelescopeEffectiveArea")
+    telaeff.set("Unit", "Sq.Meters")
+    telaeff.text = str(config.detector.telescope_effective_area)
+
+    pethres = ET.SubElement(detchar, "PhotoElectronThreshold")
+    pethres.set("Preset", "true")
+
+    detalt = ET.SubElement(detchar, "DetectorAltitude")
+    detalt.set("Unit", "km")
+    detalt.text = str(config.detector.altitude)
+
+    detra = ET.SubElement(detchar, "InitialDetectorLatitude")
+    detra.set("Unit", "Degrees")
+    detra.text = str(config.detector.detlat)
+
+    detdec = ET.SubElement(detchar, "InitialDetectorLongitude")
+    detdec.set("Unit", "Degrees")
+    detdec.text = str(config.detector.detlong)
+
+    npe = ET.SubElement(pethres, "NPE")
+    npe.text = str(config.detector.photo_electron_threshold)
+
+    detlow_freq = ET.SubElement(detchar, "LowFrequency")
+    detlow_freq.set("Unit", "MHz")
+    detlow_freq.text = str(config.detector.low_freq)
+
+    dethigh_freq = ET.SubElement(detchar, "HighFrequency")
+    dethigh_freq.set("Unit", "MHz")
+    dethigh_freq.text = str(config.detector.high_freq)
+
+    detSNRthres = ET.SubElement(detchar, "SNRThreshold")
+    detSNRthres.text = str(config.detector.det_SNR_thres)
+
+    detNant = ET.SubElement(detchar, "NAntennas")
+    detNant.text = str(config.detector.det_Nant)
+
+    detGain = ET.SubElement(detchar, "AntennaGain")
+    detGain.text = str(config.detector.det_gain)
+
+    simparams = ET.SubElement(nuspacesimparams, "SimulationParameters")
+    simparams.set("DetectionMode", "ToO")
+
+    tooparams = ET.SubElement(simparams, "ToOSourceParameters")
+    source_ra = ET.SubElement(tooparams, "SourceRightAscension")
+    source_ra.set("Unit", "Degrees")
+    source_ra.text = str(config.simulation.source_RA)
+
+    source_dec = ET.SubElement(tooparams, "SourceDeclination")
+    source_dec.set("Unit", "Degrees")
+    source_dec.text = str(config.simulation.source_DEC)
+
+    source_date = ET.SubElement(tooparams, "SourceDate")
+    source_date.set("Format", config.simulation.source_date_format)
+    source_date.text = str(config.simulation.source_date)
+
+    source_period = ET.SubElement(tooparams, "ObservationPeriod")
+    source_period.set("Unit", "sec")
+    source_period.text = str(config.simulation.source_obst)
 
     cherangmax = ET.SubElement(simparams, "MaximumCherenkovAngle")
     cherangmax.set("Unit", "Radians")
