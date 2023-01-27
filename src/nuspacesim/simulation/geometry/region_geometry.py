@@ -478,6 +478,8 @@ class RegionGeomToO:
             sun_moon_cut_mask = self.too_source.sun_moon_cut(self.val_times())
             mcintfactor[~sun_moon_cut_mask] = 0
 
+            self.test_plot_sunmooncut(self.too_source.sun_moon_cut)
+
         mcintegral = np.sum(mcintfactor) / len(self.times)
         mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / len(self.times))
 
@@ -533,10 +535,18 @@ class RegionGeomToO:
         plt.ylabel("MC Integral factor")
         plt.savefig("Mcint_vs_time.png")
 
+    def test_plot_sunmooncut(self, sun_moon_cut):
+        import matplotlib.pyplot as plt
+
+        plt.figure("cut_val")
+        plt.plot(self.times.mjd, sun_moon_cut(self.times), ".")
+        plt.grid(True)
+        plt.show()
+
     def test_plot_nadir_angle(self):
         import matplotlib.pyplot as plt
 
-        plt.figure()
+        plt.figure("nadir")
         plt.plot(
             self.times.gps, np.rad2deg(self.sourceNadRad), ".", label="not visible"
         )
@@ -556,7 +566,6 @@ class RegionGeomToO:
         plt.legend()
         plt.xlabel("GPS time in s")
         plt.ylabel("Nadir angle in deg")
-        plt.show()
 
 
 def show_plot(sim, plot):

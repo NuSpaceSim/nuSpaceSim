@@ -11,6 +11,8 @@ class ToOEvent:
         self.moon_alt_cut = self.config.detector.moon_alt_cut
         self.MoonMinPhaseAngleCut = self.config.detector.MoonMinPhaseAngleCut
 
+        print(np.rad2deg(self.sun_alt_cut), np.rad2deg(self.moon_alt_cut), np.rad2deg(self.MoonMinPhaseAngleCut))
+
         # Detector definitions
         self.detlat = self.config.detector.detlat
         self.detlong = self.config.detector.detlong
@@ -74,8 +76,17 @@ class ToOEvent:
         True -> observation possible
         False -> no observation posible
         """
-        sun_alt = self.get_sun(time).alt.degree < self.sun_alt_cut
-        moon_alt = self.get_moon(time).alt.degree < self.moon_alt_cut
+        sun_alt = self.get_sun(time).alt.rad < self.sun_alt_cut
+        moon_alt = self.get_moon(time).alt.rad < self.moon_alt_cut
         moon_phase = self.moon_phase_angle(time).value > self.MoonMinPhaseAngleCut
         moon_cut = np.logical_or(moon_phase, moon_alt)
+
+        import matplotlib.pyplot as plt
+        plt.figure("sun_moon")
+        plt.plot(time.mjd, self.get_sun(time).alt.rad, label="sun")
+        plt.plot(time.mjd, self.get_moon(time).alt.rad, label="mooon")
+        plt.plot(time.mjd, self.moon_phase_angle(time), label="phase")
+        plt.legend()
+        plt.grid(True)
+        
         return np.logical_and(sun_alt, moon_cut)
