@@ -40,6 +40,7 @@ date: 2023 January 23
 
 import numpy as np
 from scipy.optimize import newton
+
 from .atmospheric_models import us_std_atm_density
 
 
@@ -55,12 +56,12 @@ def path_length_tau_atm(z, beta_tr, Re=6378.1, xp=np):
     From https://arxiv.org/pdf/1902.11287.pdf Eqn (11)
     """
     Resinb = Re * xp.sin(beta_tr)
-    return xp.sqrt(Resinb ** 2 + (Re + z) ** 2 - Re ** 2) - Resinb
+    return xp.sqrt(Resinb**2 + (Re + z) ** 2 - Re**2) - Resinb
 
 
 def altitude_along_path_length(s, beta_tr, Re=6378.1, xp=np):
     """Derived by solving for z in path_length_tau_atm."""
-    return xp.sqrt(s ** 2 + 2.0 * s * Re * xp.sin(beta_tr) + Re ** 2) - Re
+    return xp.sqrt(s**2 + 2.0 * s * Re * xp.sin(beta_tr) + Re**2) - Re
 
 
 def index_of_refraction_air(X_v):
@@ -177,7 +178,7 @@ def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
     beta_tr = np.asarray(beta_tr)
 
     theta_tr = 0.5 * np.pi - beta_tr
-    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+    param_beta = np.log(10**8 / (0.710 / 8.36))
 
     # Check that shower age is within bounds
     ss = shower_age(
@@ -223,7 +224,7 @@ def hillas_dndu(energy, theta, s):
     vhill = energy[mask] / e2hill[mask]
     whill = 2.0 * (1.0 - np.cos(theta[mask])) * ((energy[mask] / 21.0) ** 2)
     w_ave = (
-        0.0054 * energy[mask] * (1.0 + vhill) / (1.0 + 13.0 * vhill + 8.3 * vhill ** 2)
+        0.0054 * energy[mask] * (1.0 + vhill) / (1.0 + 13.0 * vhill + 8.3 * vhill**2)
     )
     uhill = whill / w_ave
 
