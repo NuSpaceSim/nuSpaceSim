@@ -230,7 +230,7 @@ def compute(
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             snrs,
-            np.cos(thetaArr),
+            np.cos(config.simulation.theta_ch_max),
             tauExitProb,
             config.detector.det_SNR_thres,
             mc_spec_norm,
