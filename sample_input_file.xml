@@ -31,6 +31,6 @@
     <ModelIonosphere>0</ModelIonosphere>
     <TEC>10.0</TEC>
     <TECerr>0.1</TECerr>
-    <TauTableVer>2</TauTableVer>
+    <TauTableVer>3</TauTableVer>
   </SimulationParameters>
 </NuSpaceSimParams>
