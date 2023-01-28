@@ -66,8 +66,8 @@ rho_spline = (
 
 def slant_depth_integrand(z, theta_tr, earth_radius, rho=us_std_atm_density):
 
-    i = earth_radius ** 2 * np.cos(theta_tr) ** 2
-    j = z ** 2
+    i = earth_radius**2 * np.cos(theta_tr) ** 2
+    j = z**2
     k = 2 * z * earth_radius
 
     ijk = i + j + k
@@ -105,7 +105,7 @@ def slant_depth(z_lo, z_hi, theta_tr, earth_radius=6378.1, abstol=1e-6, reltol=1
         evt_idx_arg=True,
         abstol=abstol,
         reltol=reltol,
-        tile_byte_limit=2 ** 25,
+        tile_byte_limit=2**25,
         parallel=False,
     )
 
@@ -216,7 +216,7 @@ def slant_depth_temp(x, p1, p2, p4, p5, p6):
     st = np.sin(0.5 * t)
     ct = np.cos(0.5 * t)
     lv = np.log(st + ct + eps) - np.log(ct - st + eps)
-    v = p1 + p2 * lv ** p5
+    v = p1 + p2 * lv**p5
     # v *= p3 + intrhoz
     v *= p6 + rhoz
 
@@ -259,8 +259,8 @@ def do_slant_depth_curve_fit():
 
 def dL(z, t):
     r = 6378.1
-    i = r ** 2 * np.cos(t) ** 2
-    j = z ** 2
+    i = r**2 * np.cos(t) ** 2
+    j = z**2
     k = 2.0 * r * z
     ijk = i + j + k
     return (r + z) / np.sqrt(ijk)
@@ -274,7 +274,7 @@ def quad_rcos(x_lo, x_hi, points=20, plot=True):
     N = points
     theta = np.linspace(x_lo, x_hi, N)
     val, err, *_ = cp.integrate(
-        rcos, np.zeros(N), theta, is_1d=True, parallel=True, tile_byte_limit=2 ** 25
+        rcos, np.zeros(N), theta, is_1d=True, parallel=True, tile_byte_limit=2**25
     )
     val = val + 1
     if plot:
@@ -345,7 +345,7 @@ def quad_rho(z_lo, z_hi, points=None, plot=False):
         Zhi,
         is_1d=True,
         parallel=True,
-        tile_byte_limit=2 ** 25,
+        tile_byte_limit=2**25,
         abstol=1e-8,
         reltol=1e-8,
     )

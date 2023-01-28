@@ -474,7 +474,7 @@ class CphotAng:
         vhill = ehillave / e2hill[..., None]
 
         wave = self.dtype(
-            0.0054 * ehillave * (1 + vhill) / (1 + 13 * vhill + 8.3 * vhill ** 2)
+            0.0054 * ehillave * (1 + vhill) / (1 + 13 * vhill + 8.3 * vhill**2)
         )
 
         poweha = np.power(ehillave / 21.0, 2, dtype=self.dtype)

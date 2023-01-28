@@ -12,11 +12,11 @@ __all__ = ["differential_ozone", "ozone"]
 
 
 def altitude_along_prop_axis(L, z_start, beta_tr, Re=6378.1):
-    r1 = Re ** 2
+    r1 = Re**2
     r2 = 2 * Re * z_start
-    r3 = z_start ** 2
+    r3 = z_start**2
     return -Re + np.sqrt(
-        L ** 2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
+        L**2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
     )
 
 
@@ -195,8 +195,8 @@ def do_spline_fit():
 
 def dL(z, t):
     r = 6378.1
-    i = r ** 2 * np.cos(t) ** 2
-    j = z ** 2
+    i = r**2 * np.cos(t) ** 2
+    j = z**2
     k = 2.0 * r * z
     ijk = i + j + k
     return (r + z) / np.sqrt(ijk)
@@ -221,7 +221,7 @@ def quad_ozone_depth(x_lo, x_hi, y_lo, y_hi, points=20, plot=True):
         evt_idx_arg=True,
         args=(T.ravel(),),
         parallel=True,
-        tile_byte_limit=2 ** 25,
+        tile_byte_limit=2**25,
         abstol=1e1,
         reltol=1e-1,
     )

@@ -12,6 +12,7 @@ try:
 except ImportError:
     from importlib_resources import files
 
+
 class EASRadio:
     """
     Extensive Air Shower for radio emission
@@ -51,8 +52,15 @@ class EASRadio:
         viewAngles[mask] = self.get_decay_view(theta[mask], pathLen[mask], lenDec[mask])
 
         # rudimentary distance scaling TODO investigate that this actually works with zhaires
-        nssDist = distance_to_detector(beta[mask], altDec[mask], self.config.detector.altitude, self.config.constants.earth_radius)
-        zhairesDist = distance_to_detector(beta[mask], altDec[mask], 525.0, self.config.constants.earth_radius)
+        nssDist = distance_to_detector(
+            beta[mask],
+            altDec[mask],
+            self.config.detector.altitude,
+            self.config.constants.earth_radius,
+        )
+        zhairesDist = distance_to_detector(
+            beta[mask], altDec[mask], 525.0, self.config.constants.earth_radius
+        )
 
         EFields = np.zeros_like(beta)
         EFields = radioParams(
@@ -90,7 +98,7 @@ class EASRadio:
         Re = self.config.constants.earth_radius
         B_angle = np.ones(altDec[mask].shape)
         B_angle *= np.pi / 2.0 - np.arccos(
-            (lenDec[mask] ** 2.0 + (altDec[mask] + Re) ** 2.0 - Re ** 2.0)
+            (lenDec[mask] ** 2.0 + (altDec[mask] + Re) ** 2.0 - Re**2.0)
             / (2.0 * lenDec[mask] * (altDec[mask] + Re))
         )
         bounds = np.radians(30.0)
@@ -164,7 +172,7 @@ class RadioEFieldParams(object):
         viewAngle = (peak.T + viewAngle).T
         Efield = (
             E0 * np.exp(-((viewAngle - peak) ** 2) / (2.0 * w * w))
-            + np.abs(E1) * np.exp(-(viewAngle ** 2) / (2.0 * w2 * w2)) / 2.0
+            + np.abs(E1) * np.exp(-(viewAngle**2) / (2.0 * w2 * w2)) / 2.0
         )  # this factor of 2 is to make up for how i made this fits in the first place
         return Efield
 

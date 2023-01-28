@@ -18,33 +18,33 @@ def propagation_theta(beta_tr, z, Re=6378.1):
 
 
 def length_along_prop_axis(z_start, z_stop, beta_tr, Re=6378.1):
-    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
-    L2 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start ** 2
+    L1 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop**2
+    L2 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start**2
     L = np.sqrt(L1) - np.sqrt(L2)
     return L
 
 
 def deriv_length_along_prop_axis(z_stop, beta_tr, Re=6378.1):
-    L1 = Re ** 2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop ** 2
+    L1 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop**2
     L = (Re + z_stop) / np.sqrt(L1)
     return L
 
 
 def altitude_along_prop_axis(L, z_start, beta_tr, Re=6378.1):
-    r1 = Re ** 2
+    r1 = Re**2
     r2 = 2 * Re * z_start
-    r3 = z_start ** 2
+    r3 = z_start**2
     return -Re + np.sqrt(
-        L ** 2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
+        L**2 + 2 * L * np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3) + r1 + r2 + r3
     )
 
 
 def deriv_altitude_along_prop_axis(L, z_start, beta_tr, Re=6378.1):
-    r1 = Re ** 2
+    r1 = Re**2
     r2 = 2 * Re * z_start
-    r3 = z_start ** 2
+    r3 = z_start**2
     r4 = np.sqrt(r1 * np.sin(beta_tr) ** 2 + r2 + r3)
-    denom = np.sqrt(L ** 2 + 2 * L * r4 + r1 + r2 + r3)
+    denom = np.sqrt(L**2 + 2 * L * r4 + r1 + r2 + r3)
     numer = (Re + z_start) * ((L) / r4 + 1)
     return numer / denom
 
@@ -80,7 +80,7 @@ def rad_len_atm_depth(x, L0=36.66):
     return T
 
 
-def shower_age(T, param_beta=np.log(10 ** 8 / (0.710 / 8.36))):
+def shower_age(T, param_beta=np.log(10**8 / (0.710 / 8.36))):
     r"""Shower age (s) as a function of atmospheric depth in mass units (g/cm^2)
 
 
@@ -91,7 +91,7 @@ def shower_age(T, param_beta=np.log(10 ** 8 / (0.710 / 8.36))):
     return 3.0 * T / (T + 2.0 * param_beta)
 
 
-def greisen_particle_count(T, s, param_beta=np.log(10 ** 8 / (0.710 / 8.36))):
+def greisen_particle_count(T, s, param_beta=np.log(10**8 / (0.710 / 8.36))):
     r"""Particle count as a function of radiation length from atmospheric depth
 
     Hillas 1461 eqn (6)
@@ -107,7 +107,7 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
 
     # for target_count = 2, shower_age = 1.899901462640018
 
-    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+    param_beta = np.log(10**8 / (0.710 / 8.36))
 
     def rns(s):
         return (
@@ -177,8 +177,8 @@ def polyrho(z):
 
 def slant_depth_integrand(z, theta_tr, earth_radius, rho=polyrho):
 
-    i = earth_radius ** 2 * np.cos(theta_tr) ** 2
-    j = z ** 2
+    i = earth_radius**2 * np.cos(theta_tr) ** 2
+    j = z**2
     k = 2 * z * earth_radius
 
     ijk = i + j + k
@@ -216,7 +216,7 @@ def slant_depth(z_lo, z_hi, theta_tr, earth_radius=6378.1, abstol=1e-6, reltol=1
         evt_idx_arg=True,
         abstol=abstol,
         reltol=reltol,
-        tile_byte_limit=2 ** 25,
+        tile_byte_limit=2**25,
         parallel=False,
     )
 
@@ -269,7 +269,7 @@ def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
     beta_tr = np.asarray(beta_tr)
 
     theta_tr = 0.5 * np.pi - beta_tr
-    param_beta = np.log(10 ** 8 / (0.710 / 8.36))
+    param_beta = np.log(10**8 / (0.710 / 8.36))
 
     # Check that shower age is within bounds
     ss = shower_age(
@@ -326,7 +326,7 @@ def cherenkov_threshold(AirN):
 
 def cherenkov_photon_yeild(thetaC, wavelength):
     return (
-        1e9 * 2 * np.pi * (1.0 / 137.04) * np.sin(thetaC) ** 2 * (1.0 / wavelength ** 2)
+        1e9 * 2 * np.pi * (1.0 / 137.04) * np.sin(thetaC) ** 2 * (1.0 / wavelength**2)
     )
 
 
@@ -463,7 +463,7 @@ def dndu(energy, theta, s):
     vhill = energy[mask] / e2hill[mask]
     whill = 2.0 * (1.0 - np.cos(theta[mask])) * ((energy[mask] / 21.0) ** 2)
     w_ave = (
-        0.0054 * energy[mask] * (1.0 + vhill) / (1.0 + 13.0 * vhill + 8.3 * vhill ** 2)
+        0.0054 * energy[mask] * (1.0 + vhill) / (1.0 + 13.0 * vhill + 8.3 * vhill**2)
     )
     uhill = whill / w_ave
 
@@ -485,7 +485,7 @@ def photon_count():
         w = x[1]
         o = x[2]
         logenergy = x[3]
-        energy = 10 ** logenergy
+        energy = 10**logenergy
         theta_tr = (np.pi / 2) - beta_tr
 
         X_v = shibata_grammage(z)
@@ -548,7 +548,7 @@ def photon_count():
         abstol=1e8,
         reltol=1e-1,
         parallel=True,
-        tile_byte_limit=2 ** 25,
+        tile_byte_limit=2**25,
     )
 
 
