@@ -75,7 +75,7 @@ def get_profile(x, y, nbins, useStd=True):
     if not useStd:
         std /= np.sqrt(n)
     bincenter = (_[1:] + _[:-1]) / 2
-    binwidth = bincenter - _[1:]
+    binwidth = _[1:] - bincenter
 
     return bincenter, mean, std, binwidth
 

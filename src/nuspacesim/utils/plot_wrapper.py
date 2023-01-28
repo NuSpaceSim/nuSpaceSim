@@ -73,7 +73,7 @@ class PlotWrapper:
         cfg_args.setdefault("pop_up", True)
         cfg_args.setdefault("save_to_file", False)
         cfg_args.setdefault("default_color", 0)
-        cfg_args.setdefault("default_colormap", "jet")
+        cfg_args.setdefault("default_colormap", "viridis")
         cfg_args.setdefault("filename", "NuSpaceSim")
         cfg_args.setdefault("output_path", ".")
 

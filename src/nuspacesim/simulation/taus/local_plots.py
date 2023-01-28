@@ -190,7 +190,7 @@ def tau_lorentz_hex(inputs, results, fig, ax, *args, **kwargs):
         mean,
         xerr=binwidth,
         yerr=std,
-        color=kwargs["color"][0],
+        color=kwargs["color"][1],
         fmt=".",
         label="Profile",
     )

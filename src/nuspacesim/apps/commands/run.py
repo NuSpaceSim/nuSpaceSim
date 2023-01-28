@@ -19,6 +19,14 @@ from ...xml_config import config_from_xml
     help="Available plotting functions. Select multiple plots with multiple uses of -p",
 )
 @click.option(
+    "-ps",
+    "--plotsettings",
+    nargs=7,
+    type=click.Tuple([int, int, bool, str, bool, int, str]),
+    default=None,
+    help="Save plot supplied with -p with given file extension, optionally suppress pop_up",
+)
+@click.option(
     "-pc",
     "--plotconfig",
     type=click.Path(
@@ -68,6 +76,7 @@ def run(
     no_result_file: bool,
     output: str,
     plot: list,
+    plotsettings,
     plotconfig: str,
     plotall: bool,
     write_stages: bool,
