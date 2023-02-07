@@ -7,8 +7,14 @@ from scipy.optimize import curve_fit
 import h5py
 
 
+# plot_type = "log_log_nmax_vs_xmax"
+plot_type = "lin_log_xmax_vs_energy"
+# plot_type = "log_log_nmax_vs_energy"
+
+
 # tup_folder = "../conex_7_50_runs"
-tup_folder = "/home/fabg/conex_runs/1000_showers"
+# tup_folder = "/home/fabg/conex_runs/1000_showers"
+tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\1000_evts"
 ntuples = sorted(os.listdir(tup_folder))[1:]
 
 energies = []
@@ -86,10 +92,6 @@ mean_gam_xmax = np.array(mean_gam_xmax)
 def lin_func(x, m, b):
     return (m * x) + b
 
-
-# plot_type = "log_log_nmax_vs_xmax"
-plot_type = "lin_log_xmax_vs_energy"
-# plot_type = "log_log_nmax_vs_energy"
 
 ptype = ["muons", "charged", "electron_positron", "hadrons", "gammas"]
 mtype = ["^", "s", "x", "o", "+"]
@@ -379,7 +381,7 @@ intercept_uncertainty = np.array(intercept_uncertainty)
 ptypes = ["muons", "charged", "hadrons", "gammas", "electron_positron"]
 earth_emer_angles = sorted(list(set(angles)))
 
-with h5py.File("./100evts/{}.h5".format(plot_type), "w") as f:
+with h5py.File("./{}.h5".format(plot_type), "w") as f:
     for t in ptypes:
         # aggregate across earth emergence angles
         particle_data = []

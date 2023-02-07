@@ -6,20 +6,38 @@ import os
 from scipy.optimize import curve_fit
 import h5py
 
-tup_folder = "/home/fabg/conex_runs/1000_showers"
-with h5py.File("./1000evts/lin_log_xmax_vs_energy.h5", "r") as f:
+# tup_folder = "/home/fabg/conex_runs/1000_showers"
+# with h5py.File("./1000evts/lin_log_xmax_vs_energy.h5", "r") as f:
+#     muons = np.array(f["muons"])
+#     electron_positrons = np.array(f["electron_positron"])
+#     charged = np.array(f["charged"])
+#     gammas = np.array(f["gammas"])
+#     hadrons = np.array(f["hadrons"])
+
+# with h5py.File("./1000evts/log_log_nmax_vs_energy.h5", "r") as f:
+#     energy_muons = np.array(f["muons"])
+#     energy_electron_positrons = np.array(f["electron_positron"])
+#     energy_charged = np.array(f["charged"])
+#     energy_gammas = np.array(f["gammas"])
+#     energy_hadrons = np.array(f["hadrons"])
+
+tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
+with h5py.File("./down_lin_log_xmax_vs_energy.h5", "r") as f:
     muons = np.array(f["muons"])
     electron_positrons = np.array(f["electron_positron"])
     charged = np.array(f["charged"])
     gammas = np.array(f["gammas"])
     hadrons = np.array(f["hadrons"])
 
-with h5py.File("./1000evts/log_log_nmax_vs_energy.h5", "r") as f:
+with h5py.File("./down_log_log_nmax_vs_energy.h5", "r") as f:
     energy_muons = np.array(f["muons"])
     energy_electron_positrons = np.array(f["electron_positron"])
     energy_charged = np.array(f["charged"])
     energy_gammas = np.array(f["gammas"])
     energy_hadrons = np.array(f["hadrons"])
+lg16_shwrs = "log_16_eV_1000shwrs_60_downward_eposlhc_272473279_100.root"
+lg17_shwrs = "log_17_eV_1000shwrs_60_downward_eposlhc_1756896908_100.root"
+lg18_shwrs = "log_18_eV_1000shwrs_60_downward_eposlhc_1791265245_100.root"
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 3.5), dpi=300)
 ax.errorbar(
@@ -89,7 +107,7 @@ def muon_elongation_rate(log_e):
 
 def muon_decade_scaler(log_e):
     y = energy_muons[0, 1:][0] * log_e + energy_muons[0, 1:][2]
-    return 10 ** y
+    return 10**y
 
 
 def reco_shower(ref_shwr, reco_shwr, reco_e, elong, e_scaler, component):
@@ -132,11 +150,11 @@ def reco_shower(ref_shwr, reco_shwr, reco_e, elong, e_scaler, component):
 reco_fit_18, ref_17, reco_18 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
+        lg17_shwrs,
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_18_eV_1000shwrs_5_degearthemergence_eposlhc_342620766_100.root",
+        lg18_shwrs,
     ),
     reco_e=18,
     elong=muon_elongation_rate,
@@ -147,11 +165,11 @@ reco_fit_18, ref_17, reco_18 = reco_shower(
 reco_fit_16, _, reco_16 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
+        lg17_shwrs,
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_16_eV_1000shwrs_5_degearthemergence_eposlhc_371114479_100.root",
+        lg16_shwrs,
     ),
     reco_e=16,
     elong=muon_elongation_rate,
@@ -202,14 +220,14 @@ ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
 ax[1].legend(title="MUON", ncol=2)
 ax[1].axhline(y=1, c="k", ls=":")
 
-plt.savefig(
-    os.path.expanduser(
-        "~/g_drive/Research/NASA/Work/muon_scaling_beta{}.pdf".format(beta)
-    ),
-    dpi=400,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# plt.savefig(
+#     os.path.expanduser(
+#         "~/g_drive/Research/NASA/Work/muon_scaling_beta{}.pdf".format(beta)
+#     ),
+#     dpi=400,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 #%%
 
 
@@ -220,17 +238,17 @@ def charged_elongation_rate(log_e):
 
 def charged_decade_scaler(log_e):
     y = energy_charged[0, 1:][0] * log_e + energy_charged[0, 1:][2]
-    return 10 ** y
+    return 10**y
 
 
 reco_fit_18, ref_17, reco_18 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
+        lg17_shwrs,
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_18_eV_1000shwrs_5_degearthemergence_eposlhc_342620766_100.root",
+        lg18_shwrs,
     ),
     reco_e=18,
     elong=charged_elongation_rate,
@@ -241,11 +259,11 @@ reco_fit_18, ref_17, reco_18 = reco_shower(
 reco_fit_16, _, reco_16 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
+        lg17_shwrs,
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_16_eV_1000shwrs_5_degearthemergence_eposlhc_371114479_100.root",
+        lg16_shwrs,
     ),
     reco_e=16,
     elong=charged_elongation_rate,
@@ -296,14 +314,14 @@ ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
 ax[1].legend(title="CHARGED", ncol=2)
 ax[1].axhline(y=1, c="k", ls=":")
 
-plt.savefig(
-    os.path.expanduser(
-        "~/g_drive/Research/NASA/Work/charged_scaling_beta{}.pdf".format(beta)
-    ),
-    dpi=400,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# plt.savefig(
+#     os.path.expanduser(
+#         "~/g_drive/Research/NASA/Work/charged_scaling_beta{}.pdf".format(beta)
+#     ),
+#     dpi=400,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 #%%
 
 
@@ -317,17 +335,17 @@ def elec_pos_decade_scaler(log_e):
         energy_electron_positrons[0, 1:][0] * log_e
         + energy_electron_positrons[0, 1:][2]
     )
-    return 10 ** y
+    return 10**y
 
 
 reco_fit_18, ref_17, reco_18 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
+        lg17_shwrs,
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_18_eV_1000shwrs_5_degearthemergence_eposlhc_342620766_100.root",
+        lg18_shwrs,
     ),
     reco_e=18,
     elong=elec_pos_elongation_rate,
@@ -338,11 +356,11 @@ reco_fit_18, ref_17, reco_18 = reco_shower(
 reco_fit_16, _, reco_16 = reco_shower(
     ref_shwr=os.path.join(
         tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root",
+        lg17_shwrs,
     ),
     reco_shwr=os.path.join(
         tup_folder,
-        "log_16_eV_1000shwrs_5_degearthemergence_eposlhc_371114479_100.root",
+        lg16_shwrs,
     ),
     reco_e=16,
     elong=elec_pos_elongation_rate,
@@ -393,11 +411,11 @@ ax[1].set(xlabel="slant depth g/cm^2", ylabel="reco/actual")
 ax[1].legend(title="ELECTRON/POSITRON", ncol=2)
 ax[1].axhline(y=1, c="k", ls=":")
 
-plt.savefig(
-    os.path.expanduser(
-        "~/g_drive/Research/NASA/Work/ep_scaling_beta{}.pdf".format(beta)
-    ),
-    dpi=400,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# plt.savefig(
+#     os.path.expanduser(
+#         "~/g_drive/Research/NASA/Work/ep_scaling_beta{}.pdf".format(beta)
+#     ),
+#     dpi=400,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
