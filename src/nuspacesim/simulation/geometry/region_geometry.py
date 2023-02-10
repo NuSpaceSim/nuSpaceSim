@@ -346,19 +346,13 @@ class RegionGeomToO:
                 ),
             ]
         )
-        print(
-            np.rad2deg(self.config.simulation.ang_from_limb),
-            np.rad2deg(
-                self.get_beta_angle(
-                    self.alphaHorizon - self.config.simulation.ang_from_limb
-                )
-            ),
-        )
+
         # Calculate the pathlength through the atmosphere
         self.losPathLen = self.get_path_length(
             self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
         )
         self.test_plot_nadir_angle()
+        self.test_plot_beta_angle()
 
     def generate_times(self, times) -> np.ndarray:
         """
@@ -385,9 +379,7 @@ class RegionGeomToO:
         )
 
     def get_path_length(self, beta, nadir_angle):
-        return self.config.constants.earth_radius * np.cos(
-            beta
-        ) - self.core_alt * np.cos(nadir_angle + beta)
+        return self.core_alt * np.cos(nadir_angle + beta) / np.cos(beta)
 
     def event_mask(self, x):
         return x[self.horizon_mask][self.volume_mask]
@@ -466,6 +458,9 @@ class RegionGeomToO:
         # Multiply by tau exit probability
         mcintfactor *= tauexitprob
 
+        # self.test_plot_tau_exit(tauexitprob)
+        # self.test_plot_path_len(self.pathLens())
+        self.test_plot_cher_ang(np.rad2deg(thetaChEff))
         # Weighting by energy spectrum if other than monoenergetic spectrum
         mcintfactor /= spec_norm
         mcintfactor /= spec_weights_sum
@@ -490,6 +485,45 @@ class RegionGeomToO:
             store([col_name], [mcintfactor])
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
+
+    def test_plot_cher_ang(self, cherenkov_angle):
+        import matplotlib.pyplot as plt
+
+        plt.figure("cherenkov angle beta")
+        plt.title(f"Energy: {self.config.simulation.spectrum.log_nu_tau_energy}, Mean: {np.mean(cherenkov_angle):.5f}, std:{np.std(cherenkov_angle, ddof=1):.3f}")
+        plt.hist(cherenkov_angle, bins=40)
+        plt.xlabel("Cherenkov angle in deg")
+        plt.ylabel("Counts")
+        plt.xlim((0, np.rad2deg(self.config.simulation.theta_ch_max)))
+        plt.grid(True)
+
+        plt.figure("cherenkov angle time")
+        plt.plot(self.val_times().mjd, cherenkov_angle, ".")
+        plt.grid(True)
+
+        # for i in range(len(self.val_times())):
+        #     print(self.val_times().mjd[i], self.betas()[i], cherenkov_angle[i])
+
+
+
+    def test_plot_path_len(self, path_len):
+        import matplotlib.pyplot as plt
+
+        plt.figure("path_len beta")
+        plt.plot(self.betas(), path_len, ".")
+        plt.ylabel("Path length")
+        plt.xlabel("earth emergence angle in deg")
+        plt.grid(True)
+
+        plt.figure("path_len time")
+        plt.plot(self.val_times().mjd, path_len, ".")
+        plt.ylabel("Path length")
+        plt.xlabel("Time in mjd")
+        plt.grid(True)
+
+        for i in range(len(self.val_times())):
+            print(self.val_times().mjd[i], self.betas()[i], path_len[i])
+
 
     def test_skymap_plot(self, mcint):
         from matplotlib import cm
@@ -535,6 +569,20 @@ class RegionGeomToO:
         plt.ylabel("MC Integral factor")
         plt.savefig("Mcint_vs_time.png")
 
+    def test_plot_tau_exit(self, tau_exit_prob):
+        import matplotlib.pyplot as plt
+
+        plt.figure("tau exit prob beta")
+        plt.plot(self.betas(), tau_exit_prob, ".")
+        plt.grid(True)
+
+        plt.figure("tau exit prob time")
+        plt.plot(self.val_times().mjd, tau_exit_prob, ".")
+        plt.grid(True)
+
+        for i in range(len(self.val_times())):
+            print(self.val_times().mjd[i], self.betas()[i], tau_exit_prob[i])
+
     def test_plot_sunmooncut(self, sun_moon_cut):
         import matplotlib.pyplot as plt
 
@@ -548,10 +596,10 @@ class RegionGeomToO:
 
         plt.figure("nadir")
         plt.plot(
-            self.times.gps, np.rad2deg(self.sourceNadRad), ".", label="not visible"
+            self.times.mjd, np.rad2deg(self.sourceNadRad), ".", label="not visible"
         )
         plt.plot(
-            self.event_mask(self.times.gps),
+            self.event_mask(self.times.mjd),
             np.rad2deg(self.event_mask(self.sourceNadRad)),
             ".",
             label="visible",
@@ -562,6 +610,33 @@ class RegionGeomToO:
             label="angle from limb",
             color="k",
         )
+        plt.axhline(np.rad2deg(self.get_beta_angle(np.radians(42))), label="End of sim")
+        plt.legend()
+        plt.xlabel("Time in mjd")
+        plt.ylabel("Nadir angle in deg")
+
+    def test_plot_beta_angle(self):
+        import matplotlib.pyplot as plt
+
+        plt.figure("beta")
+        plt.plot(
+            self.times.mjd, np.rad2deg(self.get_beta_angle(self.sourceNadRad)), ".", label="not visible"
+        )
+        plt.plot(
+            self.event_mask(self.times.mjd),
+            np.rad2deg(self.event_mask(self.get_beta_angle(self.sourceNadRad))),
+            ".",
+            label="visible",
+        )
+        plt.axhline(np.rad2deg(self.get_beta_angle(self.alphaHorizon)), label="Horizon")
+        plt.axhline(
+            np.rad2deg(self.get_beta_angle(self.alphaHorizon - self.config.simulation.ang_from_limb)),
+            label="angle from limb",
+            color="k",
+        )
+        # for i in range(len(self.times)):
+        #     print(self.times.mjd[i], np.rad2deg(self.get_beta_angle(self.sourceNadRad))[i], ((self.core_alt) / self.config.constants.earth_radius), np.sin(self.sourceNadRad[i]),
+        #           ((self.core_alt) / self.config.constants.earth_radius)* np.sin(self.sourceNadRad[i]), np.rad2deg(self.sourceNadRad[i]))
         plt.axhline(np.rad2deg(self.get_beta_angle(np.radians(42))), label="End of sim")
         plt.legend()
         plt.xlabel("GPS time in s")

@@ -90,12 +90,19 @@ class BaseUnits:
     program and a function to automatically convert to these units
     """
 
+    # Additional unit definitions
+    mHz = u.def_unit("mHz", u.Hz / 1000)
+    kHz = u.def_unit("kHz", u.Hz * 1000)
+    MHz = u.def_unit("MHz", kHz * 1000)
+    GHz = u.def_unit("GHz", MHz * 1000)
+    month = u.def_unit("month", u.day * 30)
+
     # List of the base units
     energy_base: u.Quantity = u.eV
     time_base: u.Quantity = u.second
     distance_base: u.Quantity = u.km
     angle_base: u.Quantity = u.rad
-    frequency_base: u.Quantity = u.Hz * 1000**2
+    frequency_base: u.Quantity = MHz
     area_base: u.Quantity = u.m * u.m
 
     # Declare the allowed units
@@ -103,6 +110,8 @@ class BaseUnits:
     time_units: list = field(default_factory=list)
     distance_units: list = field(default_factory=list)
     angle_units: list = field(default_factory=list)
+    frequency_units: list = field(default_factory=list)
+    area_units: list = field(default_factory=list)
 
     def __post_init__(self):
         """Function to define the units that are allowed as input"""
@@ -122,8 +131,6 @@ class BaseUnits:
             quantity = u.Quantity(value, unit)
             return quantity.to(self.energy_base).value
         if unit in self.time_units:
-            if unit == "month":
-                quantity = u.Quantity(float(value) * 30, u.day)
             if unit == "sec":
                 quantity = u.Quantity(value, u.s)
             else:
@@ -140,17 +147,8 @@ class BaseUnits:
             quantity = u.Quantity(value, unit)
             return quantity.to(self.angle_base).value
         if unit in self.frequency_units:
-            # I don't think astropy has these units implemented...
-            if unit == "mHz":
-                return float(value) / 1000**3
-            if unit == "Hz":
-                return float(value) / 1000**2
-            if unit == "kHz":
-                return float(value) / 1000
-            if unit == "MHz":
-                return float(value)
-            if unit == "GHz":
-                return float(value) * 1000
+            quantity = u.Quantity(value, unit)
+            return quantity.to(self.frequency_base).value
         if unit in self.area_units:
             if unit == "Sq.Meters":
                 return float(value)
