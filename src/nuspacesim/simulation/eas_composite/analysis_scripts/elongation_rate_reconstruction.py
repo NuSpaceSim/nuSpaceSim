@@ -21,7 +21,7 @@ import h5py
 #     energy_gammas = np.array(f["gammas"])
 #     energy_hadrons = np.array(f["hadrons"])
 
-tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
+tup_folder = "~/g_drive/Research/NASA/Work/conex2r7_50-runs/downward"
 with h5py.File("./down_lin_log_xmax_vs_energy.h5", "r") as f:
     muons = np.array(f["muons"])
     electron_positrons = np.array(f["electron_positron"])
@@ -35,6 +35,7 @@ with h5py.File("./down_log_log_nmax_vs_energy.h5", "r") as f:
     energy_charged = np.array(f["charged"])
     energy_gammas = np.array(f["gammas"])
     energy_hadrons = np.array(f["hadrons"])
+
 lg16_shwrs = "log_16_eV_1000shwrs_60_downward_eposlhc_272473279_100.root"
 lg17_shwrs = "log_17_eV_1000shwrs_60_downward_eposlhc_1756896908_100.root"
 lg18_shwrs = "log_18_eV_1000shwrs_60_downward_eposlhc_1791265245_100.root"
@@ -107,7 +108,7 @@ def muon_elongation_rate(log_e):
 
 def muon_decade_scaler(log_e):
     y = energy_muons[0, 1:][0] * log_e + energy_muons[0, 1:][2]
-    return 10**y
+    return 10 ** y
 
 
 def reco_shower(ref_shwr, reco_shwr, reco_e, elong, e_scaler, component):
@@ -238,7 +239,7 @@ def charged_elongation_rate(log_e):
 
 def charged_decade_scaler(log_e):
     y = energy_charged[0, 1:][0] * log_e + energy_charged[0, 1:][2]
-    return 10**y
+    return 10 ** y
 
 
 reco_fit_18, ref_17, reco_18 = reco_shower(
@@ -335,7 +336,7 @@ def elec_pos_decade_scaler(log_e):
         energy_electron_positrons[0, 1:][0] * log_e
         + energy_electron_positrons[0, 1:][2]
     )
-    return 10**y
+    return 10 ** y
 
 
 reco_fit_18, ref_17, reco_18 = reco_shower(
