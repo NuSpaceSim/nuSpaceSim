@@ -20,14 +20,15 @@ plt.rcParams.update(
     }
 )
 
-# tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\1000_evts"
-tup_folder = "~/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts"
-# up_15 = "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root"
+tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\1000_evts"
+# tup_folder = "~/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts"
+up_15 = "log_17_eV_1000shwrs_15_degearthemergence_eposlhc_215240113_100.root"
 # up_15 = "log_16_eV_1000shwrs_15_degearthemergence_eposlhc_1728792184_100.root"
-up_15 = "log_15_eV_1000shwrs_15_degearthemergence_eposlhc_1775946518_100.root"
+# up_15 = "log_15_eV_1000shwrs_15_degearthemergence_eposlhc_1775946518_100.root"
 up_15_data = ReadConex(os.path.join(tup_folder, up_15))
 
-tup_folder = "~/g_drive/Research/NASA/Work/conex2r7_50-runs/downward"
+tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
+# tup_folder = "~/g_drive/Research/NASA/Work/conex2r7_50-runs/downward"
 # down_60 = "log_17_eV_1000shwrs_60_downward_eposlhc_1756896908_100.root"
 # down_60 = "log_16_eV_1000shwrs_60_downward_eposlhc_272473279_100.root"
 down_60 = "log_15_eV_1000shwrs_60_downward_eposlhc_842303273_100.root"
@@ -38,9 +39,27 @@ down_char = down_60_data.get_charged()
 down_depths = down_60_data.get_depths()
 
 up_mus = up_15_data.get_muons()
+up_elec_pos = up_15_data.get_elec_pos()
+up_gamm = up_15_data.get_gamma()
 up_char = up_15_data.get_charged()
 up_depths = up_15_data.get_depths()
 
+#%%
+
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=400, figsize=(3, 3), sharey=True)
+ax.plot(up_depths[1, :], up_mus[1, :], label="muon")
+ax.plot(up_depths[1, :], up_elec_pos[1, :], label="e-+")
+ax.plot(up_depths[1, :], up_gamm[1, :], label="gamma")
+ax.plot(up_depths[1, :], up_char[1, :], label="charged")
+ax.set(
+    yscale="log",
+    xlabel="Slant Depth ($g/cm^2$)",
+    ylim=(10, 1e9),
+    ylabel="$N$",
+)
+ax.legend(title="upward, 15 deg, 100 PeV Proton Primary")
+
+#%%
 fig, ax = plt.subplots(nrows=2, ncols=2, dpi=400, figsize=(6, 7), sharey=True)
 ax[0, 0].plot(down_depths.T, down_char.T, lw=0.8, alpha=0.8)
 ax[0, 1].plot(down_depths.T, down_mus.T, lw=0.8, alpha=0.8)
