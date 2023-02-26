@@ -143,6 +143,13 @@ class ReadConex:
             shower_fits[i, :] = gh
         return shower_fits
 
+    def get_dedx(self):
+        de_dx = self.shwr["dEdX"].array(library="np")
+        dx = np.zeros((int(de_dx.size), int(de_dx[0].size)))
+        for i, depths in enumerate(de_dx):
+            dx[i, :] = depths
+        return dx
+
     def get_depths(self):
         slt_depth = self.shwr["X"].array(library="np")
         x = np.zeros((int(slt_depth.size), int(slt_depth[0].size)))

@@ -154,7 +154,7 @@ def get_decay_channel(decay_code):
         200011: r"$\tau \rightarrow \nu_\tau + \pi$",
         210001: r"$\tau \rightarrow \nu_\tau + K$",
         300001: r"$\tau \rightarrow \nu_\tau + e + \nu_e$",
-        300002: r"$\tau \rightarrow \nu_\tau + \mu + nu_mu$",
+        300002: r"$\tau \rightarrow \nu_\tau + \mu + \nu_\mu$",
         300111: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi$",
         310001: r"$\tau \rightarrow \nu_\tau + K_0 + K$",
         311001: r"$\tau \rightarrow \nu_\tau + \eta + K$",

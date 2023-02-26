@@ -31,8 +31,8 @@ def decay_channel_mult_plt(
         plt.subplot(4, 7, i)
         for depth, shower in zip(x, y):
             # iterate and plot each shower in that decay channel
-            event_num = depth[0]
-            decay_code = depth[1]
+            event_num = shower[0]
+            decay_code = shower[1]
             plt.plot(
                 depth[2:],
                 shower[2:],
