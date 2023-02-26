@@ -17,6 +17,7 @@ except ImportError:
 class CompositeShowers:
     r"""Make composite showers with constituent electrons, gamma, and pions;
     contributions scaled by sampled tau energies.
+    Currently uses GH output from CORSIKA.
 
     Parameters
     ----------
