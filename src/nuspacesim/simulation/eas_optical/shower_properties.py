@@ -131,11 +131,11 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
     return newton(rns, x0)
 
 
-# def gaisser_hillas_particle_count(X, X0, Xmax, invlam):
-#     # return ((X - X0) / (Xmax - X0)) ** xmax * np.exp((Xmax - X) * invlam)
-#     xmax = (Xmax - X0) * invlam
-#     x = (X - X0) * invlam
-#     return (x / xmax) ** xmax * np.exp(xmax - x)
+def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
+    # return ((X - X0) / (Xmax - X0)) ** xmax * np.exp((Xmax - X) * invlam)
+    xmax = (Xmax - X0) * invlam
+    x = (X - X0) * invlam
+    return Nmax * (x / xmax) ** xmax * np.exp(xmax - x)
 
 
 def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
