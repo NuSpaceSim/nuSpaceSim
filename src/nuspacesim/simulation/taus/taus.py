@@ -84,7 +84,7 @@ class Taus(object):
             files("nuspacesim.data.nupyprop_tables")
             / f"nu2tau_pexit.{config.simulation.tau_table_version}.h5"
         ) as file:
-            self.pexit_grid = NssGrid.read(file, path="pexit_regen", format="hdf5")
+            self.pexit_grid = NssGrid.read(file, path="/", format="hdf5")
 
         # grid of tau_cdf tables
         with as_file(
