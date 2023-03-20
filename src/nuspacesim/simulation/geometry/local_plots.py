@@ -32,17 +32,47 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from matplotlib import pyplot as plt
+
+from ...utils.plots import hexbin, make_labels
 
 
-def geom_beta_tr_hist(inputs, results, *args, **kwargs):
+def geom_beta_tr_hist(inputs, results, fig, ax, *_, **kwargs):
+    r"""Plot a histgram of beta trajectories."""
+
+    betas, _, _ = results
+    ax.hist(
+        x=np.degrees(betas),
+        bins=np.linspace(min(np.degrees(betas)), max(np.degrees(betas)), 50),
+        color=kwargs["color"][0],
+    )
+    make_labels(
+        fig=fig,
+        ax=ax,
+        xlabel="Earth emergence angle $\\beta$ / $^{\\circ}$",
+        ylabel="Counts",
+    )
+
+
+def path_length_to_detector(inputs, results, fig, ax, *_, **kwargs):
     r"""Plot a histgram of beta trajectories."""
 
     _ = inputs
-    betas, _, _ = results
-
-    plt.hist(np.degrees(betas), 50, alpha=0.75)
-    plt.xlabel("beta_tr (radians)")
-    plt.ylabel("frequency (counts)")
-    plt.title(f"Histogram of {betas.size} Beta Angles")
-    plt.show()
+    betas, _, path_lens = results
+    binning_b = np.arange(
+        np.min(np.degrees(betas)) - 1, np.max(np.degrees(betas)) + 2, 1
+    )
+    im = hexbin(
+        ax,
+        x=np.degrees(betas),
+        y=path_lens,
+        gs=len(binning_b),
+        cmap=kwargs["cmap"],
+    )
+    make_labels(
+        fig,
+        ax,
+        "Earth emergence angle $\\beta$ / $^{\\circ}$",
+        "Path length to detector / km",
+        clabel="Counts",
+        im=im,
+    )

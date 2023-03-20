@@ -57,6 +57,7 @@ from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .utils.plot_wrapper import PlotWrapper
 
 __all__ = ["compute"]
 
@@ -64,8 +65,9 @@ __all__ = ["compute"]
 def compute(
     config: NssConfig,
     verbose: bool = False,
-    output_file: str = None,
-    to_plot: list = [],
+    plot: list = [],
+    plot_config=None,
+    output_file=None,
     write_stages=False,
 ) -> ResultsTable:
     r"""Simulate an upward going shower.
@@ -105,8 +107,8 @@ def compute(
         Flag enabling verbose output.
     output_file: str, optional
         Name of file to write intermediate stages
-    to_plot: list, optional
-        Call the listed plotting functions as appropritate.
+    plot_wrapper: PlotWrapper, optional
+        The contained plotting specifications
     write_stages: bool, optional
         Enable writing intermediate results to the output_file.
 
@@ -144,6 +146,12 @@ def compute(
     eas = EAS(config)
     eas_radio = EASRadio(config)
 
+    plot_wrapper = PlotWrapper(
+        to_plot=plot,
+        filename=sim.output_file_basename(output_file),
+        plotconfig=plot_config,
+    )
+
     class StagedWriter:
         """Optionally write intermediate values to file"""
 
@@ -158,23 +166,23 @@ def compute(
                 sim.write(output_file, overwrite=True)
 
     sw = StagedWriter()
-
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
+    beta_tr, thetaArr, pathLenArr = geom(
+        config.simulation.N, store=sw, plot_wrapper=plot_wrapper
+    )
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
-        beta_tr.shape[0], store=sw, plot=to_plot
+        beta_tr.shape[0], store=sw, plot_wrapper=plot_wrapper
     )
-
     logv("Computing [green] Taus.[/]")
-    tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
-        beta_tr, log_e_nu, store=sw, plot=to_plot
+    tauBeta, tauLorentz, _, showerEnergy, tauExitProb = tau(
+        beta_tr, log_e_nu, store=sw, plot_wrapper=plot_wrapper
     )
 
     logv("Computing [green] Decay Altitudes.[/]")
@@ -184,11 +192,7 @@ def compute(
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
-            beta_tr,
-            altDec,
-            showerEnergy,
-            store=sw,
-            plot=to_plot,
+            beta_tr, altDec, showerEnergy, store=sw, plot_wrapper=plot_wrapper
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")

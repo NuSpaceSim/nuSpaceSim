@@ -31,11 +31,88 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from matplotlib import pyplot as plt
 
-from . import decorators
+__all__ = ["make_labels", "get_profile", "hexbin", "hist2d"]
 
-__all__ = ["dashboard", "energy_histograms", "show_plot"]
+
+def make_labels(
+    fig,
+    ax,
+    xlabel,
+    ylabel,
+    clabel=None,
+    im=None,
+    logx=False,
+    logy=False,
+    logx_scale=False,
+    logy_scale=False,
+):
+
+    xl = "$\\log_{10}$" + f"({xlabel})" if logx else xlabel
+    yl = "$\\log_{10}$" + f"({ylabel})" if logy else ylabel
+    xs = "log" if logx_scale else "linear"
+    ys = "log" if logy_scale else "linear"
+
+    ax.set_xlabel(xl)
+    ax.set_ylabel(yl)
+    ax.set_xscale(xs)
+    ax.set_yscale(ys)
+    if clabel is not None:
+        cbar = fig.colorbar(im, ax=ax, pad=0.0)
+        cbar.set_label(clabel)
+
+
+def get_profile(x, y, nbins, useStd=True):
+
+    if sum(np.isnan(y)) > 0:
+        x = x[~np.isnan(y)]
+        y = y[~np.isnan(y)]
+    n, _ = np.histogram(x, bins=nbins)
+    sy, _ = np.histogram(x, bins=nbins, weights=y)
+    sy2, _ = np.histogram(x, bins=nbins, weights=y * y)
+    mean = sy / n
+    std = np.sqrt(sy2 / n - mean * mean)
+    if not useStd:
+        std /= np.sqrt(n)
+    bincenter = (_[1:] + _[:-1]) / 2
+    binwidth = _[1:] - bincenter
+
+    return bincenter, mean, std, binwidth
+
+
+def hexbin(
+    ax,
+    x,
+    y,
+    gs=25,
+    logx=False,
+    logy=False,
+    logx_scale=False,
+    logy_scale=False,
+    cmap=None,
+):
+
+    xf = np.log10 if logx else lambda q: q
+    yf = np.log10 if logy else lambda q: q
+
+    xs = "log" if logx_scale else "linear"
+    ys = "log" if logy_scale else "linear"
+
+    xmask = x > 0 if logx else np.full(x.shape, True)
+    ymask = y > 0 if logy else np.full(y.shape, True)
+    m = xmask & ymask
+
+    im = ax.hexbin(
+        x=xf(x[m]),
+        y=yf(y[m]),
+        gridsize=gs,
+        mincnt=1,
+        xscale=xs,
+        yscale=ys,
+        cmap=cmap,
+        edgecolors="none",
+    )
+    return im
 
 
 def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
@@ -58,240 +135,3 @@ def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
     ax.set_title(f"{yl} vs {xl}")
     cbar = fig.colorbar(im, ax=ax, pad=0.0)
     cbar.set_label("Counts")
-
-
-def dashboard(sim):
-    """Full dashboard of plots"""
-
-    fig, ax = plt.subplots(3, 4, figsize=(14, 8), constrained_layout=True)
-
-    energy_histograms(sim, fig, ax[0, 0])
-    tau_pexit_hist(sim, fig, ax[1, 0])
-    tau_lorentz(sim, fig, ax[2, 0])
-
-    betas_histogram(sim, fig, ax[0, 1])
-    tau_pexit_density(sim, fig, ax[1, 1])
-    decay_altitude(sim, fig, ax[2, 1])
-
-    # decay_altitude_hist(sim, fig, ax[0, 2])
-    num_photo_electrons_hist(sim, fig, ax[0, 2])
-    num_photo_electrons_density(sim, fig, ax[1, 2])
-    num_photo_electrons_altitude(sim, fig, ax[2, 2])
-
-    # eas_input_density(sim, fig, ax[0, 3])
-    cherenkov_angle_hist(sim, fig, ax[0, 3])
-    eas_results_density(sim, fig, ax[1, 3])
-    cherenkov_angle(sim, fig, ax[2, 3])
-
-    # tau_betas(sim, fig, ax[1, 2])
-
-    fig.suptitle("Nuspacesim Results Dashboard", size="x-large")
-
-    plt.show()
-
-
-def energy_histograms(sim, fig, ax=None):
-
-    energy_bins = np.arange(
-        np.round(np.min(np.log10(sim["showerEnergy"]) + 17), 1) - 0.1,
-        np.round(np.max(sim["log_e_nu"] + 9), 1) + 0.1,
-        0.1,
-    )
-    ax.hist(
-        x=sim["log_e_nu"] + 9,
-        bins=energy_bins,
-        color="C0",
-        alpha=0.6,
-        label=r"$E_{\nu_\tau}$",
-        edgecolor="k",
-    )
-    ax.hist(
-        x=np.log10(sim["tauEnergy"]) + 9,
-        bins=energy_bins,
-        color="C1",
-        alpha=0.6,
-        label=r"$E_\tau$",
-    )
-    ax.hist(
-        x=np.log10(sim["showerEnergy"]) + 17,
-        bins=energy_bins,
-        color="C2",
-        alpha=0.6,
-        label=r"$E_\mathrm{shower}$",
-    )
-    ax.set_yscale("log")
-    ax.legend(loc="upper left")
-    ax.set_xlabel(r"Energy / $\log_\mathrm{10}\left(\frac{E}{\mathrm{eV}}\right)$")
-    ax.set_ylabel(r"Counts")
-
-
-def betas_histogram(sim, fig, ax):
-
-    beta_bins = np.arange(
-        np.min(np.degrees(sim["beta_rad"])) - 1,
-        np.max(np.degrees(sim["beta_rad"])) + 2,
-        1,
-    )
-
-    ax.hist(x=np.degrees(sim["beta_rad"]), bins=beta_bins)
-    ax.set_xlabel(r"Earth emergence angle $\beta$ / $^{\circ}$")
-    ax.set_ylabel("Counts")
-    ax.set_yscale("log")
-    ax.set_xlim(min(beta_bins), max(beta_bins))
-
-
-def tau_lorentz(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        np.degrees(sim["beta_rad"]),
-        sim["tauLorentz"],
-        r"$\beta$",
-        r"$τ_\mathrm{Lorentz}$",
-        logx=False,
-        logy=True,
-    )
-
-
-def tau_pexit_hist(sim, _, ax):
-    ax.hist(sim["tauExitProb"], 100, log=True, facecolor="g")
-    ax.set_ylabel("Counts")
-    ax.set_xlabel(r"$P_\mathrm{exit}(\tau)$")
-
-
-def tau_pexit_density(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        np.degrees(sim["beta_rad"]),
-        sim["tauExitProb"],
-        r"$\beta$",
-        r"$P_\mathrm{exit}(\tau)$",
-        cmap="viridis",
-        logx=False,
-        logy=True,
-    )
-
-
-def tau_betas(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        sim["beta_rad"],
-        sim["tauBeta"],
-        r"$\beta$",
-        r"$τ_β$",
-        logx=False,
-        logy=True,
-    )
-
-
-def decay_altitude_hist(sim, fig, ax):
-    ax.hist(sim["altDec"], 100, log=True)
-    ax.set_ylabel("Counts")
-    ax.set_xlabel("decay_altitude log(km)")
-
-
-def num_photo_electrons_hist(sim, fig, ax):
-    m = sim["numPEs"] != 0
-    ax.hist(np.log(sim["numPEs"][m]), 100, log=False)
-    ax.set_ylabel("Counts")
-    ax.set_xlabel("log(numPEs)")
-
-
-def num_photo_electrons_density(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        sim["numPEs"],
-        np.degrees(sim["beta_rad"]),
-        "numPEs",
-        "β",
-        "plasma",
-        logx=True,
-        logy=False,
-    )
-
-
-def num_photo_electrons_altitude(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        sim["numPEs"],
-        sim["altDec"],
-        "numPEs",
-        "decay_altitude km",
-        "plasma",
-        logx=True,
-        logy=True,
-    )
-
-
-def decay_altitude(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        np.degrees(sim["beta_rad"]),
-        sim["altDec"],
-        "β",
-        "decay_altitude km",
-        cmap="viridis",
-        logx=False,
-        logy=True,
-    )
-
-
-def cherenkov_angle_hist(sim, fig, ax):
-    ax.hist(np.degrees(np.arccos(sim["costhetaChEff"])), 100, log=True)
-    ax.set_ylabel("Counts")
-    ax.set_xlabel("θ_chEff")
-
-
-def eas_input_density(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        np.degrees(sim["beta_rad"]),
-        sim["altDec"],
-        "beta_rad",
-        "decay alt km",
-        cmap="jet",
-        logx=False,
-        logy=True,
-    )
-
-
-def cherenkov_angle(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        np.degrees(np.arccos(sim["costhetaChEff"])),
-        np.degrees(sim["beta_rad"]),
-        "θ_chEff",
-        "β",
-        cmap="jet",
-        logx=False,
-        logy=False,
-    )
-
-
-def eas_results_density(sim, fig, ax):
-    hist2d(
-        fig,
-        ax,
-        np.degrees(np.arccos(sim["costhetaChEff"])),
-        sim["numPEs"],
-        "θ_chEff",
-        "NumPEs",
-        cmap="jet",
-        logx=False,
-        logy=False,
-    )
-
-
-@decorators.ensure_plot_registry(dashboard)
-def show_plot(sim, plot):
-    if dashboard.__name__ in plot:
-        dashboard(sim)
-
-    # dashboard(sim, plot)

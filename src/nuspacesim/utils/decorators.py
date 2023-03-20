@@ -47,7 +47,6 @@
 __all__ = ["nss_result_store", "nss_result_store_scalar", "nss_result_plot"]
 
 from functools import wraps
-from typing import Callable, Iterable, Union
 
 
 def nss_result_store(*names):
@@ -193,24 +192,9 @@ def nss_result_plot(*plot_fs):
             registry.add(plotname)
 
         @wraps(func)
-        def wrapper_f(
-            *args, plot: Union[None, str, Iterable, Callable] = None, **kwargs
-        ):
+        def wrapper_f(*args, plot_wrapper, **kwargs):
             values = func(*args, **kwargs)
-            if isinstance(plot, str):
-                for plotf in plot_fs:
-                    if plotf.__name__ == plot:
-                        plotf(args, values)
-            elif callable(plot):
-                plot(args, values)
-            elif isinstance(plot, Iterable):
-                if all(isinstance(p, str) for p in plot):
-                    for plotf in plot_fs:
-                        if plotf.__name__ in plot:
-                            plotf(args, values)
-                elif all(callable(p) for p in plot):
-                    for plotf in plot:
-                        plotf(args, values)
+            plot_wrapper(args, values, plot_fs, **kwargs)
             return values
 
         return wrapper_f
@@ -218,16 +202,15 @@ def nss_result_plot(*plot_fs):
     return decorator_plot
 
 
-def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot):
-
+def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot_wrapper):
     f_input = tuple() if inputs is None else tuple(sim[i] for i in inputs)
     results = tuple() if outputs is None else tuple(sim[o] for o in outputs)
 
     @nss_result_plot(*plotfs)
-    def f(*args, **kwargs):
+    def f(*_, **__):
         return results
 
-    f(None, *f_input, plot=plot)
+    f(None, *f_input, plot_wrapper=plot_wrapper)
 
 
 def ensure_plot_registry(*plot_fs):

@@ -31,24 +31,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from matplotlib import pyplot as plt
+from ...utils.plots import make_labels
 
 
-def spectra_histogram(inputs, results, *args, **kwargs):
+def spectra_histogram(inputs, results, fig, ax, *_, **kwargs):
     r"""Plot some histograms"""
 
     N, spectrum = inputs
     log_e_nu = results
-
-    color = "g"
-    fig = plt.figure(figsize=(8, 7), constrained_layout=True)
-    ax = fig.add_subplot(211)
-    ax.hist(log_e_nu, 100, log=False, facecolor=color)
-    ax.set_xlabel(f"log(E_nu) of {N} events")
-
-    ax = fig.add_subplot(212)
-    ax.hist(log_e_nu, 100, log=True, facecolor=color)
-    ax.set_xlabel(f"log(E_nu) of {N} events")
-
-    fig.suptitle(f"Energy Spectra Histogram, Log(E_nu)\n {spectrum}")
-    plt.show()
+    ax.hist(
+        x=log_e_nu,
+        bins=100,
+        color=kwargs["color"][0],
+        label=f"Energy spectrum histogram with {N} events\n {spectrum}",
+    )
+    make_labels(
+        fig,
+        ax,
+        "$E_{\\nu_\\tau}$ / $\\log_\\mathrm{10}\\left(\\frac{E}{\\mathrm{eV}}\\right)$",
+        "Counts",
+        logy_scale=True,
+    )
+    ax.legend(loc="best")
