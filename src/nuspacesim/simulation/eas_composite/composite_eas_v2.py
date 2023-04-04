@@ -45,18 +45,52 @@ pion_init = ReadConex(
         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_730702871_211.root",
     )
 )
-# muon_init = ReadConex(
-#     os.path.join(
-#         tup_folder,
-#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1801137428_13.root",
-#     )
-# )
+
 
 gamma_init = ReadConex(
     os.path.join(
         tup_folder,
         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1722203790_22.root",
     )
+)
+#%%muon initiated
+muon_init = ReadConex(
+    os.path.join(
+        tup_folder,
+        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1801137428_13.root",
+    )
+)
+
+depths = muon_init.get_depths()
+charged = muon_init.get_charged()
+elecpos = muon_init.get_elec_pos()
+gamma = muon_init.get_gamma()
+hadrons = muon_init.get_hadrons()
+muons = muon_init.get_muons()
+#%%
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=400, figsize=(4, 4))
+
+x = depths[0, :]
+ax.plot(x, charged[2, :], label="charged")
+ax.plot(x, elecpos[2, :], label=r"$e^{-/+}$")
+ax.plot(x, gamma[2, :], label=r"gamma")
+ax.plot(x, hadrons[2, :], label=r"hadrons")
+ax.plot(x, muons[2, :], label=r"muons")
+
+
+ax.set(
+    xlabel=r"Slant Depth (g cm$^{-2}$)",
+    ylabel="N",
+    yscale="log",
+    title="Muon Primary",
+    ylim=(1, 5e6),
+)
+ax.legend(title="component")
+plt.savefig(
+    "./single_muon.pdf",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.08,
 )
 #%%
 
@@ -214,25 +248,25 @@ def depth_to_alt(beta, slant_depths):
 # muon_char = muon_init.get_charged()
 
 
-elec_char = elec_init.get_charged()
-gamma_char = gamma_init.get_charged()
-pion_char = pion_init.get_charged()
+# elec_char = elec_init.get_charged()
+# gamma_char = gamma_init.get_charged()
+# pion_char = pion_init.get_charged()
 
-elec_gamma = elec_init.get_gamma()
-gamma_gamma = gamma_init.get_gamma()
-pion_gamma = pion_init.get_gamma()
+# elec_gamma = elec_init.get_gamma()
+# gamma_gamma = gamma_init.get_gamma()
+# pion_gamma = pion_init.get_gamma()
 
-elec_elec_pos = elec_init.get_elec_pos()
-gamma_elec_pos = gamma_init.get_elec_pos()
-pion_elec_pos = pion_init.get_elec_pos()
+# elec_elecpos = elec_init.get_elec_pos()
+# gamma_elecpos = gamma_init.get_elec_pos()
+# pion_elecpos = pion_init.get_elec_pos()
 
 elec_hadrons = elec_init.get_hadrons()
 gamma_hadrons = gamma_init.get_hadrons()
 pion_hadrons = pion_init.get_hadrons()
 
-elec_muons = elec_init.get_muons()
-gamma_muons = gamma_init.get_muons()
-pion_muons = pion_init.get_muons()
+# elec_muons = elec_init.get_muons()
+# gamma_muons = gamma_init.get_muons()
+# pion_muons = pion_init.get_muons()
 
 elec_depths = elec_init.get_depths()
 gamma_depths = gamma_init.get_depths()
@@ -243,19 +277,19 @@ gamma_dedx = gamma_init.get_dedx()
 pion_dedx = pion_init.get_dedx()
 
 # save one shower
-header = " slant depth, altitude(km), dEdX, electron/positron, gamma, hadron, muon, "
-data = np.vstack(
-    (
-        pion_depths[0, :],
-        depth_to_alt(5, pion_depths[0, :]),
-        pion_dedx[0, :],
-        pion_elec_pos[0, :],
-        pion_gamma[0, :],
-        pion_hadrons[0, :],
-        pion_muons[0, :],
-    )
-).T
-np.savetxt("one_shower_beta5_100PeV_Pion_primary.txt", X=data, header=header)
+# header = " slant depth, altitude(km), dEdX, electron/positron, gamma, hadron, muon, "
+# data = np.vstack(
+#     (
+#         pion_depths[0, :],
+#         depth_to_alt(5, pion_depths[0, :]),
+#         pion_dedx[0, :],
+#         pion_elec_pos[0, :],
+#         pion_gamma[0, :],
+#         pion_hadrons[0, :],
+#         pion_muons[0, :],
+#     )
+# ).T
+# np.savetxt("one_shower_beta5_100PeV_Pion_primary.txt", X=data, header=header)
 # here are other componenets
 # had = shwr_data.get_hadrons()
 # mus = shwr_data.get_muons()
@@ -294,24 +328,30 @@ gamma_energies = tau_tables[gamma_mask][:, [0, 1, -1]]
 
 shwr_per_file = 1000
 
-scaled_elec_char = elec_char * electron_energies[:, -1][:shwr_per_file][:, np.newaxis]
-scaled_elec_char = np.concatenate(
-    (electron_energies[:, :2][:shwr_per_file], elec_char), axis=1
+scaled_elec_hadrons = (
+    elec_hadrons * electron_energies[:, -1][:shwr_per_file][:, np.newaxis]
 )
-# scaled_muon_char = muon_char * muon_energies[:, -1][:shwr_per_file][:, np.newaxis]
-# scaled_muon_char = np.concatenate(
-#     (muon_energies[:, :2][:shwr_per_file], muon_char), axis=1
+scaled_elec_hadrons = np.concatenate(
+    (electron_energies[:, :2][:shwr_per_file], elec_hadrons), axis=1
+)
+# scaled_muon_hadrons = muon_hadrons * muon_energies[:, -1][:shwr_per_file][:, np.newaxis]
+# scaled_muon_hadrons = np.concatenate(
+#     (muon_energies[:, :2][:shwr_per_file], muon_hadrons), axis=1
 # )
-scaled_pion_char = pion_char * pion_energies[:, -1][:shwr_per_file][:, np.newaxis]
-scaled_pion_char = np.concatenate(
-    (pion_energies[:, :2][:shwr_per_file], pion_char), axis=1
+scaled_pion_hadrons = pion_hadrons * pion_energies[:, -1][:shwr_per_file][:, np.newaxis]
+scaled_pion_hadrons = np.concatenate(
+    (pion_energies[:, :2][:shwr_per_file], pion_hadrons), axis=1
 )
 
-scaled_gamma_char = gamma_char * gamma_energies[:, -1][:shwr_per_file][:, np.newaxis]
-scaled_gamma_char = np.concatenate(
-    (gamma_energies[:, :2][:shwr_per_file], pion_char), axis=1
+scaled_gamma_hadrons = (
+    gamma_hadrons * gamma_energies[:, -1][:shwr_per_file][:, np.newaxis]
 )
-
+scaled_gamma_hadrons = np.concatenate(
+    (gamma_energies[:, :2][:shwr_per_file], pion_hadrons), axis=1
+)
+single_shwrs = np.concatenate(
+    (scaled_elec_hadrons, scaled_gamma_hadrons, scaled_pion_hadrons), axis=0
+)
 
 # elec_depths = np.concatenate(
 #     (electron_energies[:, :2][:shwr_per_file], elec_depths), axis=1
@@ -328,9 +368,7 @@ scaled_gamma_char = np.concatenate(
 # )
 #%% make composite showers
 
-single_shwrs = np.concatenate(
-    (scaled_elec_char, scaled_gamma_char, scaled_pion_char), axis=0
-)
+
 single_shwrs = single_shwrs[single_shwrs[:, 0].argsort()]
 
 # get unique event numbers, the index at which each event group starts
@@ -378,7 +416,8 @@ ax = ax.ravel()
 
 for i, dc in enumerate(decay_channels[:-1], start=0):
 
-    x = depth_to_alt(5, pion_depths[0, :])
+    # x = depth_to_alt(5, pion_depths[0, :])
+    x = pion_depths[0, :]
     y = composite_showers[composite_showers[:, 1] == dc]
 
     for shower in y:
@@ -411,26 +450,26 @@ fig.text(
     va="center",
     rotation="vertical",
 )
+fig.text(
+    0.5,
+    0.08,
+    r"Slant Depth (g cm$^{-2}$)",
+    ha="center",
+)
 # fig.text(
 #     0.5,
 #     0.08,
-#     r"Slant Depth (g cm$^{-2}$)",
+#     r"Altitude (km)",
 #     ha="center",
 # )
 fig.text(
     0.5,
-    0.08,
-    r"Altitude (km)",
-    ha="center",
-)
-fig.text(
-    0.5,
     0.90,
-    r"Charged Components",
+    r"$e^{-/+}$ Components",
     ha="center",
 )
 plt.savefig(
-    "./composite_charged_alt_unlog.pdf",
+    "./composite_electron_positron.pdf",
     dpi=300,
     bbox_inches="tight",
     pad_inches=0.08,
