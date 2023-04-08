@@ -14,7 +14,7 @@ plot_type = "lin_log_xmax_vs_energy"
 
 # tup_folder = "../conex_7_50_runs"
 # tup_folder = "/home/fabg/conex_runs/1000_showers"
-tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\1000_evts"
+tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
 ntuples = sorted(os.listdir(tup_folder))[1:]
 
 energies = []
