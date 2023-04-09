@@ -1,3 +1,8 @@
+"""
+Module making composite showers solely using Gaisser-Hilas parametriziations from CONEX
+which fits the charged components only.
+
+"""
 import h5py
 import numpy as np
 
@@ -39,7 +44,7 @@ class CompositeShowers:
         alt: int,
         shower_end: int = 2000,
         grammage: int = 1,
-        tau_table_start: int = 0,
+        tau_table_start: int = 200,
     ):
 
         self.altitude = alt
@@ -97,12 +102,12 @@ class CompositeShowers:
 
         return electron_energies, pion_energies, gamma_energies
 
-    def single_particle_showers(self, tau_energies, gh_params, left_pad: int = 400):
-        r""" Create single a particle shower w/ N_max scaled 
+    def single_particle_showers(self, tau_energies, gh_params, left_pad: int = 200):
+        r""" Create single a particle shower w/ N_max scaled
         by pythia energy from same PID.
-        Enables variable-- allowing negative-- shower starting points, 
+        Enables variable-- allowing negative-- shower starting points,
         left padded to uniform length.
-    
+
         Parameters
         ----------
         tau_energies: float
@@ -111,31 +116,21 @@ class CompositeShowers:
             CONEX GH output for one shower, for sample table layout see
             nuSpaceSim/src/nuspacesim/data/conex_gh_params/dat_data \
             /dumpGH_conex_gamma_E17_95deg_0km_eposlhc_830250265_22.dat
-    
+
         Returns
         -------
-        showers: array 
+        showers: array
             shower content for one, non-composite shower
         depths: array
             corresponding slant depths
         """
         # padded_vec_len = self.shower_end/self.grammage + 200
         # pre-allocate arrays, make room for event tag and decay tag
-        showers = np.ones(
-            [
-                gh_params.shape[0],
-                int((self.shower_end / self.grammage) + left_pad + 2),
-            ]
-        )
-        depths = np.ones(
-            [
-                gh_params.shape[0],
-                int((self.shower_end / self.grammage) + left_pad + 2),
-            ]
-        )
 
         # showers = []
         # depths = []
+        # currently loops through, can improve performance by
+        # https://numpy.org/doc/stable/reference/generated/numpy.vectorize.html
         for row, (shower_params, tau_dec_e) in enumerate(zip(gh_params, tau_energies)):
 
             shower = ShowerParameterization(
@@ -154,6 +149,12 @@ class CompositeShowers:
                 shower_end=self.shower_end,
                 grammage=self.grammage,
             )
+
+            if row == 0:
+                # print(int(shower_content.size))
+                # initialize something to fill at the beginning
+                showers = np.ones([gh_params.shape[0], int(shower_content.size)])
+                depths = np.ones([gh_params.shape[0], int(shower_content.size)])
 
             showers[row, :] = shower_content
             depths[row, :] = depth

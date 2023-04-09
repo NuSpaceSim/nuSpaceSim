@@ -1,6 +1,9 @@
 """
 Demo for generating fluctuated showers by sampling the nmax variability distribution
 using a rudimentary dartboard MC.
+
+Takes the mean and rms of all showers returning this and scaling the nmax
+of this one average shower
 """
 
 import matplotlib.pyplot as plt
@@ -8,7 +11,7 @@ import numpy as np
 
 
 # relative imports are not for scripts, absolute imports here
-from nuspacesim.simulation.eas_composite.composite_eas import CompositeShowers
+from nuspacesim.simulation.eas_composite.composite_eas_gh import CompositeShowers
 from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
 
 # initialize shower parameters
@@ -25,7 +28,7 @@ full, trimmed, shallow = make_composites_00km.shower_end_cuts(
     composite_depths=comp_depths_00km,
     separate_showers=True,
 )
-
+#%%
 # TODO: make grammage and slant depth x,y for all-- in same order
 
 # each particle type is returned in a tuple, unpack them
@@ -52,31 +55,30 @@ mc = MCVariedMean(
 )
 # throw darts using intialized parameters, return a scaling factor,
 # the sampled grammage, and the samples shower mean
+# mc_rms, sample_grm, sample_shwr, variability_dist = mc.sampling_nmax_once(
+#     return_rms_dist=True
+# )
+
+# # generate a bunch of showers
+fluctuated_showers = []
+grammages = []
+
+
 mc_rms, sample_grm, sample_shwr, variability_dist = mc.sampling_nmax_once(
     return_rms_dist=True
 )
+fluctuated_showers.append(mc_rms * sample_shwr)
+grammages.append(sample_grm)
 
-# # generate a bunch of showers
-# fluctuated_showers = []
-# grammages = []
+fluctuated_showers = np.array(fluctuated_showers)
+grammages = np.array(grammages)
 
-# for i in range(1):
-
-#     mc_rms, sample_grm, sample_shwr, variability_dist = mc.sampling_nmax_once(
-#         return_rms_dist=True
-#     )
-#     fluctuated_showers.append(mc_rms * sample_shwr)
-#     grammages.append(sample_grm)
-
-# fluctuated_showers = np.array(fluctuated_showers)
-# grammages = np.array(grammages)
-
-# # save the fluctuated shower themselves
-# header = "\t First line: grammage; Following lines are fluctuated showers\t"
-# save_data = np.vstack((grammages[0], fluctuated_showers))
-# np.savetxt(
-#     "fluctuated_full_fluctuated_mean_1683_showers.txt", X=save_data, header=header
-# )
+# save the fluctuated shower themselves
+header = "\t First line: grammage; Following lines are fluctuated showers\t"
+save_data = np.vstack((grammages[0], fluctuated_showers))
+np.savetxt(
+    "fluctuated_full_fluctuated_mean_1683_showers.txt", X=save_data, header=header
+)
 
 # plot the sample_shwr (the mean of the input showers) and scale it accordingly
 plt.figure(figsize=(8, 6), dpi=200)

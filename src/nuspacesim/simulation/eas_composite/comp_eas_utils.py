@@ -224,6 +224,8 @@ def separate_showers(shwr_dpths, shwr_n, sep_dpth, sep_n):
     r"""
     Bifurcate shower based on an arbitrary particle content threshold.
     """
+    if shwr_dpths.shape[1] < sep_dpth:
+        print("showers don't propagate past beyond sep_depth")
     dpth_idx = int(np.argwhere(shwr_dpths[0, :] == sep_dpth))
     shwr_content_at_depth = shwr_n[:, dpth_idx]
 

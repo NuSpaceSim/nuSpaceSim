@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # relative imports are not for scripts, absolute imports here
-from nuspacesim.simulation.eas_composite.composite_eas import CompositeShowers
+from nuspacesim.simulation.eas_composite.composite_eas_gh import CompositeShowers
 from nuspacesim.simulation.eas_composite.comp_eas_utils import (
     decay_channel_filter,
     separate_showers,
@@ -18,7 +18,7 @@ from nuspacesim.simulation.eas_composite.plt_routines import (
 #%%
 
 make_composites_00km = CompositeShowers(
-    alt=0, shower_end=10e3, grammage=1, tau_table_start=3000
+    alt=0, shower_end=1e4, grammage=1, tau_table_start=1
 )
 
 comp_showers_00km, comp_depths_00km = make_composites_00km(filter_errors=False)
@@ -26,18 +26,18 @@ comp_showers_00km, comp_depths_00km = make_composites_00km(filter_errors=False)
 trimmed_showers_00km, _ = make_composites_00km.shower_end_cuts(
     composite_showers=comp_showers_00km,
     composite_depths=comp_depths_00km,
-    shwr_threshold=0.01,
+    shwr_threshold=0.1,
     separate_showers=False,
 )
 
-full, trimmed, shallow = make_composites_00km.shower_end_cuts(
-    composite_showers=comp_showers_00km,
-    composite_depths=comp_depths_00km,
-    separate_showers=True,
-)
-full_y, full_x = full
-trimmed_y, trimmed_x = trimmed
-shallow_y, shallow_x = shallow
+# full, trimmed, shallow = make_composites_00km.shower_end_cuts(
+#     composite_showers=comp_showers_00km,
+#     composite_depths=comp_depths_00km,
+#     separate_showers=True,
+# )
+# full_y, full_x = full
+# trimmed_y, trimmed_x = trimmed
+# shallow_y, shallow_x = shallow
 #%% filtering out specific decay channels
 # other plots for progress report
 

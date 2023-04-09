@@ -28,7 +28,7 @@ class MCVariedMean:
             self.depths = slant_depths
             self.n_throws = n_throws
             self.hist_bins = hist_bins
-
+            self.n_showers = np.shape(composite_showers)[0]
             # find mean and depth of all composite showers
             self.mean_depth, self.mean, _, _ = mean_rms_plt(
                 showers=self.showers,
@@ -39,6 +39,7 @@ class MCVariedMean:
             max_idx = np.nanargmax(self.mean)
             self.nmax_shwr_col = self.showers[:, max_idx].T
             self.xmax_dpth_col = self.depths[:, max_idx].T
+
             # print(max_idx)
             # print("X-max", self.xmax_dpth_col[1])
             # controll how much linear sampling is done
@@ -114,38 +115,43 @@ class MCVariedMean:
 
         if plot_darts is True:
             plt.figure(figsize=(8, 6), dpi=200)
+            plt.scatter(rdom_x_ax, rdom_y_ax, s=2, c="k", label="Throws")
             plt.hist(
                 col_showers,
                 alpha=0.5,
                 edgecolor="black",
                 linewidth=0.5,
-                label=r"${:g} g/cm^2$".format(col_depths[0]),
+                label=r"{:g} g/cm$^2$ mean Xmax".format(col_depths[0]),
                 bins=self.hist_bins,
             )
-            plt.scatter(bin_ctr, freq, s=2, c="k")
-            plt.scatter(rdom_x_ax, rdom_y_ax, s=2, c="r")
+            # plt.scatter(bin_ctr, freq, s=2, c="k")
+
             # plt.xlim(right=8e7)
             # plt.ylim(top=np.max(freq)+2)
-            plt.xlabel("Particle Content/ Avg particle Content (N)")
-            plt.title("bins = {}, n = {}".format(self.hist_bins, self.n_throws))
-            plt.legend()
-            plt.figure(figsize=(8, 6), dpi=200)
+            plt.xlabel("Nmax Particle Content/Avg Nmax for All Showers")
+            plt.ylabel("Counts")
+            # plt.title("bins = {}, n = {}".format(self.hist_bins, self.n_throws))
+
             plt.bar(
                 bin_ctr,
                 new_frequencies,
                 bin_size,
                 alpha=0.5,
                 edgecolor="black",
+                hatch="///",
                 linewidth=0.5,
-                label=r"${:g} g/cm^2$ MC Reconstructed".format(col_depth),
+                label=r"First Hit Multiplier = {:.2f}".format(hit_rms[0]),
             )
-            plt.scatter(rdom_x_ax, rdom_y_ax, s=2, c="r")
 
-            plt.title("bins = {}, n = {}".format(self.hist_bins, self.n_throws))
-            plt.xlabel("Particle Content/ Avg particle Content (N)")
             # plt.xlim(right=8e7)
             # plt.ylim(top=np.max(freq)+2)
-            plt.legend()
+            plt.legend(
+                title="{:} showers, bins = {}, n = {}".format(
+                    self.n_showers, self.hist_bins, self.n_throws
+                ),
+                # loc="upper right",
+            )
+            plt.show()
 
         return col_depth, col_mean, hit_rms[0]
 
@@ -197,13 +203,15 @@ class MCVariedMean:
 
     def sampling_nmax_once(self, return_rms_dist=False):
         r"""
-        Sample the rms distribution once around nmax and return uniform multipliears.
+        Sample the rms distribution once around nmax and return uniform multipliers.
         """
         print("Sampling the shower variability at x_max.")
         _, _, hit_rms = self.mc_drt_rms(
             col_depths=self.xmax_dpth_col,
             col_showers=self.nmax_shwr_col,
+            # plot_darts=True,
         )
+        # print(self.nmax_shwr_col)
 
         if return_rms_dist is True:
             return (

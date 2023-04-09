@@ -54,44 +54,44 @@ gamma_init = ReadConex(
     )
 )
 #%%muon initiated
-muon_init = ReadConex(
-    os.path.join(
-        tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1801137428_13.root",
-    )
-)
+# muon_init = ReadConex(
+#     os.path.join(
+#         tup_folder,
+#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1801137428_13.root",
+#     )
+# )
 
-depths = muon_init.get_depths()
-charged = muon_init.get_charged()
-elecpos = muon_init.get_elec_pos()
-gamma = muon_init.get_gamma()
-hadrons = muon_init.get_hadrons()
-muons = muon_init.get_muons()
-#%%
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=400, figsize=(4, 4))
+# depths = muon_init.get_depths()
+# charged = muon_init.get_charged()
+# elecpos = muon_init.get_elec_pos()
+# gamma = muon_init.get_gamma()
+# hadrons = muon_init.get_hadrons()
+# muons = muon_init.get_muons()
 
-x = depths[0, :]
-ax.plot(x, charged[2, :], label="charged")
-ax.plot(x, elecpos[2, :], label=r"$e^{-/+}$")
-ax.plot(x, gamma[2, :], label=r"gamma")
-ax.plot(x, hadrons[2, :], label=r"hadrons")
-ax.plot(x, muons[2, :], label=r"muons")
+# fig, ax = plt.subplots(nrows=1, ncols=1, dpi=400, figsize=(4, 4))
+
+# x = depths[0, :]
+# ax.plot(x, charged[2, :], label="charged")
+# ax.plot(x, elecpos[2, :], label=r"$e^{-/+}$")
+# ax.plot(x, gamma[2, :], label=r"gamma")
+# ax.plot(x, hadrons[2, :], label=r"hadrons")
+# ax.plot(x, muons[2, :], label=r"muons")
 
 
-ax.set(
-    xlabel=r"Slant Depth (g cm$^{-2}$)",
-    ylabel="N",
-    yscale="log",
-    title="Muon Primary",
-    ylim=(1, 5e6),
-)
-ax.legend(title="component")
-plt.savefig(
-    "./single_muon.pdf",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.08,
-)
+# ax.set(
+#     xlabel=r"Slant Depth (g cm$^{-2}$)",
+#     ylabel="N",
+#     yscale="log",
+#     title="Muon Primary",
+#     ylim=(1, 5e6),
+# )
+# ax.legend(title="component")
+# plt.savefig(
+#     "./single_muon.pdf",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.08,
+# )
 #%%
 
 
