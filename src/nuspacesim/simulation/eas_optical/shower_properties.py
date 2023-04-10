@@ -41,14 +41,31 @@ date: 2023 January 23
 import numpy as np
 from scipy.optimize import newton
 
-from .atmospheric_models import us_std_atm_density
+from . import atmospheric_models as atm
+
+# from .atmospheric_models import (
+#     cherenkov_photons_created,
+#     ozone_losses,
+#     elterman_mie_aerosol_scatter,
+#     sokolsky_rayleigh_scatter,
+#     slant_depth_trig_approx,
+#     # slant_depth_trig_behind_ahead,
+#     rad_len_atm_depth
+# )
+
+__all__ = [
+    "propagation_angle",
+    "path_length_tau_atm",
+    "altitude_along_path_length",
+    "shower_age",
+    "greisen_particle_count",
+    "shower_age_of_greisen_particle_count",
+    "gaisser_hillas_particle_count",
+]
 
 
 def propagation_angle(beta_tr, z, Re=6378.1):
     return np.arccos((Re / (Re + z)) * np.cos(beta_tr))
-
-
-propagation_theta = propagation_angle
 
 
 def path_length_tau_atm(z, beta_tr, Re=6378.1, xp=np):
@@ -59,29 +76,9 @@ def path_length_tau_atm(z, beta_tr, Re=6378.1, xp=np):
     return xp.sqrt(Resinb**2 + (Re + z) ** 2 - Re**2) - Resinb
 
 
-def altitude_along_path_length(s, beta_tr, Re=6378.1, xp=np):
+def altitude_along_path_length(path_len, beta_tr, Re=6378.1, xp=np):
     """Derived by solving for z in path_length_tau_atm."""
-    return xp.sqrt(s**2 + 2.0 * s * Re * xp.sin(beta_tr) + Re**2) - Re
-
-
-def index_of_refraction_air(X_v):
-    r"""Index of refraction in air (Nair)
-
-    Index of refraction as a function of vertical atmospheric depth x_v (g/cm^2)
-
-    Hillas 1475 eqn (2)
-    """
-    temperature = 204.0 + 0.091 * X_v
-    n = 1.0 + 0.000296 * (X_v / 1032.9414) * (273.2 / temperature)
-    return n
-
-
-def rad_len_atm_depth(x, L0recip=0.02727768685):
-    """
-    T is X / L0, units of radiation length scaled g/cm^2
-    default L0 = 36.66
-    """
-    return x * L0recip
+    return xp.sqrt(path_len**2 + 2.0 * path_len * Re * xp.sin(beta_tr) + Re**2) - Re
 
 
 def shower_age(T):
@@ -114,6 +111,14 @@ def greisen_particle_count(T, s):
     return N_e
 
 
+def greisen_particle_count_shower_age(slant_depth):
+    r"""greisen_particle_count and shower_age in (g/cm^2)."""
+    T = atm.rad_len_atm_depth(slant_depth)
+    s = shower_age(T)
+    RN = greisen_particle_count(T, s)
+    return RN, s
+
+
 def shower_age_of_greisen_particle_count(target_count, x0=2):
 
     # for target_count = 2, shower_age = 1.899901462640018
@@ -138,39 +143,6 @@ def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
     return Nmax * (x / xmax) ** xmax * np.exp(xmax - x)
 
 
-def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
-
-    rho = us_std_atm_density
-    r0 = rho(0)
-    ptan = 92.64363150999402 * np.tan(theta_tr) + 101.4463720303218
-
-    def approx_slant_depth(z):
-        return ptan * (8.398443922535177 + r0 - 6340.6095008383245 * rho(z))
-
-    fmax = approx_slant_depth(z_max)
-    sd_hi = np.where(z_hi >= z_max, fmax, approx_slant_depth(z_hi))
-    sd_lo = np.where(z_lo >= z_max, fmax, approx_slant_depth(z_lo))
-
-    return sd_hi - sd_lo  # type: ignore
-
-
-def slant_depth_trig_behind_ahead(z_lo, z, z_hi, theta_tr, z_max=100.0):
-
-    rho = us_std_atm_density
-    r0 = rho(0)
-    ptan = 92.64363150999402 * np.tan(theta_tr) + 101.4463720303218
-
-    def approx_slant_depth(z):
-        return ptan * (8.398443922535177 + r0 - 6340.6095008383245 * rho(z))
-
-    fmax = approx_slant_depth(z_max)
-    sd_hi = np.where(z_hi >= z_max, fmax, approx_slant_depth(z_hi))
-    sd_mid = np.where(z >= z_max, fmax, approx_slant_depth(z))
-    sd_lo = np.where(z_lo >= z_max, fmax, approx_slant_depth(z_lo))
-
-    return sd_mid - sd_lo, sd_hi - sd_mid  # type: ignore
-
-
 def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
     """Altitude as a function of shower age, decay altitude and emergence angle."""
 
@@ -182,23 +154,33 @@ def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
 
     # Check that shower age is within bounds
     ss = shower_age(
-        rad_len_atm_depth(slant_depth_trig_approx(alt_dec, z_max, theta_tr))
+        atm.rad_len_atm_depth(atm.slant_depth_trig_approx(alt_dec, z_max, theta_tr))
     )
     mask = ss < s
 
     X_s = -1.222e19 * param_beta * s / ((10.0 / 6.0) * 1e17 * s - 5e17)
 
-    def ff(z):
-        X = slant_depth_trig_approx(alt_dec[~mask], z, theta_tr[~mask])
+    def f(z):
+        X = atm.slant_depth_trig_approx(alt_dec[~mask], z, theta_tr[~mask])
         return X - X_s
 
     altitude = np.full_like(alt_dec, z_max)
-    altitude[~mask] = newton(ff, alt_dec[~mask], **kwargs)
+    altitude[~mask] = newton(f, alt_dec[~mask], **kwargs)
 
     return altitude
 
 
-def track_length(s, E):
+def cherenkov_yield(w, detector_altitude, z, beta_tr, thetaC, X_ahead):
+    """Differential proportion of photons generated and not scattered."""
+    return (
+        atm.cherenkov_photons_created(w, thetaC)
+        * atm.ozone_losses(w, z, detector_altitude, 0.5 * np.pi - beta_tr)
+        * atm.elterman_mie_aerosol_scatter(w, z, propagation_angle(beta_tr, z))
+        * atm.sokolsky_rayleigh_scatter(w, X_ahead)
+    )
+
+
+def track_length(E, s):
     r"""Differential Track Length in radiation lengths.
 
     Hillas 1461 eqn (8) variable T(E) =
@@ -214,23 +196,32 @@ def track_length(s, E):
     E0 = np.where(s >= 0.4, 44.0 - 17.0 * (s - 1.46), 26.0)
     "Kinetic Energy charged primary of shower particles (MeV)"
 
-    return ((0.89 * E0 - 1.2) / (E0 + E)) ** s * (1.0 + 1.0e-4 * s * E) ** -2
+    return ((0.89 * E0 - 1.2) / (E0 + E)) ** s * (1.0 + 1e-4 * s * E) ** -2
 
 
-def hillas_dndu(energy, theta, s):
+def hillas_dndu(energy, costheta, shower_age):
+    """
+    Hillas 1461 ss 2.4: angular distribution of charged particles.
 
-    e2hill = 1150.0 + 454.0 * np.log(s)
-    mask = e2hill > 0
-    vhill = energy[mask] / e2hill[mask]
-    whill = 2.0 * (1.0 - np.cos(theta[mask])) * ((energy[mask] / 21.0) ** 2)
-    w_ave = (
-        0.0054 * energy[mask] * (1.0 + vhill) / (1.0 + 13.0 * vhill + 8.3 * vhill**2)
-    )
-    uhill = whill / w_ave
+    Internal Variables:
+    w: Eqn (9). Convenience variable describing angles (theta) from shower axis.
 
-    zhill = np.sqrt(uhill)
-    a2hill = np.where(zhill < 0.59, 0.478, 0.380)
-    sv2 = 0.777 * np.exp(-(zhill - 0.59) / a2hill)
-    rval = np.zeros_like(e2hill)
-    rval[mask] = sv2
-    return rval
+    w_ave: Eqn (12). Expected value of w.
+
+    dndu: Eqn (13).
+    """
+
+    w = 2.0 * (1.0 - costheta) * ((1.0 / 21.0) * energy) ** 2
+    v = energy * np.reciprocal(1150.0 + 454.0 * np.log(shower_age))
+    w_ave = 0.0054 * energy * (1.0 + v) / (1.0 + 13.0 * v + 8.3 * v**2)
+    z_hill = np.sqrt(w / w_ave)
+    lam2 = np.where(z_hill < 0.59, 0.478, 0.380)
+    dndu = 0.777 * np.exp(-(z_hill - 0.59) / lam2)
+    return dndu
+
+
+def cherenkov_cone_particle_count_integrand(logenergy, costheta, shower_age):
+    energy = 10.0**logenergy
+    TE = track_length(energy, shower_age)
+    dndu = hillas_dndu(energy, costheta, shower_age)
+    return TE * dndu

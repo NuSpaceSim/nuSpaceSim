@@ -8,7 +8,7 @@ dist/
 docs/reference/generated/
 archive
 a.out
-*.f
+# *.f
 *~
 *.pyc
 .DS_Store
