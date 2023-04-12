@@ -86,8 +86,9 @@ def tmp_setup(beta_tr, decay_altitude):
     # Determine the altitude bounds (in km) over which each shower will be measurable.
     alt_lo = shp.altitude_at_shower_age(shower_age_begin, decay_altitude, beta_tr)
     alt_hi = shp.altitude_at_shower_age(shower_age_end, decay_altitude, beta_tr)
-    alt_lo[alt_lo >= detector_altitude] = detector_altitude
-    alt_hi[alt_hi >= detector_altitude] = detector_altitude
+    max_altitude = min(65.0, detector_altitude)
+    alt_lo[alt_lo > max_altitude] = max_altitude
+    alt_hi[alt_hi > max_altitude] = max_altitude
 
     # Determine the path lengths (in km) of measurable showers
     path_len_begin = shp.path_length_tau_atm(alt_lo, beta_tr)
@@ -110,7 +111,6 @@ def tmp_setup(beta_tr, decay_altitude):
 
     # Naive looping implementation
     for i in range(steps_max):
-
         m0 = i > eventwise_steps  # Altitude Mask
 
         # Compute Altitudes for Target Events
@@ -133,26 +133,17 @@ def tmp_setup(beta_tr, decay_altitude):
             & (e2hill > 0.0)
         )
 
-        # Mask out the skipped events
-        z_m = z_m[m1]
-        beta_tr_m = beta_tr[m0][m1]
-        X_behind = X_behind[m1]
-        X_ahead = X_ahead[m1]
-        index_of_refraction = index_of_refraction[m1]
-        particle_N = particle_N[m1]
-        shower_age = shower_age[m1]
-
         # Relevant Properties
         pyield = photon_yield_per_particle_step(
-            z_m,
-            beta_tr_m,
+            z_m[m1],
+            beta_tr[m0][m1],
             detector_altitude,
-            atm.cherenkov_angle(index_of_refraction),
-            X_ahead,
+            atm.cherenkov_angle(index_of_refraction[m1]),
+            X_ahead[m1],
         )
 
         particle_proportion = cherenkov_cone_charged_particles(
-            index_of_refraction, shower_age
+            index_of_refraction[m1], shower_age[m1]
         )
 
-        photon_sum[m0][m1] += particle_N * (1e3 * dL) * pyield * particle_proportion
+        photon_sum[m0][m1] += particle_N[m1] * (1e3 * dL) * pyield * particle_proportion
