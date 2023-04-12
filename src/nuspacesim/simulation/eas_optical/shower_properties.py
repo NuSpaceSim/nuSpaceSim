@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
 Upward Going Extensive Air Shower calculations and properties.
 
@@ -120,7 +119,6 @@ def greisen_particle_count_shower_age(slant_depth):
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
-
     # for target_count = 2, shower_age = 1.899901462640018
     # param_beta = np.log(10 ** 8 / (0.710 / 8.36))
 
@@ -180,6 +178,10 @@ def cherenkov_yield(w, detector_altitude, z, beta_tr, thetaC, X_ahead):
     )
 
 
+def differential_track_length(E, s):
+    return E * s
+
+
 def track_length(E, s):
     r"""Differential Track Length in radiation lengths.
 
@@ -222,6 +224,6 @@ def hillas_dndu(energy, costheta, shower_age):
 
 def cherenkov_cone_particle_count_integrand(logenergy, costheta, shower_age):
     energy = 10.0**logenergy
-    TE = track_length(energy, shower_age)
+    dTdE = differential_track_length(energy, shower_age)
     dndu = hillas_dndu(energy, costheta, shower_age)
-    return TE * dndu
+    return dTdE * dndu

@@ -55,6 +55,7 @@ def cherenkov_cone_charged_particles(
             logenergy, costheta, shower_age_[evt_idx]
         )
 
+    # Lower energy bound must be bound by eCthres (in eV)
     return cp.integrate(
         df,
         (1.0, np.zeros_like(index_of_refraction_air)),
@@ -81,6 +82,8 @@ def tmp_setup(beta_tr, decay_altitude):
     # s0 = np.exp(-1150/454) <-- e2hill == 0: Shower too young.
     shower_age_begin = np.exp(-1150.0 / 454.0) + np.finfo.eps  # ~0.07941725256837101449
     # shower age when greisen_particle_count(s) == 1.0.
+    # Make updatable with different parameterizations.
+    # update for primary energy dependence.
     shower_age_end = 1.899901462640018
 
     # Determine the altitude bounds (in km) over which each shower will be measurable.
@@ -146,4 +149,6 @@ def tmp_setup(beta_tr, decay_altitude):
             index_of_refraction[m1], shower_age[m1]
         )
 
-        photon_sum[m0][m1] += particle_N[m1] * (1e3 * dL) * pyield * particle_proportion
+        photon_sum[m0][m1] += particle_N[m1] * pyield * particle_proportion
+
+    photon_sum *= 1e3 * dL
