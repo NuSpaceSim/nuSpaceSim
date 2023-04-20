@@ -67,9 +67,9 @@ class DetectorCharacteristics:
     """ Type of detector: Default = Optical """
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
-    ra_start: float = 0.0
+    lat_start: float = 0.0
     """ Right Ascencion (Degrees). Default = 0.0 """
-    dec_start: float = 0.0
+    long_start: float = 0.0
     """ Declination (Degrees). Default = 0.0 """
     telescope_effective_area: float = 2.5
     '"" Effective area of the detector telescope. Default = 2.5 sq.meters ""'
@@ -105,8 +105,8 @@ class DetectorCharacteristics:
         return {
             "method": (self.method, "Detector: Method (Optical, radio or both"),
             "detAlt": (self.altitude, "Detector: Altitude"),
-            "raStart": (self.ra_start, "Detector: Initial Right Ascencion"),
-            "decStart": (self.dec_start, "Detector: Initial Declination"),
+            "latStart": (self.lat_start, "Detector: Initial Latitude"),
+            "lonStart": (self.long_start, "Detector: Initial Longitude"),
             "telEffAr": (
                 self.telescope_effective_area,
                 "Detector: Telescope Effective Area",
