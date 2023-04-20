@@ -91,7 +91,9 @@ class EAS:
         thetaCh = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
-        dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
+        dphots[mask], thetaCh[mask] = self.CphotAng(
+            beta[mask], altDec[mask], showerEnergy[mask]
+        )
 
         numPEs = (
             dphots
