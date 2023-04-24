@@ -593,7 +593,7 @@ class CphotAng:
             np.radians(self.dtype(1)) if betaE < np.radians(1.0) else betaE
         )
 
-        Eshow = self.dtype(Eshow100PeV * 1e11)  # MeV
+        Eshow = self.dtype(Eshow100PeV * 1e8)  # GeV
 
         ThetView = self.theta_view(betaE)
         sinThetView = np.sin(ThetView, dtype=self.dtype)
