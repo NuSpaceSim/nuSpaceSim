@@ -29,7 +29,24 @@ tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
 
 
 def generate_composite(
-    e_init, pi_init, gamma_init, beta=5, shwr_per_file=1000, tautable_start=0
+    e_init_charged,
+    pi_init_charged,
+    gamma_init_charged,
+    e_init_elec,
+    pi_init_elec,
+    gamma_init_elec,
+    e_init_gamma,
+    pi_init_gamma,
+    gamma_init_gamma,
+    e_init_hadrons,
+    pi_init_hadrons,
+    gamma_init_hadrons,
+    e_init_muons,
+    pi_init_muons,
+    gamma_init_muons,
+    beta=5,
+    shwr_per_file=1000,
+    tautable_start=0,
 ):
     r"""Create composite showers by taking the shower components themselves, not just
     the GH Fits.
@@ -80,21 +97,25 @@ def generate_composite(
 
     # each row has [event_num, decay_code,  energy scaling]
     electron_energies = tau_tables[electron_mask][:, [0, 1, -1]]
-
     pion_energies = tau_tables[pion_kaon_mask][:, [0, 1, -1]]
     gamma_energies = tau_tables[gamma_mask][:, [0, 1, -1]]
 
-    scaled_elec = e_init * electron_energies[:, -1][:shwr_per_file][:, np.newaxis]
+    # scale the charged components by the energy
+    scaled_elec = (
+        e_init_charged * electron_energies[:, -1][:shwr_per_file][:, np.newaxis]
+    )
     scaled_elec = np.concatenate(
-        (electron_energies[:, :2][:shwr_per_file], e_init), axis=1
+        (electron_energies[:, :2][:shwr_per_file], e_init_charged), axis=1
     )
-    scaled_pion = pi_init * pion_energies[:, -1][:shwr_per_file][:, np.newaxis]
+    scaled_pion = pi_init_charged * pion_energies[:, -1][:shwr_per_file][:, np.newaxis]
     scaled_pion = np.concatenate(
-        (pion_energies[:, :2][:shwr_per_file], pi_init), axis=1
+        (pion_energies[:, :2][:shwr_per_file], pi_init_charged), axis=1
     )
-    scaled_gamma = gamma_init * gamma_energies[:, -1][:shwr_per_file][:, np.newaxis]
+    scaled_gamma = (
+        gamma_init_charged * gamma_energies[:, -1][:shwr_per_file][:, np.newaxis]
+    )
     scaled_gamma = np.concatenate(
-        (gamma_energies[:, :2][:shwr_per_file], gamma_init), axis=1
+        (gamma_energies[:, :2][:shwr_per_file], gamma_init_charged), axis=1
     )
 
     # muon_energies = tau_tables[muon_mask][:, [0, 1, -1]]
@@ -102,8 +123,11 @@ def generate_composite(
     # scaled_muon_hadrons = np.concatenate(
     #     (muon_energies[:, :2][:shwr_per_file], muon_hadrons), axis=1
     # )
-
-    single_shwrs = np.concatenate((scaled_elec, scaled_gamma, scaled_pion), axis=0)
+    #!!!  sum the scaled individual component profiles ...
+    ##so you should have a composite for the hadrons, one for the gamma, one for the e^+/-, one for the muons
+    charged_single_shwrs = np.concatenate(
+        (scaled_elec, scaled_gamma, scaled_pion), axis=0
+    )
 
     # make composite showers
     single_shwrs = single_shwrs[single_shwrs[:, 0].argsort()]
@@ -143,20 +167,15 @@ gamma_init = ReadConex(
     )
 )
 
-# get the electron/positron component of each shower
-elec_elecpos = elec_init.get_elec_pos()
-gamma_elecpos = gamma_init.get_elec_pos()
-pion_elecpos = pion_init.get_elec_pos()
-
-elec_charged = elec_init.get_charged()
-gamma_charged = gamma_init.get_charged()
-pion_charged = pion_init.get_charged()
+elec_charged = elec_init.get_elec()
+gamma_charged = gamma_init.get_elec()
+pion_charged = pion_init.get_elec()
 # corresponding depths
 elec_depths = elec_init.get_depths()
 gamma_depths = gamma_init.get_depths()
 pion_depths = pion_init.get_depths()
 
-composite = generate_composite(elec_elecpos, gamma_elecpos, pion_elecpos)
+composite = generate_composite(elec_charged, gamma_charged, pion_charged)
 composite_charged = generate_composite(elec_charged, gamma_charged, pion_charged)
 #%%
 dc = 300001
@@ -168,6 +187,17 @@ _, e_channel_n, _, not_e_channel_n = decay_channel_filter(
 _, e_channel_n_charged, _, not_e_channel_n = decay_channel_filter(
     composite, composite_charged, dc, get_discarded=True
 )
+
+
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 5))
+ax.plot(
+    elec_depths[0, :].T,
+    np.log10(e_channel_n[:, 2:].T),
+    color="grey",
+    alpha=0.2,
+)
+
+
 #%%
 from matplotlib.lines import Line2D
 

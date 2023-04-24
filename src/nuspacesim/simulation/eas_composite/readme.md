@@ -16,7 +16,7 @@ These have been processed into
 ```
 gh_00_km.h5  gh_05_km.h5  gh_15_km.h5  gh_20_km.h5
 ```
-the name of which tells at what altitude the upward EAS is started (maybe observed), each has a key ("pion", "gamma", "electron", "proton") indicating the primary (initiating) particle of the shower. Recall, GH only fits the charged component of each shower. 
+the name of which tells at what altitude the upward EAS is started, each has a key ("pion", "gamma", "electron", "proton") indicating the primary (initiating) particle of the shower. Recall, GH only fits the charged component of each shower. 
 
 Within each key, there is a table with layout, left to right
 
