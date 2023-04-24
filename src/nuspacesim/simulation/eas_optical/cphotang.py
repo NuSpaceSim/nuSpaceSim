@@ -446,7 +446,8 @@ class CphotAng:
         sthetaj = 2.0 * (1.0 - np.cos(sthetaj, dtype=self.dtype))
 
         # c     Calc ang spread ala Hillas
-        Ieang = int(np.log10(Eshow)) - 2 + 3
+        # plus 3 to convert to MeV and minus 2 to end the integral early (3-2=1)
+        Ieang = int(np.log10(Eshow)) + 1
         eang = np.arange(self.dtype(1.0), Ieang + self.dtype(2))
         ehill = np.power(10.0, eang, dtype=self.dtype)
         ehillave = np.where(
@@ -548,7 +549,10 @@ class CphotAng:
         return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
 
     def e0(self, shape, s):
-        """not sure what E0 is?"""
+        """Hillas Energy Paramaterization.
+
+        From Hillas 1461. page 1466 eqn 8.
+        """
         E0 = np.full(shape, 26.0, dtype=self.dtype)
         E0[s >= 0.4] = 44.0 - 17.0 * (s[(s >= 0.4)] - 1.46) ** 2
         return E0
@@ -606,7 +610,7 @@ class CphotAng:
         )
 
         izRNmax = np.argmax(RN, axis=-1)
-        E0 = self.e0(zs.shape, s)
+        E0 = self.e0(zs.shape, s)  # in MeV
 
         # c  Calc Cherenkov Threshold
         eCthres, thetaC = self.cherenkov_threshold_angle(AirN)
