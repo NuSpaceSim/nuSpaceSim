@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 r"""Cherenkov photon density and angle determination class.
 
 
@@ -187,8 +186,6 @@ class CphotAng:
         self.time_disp_rec_point = self.dtype(0.5)
         """record time dispersion point (km)"""
         # this radial point (km)
-        self.logE = self.dtype(17.0)  # parin(8) log(E) E in eV
-        """log base 10 of energy in eV"""
 
         # c  parameters for 1/Beta fit vs wavelength
         # c     5th order polynomial
@@ -247,16 +244,8 @@ class CphotAng:
         self.zMaxZ = self.dtype(65.0)
         self.RadE = self.dtype(6378.14)
 
-        self.Eshow = self.dtype(10.0 ** (self.logE - 9.0))
         Zair = self.dtype(7.4)
-        ecrit = self.dtype(0.710 / (Zair + 0.96))
-
-        self.beta = self.dtype(np.log(np.float64(self.Eshow) / np.float64(ecrit)))
-
-        # c     Calc ang spread ala Hillas
-        self.Ieang = int(np.log10(self.Eshow)) - 2 + 3
-        eang = np.arange(self.dtype(1.0), self.Ieang + self.dtype(2))
-        self.ehill = np.power(10.0, eang, dtype=self.dtype)
+        self.ecrit = self.dtype(0.710 / (Zair + 0.96))
 
     def theta_view(self, ThetProp):
         """
@@ -403,7 +392,6 @@ class CphotAng:
         return np.divide(t3, t4, dtype=self.dtype)
 
     def sphoton_yeild(self, thetaC, RN, delgram, ZonZ, z, ThetPrpA):
-
         # c      Calculate Light Yield
         PYield = np.sin(thetaC, dtype=self.dtype)
         PYield = np.power(PYield, 2, dtype=self.dtype)
@@ -429,7 +417,9 @@ class CphotAng:
 
         return SPYield
 
-    def photon_sum(self, SPYield, DistStep, thetaC, e2hill, eCthres, Tfrac, E0, s):
+    def photon_sum(
+        self, SPYield, DistStep, thetaC, e2hill, eCthres, Tfrac, E0, s, Eshow
+    ):
         """
         Sum photons (Gaisser-Hillas)
         """
@@ -456,16 +446,20 @@ class CphotAng:
         sthetaj = 2.0 * (1.0 - np.cos(sthetaj, dtype=self.dtype))
 
         # c     Calc ang spread ala Hillas
+        # plus 3 to convert to MeV and minus 2 to end the integral early (3-2=1)
+        Ieang = int(np.log10(Eshow)) + 1
+        eang = np.arange(self.dtype(1.0), Ieang + self.dtype(2))
+        ehill = np.power(10.0, eang, dtype=self.dtype)
         ehillave = np.where(
-            eCthres[..., None] >= self.ehill[:-1][None, :],
-            (eCthres[..., None] + self.ehill[1:][None, :]) / self.dtype(2),
-            self.dtype(5) * self.ehill[:-1][None, :],
+            eCthres[..., None] >= ehill[:-1][None, :],
+            (eCthres[..., None] + ehill[1:][None, :]) / self.dtype(2),
+            self.dtype(5) * ehill[:-1][None, :],
         )
 
         tlen = np.where(
-            eCthres[..., None] >= self.ehill[None, :],
+            eCthres[..., None] >= ehill[None, :],
             Tfrac[..., None],
-            self.tracklen(E0[..., None], self.ehill[None, :], s[:, None]),
+            self.tracklen(E0[..., None], ehill[None, :], s[:, None]),
         )
 
         deltrack = tlen[..., :-1] - tlen[..., 1:]
@@ -501,7 +495,7 @@ class CphotAng:
 
         return photsum
 
-    def valid_arrays(self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA):
+    def valid_arrays(self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA, Eshow):
         """
         Return data arrays with invalid values removed
         """
@@ -518,13 +512,14 @@ class CphotAng:
         t = np.zeros_like(zsave, dtype=self.dtype)
         t[mask] = gramsum[mask] / self.dtype(36.66)
 
+        greisen_beta = self.dtype(np.log(np.float64(Eshow) / np.float64(self.ecrit)))
         s = np.zeros_like(zsave, dtype=self.dtype)
-        s[mask] = self.dtype(3) * t[mask] / (t[mask] + self.dtype(2) * self.beta)
+        s[mask] = self.dtype(3) * t[mask] / (t[mask] + self.dtype(2) * greisen_beta)
 
         RN = np.zeros_like(zsave, dtype=self.dtype)
         RN[mask] = (
             self.dtype(0.31)
-            / np.sqrt(self.beta, dtype=self.dtype)
+            / np.sqrt(greisen_beta, dtype=self.dtype)
             * np.exp(
                 t[mask] * (1 - self.dtype(3 / 2) * np.log(s[mask], dtype=self.dtype)),
                 dtype=self.dtype,
@@ -554,7 +549,10 @@ class CphotAng:
         return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
 
     def e0(self, shape, s):
-        """not sure what E0 is?"""
+        """Hillas Energy Paramaterization.
+
+        From Hillas 1461. page 1466 eqn 8.
+        """
         E0 = np.full(shape, 26.0, dtype=self.dtype)
         E0[s >= 0.4] = 44.0 - 17.0 * (s[(s >= 0.4)] - 1.46) ** 2
         return E0
@@ -591,13 +589,15 @@ class CphotAng:
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
 
-    def run(self, betaE, alt):
+    def run(self, betaE, alt, Eshow100PeV):
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
         betaE = self.dtype(
             np.radians(self.dtype(1)) if betaE < np.radians(1.0) else betaE
         )
+
+        Eshow = self.dtype(Eshow100PeV * 1e8)  # GeV
 
         ThetView = self.theta_view(betaE)
         sinThetView = np.sin(ThetView, dtype=self.dtype)
@@ -606,11 +606,11 @@ class CphotAng:
         #
 
         zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill = self.valid_arrays(
-            *self.slant_depth(alt, sinThetView)
+            *self.slant_depth(alt, sinThetView), Eshow
         )
 
         izRNmax = np.argmax(RN, axis=-1)
-        E0 = self.e0(zs.shape, s)
+        E0 = self.e0(zs.shape, s)  # in MeV
 
         # c  Calc Cherenkov Threshold
         eCthres, thetaC = self.cherenkov_threshold_angle(AirN)
@@ -629,7 +629,7 @@ class CphotAng:
 
         # Total photons
         photsum = self.photon_sum(
-            SPYield, DistStep, thetaC, e2hill, eCthres, Tfrac, E0, s
+            SPYield, DistStep, thetaC, e2hill, eCthres, Tfrac, E0, s, Eshow
         )
 
         taphotstep = np.sum(SPYield, axis=-1, dtype=self.dtype) * Tfrac
@@ -655,14 +655,14 @@ class CphotAng:
 
         return photonDen, Cang
 
-    def __call__(self, betaE, alt):
+    def __call__(self, betaE, alt, Eshow100PeV):
         """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
         """
 
         #######################
-        b = db.from_sequence(zip(betaE, alt), partition_size=100)
+        b = db.from_sequence(zip(betaE, alt, Eshow100PeV), partition_size=100)
         with ProgressBar():
             Dphots, Cang = zip(*b.map(lambda x: self.run(*x)).compute())
         return np.asarray(Dphots), np.array(Cang)
