@@ -57,6 +57,9 @@ from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .conex_out import conex_out
+from .conex_out_GH4 import conex_out_GH4
+
 
 __all__ = ["compute"]
 
@@ -136,7 +139,6 @@ def compute(
         )
         logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
-
     sim = ResultsTable(config)
     geom = RegionGeom(config)
     spec = Spectra(config)
@@ -241,5 +243,5 @@ def compute(
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Radio")
 
     logv("\n :sparkles: [cyan]Done[/] :sparkles:")
-
+    conex_out(sim,geom)
     return sim

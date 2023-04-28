@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <NuSpaceSimParams>
-  <DetectorCharacteristics Type="Satellite" Method="Both">
+  <DetectorCharacteristics Type="Satellite" Method="Optical">
     <QuantumEfficiency>0.2</QuantumEfficiency>
     <TelescopeEffectiveArea Unit="Sq.Meters">2.5</TelescopeEffectiveArea>
     <PhotoElectronThreshold Preset="true">
@@ -17,17 +17,17 @@
   </DetectorCharacteristics>
   <SimulationParameters DetectionMode="Diffuse">
     <MaximumCherenkovAngle Unit="Radians">0.05235987755982989</MaximumCherenkovAngle>
-    <AngleFromLimb Unit="Radians">0.12217304763960307</AngleFromLimb>
+    <AngleFromLimb Unit="Radians">0.12217304763960307</AngleFromLimb><!--' (0.12217304763960307)* '-->
     <TauShowerType Preset="true">
       <FracETauInShower>0.5</FracETauInShower>
     </TauShowerType>
     <NuTauEnergySpecType>
       <MonoSpectrum>
-        <LogNuEnergy>8.0</LogNuEnergy>
+        <LogNuEnergy>10</LogNuEnergy>
       </MonoSpectrum>
     </NuTauEnergySpecType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
-    <NumTrajs>100</NumTrajs>
+    <NumTrajs>10</NumTrajs>
     <ModelIonosphere>0</ModelIonosphere>
     <TEC>10.0</TEC>
     <TECerr>0.1</TECerr>
