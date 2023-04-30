@@ -23,8 +23,8 @@ try:
 except ImportError:
     from importlib_resources import as_file, files
 
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-
+# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # read in pythia decays
 
 
@@ -105,17 +105,17 @@ def generate_composite(
         e_init_charged * electron_energies[:, -1][:shwr_per_file][:, np.newaxis]
     )
     scaled_elec = np.concatenate(
-        (electron_energies[:, :2][:shwr_per_file], e_init_charged), axis=1
+        (electron_energies[:, :2][:shwr_per_file], scaled_elec), axis=1
     )
     scaled_pion = pi_init_charged * pion_energies[:, -1][:shwr_per_file][:, np.newaxis]
     scaled_pion = np.concatenate(
-        (pion_energies[:, :2][:shwr_per_file], pi_init_charged), axis=1
+        (pion_energies[:, :2][:shwr_per_file], scaled_pion), axis=1
     )
     scaled_gamma = (
         gamma_init_charged * gamma_energies[:, -1][:shwr_per_file][:, np.newaxis]
     )
     scaled_gamma = np.concatenate(
-        (gamma_energies[:, :2][:shwr_per_file], gamma_init_charged), axis=1
+        (gamma_energies[:, :2][:shwr_per_file], scaled_gamma), axis=1
     )
 
     # muon_energies = tau_tables[muon_mask][:, [0, 1, -1]]
@@ -125,24 +125,112 @@ def generate_composite(
     # )
     #!!!  sum the scaled individual component profiles ...
     ##so you should have a composite for the hadrons, one for the gamma, one for the e^+/-, one for the muons
+
+    def composite(single_showers):
+
+        # make composite showers
+        single_showers = single_showers[single_showers[:, 0].argsort()]
+        grps, idx, num_showers_in_evt = np.unique(
+            single_showers[:, 0], return_index=True, return_counts=True, axis=0
+        )
+        unique_decay_codes = np.take(single_showers[:, 1], idx)
+        composite_showers = np.column_stack(
+            (
+                grps,
+                unique_decay_codes,
+                np.add.reduceat(single_showers[:, 2:], idx),
+            )
+        )
+        return composite_showers
+
     charged_single_shwrs = np.concatenate(
         (scaled_elec, scaled_gamma, scaled_pion), axis=0
     )
 
-    # make composite showers
-    single_shwrs = single_shwrs[single_shwrs[:, 0].argsort()]
-    grps, idx, num_showers_in_evt = np.unique(
-        single_shwrs[:, 0], return_index=True, return_counts=True, axis=0
-    )
-    unique_decay_codes = np.take(single_shwrs[:, 1], idx)
-    composite_showers = np.column_stack(
+    elec_comp_showers = np.concatenate(
         (
-            grps,
-            unique_decay_codes,
-            np.add.reduceat(single_shwrs[:, 2:], idx),
-        )
+            np.concatenate(
+                (electron_energies[:, :2][:shwr_per_file], e_init_elec), axis=1
+            ),
+            np.concatenate(
+                (pion_energies[:, :2][:shwr_per_file], pi_init_elec), axis=1
+            ),
+            np.concatenate(
+                (gamma_energies[:, :2][:shwr_per_file], gamma_init_elec), axis=1
+            ),
+            scaled_pion,
+        ),
+        axis=0,
     )
-    return composite_showers
+
+    gamm_comp_showers = np.concatenate(
+        (
+            np.concatenate(
+                (electron_energies[:, :2][:shwr_per_file], e_init_gamma), axis=1
+            ),
+            np.concatenate(
+                (pion_energies[:, :2][:shwr_per_file], pi_init_gamma), axis=1
+            ),
+            np.concatenate(
+                (gamma_energies[:, :2][:shwr_per_file], gamma_init_gamma), axis=1
+            ),
+            scaled_pion,
+        ),
+        axis=0,
+    )
+
+    hadrons_comp_showers = np.concatenate(
+        (
+            np.concatenate(
+                (electron_energies[:, :2][:shwr_per_file], e_init_hadrons), axis=1
+            ),
+            np.concatenate(
+                (pion_energies[:, :2][:shwr_per_file], pi_init_hadrons), axis=1
+            ),
+            np.concatenate(
+                (gamma_energies[:, :2][:shwr_per_file], gamma_init_hadrons), axis=1
+            ),
+            scaled_pion,
+        ),
+        axis=0,
+    )
+
+    muon_comp_showers = np.concatenate(
+        (
+            np.concatenate(
+                (electron_energies[:, :2][:shwr_per_file], e_init_muons), axis=1
+            ),
+            np.concatenate(
+                (pion_energies[:, :2][:shwr_per_file], pi_init_muons), axis=1
+            ),
+            np.concatenate(
+                (gamma_energies[:, :2][:shwr_per_file], gamma_init_muons), axis=1
+            ),
+            scaled_pion,
+        ),
+        axis=0,
+    )
+
+    # e_init_elec,
+    # pi_init_elec,
+    # gamma_init_elec,
+    # e_init_gamma,
+    # pi_init_gamma,
+    # gamma_init_gamma,
+    # e_init_hadrons,
+    # pi_init_hadrons,
+    # gamma_init_hadrons,
+    # e_init_muons,
+    # pi_init_muons,
+    # gamma_init_muons,
+
+    return (
+        composite(charged_single_shwrs),
+        composite(elec_comp_showers),
+        composite(gamm_comp_showers),
+        composite(hadrons_comp_showers),
+        composite(muon_comp_showers),
+    )
 
 
 # class Co
@@ -167,37 +255,128 @@ gamma_init = ReadConex(
     )
 )
 
-elec_charged = elec_init.get_elec()
-gamma_charged = gamma_init.get_elec()
-pion_charged = pion_init.get_elec()
+elec_charged = elec_init.get_charged()
+gamma_charged = gamma_init.get_charged()
+pion_charged = pion_init.get_charged()
+
+elec_elec = elec_init.get_elec()
+gamma_elec = gamma_init.get_elec()
+pion_elec = pion_init.get_elec()
+
+elec_gamma = elec_init.get_gamma()
+gamma_gamma = gamma_init.get_gamma()
+pion_gamma = pion_init.get_gamma()
+
+elec_had = elec_init.get_hadrons()
+gamma_had = gamma_init.get_hadrons()
+pion_had = pion_init.get_hadrons()
+
+elec_mu = elec_init.get_muons()
+gamma_mu = gamma_init.get_muons()
+pion_mu = pion_init.get_muons()
+
 # corresponding depths
 elec_depths = elec_init.get_depths()
 gamma_depths = gamma_init.get_depths()
 pion_depths = pion_init.get_depths()
+#%%
 
-composite = generate_composite(elec_charged, gamma_charged, pion_charged)
-composite_charged = generate_composite(elec_charged, gamma_charged, pion_charged)
+(
+    composite_charged,
+    composite_elec,
+    composite_gam,
+    composite_had,
+    composite_mu,
+) = generate_composite(
+    elec_charged,
+    pion_charged,
+    gamma_charged,
+    elec_elec,
+    pion_elec,
+    gamma_elec,
+    elec_gamma,
+    pion_gamma,
+    gamma_gamma,
+    elec_had,
+    pion_had,
+    gamma_had,
+    elec_mu,
+    pion_mu,
+    gamma_mu,
+)
+
 #%%
 dc = 300001
-decay_channel = get_decay_channel(dc)
-_, e_channel_n, _, not_e_channel_n = decay_channel_filter(
-    composite, composite, dc, get_discarded=True
+# decay_channel = get_decay_channel(dc)
+# _, e_channel_n, _, not_e_channel_n = decay_channel_filter(
+#     composite, composite, dc, get_discarded=True
+# )
+
+# _, e_channel_n_charged, _, not_e_channel_n = decay_channel_filter(
+#     composite, composite_charged, dc, get_discarded=True
+# )
+
+
+fig, ax = plt.subplots(
+    nrows=2, ncols=3, dpi=300, figsize=(8, 5), sharey=True, sharex=True
 )
-
-_, e_channel_n_charged, _, not_e_channel_n = decay_channel_filter(
-    composite, composite_charged, dc, get_discarded=True
-)
-
-
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 5))
-ax.plot(
+ax = ax.ravel()
+ax[0].plot(
     elec_depths[0, :].T,
-    np.log10(e_channel_n[:, 2:].T),
-    color="grey",
+    np.log10(composite_charged[:, 2:].T),
+    color="tab:blue",
     alpha=0.2,
+    label="Charged, Scaled, Summed",
 )
 
+ax[1].plot(
+    elec_depths[0, :].T,
+    np.log10(composite_elec[:, 2:].T),
+    color="tab:orange",
+    alpha=0.2,
+    label="Electron, Unscaled, Summed",
+)
 
+ax[2].plot(
+    elec_depths[0, :].T,
+    np.log10(composite_gam[:, 2:].T),
+    color="tab:green",
+    alpha=0.2,
+    label="Gamma, Unscaled, Summed",
+)
+
+ax[3].plot(
+    elec_depths[0, :].T,
+    np.log10(composite_had[:, 2:].T),
+    color="tab:red",
+    alpha=0.2,
+    label="Hadron, Unscaled, Summed",
+)
+
+ax[4].plot(
+    elec_depths[0, :].T,
+    np.log10(composite_mu[:, 2:].T),
+    color="tab:grey",
+    alpha=0.2,
+    label="Muon, Unscaled, Summed",
+)
+
+ax[0].text(0.1, 0.8, "Charged, Scaled, Summed", transform=ax[0].transAxes, fontsize=8)
+ax[1].text(
+    0.1, 0.8, "Electron, Unscaled, Summed", transform=ax[1].transAxes, fontsize=8
+)
+ax[2].text(0.1, 0.8, "Gamma, Unscaled, Summed", transform=ax[2].transAxes, fontsize=8)
+ax[3].text(0.1, 0.8, "Hadron, Unscaled, Summed", transform=ax[3].transAxes, fontsize=8)
+ax[4].text(0.1, 0.8, "Muon, Unscaled, Summed", transform=ax[4].transAxes, fontsize=8)
+
+ax[4].set(ylim=(0, 10.5))
+
+fig.text(0.05, 0.5, r"log N", va="center", rotation="vertical")
+fig.text(0.5, 0.02, r"Slant Depth (g cm$^{-2}$)", ha="center")
+
+
+fig.text(0.5, 0.95, r"gamma, pions, electron, initiated, composite", ha="center")
+plt.subplots_adjust(hspace=0, wspace=0)
 #%%
 from matplotlib.lines import Line2D
 
@@ -283,9 +462,9 @@ def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
         n_max
         * np.nan_to_num(
             ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
+            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x**2)))
         )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
+    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x**2))))
 
     return particles
 
