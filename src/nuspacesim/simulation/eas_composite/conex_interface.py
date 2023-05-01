@@ -83,7 +83,7 @@ class ReadConex:
             self.shwr = self.ntuple["Shower;{}".format(shower_header_name)]
         except:
             self.shwr = self.ntuple["Shower;{}".format(102)]
-        print("reading", file_name)
+        print("> Reading", file_name.replace("\\", "/").split("/")[-1])
         # lg_10_e = shwr["lgE"].array(library="np")
         # zenith_ang_deg = shwr["zenith"].array(library="np")
         # azimuth_ang_deg = shwr["azimuth"].array(library="np")

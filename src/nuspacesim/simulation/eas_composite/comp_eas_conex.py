@@ -4,14 +4,10 @@ generating composite showers using the profiles themselves from conex, not just 
 """
 
 import numpy as np
-from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
-from nuspacesim.simulation.eas_composite.comp_eas_utils import bin_nmax_xmax
-from nuspacesim.simulation.eas_composite.plt_routines import decay_channel_mult_plt
-import matplotlib.pyplot as plt
-import os
-from scipy.optimize import curve_fit
+
+
 import h5py
-from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel
+from comp_eas_utils import numpy_argmax_reduceat
 from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup_v2
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 
@@ -23,110 +19,69 @@ try:
 except ImportError:
     from importlib_resources import as_file, files
 
-# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
-# read in pythia decays
 
-
-def generate_composite(
-    e_init_charged,
-    pi_init_charged,
-    gamma_init_charged,
-    e_init_elec,
-    pi_init_elec,
-    gamma_init_elec,
-    e_init_gamma,
-    pi_init_gamma,
-    gamma_init_gamma,
-    e_init_hadrons,
-    pi_init_hadrons,
-    gamma_init_hadrons,
-    e_init_muons,
-    pi_init_muons,
-    gamma_init_muons,
-    beta=5,
-    shwr_per_file=1000,
-    tautable_start=0,
-):
-    r"""Create composite showers by taking the shower components themselves, not just
-    the GH Fits.
-
-    Current composite showers require: electron, pion, and gamma initiated showers.
-
-    Note, the slant depth bins are uniform, there are no negative X0, all things are
-    physical; no gh fitting at all.
-
-    Parameters
-    ----------
-    e_init: array
-        electron initiated N
-    pi_init: array
-        pion initiated N
-    gamma_init: array
-        gamma initiated N
-    beta: float
-        earth emergence angle
-    shwr_per_file: float
-        number of events for each particle initiated shower
-    tautable_start:float
-        what row to start sampling the 10,000-row tau decay table used to scale N
-
-
-
-    Returns
-    -------
-    composite_showers: array
-        Shower content N for each generated shower.
-
+class ConexCompositeShowers:
+    """
+    generating composite showers using the profiles themselves from conex,
+    not just the GH for 10^17 eV for 5 degree earth emergence angles
     """
 
-    with as_file(files("nuspacesim.data.pythia_tau_decays") / "tau_100_PeV.h5") as path:
-        data = h5py.File(path, "r")
-        tau_decays = np.array(data.get("tau_data"))
+    def __init__(
+        self,
+        shower_comps: list,
+        init_pid: list,
+        beta: int = 5,
+        shwr_per_file: int = 1000,
+        tau_table_start: int = 100,
+        energy_pev: int = 100,
+    ):
+        if (beta != 5) or (energy_pev != 100):
+            print("Note, we currently only have conex data for beta = 5deg, e=100PeV")
 
-    # sub sample tau decay tables
-    # generate mask to isolate each daughter energy scaling param from PYTHIA
-    tau_tables = tau_decays[tautable_start:, :]
-    muon_mask = tau_tables[:, 2] == 13
-    electron_mask = tau_tables[:, 2] == 11
-    # kaons and pions treated the same
-    pion_kaon_mask = ((tau_tables[:, 2] == 211) | (tau_tables[:, 2] == -211)) | (
-        (tau_tables[:, 2] == 321) | (tau_tables[:, 2] == -321)
-    )
-    gamma_mask = tau_tables[:, 2] == 22
+        with as_file(
+            files("nuspacesim.data.pythia_tau_decays") / "tau_100_PeV.h5"
+        ) as path:
+            data = h5py.File(path, "r")
+            tau_decays = np.array(data.get("tau_data"))
 
-    # each row has [event_num, decay_code,  energy scaling]
-    electron_energies = tau_tables[electron_mask][:, [0, 1, -1]]
-    pion_energies = tau_tables[pion_kaon_mask][:, [0, 1, -1]]
-    gamma_energies = tau_tables[gamma_mask][:, [0, 1, -1]]
+        self.tau_tables = tau_decays[tau_table_start:, :]
+        # 11 is electron
+        # 22 is gamma
+        # +/- 211 and +/- 321 treated as the same. kaons and pions.
+        self.nshowers = shwr_per_file
+        self.pid = init_pid
+        self.showers = shower_comps
 
-    # scale the charged components by the energy
-    scaled_elec = (
-        e_init_charged * electron_energies[:, -1][:shwr_per_file][:, np.newaxis]
-    )
-    scaled_elec = np.concatenate(
-        (electron_energies[:, :2][:shwr_per_file], scaled_elec), axis=1
-    )
-    scaled_pion = pi_init_charged * pion_energies[:, -1][:shwr_per_file][:, np.newaxis]
-    scaled_pion = np.concatenate(
-        (pion_energies[:, :2][:shwr_per_file], scaled_pion), axis=1
-    )
-    scaled_gamma = (
-        gamma_init_charged * gamma_energies[:, -1][:shwr_per_file][:, np.newaxis]
-    )
-    scaled_gamma = np.concatenate(
-        (gamma_energies[:, :2][:shwr_per_file], scaled_gamma), axis=1
-    )
+    def tau_daughter_energies(self, particle_id):
+        r"""Isolate energy contributions given a specific pid
 
-    # muon_energies = tau_tables[muon_mask][:, [0, 1, -1]]
-    # scaled_muon_hadrons = muon_hadrons * muon_energies[:, -1][:shwr_per_file][:, np.newaxis]
-    # scaled_muon_hadrons = np.concatenate(
-    #     (muon_energies[:, :2][:shwr_per_file], muon_hadrons), axis=1
-    # )
-    #!!!  sum the scaled individual component profiles ...
-    ##so you should have a composite for the hadrons, one for the gamma, one for the e^+/-, one for the muons
+        Used to scale Nmax of shower components
 
-    def composite(single_showers):
+        """
+
+        if (particle_id == 211) or (particle_id == 321):
+            # if either the initiating particle is a kaon or poin,
+            # both energies will be used
+            mask = (
+                (self.tau_tables[:, 2] == 211) | (self.tau_tables[:, 2] == -211)
+            ) | ((self.tau_tables[:, 2] == 321) | (self.tau_tables[:, 2] == -321))
+        else:
+            mask = np.abs(self.tau_tables[:, 2]) == particle_id
+
+        # each row has [event_num, decay_code, daughter_pid, mother_pid, energy ]
+        # here we only want the event num, decay code, and energy scaling.
+        energies = self.tau_tables[mask][:, [0, 1, -1]]
+        return energies
+
+    def scale_energies(self, energies, single_shower):
+        scaled_shower = single_shower * energies[:, -1][: self.nshowers][:, np.newaxis]
+        labeled = np.concatenate(
+            (energies[:, :2][: self.nshowers], scaled_shower), axis=1
+        )
+
+        return labeled
+
+    def composite(self, single_showers):
 
         # make composite showers
         single_showers = single_showers[single_showers[:, 0].argsort()]
@@ -143,400 +98,72 @@ def generate_composite(
         )
         return composite_showers
 
-    charged_single_shwrs = np.concatenate(
-        (scaled_elec, scaled_gamma, scaled_pion), axis=0
-    )
+    def __call__(self):
+        stacked_unsummed = []
+        for p, init in enumerate(self.pid):
+            s = self.showers[p]
+            energy = self.tau_daughter_energies(particle_id=init)
+            scaled_s = self.scale_energies(energies=energy, single_shower=s)
+            stacked_unsummed.append(scaled_s)
 
-    elec_comp_showers = np.concatenate(
-        (
-            np.concatenate(
-                (electron_energies[:, :2][:shwr_per_file], e_init_elec), axis=1
-            ),
-            np.concatenate(
-                (pion_energies[:, :2][:shwr_per_file], pi_init_elec), axis=1
-            ),
-            np.concatenate(
-                (gamma_energies[:, :2][:shwr_per_file], gamma_init_elec), axis=1
-            ),
-            scaled_pion,
-        ),
-        axis=0,
-    )
-
-    gamm_comp_showers = np.concatenate(
-        (
-            np.concatenate(
-                (electron_energies[:, :2][:shwr_per_file], e_init_gamma), axis=1
-            ),
-            np.concatenate(
-                (pion_energies[:, :2][:shwr_per_file], pi_init_gamma), axis=1
-            ),
-            np.concatenate(
-                (gamma_energies[:, :2][:shwr_per_file], gamma_init_gamma), axis=1
-            ),
-            scaled_pion,
-        ),
-        axis=0,
-    )
-
-    hadrons_comp_showers = np.concatenate(
-        (
-            np.concatenate(
-                (electron_energies[:, :2][:shwr_per_file], e_init_hadrons), axis=1
-            ),
-            np.concatenate(
-                (pion_energies[:, :2][:shwr_per_file], pi_init_hadrons), axis=1
-            ),
-            np.concatenate(
-                (gamma_energies[:, :2][:shwr_per_file], gamma_init_hadrons), axis=1
-            ),
-            scaled_pion,
-        ),
-        axis=0,
-    )
-
-    muon_comp_showers = np.concatenate(
-        (
-            np.concatenate(
-                (electron_energies[:, :2][:shwr_per_file], e_init_muons), axis=1
-            ),
-            np.concatenate(
-                (pion_energies[:, :2][:shwr_per_file], pi_init_muons), axis=1
-            ),
-            np.concatenate(
-                (gamma_energies[:, :2][:shwr_per_file], gamma_init_muons), axis=1
-            ),
-            scaled_pion,
-        ),
-        axis=0,
-    )
-
-    # e_init_elec,
-    # pi_init_elec,
-    # gamma_init_elec,
-    # e_init_gamma,
-    # pi_init_gamma,
-    # gamma_init_gamma,
-    # e_init_hadrons,
-    # pi_init_hadrons,
-    # gamma_init_hadrons,
-    # e_init_muons,
-    # pi_init_muons,
-    # gamma_init_muons,
-
-    return (
-        composite(charged_single_shwrs),
-        composite(elec_comp_showers),
-        composite(gamm_comp_showers),
-        composite(hadrons_comp_showers),
-        composite(muon_comp_showers),
-    )
+        stacked_unsummed = np.concatenate(stacked_unsummed, axis=0)
+        print(stacked_unsummed.shape)
+        return self.composite(stacked_unsummed)
 
 
-# class Co
-#%% read in the different showers initiated by different particles
-
-elec_init = ReadConex(
-    os.path.join(
-        tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_2033993834_11.root",
-    )
-)
-pion_init = ReadConex(
-    os.path.join(
-        tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_730702871_211.root",
-    )
-)
-gamma_init = ReadConex(
-    os.path.join(
-        tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1722203790_22.root",
-    )
-)
-
-elec_charged = elec_init.get_charged()
-gamma_charged = gamma_init.get_charged()
-pion_charged = pion_init.get_charged()
-
-elec_elec = elec_init.get_elec()
-gamma_elec = gamma_init.get_elec()
-pion_elec = pion_init.get_elec()
-
-elec_gamma = elec_init.get_gamma()
-gamma_gamma = gamma_init.get_gamma()
-pion_gamma = pion_init.get_gamma()
-
-elec_had = elec_init.get_hadrons()
-gamma_had = gamma_init.get_hadrons()
-pion_had = pion_init.get_hadrons()
-
-elec_mu = elec_init.get_muons()
-gamma_mu = gamma_init.get_muons()
-pion_mu = pion_init.get_muons()
-
-# corresponding depths
-elec_depths = elec_init.get_depths()
-gamma_depths = gamma_init.get_depths()
-pion_depths = pion_init.get_depths()
-#%%
-
-(
-    composite_charged,
-    composite_elec,
-    composite_gam,
-    composite_had,
-    composite_mu,
-) = generate_composite(
-    elec_charged,
-    pion_charged,
-    gamma_charged,
-    elec_elec,
-    pion_elec,
-    gamma_elec,
-    elec_gamma,
-    pion_gamma,
-    gamma_gamma,
-    elec_had,
-    pion_had,
-    gamma_had,
-    elec_mu,
-    pion_mu,
-    gamma_mu,
-)
-
-#%%
-dc = 300001
-# decay_channel = get_decay_channel(dc)
-# _, e_channel_n, _, not_e_channel_n = decay_channel_filter(
-#     composite, composite, dc, get_discarded=True
+# #%% Code example
+# =============================================================================
+# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# read in pythia decays
+# import matplotlib.pyplot as plt
+# import os
+# from scipy.optimize import curve_fit
+# # we can read in the showers with different primaries
+# elec_init = ReadConex(
+#     os.path.join(
+#         tup_folder,
+#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_2033993834_11.root",
+#     )
 # )
-
-# _, e_channel_n_charged, _, not_e_channel_n = decay_channel_filter(
-#     composite, composite_charged, dc, get_discarded=True
+# pion_init = ReadConex(
+#     os.path.join(
+#         tup_folder,
+#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_730702871_211.root",
+#     )
 # )
-
-
-fig, ax = plt.subplots(
-    nrows=2, ncols=3, dpi=300, figsize=(8, 5), sharey=True, sharex=True
-)
-ax = ax.ravel()
-ax[0].plot(
-    elec_depths[0, :].T,
-    np.log10(composite_charged[:, 2:].T),
-    color="tab:blue",
-    alpha=0.2,
-    label="Charged, Scaled, Summed",
-)
-
-ax[1].plot(
-    elec_depths[0, :].T,
-    np.log10(composite_elec[:, 2:].T),
-    color="tab:orange",
-    alpha=0.2,
-    label="Electron, Unscaled, Summed",
-)
-
-ax[2].plot(
-    elec_depths[0, :].T,
-    np.log10(composite_gam[:, 2:].T),
-    color="tab:green",
-    alpha=0.2,
-    label="Gamma, Unscaled, Summed",
-)
-
-ax[3].plot(
-    elec_depths[0, :].T,
-    np.log10(composite_had[:, 2:].T),
-    color="tab:red",
-    alpha=0.2,
-    label="Hadron, Unscaled, Summed",
-)
-
-ax[4].plot(
-    elec_depths[0, :].T,
-    np.log10(composite_mu[:, 2:].T),
-    color="tab:grey",
-    alpha=0.2,
-    label="Muon, Unscaled, Summed",
-)
-
-ax[0].text(0.1, 0.8, "Charged, Scaled, Summed", transform=ax[0].transAxes, fontsize=8)
-ax[1].text(
-    0.1, 0.8, "Electron, Unscaled, Summed", transform=ax[1].transAxes, fontsize=8
-)
-ax[2].text(0.1, 0.8, "Gamma, Unscaled, Summed", transform=ax[2].transAxes, fontsize=8)
-ax[3].text(0.1, 0.8, "Hadron, Unscaled, Summed", transform=ax[3].transAxes, fontsize=8)
-ax[4].text(0.1, 0.8, "Muon, Unscaled, Summed", transform=ax[4].transAxes, fontsize=8)
-
-ax[4].set(ylim=(0, 10.5))
-
-fig.text(0.05, 0.5, r"log N", va="center", rotation="vertical")
-fig.text(0.5, 0.02, r"Slant Depth (g cm$^{-2}$)", ha="center")
-
-
-fig.text(0.5, 0.95, r"gamma, pions, electron, initiated, composite", ha="center")
-plt.subplots_adjust(hspace=0, wspace=0)
-#%%
-from matplotlib.lines import Line2D
-
-plt.rcParams.update(
-    {
-        "font.family": "serif",
-        "mathtext.fontset": "cm",
-        "xtick.labelsize": 6,
-        "ytick.labelsize": 6,
-        "font.size": 8,
-        "xtick.direction": "in",
-        "ytick.direction": "in",
-        "ytick.right": True,
-        "xtick.top": True,
-    }
-)
-
-
-def mean_shower(showers_n):
-    average = np.nanmean(showers_n, axis=0)
-    # test = average_composites  - comp_showers
-    # take the square root of the mean of the difference between the average
-    # and each particle content of each shower for one bin, squared
-    rms_error = np.sqrt(np.nanmean((average - showers_n) ** 2, axis=0))
-    rms = np.sqrt(np.nanmean((showers_n) ** 2, axis=0))
-    std = np.nanstd(showers_n, axis=0)
-    err_in_mean = np.nanstd(showers_n, axis=0) / np.sqrt(
-        np.sum(~np.isnan(showers_n), 0)
-    )
-    rms_low = average - rms_error
-    rms_high = average + rms_error
-    return average, rms
-
-
-from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
-
-sampler = MCVariedMean(
-    e_channel_n,
-    elec_depths[:962, :],
-    n_throws=100,
-    hist_bins=30,
-    sample_grammage=100,
-)
-
-multipliers = np.ones(100)
-for m, rms_error in enumerate(multipliers):
-    mc_rms_multiplier, _, _ = sampler.sampling_nmax_once()
-    multipliers[m] = mc_rms_multiplier
-
-# rms_err_upper = mean_shwr + mc_rms * mean_shwr
-# rms_err_lower = mean_shwr - mc_rms * mean_shwr
-# abs_error = rms_err_upper - mean_shwr
-average, rms = mean_shower(e_channel_n)
-
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 5))
-ax.plot(
-    elec_depths[0, :].T,
-    np.log10(e_channel_n[:, 2:].T),
-    color="grey",
-    alpha=0.2,
-)
-
-ax.plot(elec_depths[0, :], np.log10(average[2:]))
-# ax.plot(elec_depths[0, :], np.log10(average[2:] - rms_error[2:]))
-ax.set(ylim=(0, 8))
-custom_lines = [
-    Line2D([0], [0], color="grey", lw=4),
-]
-# Line2D([0], [0], color=cmap(.5), lw=4),
-# Line2D([0], [0], color=cmap(1.), lw=4)]
-
-ax.legend(custom_lines, [r"e$^{{+/-}}$ component, {}".format(decay_channel)])
-
-fig.text(0.08, 0.5, r"log N", va="center", rotation="vertical")
-fig.text(0.5, 0.08, r"Slant Depth (g cm$^{-2}$)", ha="center")
-#%%
-from scipy import optimize
-
-
-def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
-
-    particles = (
-        n_max
-        * np.nan_to_num(
-            ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x**2)))
-        )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x**2))))
-
-    return particles
-
-
-def fit_quad_lambda(depth, comp_shower):
-    r"""
-    Gets fits for composite shower if supplied particle content and matching slant depths.
-    Allows negative X0 and quadratic lambda.
-    """
-
-    nmax, xmax = bin_nmax_xmax(bins=depth, particle_content=comp_shower)
-    fit_params, covariance = optimize.curve_fit(
-        f=modified_gh,
-        xdata=depth,
-        ydata=comp_shower,
-        p0=[nmax, xmax, 0, 80, -0.01, 1e-05],
-        bounds=(
-            [0, 0, -np.inf, -np.inf, -np.inf, -np.inf],
-            [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
-        ),
-    )
-    theory_n = modified_gh(depth, *fit_params)
-    print(fit_params)
-    return theory_n
-
-
-avg_fit = fit_quad_lambda(elec_depths[0, :], average[2:])
-#%%
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 5))
-ax.plot(
-    elec_depths[0, :].T,
-    np.log10(e_channel_n[:, 2:].T),
-    color="grey",
-    alpha=0.2,
-)
-ax.plot(
-    elec_depths[0, :].T,
-    np.log10(e_channel_n_charged[:, 2:].T),
-    color="red",
-    alpha=0.2,
-)
-ax.plot(elec_depths[0, :], np.log10(average[2:]), color="tab:blue")
-ax.plot(
-    elec_depths[0, :],
-    np.log10(np.outer(multipliers, average[2:]).T),
-    # ls=":",
-    color="tab:blue",
-    alpha=0.1,
-)
-
-ax.plot(elec_depths[0, :], np.log10(avg_fit), "--k")
-# ax.plot(elec_depths[0, :], np.log10(average[2:] - rms_error[2:]))
-ax.set(ylim=(0, 8))
-custom_lines = [
-    Line2D([0], [0], color="grey", lw=1),
-    Line2D([0], [0], color="tab:blue", lw=1),
-    Line2D([0], [0], ls="--", color="k", lw=1),
-    Line2D([0], [0], ls="--", color="red", lw=1),
-]
-# Line2D([0], [0], color=cmap(.5), lw=4),
-# Line2D([0], [0], color=cmap(1.), lw=4)]
-
-ax.legend(
-    custom_lines,
-    [
-        r"e$^{{+/-}}$ component, {}".format(decay_channel),
-        "mean, varied by sampling Nmax RMS",
-        "Mean GH quadratic lambda",
-        "charged component",
-    ],
-)
-
-fig.text(0.08, 0.5, r"log N", va="center", rotation="vertical")
-fig.text(0.5, 0.08, r"Slant Depth (g cm$^{-2}$)", ha="center")
-plt.savefig("./ep_componenet_electronfinalstate_mean_ghfit.pdf")
+# gamma_init = ReadConex(
+#     os.path.join(
+#         tup_folder,
+#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1722203790_22.root",
+#     )
+# )
+# # we can get the charged compoenent
+# elec_charged = elec_init.get_charged()
+# gamma_charged = gamma_init.get_charged()
+# pion_charged = pion_init.get_charged()
+# depths = elec_init.get_depths()
+#
+# # note, once can also generate compoosites using any component, e.g. electron component
+# # elec_elec = elec_init.get_elec()
+# # gamma_elec = gamma_init.get_elec()
+# # pion_elec = pion_init.get_elec()
+#
+# pids = [11, 22, 211]
+# init = [elec_charged, gamma_charged, pion_charged]
+# gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids)
+# comp_charged = gen_comp()
+#
+# fig, ax = plt.subplots(
+#     nrows=1, ncols=1, dpi=300, figsize=(8, 5), sharey=True, sharex=True
+# )
+# # ax = ax.ravel()
+# ax.plot(
+#     depths[0, :].T,
+#     np.log10(comp_charged[:, 2:].T),
+#     color="tab:blue",
+#     alpha=0.2,
+#     label="Charged, Scaled, Summed",
+# )
+#
+# =============================================================================
