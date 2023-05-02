@@ -53,7 +53,7 @@ def mean_shower(showers_n):
 
 #%%
 tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -152,7 +152,9 @@ plt.savefig(
 )
 #%%
 
-fig, ax = plt.subplots(nrows=2, ncols=3, dpi=300, figsize=(9, 6), sharey=True)
+fig, ax = plt.subplots(
+    nrows=2, ncols=3, dpi=300, figsize=(9, 6), sharey=True, sharex=True
+)
 plt.subplots_adjust(wspace=0)
 ax = ax.ravel()
 c = ["tab:blue", "tab:orange", "tab:green"]
@@ -178,7 +180,7 @@ for i, l in enumerate(filt_shwrs):
     ax[i].legend(title=f"{l.shape[0]} Showers")
 
 
-ax[0].set(yscale="log", ylabel="N")
+# ax[0].set(yscale="log", ylabel="N")
 
 for i, l in enumerate(fluctuated):
 
@@ -205,11 +207,16 @@ for i, l in enumerate(fluctuated):
     ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
     ax[i + 3].legend()
 
-ax[3].set(yscale="log", ylabel="N")
+ax[0].set(xlim=(0, 2000))
+# ax[3].set(yscale="log", ylabel="N")
 
+# plt.savefig(
+#     os.path.join(
+#         "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "conex_fluct.pdf"
+#     ),
+#     bbox_inches="tight",
+# )
 plt.savefig(
-    os.path.join(
-        "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "conex_fluct.pdf"
-    ),
+    "/home/fabg/g_drive/Research/NASA/full_conex_modeling/conex_fluct_unlog.pdf",
     bbox_inches="tight",
 )
