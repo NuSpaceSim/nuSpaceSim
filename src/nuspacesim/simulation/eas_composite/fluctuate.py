@@ -180,7 +180,7 @@ for i, l in enumerate(filt_shwrs):
     ax[i].legend(title=f"{l.shape[0]} Showers")
 
 
-# ax[0].set(yscale="log", ylabel="N")
+ax[0].set(ylabel="N")
 
 for i, l in enumerate(fluctuated):
 
@@ -208,7 +208,7 @@ for i, l in enumerate(fluctuated):
     ax[i + 3].legend()
 
 ax[0].set(xlim=(0, 2000))
-# ax[3].set(yscale="log", ylabel="N")
+ax[3].set(ylabel="N")
 
 # plt.savefig(
 #     os.path.join(
