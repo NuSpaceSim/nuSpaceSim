@@ -1,6 +1,6 @@
 import numpy as np
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
-from nuspacesim.simulation.eas_composite.comp_eas_utils import bin_nmax_xmax
+
 from nuspacesim.simulation.eas_composite.plt_routines import decay_channel_mult_plt
 import matplotlib.pyplot as plt
 import os
@@ -17,9 +17,9 @@ plt.rcParams.update(
     {
         "font.family": "serif",
         "mathtext.fontset": "cm",
-        "xtick.labelsize": 6,
-        "ytick.labelsize": 6,
-        "font.size": 8,
+        "xtick.labelsize": 5,
+        "ytick.labelsize": 5,
+        "font.size": 7,
         "xtick.direction": "in",
         "ytick.direction": "in",
         "ytick.right": True,
@@ -39,19 +39,21 @@ def mean_shower(showers_n):
     # test = average_composites  - comp_showers
     # take the square root of the mean of the difference between the average
     # and each particle content of each shower for one bin, squared
-    rms_error = np.sqrt(np.nanmean((average - showers_n) ** 2, axis=0))
-    rms = np.sqrt(np.nanmean((showers_n) ** 2, axis=0))
-    std = np.nanstd(showers_n, axis=0)
-    err_in_mean = np.nanstd(showers_n, axis=0) / np.sqrt(
-        np.sum(~np.isnan(showers_n), 0)
-    )
+    rms_error = np.sqrt(np.mean((average - showers_n) ** 2, axis=0))
+
+    # rms = np.sqrt(np.nanmean((showers_n) ** 2, axis=0))
+    # std = np.nanstd(showers_n, axis=0)
+    # err_in_mean = np.nanstd(showers_n, axis=0) / np.sqrt(
+    #     np.sum(~np.isnan(showers_n), 0)
+    # )
     rms_low = average - rms_error
     rms_high = average + rms_error
-    return average, rms
+    return average, rms_error
 
 
 #%%
 tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -106,13 +108,13 @@ for dc in channels:
         sample_grammage=100,
     )
     mean, rms_error = mean_shower(filtered_n)
-    mean_showers.append(mean)
-    rms_error_shower.append(rms_error)
+    mean_showers.append(mean[2:])
+    rms_error_shower.append(rms_error[2:])
     _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
     nmax_dist.append(dist)
 
     # for each comman decay channel, fluctuate it a lot
-    mult = np.zeros(100)
+    mult = np.zeros(filtered_n.shape[0])
 
     fluctuated_per_channel = []
 
@@ -127,7 +129,7 @@ for dc in channels:
 #!!! see how mean, fluctuated, rms error, and mean fluctuated compare.
 #%%
 
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 4))
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
 for i, dist in enumerate(nmax_dist):
     ax.hist(
         dist / np.mean(dist),
@@ -142,129 +144,72 @@ for i, dist in enumerate(nmax_dist):
 ax.legend(title="Composite Conex, Charged Component", bbox_to_anchor=(0.1, 1))
 ax.set(xlabel="Nmax/mean Nmax", ylabel="Number of Showers")
 
+plt.savefig(
+    os.path.join(
+        "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "rms_nmx_dist.pdf"
+    ),
+    bbox_inches="tight",
+)
 #%%
 
+fig, ax = plt.subplots(nrows=2, ncols=3, dpi=300, figsize=(9, 6), sharey=True)
+plt.subplots_adjust(wspace=0)
+ax = ax.ravel()
+c = ["tab:blue", "tab:orange", "tab:green"]
+for i, l in enumerate(filt_shwrs):
 
-sample = MCVariedMean(
-    filtered_n,
-    comp_charged[: filtered_n.shape[0], :],
-    n_throws=100,
-    hist_bins=30,
-    sample_grammage=100,
-)
+    ax[i].plot(depths[: l.shape[0], :].T, l.T[2:], color=c[i], alpha=0.25)
+    ax[i].plot(depths[:1, :].T, l[0, 2:], color=c[i], alpha=0.25, label=labels[i])
 
-
-# rms_err_upper = mean_shwr + mc_rms * mean_shwr
-# rms_err_lower = mean_shwr - mc_rms * mean_shwr
-# abs_error = rms_err_upper - mean_shwr
-average, rms = mean_shower(e_channel_n)
-
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 5))
-ax.plot(
-    elec_depths[0, :].T,
-    np.log10(e_channel_n[:, 2:].T),
-    color="grey",
-    alpha=0.2,
-)
-
-ax.plot(elec_depths[0, :], np.log10(average[2:]))
-# ax.plot(elec_depths[0, :], np.log10(average[2:] - rms_error[2:]))
-ax.set(ylim=(0, 8))
-custom_lines = [
-    Line2D([0], [0], color="grey", lw=4),
-]
-# Line2D([0], [0], color=cmap(.5), lw=4),
-# Line2D([0], [0], color=cmap(1.), lw=4)]
-
-ax.legend(custom_lines, [r"e$^{{+/-}}$ component, {}".format(decay_channel)])
-
-fig.text(0.08, 0.5, r"log N", va="center", rotation="vertical")
-fig.text(0.5, 0.08, r"Slant Depth (g cm$^{-2}$)", ha="center")
-#%%
-from scipy import optimize
-
-
-def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
-
-    particles = (
-        n_max
-        * np.nan_to_num(
-            ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
-        )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
-
-    return particles
-
-
-def fit_quad_lambda(depth, comp_shower):
-    r"""
-    Gets fits for composite shower if supplied particle content and matching slant depths.
-    Allows negative X0 and quadratic lambda.
-    """
-
-    nmax, xmax = bin_nmax_xmax(bins=depth, particle_content=comp_shower)
-    fit_params, covariance = optimize.curve_fit(
-        f=modified_gh,
-        xdata=depth,
-        ydata=comp_shower,
-        p0=[nmax, xmax, 0, 80, -0.01, 1e-05],
-        bounds=(
-            [0, 0, -np.inf, -np.inf, -np.inf, -np.inf],
-            [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
-        ),
+    ax[i].fill_between(
+        depths[i, :],
+        mean_showers[i] - rms_error_shower[i],
+        mean_showers[i] + rms_error_shower[i],
+        facecolor="grey",
+        alpha=0.5,
+        hatch="////",
+        zorder=5,
+        label="RMS Error",
     )
-    theory_n = modified_gh(depth, *fit_params)
-    print(fit_params)
-    return theory_n
+
+    ax[i].plot(depths[i, :], mean_showers[i], "k", label="Mean")
+    ax[i].set(xlabel="Slant Depth (g cm$^{-2}$)")
+    ax[i].set(ylim=(1, 9e7))
+    ax[i].legend(title=f"{l.shape[0]} Showers")
 
 
-avg_fit = fit_quad_lambda(elec_depths[0, :], average[2:])
-#%%
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 5))
-ax.plot(
-    elec_depths[0, :].T,
-    np.log10(e_channel_n[:, 2:].T),
-    color="grey",
-    alpha=0.2,
+ax[0].set(yscale="log", ylabel="N")
+
+for i, l in enumerate(fluctuated):
+
+    ax[i + 3].plot(depths[: l.shape[0], :].T, l.T[2:], color=c[i], alpha=0.25)
+    ax[i + 3].plot(
+        depths[:1, :].T,
+        l[0, 2:],
+        color=c[i],
+        alpha=0.25,
+        label="Fluctuated Mean Showers",
+    )
+
+    ax[i + 3].fill_between(
+        depths[i, :],
+        mean_showers[i] - rms_error_shower[i],
+        mean_showers[i] + rms_error_shower[i],
+        facecolor="grey",
+        alpha=0.5,
+        hatch="////",
+        zorder=5,
+    )
+
+    ax[i + 3].plot(depths[i, :], mean_showers[i], "k")
+    ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
+    ax[i + 3].legend()
+
+ax[3].set(yscale="log", ylabel="N")
+
+plt.savefig(
+    os.path.join(
+        "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "conex_fluct.pdf"
+    ),
+    bbox_inches="tight",
 )
-ax.plot(
-    elec_depths[0, :].T,
-    np.log10(e_channel_n_charged[:, 2:].T),
-    color="red",
-    alpha=0.2,
-)
-ax.plot(elec_depths[0, :], np.log10(average[2:]), color="tab:blue")
-ax.plot(
-    elec_depths[0, :],
-    np.log10(np.outer(multipliers, average[2:]).T),
-    # ls=":",
-    color="tab:blue",
-    alpha=0.1,
-)
-
-ax.plot(elec_depths[0, :], np.log10(avg_fit), "--k")
-# ax.plot(elec_depths[0, :], np.log10(average[2:] - rms_error[2:]))
-ax.set(ylim=(0, 8))
-custom_lines = [
-    Line2D([0], [0], color="grey", lw=1),
-    Line2D([0], [0], color="tab:blue", lw=1),
-    Line2D([0], [0], ls="--", color="k", lw=1),
-    Line2D([0], [0], ls="--", color="red", lw=1),
-]
-# Line2D([0], [0], color=cmap(.5), lw=4),
-# Line2D([0], [0], color=cmap(1.), lw=4)]
-
-ax.legend(
-    custom_lines,
-    [
-        r"e$^{{+/-}}$ component, {}".format(decay_channel),
-        "mean, varied by sampling Nmax RMS",
-        "Mean GH quadratic lambda",
-        "charged component",
-    ],
-)
-
-fig.text(0.08, 0.5, r"log N", va="center", rotation="vertical")
-fig.text(0.5, 0.08, r"Slant Depth (g cm$^{-2}$)", ha="center")
-plt.savefig("./ep_componenet_electronfinalstate_mean_ghfit.pdf")
