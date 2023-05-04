@@ -538,6 +538,7 @@ class CphotAng:
         # final mask set for loop
 
         zs = zsave[mask]
+        gramsum=gramsum[mask]
         delgram = delgram[mask]
         ZonZ = ZonZ[mask]
         ThetPrpA = ThetPrpA[mask]
@@ -545,6 +546,26 @@ class CphotAng:
         s = s[mask]
         RN = RN[mask]
         e2hill = e2hill[mask]
+        """
+                if RN.size>1000:
+                    print(np.argmax(RN),RN.size)"""
+
+        filename = 'showerdata.csv'
+        # print('Max N: ',np.max(RN))
+        print(gramsum.size,zs.size,RN.size)
+        try:
+            with open(filename, 'a') as f:
+                np.savetxt(f, [gramsum, zs, RN])
+        except Exception as e:
+            print(f"Exception occurred while writing to file: {e}")
+
+        # print('\n this is zs ', zs[0:10],zs[np.size(zs)-10:-1] ,
+        #      '\n this is gramsum', gramsum[0:10], gramsum[np.size(zs) - 10:-1],
+        #      '\n this is RN ', RN[0:10],RN[np.size(zs)-10:-1],
+        #      '\n this is t (radiation length) ', t[0:10], t[np.size(zs) - 10:-1],
+        #      '\n this is s (shower age) ', s[0:10], s[np.size(zs) - 10:-1],
+        #      '\n this is beta (shower max?) ', self.beta
+        #       )
 
         return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
 

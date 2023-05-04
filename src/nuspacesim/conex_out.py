@@ -24,7 +24,7 @@ def conex_out(data,geom):
             (Xmax - X) / (p3 * X ** 2 + p2 * X + p1))
     Zfirst=data["altDec"]
     TauEnergy=np.log10(data["tauEnergy"])+9
-    mask=(Zfirst>=0.01) #& (Zfirst<=0.05)   & (np.degrees(data["beta_rad"])>=4.9) & (np.degrees(data["beta_rad"])<=5.1)& (TauEnergy >= 18.45)& (TauEnergy <= 18.55)#& (data["lenDec"]<=5)
+    mask=(Zfirst>=0.01) & (Zfirst<=0.05)   & (np.degrees(data["beta_rad"])>=4.9) & (np.degrees(data["beta_rad"])<=5.1)& (TauEnergy >= 18.45)& (TauEnergy <= 18.55)#& (data["lenDec"]<=5)
     beta=data["beta_rad"][mask]
     Zfirst=data["altDec"][mask]
     TauEnergy=TauEnergy[mask]
@@ -122,8 +122,8 @@ def conex_out(data,geom):
 
 
 #ATTENTION!!!
-    RN=ak.values_astype(RN.snapshot(),np.float32)[mask2]*24
-# ATTENTION!!! FACTOR ON RN
+    RN=ak.values_astype(RN.snapshot(),np.float32)[mask2]
+# ATTENTION!!! FACTOR ON RN (removed)
 
 
 
