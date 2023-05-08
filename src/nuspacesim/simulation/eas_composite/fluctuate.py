@@ -52,8 +52,8 @@ def mean_shower(showers_n):
 
 
 #%%
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
