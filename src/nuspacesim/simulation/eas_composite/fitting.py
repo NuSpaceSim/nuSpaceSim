@@ -14,9 +14,9 @@ def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
         n_max
         * np.nan_to_num(
             ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x**2)))
+            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
         )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x**2))))
+    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
 
     return particles
 
@@ -44,7 +44,7 @@ def fit_quad_lambda(depth, comp_shower):
 
 
 tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -75,3 +75,56 @@ init = [elec_charged, gamma_charged, pion_charged]
 gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids)
 comp_charged = gen_comp()
 #%%
+def gaisser_hillas(x, n_max, x_max, x_0, gh_lambda):
+
+    particles = (
+        n_max
+        * np.nan_to_num(((x - x_0) / (x_max - x_0)) ** ((x_max - x_0) / gh_lambda))
+    ) * (np.exp((x_max - x) / gh_lambda))
+
+    return particles
+
+
+sample_x = depths[0, :]
+sample_y = comp_charged[0, 2:]
+nmax, xmax = bin_nmax_xmax(bins=sample_x, particle_content=sample_y)
+
+fit_params, covariance = optimize.curve_fit(
+    f=gaisser_hillas,
+    xdata=sample_x,
+    ydata=sample_y,
+    p0=[nmax, xmax, 0, 70],
+    # bounds=([0, 0, -np.inf, -np.inf], [np.inf, np.inf, np.inf, np.inf]),
+)
+
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
+ax.plot(sample_x, sample_y)
+ax.plot(sample_x, gaisser_hillas(sample_x, *fit_params))
+ax.set(yscale="log", ylim=(1, 1e8), xlim=(0, 2000))
+#%%
+
+start = 1500
+mask = sample_x > start
+z = np.polyfit(sample_x[mask], sample_y[mask], 15)
+p = np.poly1d(z)
+
+
+gh_theory = gaisser_hillas(sample_x, *fit_params)
+
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(5, 4))
+
+
+ax.plot(sample_x, sample_y, lw=3, label="composite")
+ax.plot(sample_x[mask], p(sample_x)[mask], label="16th order poly")
+ax.plot(sample_x[~mask], gh_theory[~mask], label="GH")
+ax.set(yscale="log", ylim=(1, 1e8))
+
+inset = ax.inset_axes([0.5, 0.10, 0.40, 0.40])
+inset.plot(sample_x, sample_y, lw=3)
+inset.plot(sample_x[mask], p(sample_x)[mask])
+inset.plot(sample_x[~mask], gh_theory[~mask])
+inset.set(xlim=(1300, 2000), ylim=(1e5, 1e7), yscale="log")
+
+ax.indicate_inset_zoom(inset)
+
+ax.legend()

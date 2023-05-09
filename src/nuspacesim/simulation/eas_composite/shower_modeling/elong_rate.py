@@ -64,10 +64,32 @@ for tup in ntuples:
 
     mus = shwr_data.get_muons()
     char = shwr_data.get_charged()
-    el = shwr_data.get_elec_pos()
+    el = shwr_data.get_elec()
     had = shwr_data.get_hadrons()
     gam = shwr_data.get_gamma()
 
+    # fig, ax = plt.subplots(1, 1, dpi=200, figsize=(4, 4))
+    # for i in range(5):
+    #     if i == 0:
+    #         ax.plot(depths[i, :], char[i, :], color="red", label="charged")
+    #         ax.plot(depths[i, :], el[i, :], color="blue", label="electron")
+    #         ax.plot(depths[i, :], had[i, :], color="green", label="had")
+    #         ax.plot(depths[i, :], gam[i, :], color="orange", label="gamma")
+
+    #     ax.plot(depths[i, :], char[i, :], color="red")
+    #     ax.plot(depths[i, :], el[i, :], color="blue")
+    #     ax.plot(depths[i, :], had[i, :], color="green")
+    #     ax.plot(depths[i, :], gam[i, :], color="orange")
+    # ax.legend(title=r"$\beta$ = {:}, log E = {:}".format(beta, log_energy))
+    # ax.set(
+    #     xlabel="slanth depth (g/cm^2)",
+    #     ylabel="N",
+    #     yscale="log",
+    #     # ylim=(1, 1e8),
+    #     # xlim=(0, 500),
+    # )
+    # ax.set_ylim(bottom=1)
+    # plt.show()
     mus_nmaxs, mus_xmaxs = bin_nmax_xmax(depths, mus)
     char_nmaxs, char_xmaxs = bin_nmax_xmax(depths, char)
     el_nmaxs, el_xmaxs = bin_nmax_xmax(depths, el)

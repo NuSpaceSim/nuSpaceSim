@@ -52,8 +52,8 @@ def mean_shower(showers_n):
 
 
 #%%
-# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -144,12 +144,12 @@ for i, dist in enumerate(nmax_dist):
 ax.legend(title="Composite Conex, Charged Component", bbox_to_anchor=(0.1, 1))
 ax.set(xlabel="Nmax/mean Nmax", ylabel="Number of Showers")
 
-plt.savefig(
-    os.path.join(
-        "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "rms_nmx_dist.pdf"
-    ),
-    bbox_inches="tight",
-)
+# plt.savefig(
+#     os.path.join(
+#         "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "rms_nmx_dist.pdf"
+#     ),
+#     bbox_inches="tight",
+# )
 #%%
 
 fig, ax = plt.subplots(
@@ -216,7 +216,7 @@ ax[3].set(ylabel="N")
 #     ),
 #     bbox_inches="tight",
 # )
-plt.savefig(
-    "/home/fabg/g_drive/Research/NASA/full_conex_modeling/conex_fluct_unlog.pdf",
-    bbox_inches="tight",
-)
+# plt.savefig(
+#     "/home/fabg/g_drive/Research/NASA/full_conex_modeling/conex_fluct_unlog.pdf",
+#     bbox_inches="tight",
+# )
