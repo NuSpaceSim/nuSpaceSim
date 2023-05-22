@@ -14,9 +14,9 @@ def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
         n_max
         * np.nan_to_num(
             ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
+            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x**2)))
         )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
+    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x**2))))
 
     return particles
 
@@ -43,8 +43,8 @@ def fit_quad_lambda(depth, comp_shower):
     return theory_n
 
 
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -103,10 +103,23 @@ ax.plot(sample_x, gaisser_hillas(sample_x, *fit_params))
 ax.set(yscale="log", ylim=(1, 1e8), xlim=(0, 2000))
 #%%
 
-start = 1500
+
+start = 3000
+order = 15
 mask = sample_x > start
-z = np.polyfit(sample_x[mask], sample_y[mask], 15)
+z = np.polyfit(sample_x[mask], sample_y[mask], 12)
 p = np.poly1d(z)
+
+# power law
+
+
+def pwr_law(x, a, b):
+    return a * x**b
+
+
+pfit, pcov = optimize.curve_fit(f=pwr_law, xdata=sample_x[mask], ydata=sample_y[mask])
+
+# bounds=([0, 0, -np.inf, -np.inf], [np.inf, np.inf, np.inf, np.inf]),
 
 
 gh_theory = gaisser_hillas(sample_x, *fit_params)
@@ -115,15 +128,30 @@ fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(5, 4))
 
 
 ax.plot(sample_x, sample_y, lw=3, label="composite")
-ax.plot(sample_x[mask], p(sample_x)[mask], label="16th order poly")
+ax.plot(sample_x[mask], p(sample_x)[mask], label="{} order poly".format(order))
 ax.plot(sample_x[~mask], gh_theory[~mask], label="GH")
+ax.plot(
+    sample_x[mask],
+    pwr_law(sample_x[mask], *pfit),
+    label=r"$\alpha$ = {:.2f}".format(pfit[1]),
+)
 ax.set(yscale="log", ylim=(1, 1e8))
 
-inset = ax.inset_axes([0.5, 0.10, 0.40, 0.40])
+inset = ax.inset_axes([0.2, 0.1, 0.3, 0.3])
 inset.plot(sample_x, sample_y, lw=3)
 inset.plot(sample_x[mask], p(sample_x)[mask])
 inset.plot(sample_x[~mask], gh_theory[~mask])
+inset.plot(sample_x[mask], pwr_law(sample_x[mask], *pfit))
 inset.set(xlim=(1300, 2000), ylim=(1e5, 1e7), yscale="log")
+
+ax.indicate_inset_zoom(inset)
+
+inset = ax.inset_axes([0.65, 0.1, 0.3, 0.3])
+inset.plot(sample_x, sample_y, lw=3)
+inset.plot(sample_x[mask], p(sample_x)[mask])
+inset.plot(sample_x[~mask], gh_theory[~mask])
+inset.plot(sample_x[mask], pwr_law(sample_x[mask], *pfit))
+inset.set(xlim=(10200, 11000), ylim=(4e3, 1e5), yscale="log")
 
 ax.indicate_inset_zoom(inset)
 
