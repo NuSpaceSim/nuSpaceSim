@@ -94,6 +94,8 @@ rms_error_shower = []
 multipliers = []
 fluctuated = []
 
+sample_grammage = 6000
+
 for dc in channels:
     l = get_decay_channel(dc)
     _, filtered_n = decay_channel_filter(comp_charged, comp_charged, dc)
@@ -110,7 +112,10 @@ for dc in channels:
     mean, rms_error = mean_shower(filtered_n)
     mean_showers.append(mean[2:])
     rms_error_shower.append(rms_error[2:])
-    _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
+    # _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
+    _, _, _, dist = sample.sample_specific_grammage(
+        grammage=sample_grammage, return_rms_dist=True
+    )
     nmax_dist.append(dist)
 
     # for each comman decay channel, fluctuate it a lot
@@ -119,7 +124,10 @@ for dc in channels:
     fluctuated_per_channel = []
 
     for m, r in enumerate(mult):
-        mc_rms_multiplier, _, _ = sample.sampling_nmax_once(return_rms_dist=False)
+        # mc_rms_multiplier, _, _ = sample.sampling_nmax_once(return_rms_dist=False)
+        mc_rms_multiplier, _, _ = sample.sample_specific_grammage(
+            grammage=sample_grammage, return_rms_dist=False
+        )
         mult[m] = mc_rms_multiplier
         fluctuated_per_channel.append(mean * mc_rms_multiplier)
 
@@ -127,10 +135,44 @@ for dc in channels:
     fluctuated.append(np.array(fluctuated_per_channel))
 
 #!!! see how mean, fluctuated, rms error, and mean fluctuated compare.
-#%%
+#%% sampleing from a smooth distribution
+from scipy.stats import poisson
+from scipy.stats import skewnorm
+import scipy.special as sse
+from scipy import stats
+from scipy.stats import exponnorm
 
+
+def gauss_exp(x, l, s, m):
+    return (
+        0.5
+        * l
+        * np.exp(0.5 * l * (2 * m + l * s * s - 2 * x))
+        * sse.erfc((m + l * s * s - x) / (np.sqrt(2) * s))
+    )  # exponential gaussian
+
+
+def gaus(x, mu, sigma, amp):
+    return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+
+# def poisson_function(k, lamb):
+#     # The parameter lamb will be used as the fit parameter
+#     return poisson.pmf(k, lamb)
+
+dist_params = []
+rand_multipliers = []
 fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
 for i, dist in enumerate(nmax_dist):
+
+    cts, bin_edges = np.histogram(
+        dist / np.mean(dist), bins=np.linspace(0, 3, 20), density=True
+    )
+    bin_ctrs = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    params, pcov = curve_fit(gauss_exp, bin_ctrs, cts)
+    # gaus_params, gaus_pcov = curve_fit(gaus, bin_ctrs, cts)
+
     ax.hist(
         dist / np.mean(dist),
         alpha=0.5,
@@ -140,9 +182,31 @@ for i, dist in enumerate(nmax_dist):
         bins=np.linspace(0, 3, 20),
         histtype="step",
         lw=2,
+        density=True,
     )
-ax.legend(title="Composite Conex, Charged Component", bbox_to_anchor=(0.1, 1))
-ax.set(xlabel="Nmax/mean Nmax", ylabel="Number of Showers")
+
+    chi2 = np.sum((cts - gauss_exp(bin_ctrs, *params)) ** 2 / np.sqrt(cts) ** 2)
+    p_value = stats.chi2.sf(chi2, len(cts))
+
+    ax.plot(
+        np.linspace(0, 4, 200),
+        gauss_exp(np.linspace(0, 4, 200), *params),
+        # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
+    )
+    dist_params.append(params)
+    # ax.plot(np.linspace(0, 4, 200), gaus(np.linspace(0, 4, 200), *gaus_params), ls="--")
+
+    # ax.errorbar(bin_ctrs, cts, color="k", fmt=".", yerr=np.sqrt(cts))
+    r = exponnorm.rvs(params[0] * params[1], size=300)
+    rand_multipliers.append(r[r > 0])
+
+ax.legend(title="Composite Conex, Charged Component", ncol=2)
+ax.set(
+    xlabel=f"sampled at {sample_grammage} g/cm$^{2}$",
+    ylabel="Number of Showers",
+    # yscale="log",
+)
+
 
 # plt.savefig(
 #     os.path.join(
@@ -178,10 +242,35 @@ for i, l in enumerate(filt_shwrs):
     ax[i].set(xlabel="Slant Depth (g cm$^{-2}$)")
     ax[i].set(ylim=(1, 9e7))
     ax[i].legend(title=f"{l.shape[0]} Showers")
+ax[0].set(ylabel="N", yscale="log")
 
+for i, multiplier in enumerate(rand_multipliers):
+    nshowers = len(multiplier)
+    for i2, m in enumerate(multiplier):
 
-ax[0].set(ylabel="N")
+        if i2 == 0:
 
+            ax[i + 3].plot(
+                depths[i, :],
+                mean_showers[i] * m,
+                color=c[i],
+                alpha=0.25,
+                label="{} showers".format(nshowers),
+            )
+        else:
+            ax[i + 3].plot(
+                depths[i, :],
+                mean_showers[i] * m,
+                color=c[i],
+                alpha=0.25,
+            )
+
+    ax[i + 3].plot(depths[i, :], mean_showers[i], "k", label="Mean")
+    ax[i + 3].legend()
+    ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
+
+ax[4].set_title("Sampled from Guassian with Exponential Tail Distribution")
+#%%
 for i, l in enumerate(fluctuated):
 
     ax[i + 3].plot(depths[: l.shape[0], :].T, l.T[2:], color=c[i], alpha=0.25)
@@ -207,7 +296,7 @@ for i, l in enumerate(fluctuated):
     ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
     ax[i + 3].legend()
 
-ax[0].set(xlim=(0, 2000))
+# ax[0].set(xlim=(0, 2000))
 ax[3].set(ylabel="N")
 
 # plt.savefig(

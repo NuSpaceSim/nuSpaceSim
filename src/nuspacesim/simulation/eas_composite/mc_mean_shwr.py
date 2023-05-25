@@ -203,7 +203,7 @@ class MCVariedMean:
 
     def sampling_nmax_once(self, return_rms_dist=False):
         r"""
-        Sample the rms distribution once around nmax and return uniform multipliers.
+        Sample the rms distribution once around nmax and return multipliers from
         """
         print("Sampling the shower variability at x_max.")
         _, _, hit_rms = self.mc_drt_rms(
@@ -219,6 +219,32 @@ class MCVariedMean:
                 self.output_depth.T,
                 self.output_mean.T,
                 self.nmax_shwr_col.T,
+            )
+        else:
+            return hit_rms, self.output_depth.T, self.output_mean.T
+
+    def sample_specific_grammage(self, grammage, return_rms_dist=False):
+        r"""
+        Sample the rms distribution once at a specfic grammage
+        """
+        print(f"Sampling the shower variability at {grammage}")
+
+        depth_column_idx = np.argmin(np.abs(self.mean_depth - grammage))
+        depth_column = self.depths[:, depth_column_idx].T  # this should be = grammage
+        shower_column = self.showers[:, depth_column_idx].T
+        _, _, hit_rms = self.mc_drt_rms(
+            col_depths=depth_column,
+            col_showers=shower_column,
+            # plot_darts=True,
+        )
+        # print(self.nmax_shwr_col)
+
+        if return_rms_dist is True:
+            return (
+                hit_rms,
+                self.output_depth.T,
+                self.output_mean.T,
+                shower_column,
             )
         else:
             return hit_rms, self.output_depth.T, self.output_mean.T

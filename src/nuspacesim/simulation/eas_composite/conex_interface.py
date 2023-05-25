@@ -146,6 +146,22 @@ class ReadConex:
             shower_fits[i, :] = gh
         return shower_fits
 
+    def get_gh_params(self):
+        """
+        get the gaisser hillas profiles
+        """
+
+        gh_n_max = self.shwr["Nmax"].array(library="np")
+        gh_x_max = self.shwr["Xmax"].array(library="np")
+        gh_x0 = self.shwr["X0"].array(library="np")
+        gh_p1 = self.shwr["p1"].array(library="np")
+        gh_p2 = self.shwr["p2"].array(library="np")
+        gh_p3 = self.shwr["p3"].array(library="np")
+
+        params = np.vstack((gh_n_max, gh_x_max, gh_x0, gh_p1, gh_p2, gh_p3)).T
+
+        return params
+
     def get_dedx(self):
         """get dedx array; each row is for each shower"""
         de_dx = self.shwr["dEdX"].array(library="np")
