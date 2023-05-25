@@ -197,13 +197,13 @@ for i, dist in enumerate(nmax_dist):
     # ax.plot(np.linspace(0, 4, 200), gaus(np.linspace(0, 4, 200), *gaus_params), ls="--")
 
     # ax.errorbar(bin_ctrs, cts, color="k", fmt=".", yerr=np.sqrt(cts))
-    r = exponnorm.rvs(params[0] * params[1], size=300)
+    r = exponnorm.rvs(params[0] * params[1], size=1000)
     rand_multipliers.append(r[r > 0])
 
 ax.legend(title="Composite Conex, Charged Component", ncol=2)
 ax.set(
     xlabel=f"sampled at {sample_grammage} g/cm$^{2}$",
-    ylabel="Number of Showers",
+    ylabel="Number of Showers PDF",
     # yscale="log",
 )
 
