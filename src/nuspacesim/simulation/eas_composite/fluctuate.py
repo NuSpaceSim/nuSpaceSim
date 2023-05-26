@@ -52,8 +52,8 @@ def mean_shower(showers_n):
 
 
 #%%
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -112,10 +112,10 @@ for dc in channels:
     mean, rms_error = mean_shower(filtered_n)
     mean_showers.append(mean[2:])
     rms_error_shower.append(rms_error[2:])
-    # _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
-    _, _, _, dist = sample.sample_specific_grammage(
-        grammage=sample_grammage, return_rms_dist=True
-    )
+    _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
+    # _, _, _, dist = sample.sample_specific_grammage(
+    #     grammage=sample_grammage, return_rms_dist=True
+    # )
     nmax_dist.append(dist)
 
     # for each comman decay channel, fluctuate it a lot
@@ -124,10 +124,10 @@ for dc in channels:
     fluctuated_per_channel = []
 
     for m, r in enumerate(mult):
-        # mc_rms_multiplier, _, _ = sample.sampling_nmax_once(return_rms_dist=False)
-        mc_rms_multiplier, _, _ = sample.sample_specific_grammage(
-            grammage=sample_grammage, return_rms_dist=False
-        )
+        mc_rms_multiplier, _, _ = sample.sampling_nmax_once(return_rms_dist=False)
+        # mc_rms_multiplier, _, _ = sample.sample_specific_grammage(
+        #     grammage=sample_grammage, return_rms_dist=False
+        # )
         mult[m] = mc_rms_multiplier
         fluctuated_per_channel.append(mean * mc_rms_multiplier)
 
@@ -143,9 +143,10 @@ from scipy import stats
 from scipy.stats import exponnorm
 
 
-def gauss_exp(x, l, s, m):
+def gauss_exp(x, l, s, m, A):
     return (
-        0.5
+        A
+        * 0.5
         * l
         * np.exp(0.5 * l * (2 * m + l * s * s - 2 * x))
         * sse.erfc((m + l * s * s - x) / (np.sqrt(2) * s))
@@ -166,12 +167,30 @@ fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
 for i, dist in enumerate(nmax_dist):
 
     cts, bin_edges = np.histogram(
-        dist / np.mean(dist), bins=np.linspace(0, 3, 20), density=True
+        dist / np.mean(dist),
+        bins=np.linspace(0, 3, 22),  # density=True
     )
     bin_ctrs = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     params, pcov = curve_fit(gauss_exp, bin_ctrs, cts)
-    # gaus_params, gaus_pcov = curve_fit(gaus, bin_ctrs, cts)
+    gaus_params, gaus_pcov = curve_fit(gaus, bin_ctrs, cts)
+    nonzero_mask = cts > 0
+    print(cts)
+    chi2 = np.sum(
+        (cts[nonzero_mask] - gauss_exp(bin_ctrs, *params)[nonzero_mask]) ** 2
+        / np.sqrt(cts)[nonzero_mask] ** 2
+    )
+    p_value = stats.chi2.sf(chi2, len(cts[nonzero_mask]))
+    print(chi2)
+    reduced_ch2 = chi2 / len(cts)
+    ax.plot(
+        np.linspace(0, 4, 200),
+        gauss_exp(np.linspace(0, 4, 200), *params),
+        # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
+        label=r"$\chi_\nu^2$ = {:.2f}".format(reduced_ch2),
+    )
+    dist_params.append(params)
+    r = exponnorm.rvs(params[0] * params[1], size=1000)
 
     ax.hist(
         dist / np.mean(dist),
@@ -179,31 +198,28 @@ for i, dist in enumerate(nmax_dist):
         # edgecolor="black",
         linewidth=0.5,
         label=labels[i],
-        bins=np.linspace(0, 3, 20),
+        bins=np.linspace(0, 3, 22),
         histtype="step",
         lw=2,
-        density=True,
+        # density=True,
     )
 
-    chi2 = np.sum((cts - gauss_exp(bin_ctrs, *params)) ** 2 / np.sqrt(cts) ** 2)
-    p_value = stats.chi2.sf(chi2, len(cts))
-
-    ax.plot(
-        np.linspace(0, 4, 200),
-        gauss_exp(np.linspace(0, 4, 200), *params),
-        # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
-    )
-    dist_params.append(params)
     # ax.plot(np.linspace(0, 4, 200), gaus(np.linspace(0, 4, 200), *gaus_params), ls="--")
 
-    # ax.errorbar(bin_ctrs, cts, color="k", fmt=".", yerr=np.sqrt(cts))
-    r = exponnorm.rvs(params[0] * params[1], size=1000)
+    ax.errorbar(bin_ctrs, cts, color="k", fmt=".", yerr=np.sqrt(cts))
+
     rand_multipliers.append(r[r > 0])
 
-ax.legend(title="Composite Conex, Charged Component", ncol=2)
+ax.legend(
+    title="Composite Conex, Charged Component",
+    ncol=2,
+    bbox_to_anchor=[1, 1.4],
+    # loc="left",
+)
 ax.set(
-    xlabel=f"sampled at {sample_grammage} g/cm$^{2}$",
-    ylabel="Number of Showers PDF",
+    # xlabel=f"sampled at {sample_grammage} g/cm$^{2}$",
+    xlabel="sampled at Xmax ",
+    ylabel="Number of Showers",
     # yscale="log",
 )
 
@@ -271,33 +287,33 @@ for i, multiplier in enumerate(rand_multipliers):
 
 ax[4].set_title("Sampled from Guassian with Exponential Tail Distribution")
 #%%
-for i, l in enumerate(fluctuated):
+# for i, l in enumerate(fluctuated):
 
-    ax[i + 3].plot(depths[: l.shape[0], :].T, l.T[2:], color=c[i], alpha=0.25)
-    ax[i + 3].plot(
-        depths[:1, :].T,
-        l[0, 2:],
-        color=c[i],
-        alpha=0.25,
-        label="Fluctuated Mean Showers",
-    )
+#     ax[i + 3].plot(depths[: l.shape[0], :].T, l.T[2:], color=c[i], alpha=0.25)
+#     ax[i + 3].plot(
+#         depths[:1, :].T,
+#         l[0, 2:],
+#         color=c[i],
+#         alpha=0.25,
+#         label="Fluctuated Mean Showers",
+#     )
 
-    ax[i + 3].fill_between(
-        depths[i, :],
-        mean_showers[i] - rms_error_shower[i],
-        mean_showers[i] + rms_error_shower[i],
-        facecolor="grey",
-        alpha=0.5,
-        hatch="////",
-        zorder=5,
-    )
+#     ax[i + 3].fill_between(
+#         depths[i, :],
+#         mean_showers[i] - rms_error_shower[i],
+#         mean_showers[i] + rms_error_shower[i],
+#         facecolor="grey",
+#         alpha=0.5,
+#         hatch="////",
+#         zorder=5,
+#     )
 
-    ax[i + 3].plot(depths[i, :], mean_showers[i], "k")
-    ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
-    ax[i + 3].legend()
+#     ax[i + 3].plot(depths[i, :], mean_showers[i], "k")
+#     ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
+#     ax[i + 3].legend()
 
-# ax[0].set(xlim=(0, 2000))
-ax[3].set(ylabel="N")
+# # ax[0].set(xlim=(0, 2000))
+# ax[3].set(ylabel="N")
 
 # plt.savefig(
 #     os.path.join(
