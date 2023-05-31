@@ -22,7 +22,7 @@ except ImportError:
 
 class ConexCompositeShowers:
     """
-    generating composite showers using the profiles themselves from conex,
+    Generating composite showers using the profiles themselves from conex,
     not just the GH for 10^17 eV for 5 degree earth emergence angles
     """
 
@@ -32,7 +32,7 @@ class ConexCompositeShowers:
         init_pid: list,
         beta: int = 5,
         shwr_per_file: int = 1000,
-        tau_table_start: int = 100,
+        tau_table_start: int = 500,
         energy_pev: int = 100,
     ):
         if (beta != 5) or (energy_pev != 100):
@@ -54,9 +54,16 @@ class ConexCompositeShowers:
 
     def tau_daughter_energies(self, particle_id):
         r"""Isolate energy contributions given a specific pid
+        which are used to scale Nmax of shower components
 
-        Used to scale Nmax of shower components
+        Parameters
+        ----------
+        particle_id: int
 
+        Returns
+        -------
+        energies: float
+            scaling energies from all the pythia tables.
         """
 
         if (particle_id == 211) or (particle_id == 321):
@@ -74,6 +81,21 @@ class ConexCompositeShowers:
         return energies
 
     def scale_energies(self, energies, single_shower):
+        r"""Scale a shower component with pythia
+
+        Parameters
+        ----------
+        energies: float
+            scaling energy to scale the charge component
+        single_shower: array
+            CONEX Profile
+
+        Returns
+        -------
+        label: array
+            scaled and labeled showers based on the shower number and decay
+        """
+
         scaled_shower = single_shower * energies[:, -1][: self.nshowers][:, np.newaxis]
         labeled = np.concatenate(
             (energies[:, :2][: self.nshowers], scaled_shower), axis=1
@@ -82,7 +104,19 @@ class ConexCompositeShowers:
         return labeled
 
     def composite(self, single_showers):
+        r"""Composite shower based on the tagged single showers with decay channels
 
+        Parameters
+        ----------
+        single_showers: array
+            single showers with decay code and event number
+
+        Returns
+        -------
+        composite_showers: array
+            each row is summed bin-by-bin with charged shower component contribution
+            from all the showers
+        """
         # make composite showers
         single_showers = single_showers[single_showers[:, 0].argsort()]
         grps, idx, num_showers_in_evt = np.unique(

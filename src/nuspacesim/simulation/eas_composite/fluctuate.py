@@ -12,6 +12,7 @@ from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_fil
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
 from matplotlib.lines import Line2D
 from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
+from scipy.signal import argrelextrema
 
 plt.rcParams.update(
     {
@@ -73,7 +74,7 @@ gamma_init = ReadConex(
         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1722203790_22.root",
     )
 )
-# we can get the charged compoenent
+# we can get the charged component for each type of particle initiated
 elec_charged = elec_init.get_charged()
 gamma_charged = gamma_init.get_charged()
 pion_charged = pion_init.get_charged()
@@ -83,6 +84,33 @@ pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
 gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids)
 comp_charged = gen_comp()
+
+decay_channels, shwrs_perchannel = np.unique(comp_charged[:, 1], return_counts=True)
+most_common_sort = np.flip(shwrs_perchannel.argsort())
+decay_channels = decay_channels[most_common_sort]
+shwrs_perchannel = shwrs_perchannel[most_common_sort]
+
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
+ax.pie(shwrs_perchannel, labels=decay_channels)
+#%% filter out composites with subshowers
+
+#!!! how to add stochastic process
+
+subshwr_idx = []
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
+for i, s in enumerate(comp_charged):
+    num_of_extrema = len(argrelextrema(np.log10(s), np.greater)[0])
+    if num_of_extrema <= 2:
+        # sub_showers = False
+        ax.plot(depths[0, :], s[2:], lw=1, color="tab:blue", alpha=0.2)
+
+    else:
+        # sub_showers = True
+        ax.plot(depths[0, :], s[2:], lw=1, alpha=0.25, zorder=12)
+        subshwr_idx.append(i)
+
+ax.set(yscale="log", ylim=(1, 1e8))
+
 #%%
 # filter based on common decay channels check distributions
 channels = [300001, 300111, 200011]
@@ -94,7 +122,7 @@ rms_error_shower = []
 multipliers = []
 fluctuated = []
 
-sample_grammage = 6000
+sample_grammage = 5000
 
 for dc in channels:
     l = get_decay_channel(dc)
@@ -112,10 +140,10 @@ for dc in channels:
     mean, rms_error = mean_shower(filtered_n)
     mean_showers.append(mean[2:])
     rms_error_shower.append(rms_error[2:])
-    _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
-    # _, _, _, dist = sample.sample_specific_grammage(
-    #     grammage=sample_grammage, return_rms_dist=True
-    # )
+    # _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
+    _, _, _, dist = sample.sample_specific_grammage(
+        grammage=sample_grammage, return_rms_dist=True
+    )
     nmax_dist.append(dist)
 
     # for each comman decay channel, fluctuate it a lot
@@ -124,10 +152,10 @@ for dc in channels:
     fluctuated_per_channel = []
 
     for m, r in enumerate(mult):
-        mc_rms_multiplier, _, _ = sample.sampling_nmax_once(return_rms_dist=False)
-        # mc_rms_multiplier, _, _ = sample.sample_specific_grammage(
-        #     grammage=sample_grammage, return_rms_dist=False
-        # )
+        # mc_rms_multiplier, _, _ = sample.sampling_nmax_once(return_rms_dist=False)
+        mc_rms_multiplier, _, _ = sample.sample_specific_grammage(
+            grammage=sample_grammage, return_rms_dist=False
+        )
         mult[m] = mc_rms_multiplier
         fluctuated_per_channel.append(mean * mc_rms_multiplier)
 
@@ -135,7 +163,7 @@ for dc in channels:
     fluctuated.append(np.array(fluctuated_per_channel))
 
 #!!! see how mean, fluctuated, rms error, and mean fluctuated compare.
-#%% sampleing from a smooth distribution
+#%% sampling from a smooth distribution
 from scipy.stats import poisson
 from scipy.stats import skewnorm
 import scipy.special as sse
@@ -164,12 +192,19 @@ def gaus(x, mu, sigma, amp):
 dist_params = []
 rand_multipliers = []
 fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
+
+bin_end = np.round(np.max(dist / np.mean(dist)), 0)
+hist_bins = np.linspace(0, bin_end, 22)
+
 for i, dist in enumerate(nmax_dist):
 
     cts, bin_edges = np.histogram(
         dist / np.mean(dist),
-        bins=np.linspace(0, 3, 22),  # density=True
+        bins=hist_bins,  # density=True
     )
+    # if poisson noise is to be used to asses the quality of the fit,
+    # density needs to be false
+
     bin_ctrs = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     params, pcov = curve_fit(gauss_exp, bin_ctrs, cts)
@@ -183,9 +218,11 @@ for i, dist in enumerate(nmax_dist):
     p_value = stats.chi2.sf(chi2, len(cts[nonzero_mask]))
     print(chi2)
     reduced_ch2 = chi2 / len(cts)
+
+    # plot the theoretical fit, but 1 + the end
     ax.plot(
-        np.linspace(0, 4, 200),
-        gauss_exp(np.linspace(0, 4, 200), *params),
+        np.linspace(0, bin_end + 0.5, 200),
+        gauss_exp(np.linspace(0, bin_end + 0.5, 200), *params),
         # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
         label=r"$\chi_\nu^2$ = {:.2f}".format(reduced_ch2),
     )
@@ -198,7 +235,7 @@ for i, dist in enumerate(nmax_dist):
         # edgecolor="black",
         linewidth=0.5,
         label=labels[i],
-        bins=np.linspace(0, 3, 22),
+        bins=hist_bins,
         histtype="step",
         lw=2,
         # density=True,
