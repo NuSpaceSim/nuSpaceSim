@@ -51,10 +51,11 @@
 import configparser
 
 import click
+from trogon import tui
 
 from .. import NssConfig, SimulationParameters, simulation
 from ..compute import compute
-from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
+from ..config import MonoSpectrum, PowerSpectrum
 from ..results_table import ResultsTable
 from ..utils import plots
 from ..utils.plot_function_registry import registry
@@ -63,6 +64,7 @@ from ..xml_config import config_from_xml, create_xml
 __all__ = ["create_config", "run", "show_plot"]
 
 
+@tui()
 @click.group()
 # @click.option("--debug/--no-debug", default=False)
 def cli():
@@ -248,7 +250,6 @@ def create_config(filename: str, numtrajs: float, monospectrum, powerspectrum) -
         spec = MonoSpectrum(monospectrum)
     if powerspectrum is not None:
         spec = PowerSpectrum(*powerspectrum)
-    # spec = FileSpectrum()
 
     simulation = SimulationParameters(N=int(numtrajs), spectrum=spec)
 
