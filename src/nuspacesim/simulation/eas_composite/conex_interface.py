@@ -3,6 +3,8 @@ import numpy as np
 
 
 def conexgh_to_text(file_path: str, output_file: str, num_showers=1):
+    """Translate Conex Gaisser Hillas to Text File"""
+
     ntuple = uproot.open(file_path)
 
     params = []

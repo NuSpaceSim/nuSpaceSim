@@ -5,7 +5,7 @@ import warnings
 
 
 class MCVariedMean:
-    r""" """
+    r"""Dart Board Monte Carlo Method"""
 
     def __init__(
         self,

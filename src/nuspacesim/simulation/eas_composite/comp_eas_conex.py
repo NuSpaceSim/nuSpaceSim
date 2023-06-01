@@ -32,7 +32,7 @@ class ConexCompositeShowers:
         init_pid: list,
         beta: int = 5,
         shwr_per_file: int = 1000,
-        tau_table_start: int = 500,
+        tau_table_start: int = 100,
         energy_pev: int = 100,
     ):
         if (beta != 5) or (energy_pev != 100):

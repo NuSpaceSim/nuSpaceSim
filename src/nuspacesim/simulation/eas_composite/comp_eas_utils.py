@@ -264,7 +264,7 @@ def slant_depth_to_alt(
     slant_depths,
     obs_height=33,
     alt_stop=100,
-    alt_smpl=1000,
+    alt_smpl=1e4,
     sci_plots=False,
 ):
     r"""
@@ -303,7 +303,7 @@ def slant_depth_to_alt(
     r_earth = 6371  # km
 
     # define an altitude array to use as a look-up vector.
-    altitude_array = np.linspace(0, alt_stop, int(alt_smpl))
+    altitude_array = np.geomspace(1e-6, alt_stop, int(alt_smpl))
 
     # for given altitude, calculate vertical depth
     depths = altittude_to_depth(altitude_array)

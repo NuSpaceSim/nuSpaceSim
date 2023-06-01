@@ -134,7 +134,7 @@ def depth_to_alt_lookup_v2(slant_depths, angle, starting_alt, direction="up", s=
 # z_hi = np.linspace(0, 100, 5)
 # theta_tr = np.radians([95])
 
-# gcm2, err = slant_depth(
+# gcm2, err = slant_depth(np.round(
 #     z_lo,
 #     z_hi,
 #     theta_tr,
