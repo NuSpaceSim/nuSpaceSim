@@ -202,10 +202,27 @@ dis_ax.plot(
 
 dis_ax.set(xlim=(theory_x.min(), 3))
 dis_ax.legend(title=r"$(\chi_\nu^2,\:\lambda,\:\sigma,\:\mu,\:{\rm amp})$")
-#%% sample dist
 
-r = exponnorm.rvs(1 / (lamb * sig), size=1000)
+#%%
+# let's loop so that we can control the actual nuber of samples, not just mask it away
+n_samples = 1000
+rand_mults = []
+# while is not good, not sure how to approach other way
+while len(rand_mults) != n_samples:
+    r = exponnorm.rvs(1 / (lamb * sig), loc=mu, scale=sig)
+    rand_mults.append(r)
 
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
+
+ax.hist(rand_mults, bins=hist_bins, density=True)
+ax.plot(
+    theory_x,
+    gauss_exp(theory_x, *params),
+    ls="--",
+    color="grey",
+    # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
+    label=r"$ {:.2f}, {:.2f}, {:.2f}, {:.2f}$".format(reduced_ch2, *params),
+)
 
 #%%
 # filter based on common decay channels check distributions
