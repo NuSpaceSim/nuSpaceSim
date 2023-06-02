@@ -33,9 +33,9 @@ Tau propagation is interpolated using included data tables from [nupyprop](https
 
 ### *nuspacesim* TUI
 
-`nuspacesim tui`
-
 ![NuSpaceSim tui](https://raw.githubusercontent.com/NuSpaceSim/nuSpaceSim/73-tui-option/docs/_static/nuSpaceSim_TUI_example.png)
+
+`nuspacesim tui`
 
 This opens a Text-based user interface (TUI) allowing to explore all CLI options available to *nuspacesim*. On the right hand side are the different *nuspacesim* commands while the left lets youchose and enter all configuration variables. After selecting all options (and leave othern as defaults) the resulting command is shown at the bottom. To execute *Crtl + r*.
 
