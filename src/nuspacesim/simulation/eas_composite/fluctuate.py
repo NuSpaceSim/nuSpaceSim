@@ -1,6 +1,5 @@
 import numpy as np
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
-
 from nuspacesim.simulation.eas_composite.plt_routines import decay_channel_mult_plt
 import matplotlib.pyplot as plt
 import os
@@ -11,11 +10,8 @@ from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_looku
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
 from matplotlib.lines import Line2D
-
 from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
 from scipy.signal import argrelextrema
-
-
 from scipy.stats import poisson
 from scipy.stats import skewnorm
 import scipy.special as sse
@@ -35,7 +31,6 @@ plt.rcParams.update(
         "xtick.top": True,
     }
 )
-
 
 try:
     from importlib.resources import as_file, files
@@ -69,14 +64,14 @@ def gauss_exp(x, l, s, m):
     )  # exponential gaussian
 
 
-def gaus(x, mu, sigma, amp):
+def gauss(x, mu, sigma, amp):
     return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
 
 #%% load showers
 
-# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -104,7 +99,7 @@ depths = elec_init.get_depths()
 
 pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
-gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids)
+gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=6000)
 comp_charged = gen_comp()
 
 
@@ -130,51 +125,39 @@ no_subshwr_idx = np.array(no_subshwr_idx)
 comp_charged = comp_charged[no_subshwr_idx]
 # comp_sub = comp_charged[~subshwr_idx]
 #%% sampling just the xmax, with no sub showers
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
-ax.plot(depths[0, :], comp_charged[:, 2:].T, lw=1, color="tab:red", alpha=0.2)
-ax.set(yscale="log", ylim=(1, 1e8), ylabel="N", xlabel="slant depth (g/cm$^2$)")
 
 mean, rms_err = mean_shower(comp_charged[:, 2:])
 xmax_idx = np.argmax(mean)
+mean_xmax = depths[0, 2:][xmax_idx]
+
 xmax_column = comp_charged[:, xmax_idx]
-xmax = depths[0, 2:][xmax_idx]
-bin_end = np.round(np.max(xmax_column / mean[xmax_idx]), 0)
+xmaxs_idx = np.argmax(comp_charged[:, 2:], axis=1)
+# xmaxs_column = np.take(comp_charged[:, 2:], xmaxs_idx)
+
+# let's get the grammages where each shower peaks
+shower_xmaxs = np.take(depths[0, :], xmaxs_idx)
+xmax_multipliers = shower_xmaxs / mean_xmax
+rms_dist = xmax_column / mean[xmax_idx]
+
+bin_end = 3  # np.round(np.max(xmax_column / mean[xmax_idx]), 0)
 hist_bins = np.linspace(0, bin_end, 25)
 
-
-ax.plot(
-    depths[0, :], mean, "k", alpha=1, label=f"mean, {comp_charged.shape[0]} composites"
-)
-ax.fill_between(
-    depths[0, :],
-    mean - rms_err,
-    mean + rms_err,
-    facecolor="grey",
-    alpha=0.5,
-    # hatch="////",
-    zorder=5,
-    label="RMS Error",
-)
-ax.axvline(xmax, ls="--", lw=2, color="grey")
-ax.legend()
-
-dis_ax = ax.inset_axes([0, -1.2, 1, 1])
-
 # histogram from x max
-cts, bin_edges = np.histogram(xmax_column / mean[xmax_idx], bins=hist_bins)
+# cts, bin_edges = np.histogram(xmax_column / mean[xmax_idx], bins=hist_bins)
+
+cts, bin_edges = np.histogram(rms_dist, bins=hist_bins, density=True)
 bin_ctrs = (bin_edges[:-1] + bin_edges[1:]) / 2
-dis_ax.hist(
-    xmax_column / mean[xmax_idx],
-    bins=hist_bins,
-    color="tab:red",
-    histtype="step",
-    density=True,
-    lw=1.5,
-    hatch="///",
+
+xmaxs_cts, xmaxs_edges = np.histogram(
+    xmax_multipliers, bins=np.linspace(0.5, 1.5, 25), density=True
 )
-cts, _ = np.histogram(xmax_column / mean[xmax_idx], bins=hist_bins, density=True)
+xmax_bin_ctrs = (xmaxs_edges[:-1] + xmaxs_edges[1:]) / 2
+gauss_params, pcov = curve_fit(gauss, xmax_bin_ctrs, xmaxs_cts)
+
+#!!! how to add variations in xmax without extending tails
+
 # cts = dens_cts
-# dis_ax.errorbar(
+# ax[1].errorbar(
 #     bin_ctrs, cts, (dens_cts / cts)[0] * np.sqrt(cts), fmt=".", color="black"
 # )
 
@@ -196,18 +179,33 @@ reduced_ch2 = chi2 / len(cts)
 theory_x = np.linspace(0, bin_end + 0.5, 200)
 
 # let's loop so that we can control the actual nuber of samples, not just mask it away
-n_samples = 1553
-rand_mults = []
+n_samples = comp_charged[:, 2:].shape[0]
+rand_nmax_scale = []
 # while is not good, not sure how to approach other way
-while len(rand_mults) != n_samples:
+while len(rand_nmax_scale) != n_samples:
     r = exponnorm.rvs(1 / (lamb * sig), loc=mu, scale=sig)
     if r > 0:
-        rand_mults.append(r)
+        rand_nmax_scale.append(r)
 
+rand_xmax_scale = []
+while len(rand_xmax_scale) != n_samples:
+    r = np.random.normal(loc=gauss_params[0], scale=gauss_params[1])
+    if r > 0:
+        rand_xmax_scale.append(r)
+
+
+fig, ax = plt.subplots(nrows=1, ncols=2, dpi=300, figsize=(6, 3))
 # fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
-
-
-dis_ax.plot(
+ax[0].hist(
+    rms_dist,
+    bins=hist_bins,
+    color="tab:red",
+    histtype="step",
+    density=True,
+    lw=1.5,
+    hatch="///",
+)
+ax[0].plot(
     theory_x,
     gauss_exp(theory_x, *params),
     ls="--",
@@ -219,38 +217,74 @@ dis_ax.plot(
     r"$({:.2f}, {:.2f}, {:.2f}, {:.2f})$".format(reduced_ch2, *params),
 )
 
-dis_ax.hist(
-    rand_mults,
+ax[0].hist(
+    rand_nmax_scale,
     bins=hist_bins,
-    color="grey",
+    color="tab:blue",
     histtype="step",
     hatch="\\\\",
     lw=1.5,
     density=True,
-    label="resampled",
+    label=r"${\rm resampled}$",
 )
 
 
-# ax.plot(
-#     theory_x,
-#     gauss_exp(theory_x, *params),
-#     ls="--",
-#     color="grey",
-#     # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
-#     label=r"$ {:.2f}, {:.2f}, {:.2f}, {:.2f}$".format(reduced_ch2, *params),
-# )
-dis_ax.legend()
-dis_ax.set(
+ax[0].set(
     xlim=(theory_x.min(), 3),
-    xlabel=r"${\rm Shower\:N_{max} \: / \: mean \: N_{max}}$",
+    xlabel=r"${\rm shower\:N_{max} \: / \: mean \: N_{max}}$",
     ylabel="PDF",
 )
+ax[0].legend()
 
-fluctuated_mean = mean * np.array(rand_mults)[:, np.newaxis]
-reco_ax = ax.inset_axes([0, -2.4, 1, 1])
-
-reco_ax.plot(depths[0, :], fluctuated_mean.T, lw=1, alpha=0.5)
-reco_ax.fill_between(
+ax[1].hist(
+    xmax_multipliers,
+    bins=np.linspace(0.5, 1.5, 25),
+    color="tab:red",
+    histtype="step",
+    density=True,
+    lw=1.5,
+    hatch="///",
+)
+ax[1].plot(
+    np.linspace(0.5, 1.5, 100),
+    gauss(np.linspace(0.5, 1.5, 100), *gauss_params),
+    ls="--",
+    color="tab:red",
+    lw=3,
+    # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
+    label=r"$(\mu, \sigma, a)$"
+    "\n"
+    r"$({:.2f}, {:.2f}, {:.2f})$".format(*gauss_params),
+)
+ax[1].hist(
+    rand_xmax_scale,
+    bins=np.linspace(0.5, 1.5, 25),
+    color="tab:blue",
+    histtype="step",
+    hatch="\\\\",
+    lw=1.5,
+    density=True,
+    label=r"${\rm resampled}$",
+)
+ax[1].legend()
+#%%
+fig, ax = plt.subplots(nrows=1, ncols=2, dpi=300, figsize=(6, 3))
+ax[0].plot(depths[0, :], comp_charged[:, 2:].T, lw=1, color="tab:red", alpha=0.2)
+ax[0].set(
+    yscale="log",
+    ylim=(1, 1e8),
+    ylabel="N",
+    xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
+    # xlim=(0, 2000),
+)
+ax[0].plot(
+    depths[0, :],
+    mean,
+    "k",
+    alpha=1,
+    label=r"${{\rm \:Mean\:of\:{:.0f}\:composites}}$".format(comp_charged.shape[0]),
+)
+ax[0].fill_between(
     depths[0, :],
     mean - rms_err,
     mean + rms_err,
@@ -258,9 +292,50 @@ reco_ax.fill_between(
     alpha=0.5,
     # hatch="////",
     zorder=5,
+    label=r"${\rm RMS\:Error}$",
 )
-reco_ax.set(yscale="log", ylim=(1, 1e8), xlabel="slant depth (g/cm$^2$)", ylabel="N")
-reco_ax.legend(title="Mean Fluctuated, Reconstructed")
+ax[0].axvline(mean_xmax, ls="--", lw=2, color="black")
+ax[0].legend(loc="upper right")
+
+
+fluctuated_mean = mean * np.array(rand_nmax_scale)[:, np.newaxis]
+fluctuated_bins = depths[0, :]  # * np.array(rand_xmax_scale)[:, np.newaxis]
+# reco_ax = ax.inset_axes([0, -2.4, 1, 1])
+
+ax[1].plot(
+    fluctuated_bins.T,
+    fluctuated_mean.T,
+    lw=1,
+    color="tab:blue",
+    alpha=0.5,
+)
+ax[1].plot(
+    depths[0, :],
+    fluctuated_mean[0, :],
+    lw=1,
+    color="tab:blue",
+    alpha=0.5,
+    label=r"${\rm Mean\:Fluctuated,\:Reconstructed}$",
+)
+
+ax[1].fill_between(
+    depths[0, :],
+    mean - rms_err,
+    mean + rms_err,
+    facecolor="black",
+    alpha=0.5,
+    # hatch="////",
+    zorder=5,
+    # label="RMS"
+)
+ax[1].set(
+    yscale="log",
+    ylim=(1, 1e8),
+    xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
+    ylabel="N",
+    # xlim=(0, 2000),
+)
+ax[1].legend(loc="upper right")
 #%% fluctuate by decay channel
 
 decay_channels, shwrs_perchannel = np.unique(
@@ -280,235 +355,3 @@ decay_labels = [get_decay_channel(x) for x in decay_channels[~other_mask]]
 decay_labels.append("other")
 decay_codes = decay_channels[~other_mask]
 shwrs_perchannel = np.append(shwrs_perchannel[~other_mask], other_category)
-#!!! to do: sampled
-
-
-# filter based on common decay channels check distributions
-# channels = [300001, 300111, 200011]
-# labels = []
-# filt_shwrs = []
-# nmax_dist = []
-# mean_showers = []
-# rms_error_shower = []
-# multipliers = []
-# fluctuated = []
-
-# sample_grammage = 6000
-
-# for dc in channels:
-#     l = get_decay_channel(dc)
-#     _, filtered_n = decay_channel_filter(comp_charged, comp_charged, dc)
-#     filt_shwrs.append(filtered_n)
-#     labels.append(l)
-
-#     sample = MCVariedMean(
-#         filtered_n,
-#         depths[: filtered_n.shape[0], :],
-#         n_throws=100,
-#         hist_bins=30,
-#         sample_grammage=100,
-#     )
-#     mean, rms_error = mean_shower(filtered_n)
-#     mean_showers.append(mean[2:])
-#     rms_error_shower.append(rms_error[2:])
-#     _, _, _, dist = sample.sampling_nmax_once(return_rms_dist=True)
-#     # _, _, _, dist = sample.sample_specific_grammage(
-#     #     grammage=sample_grammage, return_rms_dist=True
-#     # )
-#     nmax_dist.append(dist)
-
-#     # for each comman decay channel, fluctuate it a lot
-#     mult = np.zeros(filtered_n.shape[0])
-
-#     fluctuated_per_channel = []
-
-#     for m, r in enumerate(mult):
-#         mc_rms_multiplier, _, _ = sample.sampling_nmax_once(return_rms_dist=False)
-#         # mc_rms_multiplier, _, _ = sample.sample_specific_grammage(
-#         #     grammage=sample_grammage, return_rms_dist=False
-#         # )
-#         mult[m] = mc_rms_multiplier
-#         fluctuated_per_channel.append(mean * mc_rms_multiplier)
-
-#     multipliers.append(mult)
-#     fluctuated.append(np.array(fluctuated_per_channel))
-
-
-# # def poisson_function(k, lamb):
-# #     # The parameter lamb will be used as the fit parameter
-# #     return poisson.pmf(k, lamb)
-
-# dist_params = []
-# rand_multipliers = []
-# fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
-
-# bin_end = np.round(np.max(dist / np.mean(dist)), 0)
-# hist_bins = np.linspace(0, bin_end, 22)
-
-# for i, dist in enumerate(nmax_dist):
-
-#     cts, bin_edges = np.histogram(
-#         dist / np.mean(dist),
-#         bins=hist_bins,  # density=True
-#     )
-#     # if poisson noise is to be used to asses the quality of the fit,
-#     # density needs to be false
-
-#     bin_ctrs = (bin_edges[:-1] + bin_edges[1:]) / 2
-
-#     params, pcov = curve_fit(gauss_exp, bin_ctrs, cts)
-#     gaus_params, gaus_pcov = curve_fit(gaus, bin_ctrs, cts)
-#     nonzero_mask = cts > 0
-#     print(cts)
-#     chi2 = np.sum(
-#         (cts[nonzero_mask] - gauss_exp(bin_ctrs, *params)[nonzero_mask]) ** 2
-#         / np.sqrt(cts)[nonzero_mask] ** 2
-#     )
-#     p_value = stats.chi2.sf(chi2, len(cts[nonzero_mask]))
-#     print(chi2)
-#     reduced_ch2 = chi2 / len(cts)
-
-#     # plot the theoretical fit, but 1 + the end
-#     ax.plot(
-#         np.linspace(0, bin_end + 0.5, 200),
-#         gauss_exp(np.linspace(0, bin_end + 0.5, 200), *params),
-#         # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
-#         label=r"$\chi_\nu^2$ = {:.2f}".format(reduced_ch2),
-#     )
-#     dist_params.append(params)
-#     # r = exponnorm.rvs(params[0] * params[1], size=1000)
-
-#     ax.hist(
-#         dist / np.mean(dist),
-#         alpha=0.5,
-#         # edgecolor="black",
-#         linewidth=0.5,
-#         label=labels[i],
-#         bins=hist_bins,
-#         histtype="step",
-#         lw=2,
-#         # density=True,
-#     )
-
-#     # ax.plot(np.linspace(0, 4, 200), gaus(np.linspace(0, 4, 200), *gaus_params), ls="--")
-
-#     ax.errorbar(bin_ctrs, cts, color="k", fmt=".", yerr=np.sqrt(cts))
-
-#     rand_multipliers.append(r[r > 0])
-
-# ax.legend(
-#     title="Composite Conex, Charged Component",
-#     ncol=2,
-#     bbox_to_anchor=[1, 1.4],
-#     # loc="left",
-# )
-# ax.set(
-#     # xlabel=f"sampled at {sample_grammage} g/cm$^{2}$",
-#     xlabel="sampled at Xmax ",
-#     ylabel="Number of Showers",
-#     # yscale="log",
-# )
-
-
-# # plt.savefig(
-# #     os.path.join(
-# #         "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "rms_nmx_dist.pdf"
-# #     ),
-# #     bbox_inches="tight",
-# # )
-# #%%
-
-# fig, ax = plt.subplots(
-#     nrows=1, ncols=3, dpi=300, figsize=(9, 3), sharey=True, sharex=True
-# )
-# plt.subplots_adjust(wspace=0)
-# ax = ax.ravel()
-# c = ["tab:blue", "tab:orange", "tab:green"]
-# for i, l in enumerate(filt_shwrs):
-
-#     ax[i].plot(depths[: l.shape[0], :].T, l.T[2:], color=c[i], alpha=0.25)
-#     ax[i].plot(depths[:1, :].T, l[0, 2:], color=c[i], alpha=0.25, label=labels[i])
-
-#     ax[i].fill_between(
-#         depths[i, :],
-#         mean_showers[i] - rms_error_shower[i],
-#         mean_showers[i] + rms_error_shower[i],
-#         facecolor="grey",
-#         alpha=0.5,
-#         hatch="////",
-#         zorder=5,
-#         label="RMS Error",
-#     )
-
-#     ax[i].plot(depths[i, :], mean_showers[i], "k", label="Mean")
-#     ax[i].set(xlabel="Slant Depth (g cm$^{-2}$)")
-#     ax[i].set(ylim=(1, 9e7))
-#     ax[i].legend(title=f"{l.shape[0]} Showers")
-# ax[0].set(ylabel="N", yscale="log")
-
-# #%%
-# for i, multiplier in enumerate(rand_multipliers):
-#     nshowers = len(multiplier)
-#     for i2, m in enumerate(multiplier):
-
-#         if i2 == 0:
-
-#             ax[i + 3].plot(
-#                 depths[i, :],
-#                 mean_showers[i] * m,
-#                 color=c[i],
-#                 alpha=0.25,
-#                 label="{} showers".format(nshowers),
-#             )
-#         else:
-#             ax[i + 3].plot(
-#                 depths[i, :],
-#                 mean_showers[i] * m,
-#                 color=c[i],
-#                 alpha=0.25,
-#             )
-
-#     ax[i + 3].plot(depths[i, :], mean_showers[i], "k", label="Mean")
-#     ax[i + 3].legend()
-#     ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
-
-# ax[4].set_title("Sampled from Guassian with Exponential Tail Distribution")
-#%%
-# for i, l in enumerate(fluctuated):
-
-#     ax[i + 3].plot(depths[: l.shape[0], :].T, l.T[2:], color=c[i], alpha=0.25)
-#     ax[i + 3].plot(
-#         depths[:1, :].T,
-#         l[0, 2:],
-#         color=c[i],
-#         alpha=0.25,
-#         label="Fluctuated Mean Showers",
-#     )
-
-#     ax[i + 3].fill_between(
-#         depths[i, :],
-#         mean_showers[i] - rms_error_shower[i],
-#         mean_showers[i] + rms_error_shower[i],
-#         facecolor="grey",
-#         alpha=0.5,
-#         hatch="////",
-#         zorder=5,
-#     )
-
-#     ax[i + 3].plot(depths[i, :], mean_showers[i], "k")
-#     ax[i + 3].set(xlabel="Slant Depth (g cm$^{-2}$)")
-#     ax[i + 3].legend()
-
-# # ax[0].set(xlim=(0, 2000))
-# ax[3].set(ylabel="N")
-
-# plt.savefig(
-#     os.path.join(
-#         "G:", "My Drive", "Research", "NASA", "full_conex_modeling", "conex_fluct.pdf"
-#     ),
-#     bbox_inches="tight",
-# )
-# plt.savefig(
-#     "/home/fabg/g_drive/Research/NASA/full_conex_modeling/conex_fluct_unlog.pdf",
-#     bbox_inches="tight",
-# )
