@@ -238,9 +238,9 @@ for ci, chnl in enumerate(decay_codes):
         density=True,
         lw=1.5,
         # hatch="///",
-        fill=True,
+        # fill=True,
         label=decay_labels[ci],
-        alpha=0.25,
+        alpha=0.5,
     )
     ax[1].plot(
         theory_x,
@@ -272,8 +272,9 @@ for ci, chnl in enumerate(decay_codes):
     )
     ax[0].legend(
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.3),
-        ncol=2,  # title=decay_labels[ci]
+        bbox_to_anchor=(0.5, 1.5),
+        title="Decay Channel"
+        # ncol=2,  # title=decay_labels[ci]
     )
 
     # ax[1].hist(
