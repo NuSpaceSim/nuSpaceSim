@@ -23,11 +23,11 @@
     </TauShowerType>
     <NuTauEnergySpecType>
       <MonoSpectrum>
-        <LogNuEnergy>10</LogNuEnergy>
+        <LogNuEnergy>12</LogNuEnergy>
       </MonoSpectrum>
     </NuTauEnergySpecType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
-    <NumTrajs>1000000</NumTrajs>
+    <NumTrajs>10000000</NumTrajs>
     <ModelIonosphere>0</ModelIonosphere>
     <TEC>10.0</TEC>
     <TECerr>0.1</TECerr>

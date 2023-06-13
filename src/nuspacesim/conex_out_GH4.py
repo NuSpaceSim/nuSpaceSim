@@ -68,7 +68,7 @@ def conex_out_GH4(data,geom):
     Xempty=ak.zeros_like(X)
     OutputVersion=np.array([2.51],dtype='f4')
     b = [np.full(31, nan8)]
-    Eground=[np.full((3,n), nan4)]
+    Eground=np.full((3,n), nan4)
     Eg=ak.to_regular(ak.Array(Eground))
     a = ak.to_regular(ak.Array(b))
     Xmax=np.empty(n,dtype='f4')
@@ -189,7 +189,7 @@ def conex_out_GH4(data,geom):
         , "Electrons": 'var * float32'
         , "Hadrons": 'var * float32'
         , "dMu": 'var * float32'
-        #, "Eground": ('f4', (3,))
+        , "EGround": ('f4', (3,))
     }
     f = uproot.recreate('nss_to_conex.root')
 
@@ -259,7 +259,7 @@ def conex_out_GH4(data,geom):
         , "Electrons": RN
         , "Hadrons": Xempty
         , "dMu": Xempty
-        #, "Eground": Eg
+        , "EGround": Eg
 
     })
     header = f["Header"]

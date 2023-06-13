@@ -58,7 +58,6 @@ from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
 from .conex_out import conex_out
-from .conex_out_GH4 import conex_out_GH4
 
 
 __all__ = ["compute"]
