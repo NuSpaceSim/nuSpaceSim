@@ -266,6 +266,11 @@ ax[1].hist(
     density=True,
     label=r"${\rm resampled}$",
 )
+ax[1].set(
+    xlim=(theory_x.min(), 3),
+    xlabel=r"${\rm shower\:X_{max} \: / \: mean \: X_{max}}$",
+    ylabel="PDF",
+)
 ax[1].legend()
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=2, dpi=300, figsize=(6, 3))
@@ -275,7 +280,7 @@ ax[0].set(
     ylim=(1, 1e8),
     ylabel="N",
     xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
-    # xlim=(0, 2000),
+    xlim=(0, 2000),
 )
 ax[0].plot(
     depths[0, :],
@@ -295,11 +300,11 @@ ax[0].fill_between(
     label=r"${\rm RMS\:Error}$",
 )
 ax[0].axvline(mean_xmax, ls="--", lw=2, color="black")
-ax[0].legend(loc="upper right")
+ax[0].legend(loc="lower center")
 
 
 fluctuated_mean = mean * np.array(rand_nmax_scale)[:, np.newaxis]
-fluctuated_bins = depths[0, :]  # * np.array(rand_xmax_scale)[:, np.newaxis]
+fluctuated_bins = depths[0, :] * np.array(rand_xmax_scale)[:, np.newaxis]
 # reco_ax = ax.inset_axes([0, -2.4, 1, 1])
 
 ax[1].plot(
@@ -333,9 +338,9 @@ ax[1].set(
     ylim=(1, 1e8),
     xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
     ylabel="N",
-    # xlim=(0, 2000),
+    xlim=(0, 2000),
 )
-ax[1].legend(loc="upper right")
+ax[1].legend(loc="lower center")
 #%% fluctuate by decay channel
 
 decay_channels, shwrs_perchannel = np.unique(
