@@ -22,9 +22,9 @@ plt.rcParams.update(
     {
         "font.family": "serif",
         "mathtext.fontset": "cm",
-        "xtick.labelsize": 6,
-        "ytick.labelsize": 6,
-        "font.size": 7,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "font.size": 10,
         "xtick.direction": "in",
         "ytick.direction": "in",
         "ytick.right": True,
@@ -180,12 +180,12 @@ ax_twin.set_xticklabels(
 )
 
 
-plt.savefig(
-    "/home/fabg/g_drive/Research/NASA/gh_vs_profiles.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# plt.savefig(
+#     "/home/fabg/g_drive/Research/NASA/gh_vs_profiles.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 
 # fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
 # ax.scatter(depths[0, :], slant_depth_to_alt(5, depths[0, :]), s=1)
@@ -240,7 +240,7 @@ other_mask = branch_percent < 0.01
 other_category = np.sum(shwrs_perchannel[other_mask])
 decay_labels = [get_decay_channel(x) for x in decay_channels[~other_mask]]
 decay_labels.append("other")
-
+#%%
 
 fig, ax = plt.subplots(nrows=2, ncols=1, dpi=300, figsize=(10, 5))
 ax[0].pie(
@@ -316,3 +316,34 @@ ax[1].text(
 )
 
 #%%
+fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 4))
+ax.pie(
+    np.append(shwrs_perchannel[~other_mask], other_category),
+    labels=decay_labels,
+    autopct="%1.0f%%",
+    # rotatelabels=True,
+    startangle=75,
+    pctdistance=0.8,
+    radius=1.0,
+    # labeldistance=None,
+    textprops={"fontsize": 10},
+)
+
+
+ax.text(
+    -0.2,
+    0.88,
+    r"${{\rm{:.0f}\:Composites}}$"
+    "\n"
+    r"${{\rm 100\:PeV}}$"
+    "\n"
+    r"${{\rm \beta\:=\:5\:\degree}}$".format(comp_charged.shape[0]),
+    transform=ax.transAxes,
+)
+
+plt.savefig(
+    "../../../../../g_drive/Research/NASA/composite_branching_ratio.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
