@@ -74,8 +74,8 @@ def gauss(x, mu, sigma, amp):
 #%%
 # load showers
 
-# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -104,7 +104,7 @@ depths = elec_init.get_depths()
 pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
 gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=100)
-comp_charged = gen_comp()
+comp_charged = gen_comp()  #!!! control the number of showers. random sampling.
 
 # filter out composites with subshowers
 
