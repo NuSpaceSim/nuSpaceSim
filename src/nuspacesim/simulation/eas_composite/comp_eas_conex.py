@@ -165,16 +165,33 @@ class ConexCompositeShowers:
             # get rows with daughter particles we care about
             wanted_pids = [211, 321, -211, -321, 11, 22]
             trimmed_table = np.isin(self.tau_tables[:, 2], wanted_pids)
-            trimmed_table = self.tau_tables[trimmed_table]
+            trimmed_table = self.tau_tables[:, [0, 1, -1]][trimmed_table]
 
             evt_nums = list(sorted(set(trimmed_table[:, 0])))
             resample_evts = np.random.choice(evt_nums, size=n_comps)
 
             # #!!! loop through resample events, and construct a "new" table with resamples
             # to make sure n_comps is met
-
-            for e in resample_evts:
+            new_table = []  # has
+            for pseudo_evtnum, e in enumerate(resample_evts, start=1):
                 sampled_event = trimmed_table[trimmed_table[:, 0] == e]
+                # pseudo_tags = pseudo_evtnum * np.ones(sampled_event.shape[0])
+                tagged_sampled_event = np.insert(
+                    sampled_event, 0, pseudo_evtnum, axis=1
+                )
+                new_table.append(tagged_sampled_event)
+                # np.append(sampled_event, pseudo_tags, 1)
+                # print(sampled_event.shape)
+                # print("--")
+                # sampled_event = np.vstack(
+                #     (
+                #         np.expand_dims(
+                #             pseudo_evtnum * np.ones(sampled_event.shape[0]), axis=1
+                #         ),
+                #         sampled_event,
+                #     )
+                # )
+            new_table = np.concatenate(new_table)
 
             stacked_unsummed = []
             for p, init in enumerate(self.pid):
@@ -205,7 +222,7 @@ class ConexCompositeShowers:
                 # stacked_unsummed.append(scaled_s)
 
             # stacked_unsummed = np.concatenate(stacked_unsummed, axis=0)
-            return resample_evts  # self.composite(stacked_unsummed)
+            return new_table  # self.composite(stacked_unsummed)
         # elif n_comps > np.max(self.tau_tables[:, 0]) and channels == None:
 
         #     evt_sample = np.random.randint(low=1, high=n_comps, size=n_comps)
@@ -220,8 +237,8 @@ class ConexCompositeShowers:
 
 
 #%% Code example
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # read in pythia decays
 import matplotlib.pyplot as plt
 import os
