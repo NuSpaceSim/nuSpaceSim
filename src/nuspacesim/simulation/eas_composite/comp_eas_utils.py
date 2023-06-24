@@ -137,7 +137,7 @@ def depth_to_altitude(x):
     return altitude_out
 
 
-def get_decay_channel(decay_code):
+def get_decay_channel(decay_code, group_decay=None, just_codes=None):
     r"""
     PYTHIA 8 Decay Codes to Corresponding Decay Codes
     https://drive.google.com/file/d/1MVj0FhWNI-075oZQwM8NWSwateT0xqJH/view
@@ -190,7 +190,27 @@ def get_decay_channel(decay_code):
         600411: r"$\tau \rightarrow \nu_\tau + 4\pi_0 + \pi$",
         600051: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi^+ + \pi^- + \pi$",
     }
-    return decay_dict[decay_code]
+    if just_codes is not None:
+        return np.array(list(decay_dict.keys()))
+
+    elif group_decay is not None:
+        nth_digit = group_decay[0]
+        digit_flag = group_decay[1]
+
+        codes = np.array(list(decay_dict.keys()))
+        group = []
+
+        for c in codes:
+            l = [int(x) for x in str(c)]
+            if l[nth_digit - 1] >= digit_flag:
+                group.append(c)
+        # print(group)
+        return [decay_dict[x] for x in group], group
+    else:
+        try:
+            return decay_dict[decay_code]
+        except:
+            return [decay_dict[x] for x in decay_code]
 
 
 def numpy_argmax_reduceat(arr, group_idxs):

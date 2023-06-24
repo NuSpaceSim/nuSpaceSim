@@ -74,8 +74,8 @@ def gauss(x, mu, sigma, amp):
 #%%
 # load showers
 
-# tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -105,7 +105,6 @@ pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
 gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=3000)
 comp_charged = gen_comp()
-
 # filter out composites with subshowers
 
 #!!! how to add stochastic process
@@ -126,8 +125,7 @@ for i, s in enumerate(comp_charged):
 
 no_subshwr_idx = np.array(no_subshwr_idx)
 comp_charged = comp_charged[no_subshwr_idx]
-# comp_sub = comp_charged[~subshwr_idx]
-
+# decay_labels
 # fluctuate by decay channel
 
 decay_channels, shwrs_perchannel = np.unique(
@@ -149,20 +147,31 @@ decay_codes = list(decay_channels[~other_mask])
 decay_codes.append(decay_channels[other_mask])
 shwrs_perchannel = np.append(shwrs_perchannel[~other_mask], other_category)
 
-cmap = plt.cm.get_cmap("jet")(np.linspace(0, 1, len(shwrs_perchannel)))
+cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 6))
 #%%
+
+nmax_scale_perchan = []
+xmax_scale_perchan = []
+
+mean_perchan = []
+rms_err_perchan = []
+mean_xmax_perchan = []
+
 fig, ax = plt.subplots(nrows=1, ncols=3, dpi=300, figsize=(10, 3))
 for ci, chnl in enumerate(decay_codes):
 
     if ci == len(decay_codes) - 1:
         cc = comp_charged[np.isin(comp_charged[:, 1], chnl)]
     else:
-
         cc = comp_charged[comp_charged[:, 1] == chnl]
 
     mean, rms_err = mean_shower(cc[:, 2:])
     xmax_idx = np.argmax(mean)
     mean_xmax = depths[0, 2:][xmax_idx]
+
+    mean_perchan.append(mean)
+    rms_err_perchan.append(rms_err)
+    mean_xmax_perchan.append(mean_xmax)
 
     xmax_column = cc[:, xmax_idx]
     xmaxs_idx = np.argmax(cc[:, 2:], axis=1)
@@ -215,6 +224,7 @@ for ci, chnl in enumerate(decay_codes):
 
     # let's loop so that we can control the actual nuber of samples, not just mask it away
     n_samples = cc[:, 2:].shape[0]
+
     rand_nmax_scale = []
     # while is not good, not sure how to approach other way
     while len(rand_nmax_scale) != n_samples:
@@ -222,12 +232,16 @@ for ci, chnl in enumerate(decay_codes):
         if r > 0:
             rand_nmax_scale.append(r)
 
+    nmax_scale_perchan.append(rand_nmax_scale)
+
     rand_xmax_scale = []
     while len(rand_xmax_scale) != n_samples:
 
         r = exponnorm.rvs(1 / (xmax_lamb * xmax_sig), loc=xmax_mu, scale=xmax_sig)
         if r > 0:
             rand_xmax_scale.append(r)
+
+    xmax_scale_perchan.append(rand_xmax_scale)
 
     ax[0].hist(
         rms_dist,
@@ -250,7 +264,7 @@ for ci, chnl in enumerate(decay_codes):
         # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
         label=r"$({:.2f}, {:.2f}, {:.2f}, {:.2f})$".format(reduced_ch2, *params),
         # label=decay_labels[ci],
-        alpha=0.75,
+        alpha=0.9,
     )
 
     ax[2].hist(
@@ -261,7 +275,7 @@ for ci, chnl in enumerate(decay_codes):
         # hatch="\\\\",
         lw=1.5,
         density=True,
-        alpha=0.75,
+        alpha=0.9,
         # fill=True,
     )
 
@@ -298,7 +312,7 @@ for ci, chnl in enumerate(decay_codes):
     #     )
     # =============================================================================
     ax[0].set(
-        xlim=(theory_x.min(), 3),
+        # xlim=(theory_x.min(), 3),
         xlabel=r"${\rm shower\:N_{max} \: / \: mean \: N_{max}}$",
         ylabel="PDF",
     )
@@ -334,104 +348,109 @@ for ci, chnl in enumerate(decay_codes):
         # ncol=2,
         title=r"${\rm resampled}$",
     )
+#%%
+fig, ax = plt.subplots(nrows=1, ncols=3, dpi=300, figsize=(10, 3))
 
-    # =============================================================================
-    #
-    # =============================================================================
+for ci, chnl in enumerate(decay_codes):
 
-    # ax[0].plot(
-    #     depths[0, :],
-    #     cc[:, 2:].T,
-    #     lw=1,
-    #     color=cmap[ci],
-    #     alpha=0.2,
-    # )
-    # # just to include the label
-    # ax[0].plot(
-    #     depths[0, :],
-    #     cc[0, 2:],
-    #     lw=1,
-    #     color=cmap[ci],
-    #     alpha=0.2,
-    #     label=decay_labels[ci],
-    # )
-    # ax[0].set(
-    #     yscale="log",
-    #     ylim=(1, 1e8),
-    #     ylabel="N",
-    #     xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
-    #     # xlim=(0, 2000),
-    # )
-    # ax[0].axvline(mean_xmax, ls="--", lw=2, color="black")
-    # ax[0].legend(loc="upper right")
+    if ci == len(decay_codes) - 1:
+        cc = comp_charged[np.isin(comp_charged[:, 1], chnl)]
+    else:
+        cc = comp_charged[comp_charged[:, 1] == chnl]
 
-    # ax[1].plot(
-    #     depths[0, :],
-    #     mean,
-    #     alpha=1,
-    #     color=cmap[ci],
-    #     ls="--",
-    #     label=r"${{\rm {:.0f}\:composites}}$".format(cc.shape[0]),
-    # )
-    # ax[1].fill_between(
+    ax[0].plot(
+        depths[0, :],
+        cc[:, 2:].T,
+        lw=1,
+        color=cmap[ci],
+        alpha=0.2,
+    )
+    # just to include the label
+    ax[0].plot(
+        depths[0, :],
+        cc[0, 2:],
+        lw=1,
+        color=cmap[ci],
+        alpha=0.2,
+        label=decay_labels[ci],
+    )
+    ax[0].set(
+        yscale="log",
+        ylim=(1, 1e8),
+        ylabel="N",
+        xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
+        # xlim=(0, 2000),
+    )
+    ax[0].axvline(mean_xmax, ls="--", lw=2, color="black")
+    ax[0].legend(loc="upper right")
+
+    ax[1].plot(
+        depths[0, :],
+        mean_perchan[ci],
+        alpha=1,
+        color=cmap[ci],
+        ls="--",
+        label=r"${{\rm {:.0f}\:composites}}$".format(cc.shape[0]),
+    )
+    ax[1].fill_between(
+        depths[0, :],
+        mean_perchan[ci] - rms_err_perchan[ci],
+        mean_perchan[ci] + rms_err_perchan[ci],
+        color=cmap[ci],
+        alpha=0.5,
+        # hatch="////",
+        zorder=5,
+        # label=r"${\rm RMS\:Error}$",
+    )
+    ax[1].set(
+        yscale="log",
+        ylim=(1, 1e8),
+        xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
+        # ylabel="N",
+        # xlim=(0, 2000),
+    )
+    ax[1].legend(loc="upper right")
+
+    #!!! how to add variations in xmax without extending tails
+    fluctuated_mean = mean * np.array(nmax_scale_perchan[ci])[:, np.newaxis]
+    fluctuated_bins = depths[0, :]  # * np.array(rand_xmax_scale)[:, np.newaxis]
+    # reco_ax = ax.inset_axes([0, -2.4, 1, 1])
+
+    ax[2].plot(
+        fluctuated_bins.T,
+        fluctuated_mean.T,
+        lw=1,
+        color=cmap[ci],
+        alpha=0.5,
+    )
+    ax[2].plot(
+        depths[0, :],
+        fluctuated_mean[0, :],
+        lw=1,
+        color=cmap[ci],
+        alpha=0.2,
+        # label=r"${\rm Mean\:Fluctuated,\:Reconstructed}$",
+        label=decay_labels[ci],
+    )
+
+    # ax[2].fill_between(
     #     depths[0, :],
     #     mean - rms_err,
     #     mean + rms_err,
-    #     color=cmap[ci],
+    #     facecolor="black",
     #     alpha=0.5,
     #     # hatch="////",
     #     zorder=5,
-    #     # label=r"${\rm RMS\:Error}$",
+    #     # label="RMS"
     # )
-    # ax[1].set(
-    #     yscale="log",
-    #     ylim=(1, 1e8),
-    #     xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
-    #     # ylabel="N",
-    #     # xlim=(0, 2000),
-    # )
-    # ax[1].legend(loc="upper right")
-
-    # #!!! how to add variations in xmax without extending tails
-    # fluctuated_mean = mean * np.array(rand_nmax_scale)[:, np.newaxis]
-    # fluctuated_bins = depths[0, :]  # * np.array(rand_xmax_scale)[:, np.newaxis]
-    # # reco_ax = ax.inset_axes([0, -2.4, 1, 1])
-
-    # ax[2].plot(
-    #     fluctuated_bins.T,
-    #     fluctuated_mean.T,
-    #     lw=1,
-    #     color=cmap[ci],
-    #     alpha=0.5,
-    # )
-    # ax[2].plot(
-    #     depths[0, :],
-    #     fluctuated_mean[0, :],
-    #     lw=1,
-    #     color=cmap[ci],
-    #     alpha=0.2,
-    #     # label=r"${\rm Mean\:Fluctuated,\:Reconstructed}$",
-    #     label=decay_labels[ci],
-    # )
-
-    # # ax[2].fill_between(
-    # #     depths[0, :],
-    # #     mean - rms_err,
-    # #     mean + rms_err,
-    # #     facecolor="black",
-    # #     alpha=0.5,
-    # #     # hatch="////",
-    # #     zorder=5,
-    # #     # label="RMS"
-    # # )
-    # ax[2].set(
-    #     yscale="log",
-    #     ylim=(1, 1e8),
-    #     xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
-    #     # ylabel="N",
-    #     # xlim=(0, 2000),
-    # )
-    # ax[2].legend(loc="upper right", title="Reconstructed")
+    ax[2].set(
+        yscale="log",
+        ylim=(1, 1e8),
+        xlabel=r"${\rm\:slant\:depth\:(g/cm^2)}$",
+        # ylabel="N",
+        # xlim=(0, 2000),
+    )
+    ax[2].legend(loc="upper right", title="Reconstructed")
 
     # plt.savefig(
     #     os.path.join(

@@ -7,12 +7,12 @@ import numpy as np
 
 
 import h5py
-from comp_eas_utils import numpy_argmax_reduceat
+from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel
 from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup_v2
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
 from scipy.optimize import fsolve
-
+from scipy.signal import argrelextrema
 
 try:
     from importlib.resources import as_file, files
@@ -51,6 +51,17 @@ class ConexCompositeShowers:
         self.nshowers = shwr_per_file
         self.pid = init_pid
         self.showers = shower_comps
+
+        # calculate branching ratios
+        decay_channels, shwrs_perchannel = np.unique(
+            self.tau_tables[:, 1].astype("int"), return_counts=True
+        )
+        most_common_sort = np.flip(shwrs_perchannel.argsort())
+        decay_channels = decay_channels[most_common_sort]
+        shwrs_perchannel = shwrs_perchannel[most_common_sort]
+        branch_percent = shwrs_perchannel / np.sum(shwrs_perchannel)
+        decay_labels = [get_decay_channel(x) for x in decay_channels]
+        # print(decay_labels, 100 * branch_percent)
 
     def tau_daughter_energies(self, particle_id):
         r"""Isolate energy contributions given a specific pid
@@ -134,18 +145,28 @@ class ConexCompositeShowers:
         )
         return composite_showers
 
-    def __call__(self, n_comps=None, channels=None):
+    def __call__(
+        self, n_comps=None, channel=None, return_table=False, no_subshwrs=False
+    ):
 
-        if n_comps == None and channels == None:
+        if n_comps == None and channel == None:
+            r"""
+            this summing method goes in order of the decay table, and is based on
+            needin to use up all shower profiles uniquely.
+            this runs into the problem that you get more chances for a single electron
+            shower + electron neutrino shower since you have more chances of forming it.
+
+            we resolve it by shifting to a more table-centric shower generation, where
+            we sample events randomly and then randomly draw a corresponding shower
+            to fullfill the requirements to make that decay event/ composite shower.
+
+            """
+
             stacked_unsummed = []
             for p, init in enumerate(self.pid):
                 s = self.showers[p]  # take a single particle shower initiated run
                 # take scaling energies for a specific daughter particle
-
                 energy = self.tau_daughter_energies(particle_id=init)
-
-                print(init)
-                print(energy.shape)
                 # scale the shower by the energy
                 scaled_s = self.scale_energies(energies=energy, single_shower=s)
                 stacked_unsummed.append(scaled_s)
@@ -153,78 +174,96 @@ class ConexCompositeShowers:
             stacked_unsummed = np.concatenate(stacked_unsummed, axis=0)
             # print(stacked_unsummed.shape)
             return self.composite(stacked_unsummed)
-        elif n_comps is not None and channels == None:
+        elif n_comps is not None or channel is not None:
             # trim the table to the desired number of composites,
             # in this case no need to oversample
 
-            print("oversampling tables")
+            print("> Randomly sampling tau decay tables")
             #!!! tables, oversample decays, by adding another tag, pseudo decay tag.
-            # table_end = np.argwhere(self.tau_tables[:, 0] == n_comps)[-1]
-            # table_sample = self.tau_tables[: int(table_end) + 1, :]
 
             # get rows with daughter particles we care about
             wanted_pids = [211, 321, -211, -321, 11, 22]
             trimmed_table = np.isin(self.tau_tables[:, 2], wanted_pids)
-            trimmed_table = self.tau_tables[:, [0, 1, -1]][trimmed_table]
+            trimmed_table = self.tau_tables[trimmed_table]
+            if channel is not None:
 
+                if isinstance(channel, list):
+                    print("> Limiting Decay Channels to", channel)
+                    # print(" ", get_decay_channel(channel))
+                    trimmed_table = trimmed_table[np.isin(trimmed_table[:, 1], channel)]
+
+                else:
+
+                    print("> Limiting Decay Channel to", channel)
+                    # print(" ", get_decay_channel(channel))
+                    trimmed_table = trimmed_table[trimmed_table[:, 1] == channel]
+
+                # print(trimmed_table.shape)
             evt_nums = list(sorted(set(trimmed_table[:, 0])))
-            resample_evts = np.random.choice(evt_nums, size=n_comps)
-
-            # #!!! loop through resample events, and construct a "new" table with resamples
+            resampled_evts = np.random.choice(evt_nums, size=n_comps)
+            # loop through resample events, and construct a "new" table with resamples
             # to make sure n_comps is met
-            new_table = []  # has
-            for pseudo_evtnum, e in enumerate(resample_evts, start=1):
+            new_table = []
+            for pseudo_evtnum, e in enumerate(resampled_evts, start=1):
                 sampled_event = trimmed_table[trimmed_table[:, 0] == e]
                 # pseudo_tags = pseudo_evtnum * np.ones(sampled_event.shape[0])
                 tagged_sampled_event = np.insert(
                     sampled_event, 0, pseudo_evtnum, axis=1
                 )
                 new_table.append(tagged_sampled_event)
-                # np.append(sampled_event, pseudo_tags, 1)
-                # print(sampled_event.shape)
-                # print("--")
-                # sampled_event = np.vstack(
-                #     (
-                #         np.expand_dims(
-                #             pseudo_evtnum * np.ones(sampled_event.shape[0]), axis=1
-                #         ),
-                #         sampled_event,
-                #     )
-                # )
             new_table = np.concatenate(new_table)
 
             stacked_unsummed = []
             for p, init in enumerate(self.pid):
-                print(init)
+                # print(init)
                 if (init == 211) or (init == 321):  # pion kaon same
-                    mask = (np.abs(trimmed_table[:, 2]) == 321) | (
-                        np.abs(trimmed_table[:, 2]) == 211
+                    mask = (np.abs(new_table[:, 3]) == 321) | (
+                        np.abs(new_table[:, 3]) == 211
                     )
                 else:
-                    mask = np.abs(trimmed_table[:, 2]) == init
-
+                    mask = np.abs(new_table[:, 3]) == init
                 # this is all the energies associated with a given daughter paticle
-                energies = trimmed_table[mask][:, [0, 1, -1]]
-                print(energies.shape)
-                # print(self.showers[p].shape[0])
+                # [pseudo event number, decay tag, scaling energy]
+                energies = new_table[mask][:, [0, 2, -1]]
 
                 # oversample shower profiles
                 original_showers = self.showers[p]  # single showers
+
+                if no_subshwrs is True:
+                    no_subshwr_idx = []  # index of composite showers with subshowers
+                    for i, s in enumerate(original_showers):
+                        num_of_extrema = len(argrelextrema(np.log10(s), np.greater)[0])
+                        if num_of_extrema <= 2:
+                            # sub_showers = False
+                            # ax.plot(depths[0, :], s[2:], lw=1, color="tab:blue", alpha=0.2)
+                            no_subshwr_idx.append(i)
+                        else:
+                            # sub_showers = True
+                            # ax.plot(depths[0, :], s[2:], lw=1, alpha=0.25, zorder=12)
+                            pass
+                    no_subshwr_idx = np.array(no_subshwr_idx)
+                    original_showers = original_showers[no_subshwr_idx]
+
                 rand = np.random.randint(
-                    low=1, high=self.showers[p].shape[0], size=energies.shape[0]
+                    low=0, high=original_showers.shape[0], size=energies.shape[0]
                 )
+
                 sampled_showers = np.take(original_showers, rand, axis=0)
-                print(sampled_showers.shape)
+                # print(energies.shape)
+                # print(self.showers[p].shape[0])
+                # print(sampled_showers.shape)
+                scaled_s = self.scale_energies(
+                    energies=energies, single_shower=sampled_showers
+                )
+                stacked_unsummed.append(scaled_s)
 
-                # scaled_s = self.scale_energies(
-                #     energies=energies, single_shower=sampled_showers
-                # )
-                # stacked_unsummed.append(scaled_s)
+            stacked_unsummed = np.concatenate(stacked_unsummed, axis=0)
 
-            # stacked_unsummed = np.concatenate(stacked_unsummed, axis=0)
-            return new_table  # self.composite(stacked_unsummed)
-        # elif n_comps > np.max(self.tau_tables[:, 0]) and channels == None:
-
+        if return_table is True:
+            print("> Returning flattened, unsummed, randomly sampled table.")
+            return self.composite(stacked_unsummed), new_table
+        else:
+            return self.composite(stacked_unsummed)
         #     evt_sample = np.random.randint(low=1, high=n_comps, size=n_comps)
         #     print(evt_sample)
         # self.tau_tables
@@ -238,55 +277,55 @@ class ConexCompositeShowers:
 
 #%% Code example
 # tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
-# read in pythia decays
-import matplotlib.pyplot as plt
-import os
-from scipy.optimize import curve_fit
+# # tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+# # read in pythia decays
+# import matplotlib.pyplot as plt
+# import os
+# from scipy.optimize import curve_fit
 
-# we can read in the showers with different primaries
-elec_init = ReadConex(
-    os.path.join(
-        tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_2033993834_11.root",
-    )
-)
-pion_init = ReadConex(
-    os.path.join(
-        tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_730702871_211.root",
-    )
-)
-gamma_init = ReadConex(
-    os.path.join(
-        tup_folder,
-        "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1722203790_22.root",
-    )
-)
-# we can get the charged compoenent
-elec_charged = elec_init.get_charged()
-gamma_charged = gamma_init.get_charged()
-pion_charged = pion_init.get_charged()
-depths = elec_init.get_depths()
-#%%
-# note, once can also generate compoosites using any component, e.g. electron component
-# elec_elec = elec_init.get_elec()
-# gamma_elec = gamma_init.get_elec()
-# pion_elec = pion_init.get_elec()
+# # we can read in the showers with different primaries
+# elec_init = ReadConex(
+#     os.path.join(
+#         tup_folder,
+#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_2033993834_11.root",
+#     )
+# )
+# pion_init = ReadConex(
+#     os.path.join(
+#         tup_folder,
+#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_730702871_211.root",
+#     )
+# )
+# gamma_init = ReadConex(
+#     os.path.join(
+#         tup_folder,
+#         "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1722203790_22.root",
+#     )
+# )
+# # we can get the charged compoenent
+# elec_charged = elec_init.get_charged()
+# gamma_charged = gamma_init.get_charged()
+# pion_charged = pion_init.get_charged()
+# depths = elec_init.get_depths()
+# #%%
+# # note, once can also generate compoosites using any component, e.g. electron component
+# # elec_elec = elec_init.get_elec()
+# # gamma_elec = gamma_init.get_elec()
+# # pion_elec = pion_init.get_elec()
 
-pids = [11, 22, 211]
-init = [elec_charged, gamma_charged, pion_charged]
-gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids)
-comp_charged = gen_comp(n_comps=5000)  #!!! todo resample table based on composites
-#%%
-fig, ax = plt.subplots(
-    nrows=1, ncols=1, dpi=300, figsize=(8, 5), sharey=True, sharex=True
-)
-# ax = ax.ravel()
-ax.plot(
-    depths[0, :].T,
-    np.log10(comp_charged[:, 2:].T),
-    color="tab:blue",
-    alpha=0.2,
-    label="Charged, Scaled, Summed",
-)
+# pids = [11, 22, 211]
+# init = [elec_charged, gamma_charged, pion_charged]
+# gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids)
+# comp_charged = gen_comp(n_comps=5000)  #!!! todo resample table based on composites
+# #%%
+# fig, ax = plt.subplots(
+#     nrows=1, ncols=1, dpi=300, figsize=(8, 5), sharey=True, sharex=True
+# )
+# # ax = ax.ravel()
+# ax.plot(
+#     depths[0, :].T,
+#     np.log10(comp_charged[:, 2:].T),
+#     color="tab:blue",
+#     alpha=0.2,
+#     label="Charged, Scaled, Summed",
+# )
