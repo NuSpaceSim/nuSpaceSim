@@ -44,13 +44,13 @@ def get_profile(x, y, nbins, useStd=True, *args, **kwargs):
 
     n, _ = np.histogram(x, bins=nbins, **kwargs)
     sy, _ = np.histogram(x, bins=nbins, weights=y, **kwargs)
-    sy2, _ = np.histogram(x, bins=nbins, weights=y * y, **kwargs)
+    sy2, edges = np.histogram(x, bins=nbins, weights=y * y, **kwargs)
     mean = sy / n
     std = np.sqrt(sy2 / n - mean * mean)
     if not useStd:
         std /= np.sqrt(n)
-    bincenter = (_[1:] + _[:-1]) / 2
-    binwidth = bincenter - _[1:]
+    bincenter = (edges[1:] + edges[:-1]) / 2
+    binwidth = np.abs(bincenter - edges[1:])
 
     return bincenter, mean, std, binwidth
 
