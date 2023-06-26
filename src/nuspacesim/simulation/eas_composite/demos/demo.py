@@ -11,7 +11,7 @@ import numpy as np
 
 
 # relative imports are not for scripts, absolute imports here
-from nuspacesim.simulation.eas_composite.composite_eas_gh import CompositeShowers
+from nuspacesim.simulation.eas_composite.comp_eas_gh import CompositeShowers
 from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
 
 # initialize shower parameters

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-from .comp_eas_utils import get_decay_channel
+from nuspacesim.simulation.eas_composite.comp_eas_utils import get_decay_channel
 
 
 def decay_channel_mult_plt(

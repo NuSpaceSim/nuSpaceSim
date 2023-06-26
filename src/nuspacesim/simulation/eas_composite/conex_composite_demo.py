@@ -86,7 +86,7 @@ depths = elec_init.get_depths()
 pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
 gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=1000)
-comp_charged, table = gen_comp()
+comp_charged, table = gen_comp(return_table=True)
 
 #%% segregate by decay channel and see most common one
 
@@ -131,12 +131,12 @@ ax.text(
     transform=ax.transAxes,
 )
 
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/composite_branching_ratio.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# plt.savefig(
+#     "../../../../../g_drive/Research/NASA/composite_branching_ratio.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 
 #!!! discovered a bug, having them 1000 each for a shower means the selection is
 # skewed so that 1000 is used up for electron regardless

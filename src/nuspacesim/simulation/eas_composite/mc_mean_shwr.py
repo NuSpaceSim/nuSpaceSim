@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from .plt_routines import mean_rms_plt
+from nuspacesim.simulation.eas_composite.plt_routines import mean_rms_plt
 import warnings
 
 

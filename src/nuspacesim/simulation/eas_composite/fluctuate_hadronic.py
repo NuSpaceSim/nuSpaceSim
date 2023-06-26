@@ -183,13 +183,13 @@ rms_err_perchan = []
 mean_xmax_perchan = []
 
 sample_label = "6000 g cm^{-2}"
-sample_label = "Nmax"
+# sample_label = "Nmax"
 fig, ax = plt.subplots(nrows=1, ncols=3, dpi=400, figsize=(9, 3), sharex=True)
 for ci, chnl in enumerate(shwr_groups):
 
     mean, rms_err = mean_shower(chnl[:, 2:])
     xmax_idx = np.argmax(mean)
-    sample_idx = xmax_idx  # np.argmin(np.abs(depths[0, 2:] - 6000))
+    sample_idx = np.argmin(np.abs(depths[0, 2:] - 6000))  # xmax_idx
 
     sample_column = chnl[:, sample_idx]
 

@@ -1,15 +1,13 @@
 import numpy as np
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
-from nuspacesim.simulation.eas_composite.plt_routines import decay_channel_mult_plt
 import matplotlib.pyplot as plt
 import os
 from scipy.optimize import curve_fit
-import h5py
-from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel
+from comp_eas_utils import get_decay_channel
 from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup_v2
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
-from matplotlib.lines import Line2D
+
 from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
 from scipy.signal import argrelextrema
 from scipy.stats import poisson
