@@ -24,9 +24,7 @@ except ImportError:
 
 
 # tup_folder = "../conex_7_50_runs"
-tup_folder = (
-    "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts_10km_start"
-)
+tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts"
 # tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
 
 ntuples = sorted(os.listdir(tup_folder))  # [1:]

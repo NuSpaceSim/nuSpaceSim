@@ -7,8 +7,11 @@ import numpy as np
 
 
 import h5py
-from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel
-from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup_v2
+from nuspacesim.simulation.eas_composite.comp_eas_utils import (
+    numpy_argmax_reduceat,
+    get_decay_channel,
+)
+
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
 from scipy.optimize import fsolve
@@ -33,9 +36,9 @@ class ConexCompositeShowers:
         beta: int = 5,
         shwr_per_file: int = 1000,
         tau_table_start: int = 0,
-        energy_pev: int = 100,
+        log_e: int = 17,
     ):
-        if (beta != 5) or (energy_pev != 100):
+        if (beta != 5) or (log_e != 17):
             print("Note, we currently only have conex data for beta = 5deg, e=100PeV")
 
         with as_file(
@@ -146,19 +149,25 @@ class ConexCompositeShowers:
         return composite_showers
 
     def __call__(
-        self, n_comps=None, channel=None, return_table=False, no_subshwrs=False
+        self,
+        n_comps=None,
+        channel=None,
+        return_table=False,
+        no_subshwrs=False,
+        shower_seed=False,
     ):
 
         if n_comps == None and channel == None:
             r"""
             this summing method goes in order of the decay table, and is based on
-            needin to use up all shower profiles uniquely.
+            needing to use up all shower profiles uniquely.
             this runs into the problem that you get more chances for a single electron
             shower + electron neutrino shower since you have more chances of forming it.
 
-            we resolve it by shifting to a more table-centric shower generation, where
+            we resolve it by shifting to a more table-centric shower generation below,
+            where
             we sample events randomly and then randomly draw a corresponding shower
-            to fullfill the requirements to make that decay event/ composite shower.
+            to fullfill the requirements to make that decay event turned composite shower.
 
             """
 
@@ -174,6 +183,7 @@ class ConexCompositeShowers:
             stacked_unsummed = np.concatenate(stacked_unsummed, axis=0)
             # print(stacked_unsummed.shape)
             return self.composite(stacked_unsummed)
+
         elif n_comps is not None or channel is not None:
             # trim the table to the desired number of composites,
             # in this case no need to oversample
@@ -214,6 +224,8 @@ class ConexCompositeShowers:
             new_table = np.concatenate(new_table)
 
             stacked_unsummed = []
+            showers_used_idx = []
+
             for p, init in enumerate(self.pid):
                 # print(init)
                 if (init == 211) or (init == 321):  # pion kaon same
@@ -247,6 +259,8 @@ class ConexCompositeShowers:
                 rand = np.random.randint(
                     low=0, high=original_showers.shape[0], size=energies.shape[0]
                 )
+                if shower_seed is True:
+                    showers_used_idx.append(rand)
 
                 sampled_showers = np.take(original_showers, rand, axis=0)
                 # print(energies.shape)
@@ -264,9 +278,7 @@ class ConexCompositeShowers:
             return self.composite(stacked_unsummed), new_table
         else:
             return self.composite(stacked_unsummed)
-        #     evt_sample = np.random.randint(low=1, high=n_comps, size=n_comps)
-        #     print(evt_sample)
-        # self.tau_tables
+
         # approach, number of showers, sample the 10k events uniformly
         # based on those return the events, can have double count events
         # based on the needs of the tau tables,

@@ -1,3 +1,9 @@
+"""
+test scripts used when finding a way to translate slant depth to altitude.
+
+final version is foun in eas_utils.slant_depth_to_alt
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from nuspacesim.simulation.eas_optical.atmospheric_models import (
@@ -113,23 +119,23 @@ def depth_to_alt_lookup_v2(slant_depths, angle, starting_alt, direction="up", s=
 
 
 # #%%
-# plt.figure(figsize=(4, 4), dpi=200)
-# slant_depths = np.linspace(0, 15000, 10000)
-# altitudes = depth_to_alt_lookup(slant_depths, 95, starting_alt=0, direction="up")
-# new_altitudes = depth_to_alt_lookup_v2(slant_depths, 95, starting_alt=0, direction="up")
+plt.figure(figsize=(4, 4), dpi=200)
+slant_depths = np.linspace(0, 15000, 10000)
+altitudes = depth_to_alt_lookup(slant_depths, 95, starting_alt=0, direction="up")
+new_altitudes = depth_to_alt_lookup_v2(slant_depths, 95, starting_alt=0, direction="up")
 
-# plt.plot(slant_depths, altitudes, label="old version")
+plt.plot(slant_depths, altitudes, label="old version")
 
 
-# plt.plot(slant_depths, new_altitudes, label="with Alex's input")
+plt.plot(slant_depths, new_altitudes, label="with Alex's input")
 
-# plt.xlabel("slant depth (g / cm^2)")
-# plt.ylabel("altitude (km)")
-# plt.legend()
-# # plt.plot(interpolated_altitudes , high_res_slant_depth )
-# # plt.plot(interpolated_altitudes , high_res_slant_depth )
+plt.xlabel("slant depth (g / cm^2)")
+plt.ylabel("altitude (km)")
+plt.legend()
+# plt.plot(interpolated_altitudes , high_res_slant_depth )
+# plt.plot(interpolated_altitudes , high_res_slant_depth )
 
-# #%%
+#%%
 # z_lo = np.array([0])
 # z_hi = np.linspace(0, 100, 5)
 # theta_tr = np.radians([95])
@@ -144,8 +150,9 @@ def depth_to_alt_lookup_v2(slant_depths, angle, starting_alt, direction="up", s=
 #         theta_tr=theta_tr,
 #         rho=lambda z: us_std_atm_density(z, earth_radius),
 #         earth_radius=earth_radius,
-#     ),
+#     )
 # )
+
 # plt.scatter(gcm2, z_hi)
-# # plt.xscale("log")
-# # plt.yscale("log")
+# plt.xscale("log")
+# plt.yscale("log")

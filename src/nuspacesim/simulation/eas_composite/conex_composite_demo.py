@@ -85,8 +85,8 @@ depths = elec_init.get_depths()
 
 pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
-gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=1000)
-comp_charged, table = gen_comp(return_table=True)
+gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=5000)
+comp_charged = gen_comp(return_table=False)
 
 #%% segregate by decay channel and see most common one
 
@@ -143,94 +143,96 @@ ax.text(
 #%%
 
 # get gh fits
-# elec_gh = elec_init.gh_fits()
-# gamma_gh = gamma_init.gh_fits()
-# pion_gh = pion_init.gh_fits()
+elec_gh = elec_init.gh_fits()
+gamma_gh = gamma_init.gh_fits()
+pion_gh = pion_init.gh_fits()
 
 
-# gh_init = [elec_gh, gamma_gh, pion_gh]
-# gen_comp_gh = ConexCompositeShowers(shower_comps=gh_init, init_pid=pids)
-# comp_gh = gen_comp_gh()
+gh_init = [elec_gh, gamma_gh, pion_gh]
+gen_comp_gh = ConexCompositeShowers(
+    shower_comps=gh_init, init_pid=pids, tau_table_start=5000
+)
+comp_gh = gen_comp_gh()
 
-# mean, rms_err = mean_shower(comp_charged[:, 2:])
+mean, rms_err = mean_shower(comp_charged[:, 2:])
 
-# fig, ax = plt.subplots(
-#     nrows=2,
-#     ncols=1,
-#     dpi=300,
-#     figsize=(4, 3),
-#     gridspec_kw={"height_ratios": [3, 1]},
-#     sharex=True,
-# )
-# plt.subplots_adjust(hspace=0.05)
+fig, ax = plt.subplots(
+    nrows=2,
+    ncols=1,
+    dpi=300,
+    figsize=(4, 3),
+    gridspec_kw={"height_ratios": [3, 1]},
+    sharex=True,
+)
+plt.subplots_adjust(hspace=0.05)
 
-# ax[0].plot(
-#     depths[0, :],
-#     np.log10(comp_charged[:, 2:].T),
-#     lw=1,
-#     color="tab:red",
-#     alpha=0.2,
-#     zorder=0,
-# )
-# ax[0].plot(
-#     depths[0, :],
-#     np.log10(comp_gh[:, 2:].T),
-#     lw=1,
-#     color="grey",
-#     alpha=0.2,
-#     zorder=0,
-# )
-# ax[0].plot(depths[0, :], np.log10(mean), lw=1, color="black", ls="--", zorder=12)
+ax[0].plot(
+    depths[0, :],
+    np.log10(comp_charged[:, 2:].T),
+    lw=1,
+    color="tab:red",
+    alpha=0.2,
+    zorder=0,
+)
+ax[0].plot(
+    depths[0, :],
+    np.log10(comp_gh[:, 2:].T),
+    lw=1,
+    color="grey",
+    alpha=0.2,
+    zorder=0,
+)
+ax[0].plot(depths[0, :], np.log10(mean), lw=1, color="black", ls="--", zorder=12)
 
-# ax[1].plot(
-#     depths[0, :],
-#     (comp_gh[:, 2:] / comp_charged[:, 2:]).T,
-#     lw=1,
-#     color="tab:blue",
-#     alpha=0.1,
-#     zorder=1,
-# )
-# ax[1].axhline(y=1, ls="--", lw=1, color="k")
+ax[1].plot(
+    depths[0, :],
+    (comp_gh[:, 2:] / comp_charged[:, 2:]).T,
+    lw=1,
+    color="tab:blue",
+    alpha=0.1,
+    zorder=1,
+)
+ax[1].axhline(y=1, ls="--", lw=1, color="k")
 
-# ax[0].set(
-#     xlim=(1, 6e3),
-#     ylim=(1, 8),
-#     ylabel=r"$\log_{10} \: N(X)$",
-#     # yscale="log",
-# )
-# ax[1].set(
-#     ylim=(0, 2.5),
-#     xlabel=r"$X\:{\rm (g \: cm^{-2})}$",
-#     ylabel=r"${\rm GH\:Fit/Actual}$",
-# )
-# custom_lines = [
-#     Line2D([0], [0], color="tab:red", lw=1),
-#     Line2D([0], [0], color="grey", lw=1),
-#     Line2D([0], [0], color="black", lw=1, ls="--"),
-# ]
-# ax[0].legend(
-#     custom_lines,
-#     [
-#         r"${\rm Composite,\:100\:PeV,\:\beta = 5\degree}$",
-#         r"${\rm GH\:Fit}$",
-#         r"${\rm Mean\:Composite}$",
-#     ],
-#     fontsize=6,
-#     loc="upper center",
-# )
-# ax_twin = ax[0].twiny()
-# ax_twin.plot(depths[0, :], np.log10(mean), alpha=0)
-# ax_twin.set(xlim=(1, 6e3), xlabel=r"${\rmaltitude\:(km)}$")
-# ax_twin.set_xticklabels(
-#     list(
-#         np.round(
-#             slant_depth_to_alt(
-#                 earth_emergence_ang=5, slant_depths=ax[0].get_xticks(), alt_stop=200
-#             ),
-#             1,
-#         ).astype("str")
-#     )
-# )
+ax[0].set(
+    xlim=(1, 6e3),
+    ylim=(1, 8),
+    ylabel=r"$\log_{10} \: N(X)$",
+    # yscale="log",
+)
+ax[1].set(
+    ylim=(0, 2.5),
+    xlabel=r"$X\:{\rm (g \: cm^{-2})}$",
+    ylabel=r"${\rm GH\:Fit/Actual}$",
+)
+custom_lines = [
+    Line2D([0], [0], color="tab:red", lw=1),
+    Line2D([0], [0], color="grey", lw=1),
+    Line2D([0], [0], color="black", lw=1, ls="--"),
+]
+ax[0].legend(
+    custom_lines,
+    [
+        r"${\rm Composite,\:100\:PeV,\:\beta = 5\degree}$",
+        r"${\rm GH\:Fit}$",
+        r"${\rm Mean\:Composite}$",
+    ],
+    fontsize=6,
+    loc="upper center",
+)
+ax_twin = ax[0].twiny()
+ax_twin.plot(depths[0, :], np.log10(mean), alpha=0)
+ax_twin.set(xlim=(1, 6e3), xlabel=r"${\rmaltitude\:(km)}$")
+ax_twin.set_xticklabels(
+    list(
+        np.round(
+            slant_depth_to_alt(
+                earth_emergence_ang=5, slant_depths=ax[0].get_xticks(), alt_stop=200
+            ),
+            1,
+        ).astype("str")
+    )
+)
 
 
 # plt.savefig(

@@ -4,6 +4,8 @@ from scipy.optimize import fsolve
 
 def altittude_to_depth(z):
     """
+    altitude in km
+
     Calculate Overabundance as a function of altitude.
     Taken from Alex's transciption of John's code.
     """
@@ -180,7 +182,7 @@ def get_decay_channel(decay_code, group_decay=None, just_codes=None):
         501211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi + \eta$",
         501212: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi + \Omega$",
         501032: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi + \Omega$",
-        510301: r"$\tau \rightarrow \nu_\tau + \3\pi_0 + K$",
+        510301: r"$\tau \rightarrow \nu_\tau + 3\pi_0 + K$",
         510121: r"$\tau \rightarrow \nu_\tau + \pi_0 + \pi^+ + \pi^- + K$",
         510211: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \overline{K_0} + \pi$",
         510031: r"$\tau \rightarrow \nu_\tau + \overline{K_0} + \pi^+ + \pi^- + \pi$",
@@ -188,7 +190,7 @@ def get_decay_channel(decay_code, group_decay=None, just_codes=None):
         510112: r"$\tau \rightarrow \nu_\tau + \pi_0 + K^+ + K^- + \pi$",
         600231: r"$\tau \rightarrow \nu_\tau + 2\pi_0 + \pi^+ + \pi^- + \pi$",
         600411: r"$\tau \rightarrow \nu_\tau + 4\pi_0 + \pi$",
-        600051: r"$\tau \rightarrow \nu_\tau + \pi^+ + \pi^- + \pi^+ + \pi^- + \pi$",
+        600051: r"$\tau \rightarrow \nu_\tau + 2\pi^+ + 2\pi^- + \pi$",
     }
     if just_codes is not None:
         return np.array(list(decay_dict.keys()))
@@ -283,6 +285,7 @@ def slant_depth_to_alt(
     earth_emergence_ang,
     slant_depths,
     obs_height=33,
+    alt_start=1e-6,  # ~0 km
     alt_stop=100,
     alt_smpl=1e4,
     sci_plots=False,
@@ -322,8 +325,8 @@ def slant_depth_to_alt(
     """
     r_earth = 6371  # km
 
-    # define an altitude array to use as a look-up vector.
-    altitude_array = np.geomspace(1e-6, alt_stop, int(alt_smpl))
+    # define an altitude array to use as a look-up vector. better behaved if non-linear
+    altitude_array = np.geomspace(alt_start, alt_stop, int(alt_smpl))
 
     # for given altitude, calculate vertical depth
     depths = altittude_to_depth(altitude_array)

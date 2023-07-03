@@ -160,7 +160,7 @@ ax.plot(
     pwr_law(sample_x[plaw_mask], *pfit),
     label=r"$\alpha$ = {:.2f}".format(pfit[1]),
 )
-ax.set(yscale="log", ylim=(1, 1e8), xlabel="Slant Depth (g cm$^{-2}$)")
+ax.set(yscale="log", ylim=(1, 1e8), xlabel="Slant Depth (g cm$^{-2}$)", ylabel="N")
 
 inset = ax.inset_axes([0, 1.1, 1, 0.45])
 inset.plot(sample_x, sample_y, lw=3, color="k")

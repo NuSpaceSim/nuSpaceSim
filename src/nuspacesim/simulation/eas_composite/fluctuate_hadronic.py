@@ -6,11 +6,11 @@ import os
 from scipy.optimize import curve_fit
 import h5py
 from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel
-from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup_v2
+
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
 from matplotlib.lines import Line2D
-from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
+
 from scipy.signal import argrelextrema
 from scipy.stats import poisson
 from scipy.stats import skewnorm
@@ -21,20 +21,20 @@ import matplotlib
 
 cmap = matplotlib.cm.get_cmap("Spectral")
 
+
 plt.rcParams.update(
     {
         "font.family": "serif",
         "mathtext.fontset": "cm",
-        "xtick.labelsize": 6,
-        "ytick.labelsize": 6,
-        "font.size": 7,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "font.size": 10,
         "xtick.direction": "in",
         "ytick.direction": "in",
         "ytick.right": True,
         "xtick.top": True,
     }
 )
-
 try:
     from importlib.resources import as_file, files
 except ImportError:
@@ -116,64 +116,102 @@ pion_charged = pion_init.get_charged()
 depths = elec_init.get_depths()
 init = [elec_charged, gamma_charged, pion_charged]
 pids = [11, 22, 211]
-#%%
+#%% shower decay channels
+
+lepton_decay = [300001, 300002]
+had_pionkaon_1bod = [200011, 210001]
+# fmt: off
+had_pi0 = [300111, 310101, 400211, 410111, 410101, 410201, 401111, 400111, 500131,
+           500311, 501211, 501212, 510301, 510121, 510211, 510111, 510112, 600411,
+           600231,
+           ]
+
+had_no_pi0 = [310001, 311001, 310011, 311002, 311003, 400031, 410021, 410011, 410012,
+              410013, 410014, 501031, 501032, 510031, 600051,
+              ]
+# fmt: on
 
 
-decay_codes = get_decay_channel(None, just_codes=True)
-gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=0)
-comp_elec = gen_comp(n_comps=1000, channel=300001, return_table=False, no_subshwrs=True)
+generator = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=0)
 
-# decay codes with pi0
-_, pi0codes = get_decay_channel(None, group_decay=(4, 1))
-_, pichargedcodes = get_decay_channel(None, group_decay=(5, 1))
-
-
-no_chargedpi = []
-for c in pi0codes:
-    l = [int(x) for x in str(c)]
-    if l[4] == 0:
-        no_chargedpi.append(c)
-no_pi0 = []
-for c in pichargedcodes:
-    l = [int(x) for x in str(c)]
-    if l[3] == 0:
-        no_pi0.append(c)
-
-singlekaoncodes = decay_filter(decay_codes, 2, "eq", 1)
-singlepioncodes = decay_filter(decay_codes, 4, "eq", 1)
-
-comp_no_chargedpi = gen_comp(
-    n_comps=1000, channel=no_chargedpi, return_table=False, no_subshwrs=True
+lepton_decay_eas = generator(
+    n_comps=1000, channel=lepton_decay, return_table=False, no_subshwrs=True
 )
-comp_no_pi0 = gen_comp(
-    n_comps=1000, channel=no_pi0, return_table=False, no_subshwrs=True
+pk_1bo_eas = generator(
+    n_comps=1000, channel=had_pionkaon_1bod, return_table=False, no_subshwrs=True
 )
-comp_kaons = gen_comp(
-    n_comps=1000, channel=singlekaoncodes, return_table=False, no_subshwrs=True
-)
-comp_single_pi = gen_comp(
-    n_comps=1000, channel=singlepioncodes, return_table=False, no_subshwrs=True
+pi0_eas = generator(n_comps=1000, channel=had_pi0, return_table=False, no_subshwrs=True)
+no_pi0_eas = generator(
+    n_comps=1000, channel=had_no_pi0, return_table=False, no_subshwrs=True
 )
 
-shwr_groups = [
-    comp_elec,
-    comp_no_pi0,
-    comp_no_chargedpi,
-    comp_kaons,
-    comp_single_pi,
-]
+
+shwr_groups = [lepton_decay_eas, pk_1bo_eas, pi0_eas, no_pi0_eas]
 
 
 decay_labels = [
-    r"$e^{-}$",
-    r"${\rm \pi^{+/-} \: no \:  \pi_0}$",
-    r"${\rm \pi_0 \:  no  \: \pi^{+/-}}$",
-    r"$1 K$",
-    r"$1 \pi^{+/-}$",
+    r"${\rm leptonic\:decay}$",
+    r"${\rm  1\:body\:K,\:\pi^{+/-}}$",
+    r"${\rm  with\:\pi_0}$",
+    r"${\rm  no\:\pi_0}$",
 ]
 #%%
+# decay_codes = get_decay_channel(None, just_codes=True)
 
-cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))
+# gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=0)
+
+# # decay codes with pi0
+# _, pi0codes = get_decay_channel(None, group_decay=(4, 1))
+# _, pichargedcodes = get_decay_channel(None, group_decay=(5, 1))
+
+# no_chargedpi = []
+# for c in pi0codes:
+#     l = [int(x) for x in str(c)]
+#     if l[4] == 0:
+#         no_chargedpi.append(c)
+# no_pi0 = []
+# for c in pichargedcodes:
+#     l = [int(x) for x in str(c)]
+#     if l[3] == 0:
+#         no_pi0.append(c)
+
+# singlekaoncodes = decay_filter(decay_codes, 2, "eq", 1)
+# singlepioncodes = decay_filter(decay_codes, 4, "eq", 1)
+
+
+# comp_elec = gen_comp(n_comps=1000, channel=300001, return_table=False, no_subshwrs=True)
+# comp_no_chargedpi = gen_comp(
+#     n_comps=1000, channel=no_chargedpi, return_table=False, no_subshwrs=True
+# )
+# comp_no_pi0 = gen_comp(
+#     n_comps=1000, channel=no_pi0, return_table=False, no_subshwrs=True
+# )
+# comp_kaons = gen_comp(
+#     n_comps=1000, channel=singlekaoncodes, return_table=False, no_subshwrs=True
+# )
+# comp_single_pi = gen_comp(
+#     n_comps=1000, channel=singlepioncodes, return_table=False, no_subshwrs=True
+# )
+
+# shwr_groups = [
+#     comp_elec,
+#     comp_no_pi0,
+#     comp_no_chargedpi,
+#     comp_kaons,
+#     comp_single_pi,
+# ]
+
+
+# decay_labels = [
+#     r"$e^{-}$",
+#     r"${\rm \pi^{+/-} \: no \:  \pi_0}$",
+#     r"${\rm \pi_0 \:  no  \: \pi^{+/-}}$",
+#     r"$1 K$",
+#     r"$1 \pi^{+/-}$",
+# ]
+#%%
+
+cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))[1:]
 
 nmax_scale_perchan = []
 xmax_scale_perchan = []
@@ -182,14 +220,14 @@ mean_perchan = []
 rms_err_perchan = []
 mean_xmax_perchan = []
 
-sample_label = "6000 g cm^{-2}"
-# sample_label = "Nmax"
-fig, ax = plt.subplots(nrows=1, ncols=3, dpi=400, figsize=(9, 3), sharex=True)
+# sample_label = "6000 g cm^{-2}"
+sample_label = "Nmax"
+fig, ax = plt.subplots(nrows=1, ncols=3, dpi=300, figsize=(10, 3), sharex=True)
 for ci, chnl in enumerate(shwr_groups):
-
+    # !!! put this in a function
     mean, rms_err = mean_shower(chnl[:, 2:])
     xmax_idx = np.argmax(mean)
-    sample_idx = np.argmin(np.abs(depths[0, 2:] - 6000))  # xmax_idx
+    sample_idx = xmax_idx  # np.argmin(np.abs(depths[0, 2:] - 6000))
 
     sample_column = chnl[:, sample_idx]
 
@@ -216,6 +254,13 @@ for ci, chnl in enumerate(shwr_groups):
     cts, bin_edges = np.histogram(rms_dist, bins=hist_bins, density=True)
     bin_ctrs = (bin_edges[:-1] + bin_edges[1:]) / 2
 
+    # last hist bin before 0 to truncate sampling range
+    non_zero_mask = cts > 0
+    max_val = bin_edges[1:][non_zero_mask][-1]
+    # print(cts)
+    # print(bin_edges[1:][int(np.argwhere((cts==0) | (cts==bin_end) )[1])])
+
+    # print("-")
     # xmaxs_cts, xmaxs_edges = np.histogram(
     #     xmax_multipliers, bins=np.linspace(0.5, 1.5, 25), density=True
     # )
@@ -235,7 +280,7 @@ for ci, chnl in enumerate(shwr_groups):
     lamb = params[0]
     sig = params[1]
     mu = params[2]
-
+    print(lamb, sig, mu, max_val)
     nonzero_mask = cts > 0
     chi2 = np.sum(
         (cts[nonzero_mask] - gauss_exp(bin_ctrs, *params)[nonzero_mask]) ** 2
@@ -252,9 +297,10 @@ for ci, chnl in enumerate(shwr_groups):
 
     rand_nmax_scale = []
     # while is not good, not sure how to approach other way
+    k = 1 / (lamb * sig)  # shape paremeter
     while len(rand_nmax_scale) != n_samples:
-        r = exponnorm.rvs(1 / (lamb * sig), loc=mu, scale=sig)
-        if (r > 0) and (r <= bin_end):
+        r = exponnorm.rvs(k, loc=mu, scale=sig)
+        if (r > 0) and (r <= max_val):
             rand_nmax_scale.append(r)
 
     nmax_scale_perchan.append(rand_nmax_scale)
@@ -311,7 +357,7 @@ for ci, chnl in enumerate(shwr_groups):
         lw=3,
         density=True,
         alpha=0.9,
-        label="{} scaling values".format(len(rand_nmax_scale)),
+        label=r"${{\rm {}\:scaling\:values}}$".format(len(rand_nmax_scale)),
     )
 
     # =============================================================================
@@ -346,13 +392,12 @@ for ci, chnl in enumerate(shwr_groups):
     #         label=r"${\rm resampled}$",
     #     )
     # =============================================================================
-
 ax[0].set(
     ylabel="Raw Counts",
     # xlabel=r"${\rm shower\:N_{max} \: / \: mean \: N_{max}}$",
     # ylim=(0, 245),
 )
-ax[0].legend(title=r"${\rm Decay\:Channel}$")
+ax[0].legend(title=r"${\rm Decay\:Channel}$", fontsize=8)
 ax[1].set(
     xlabel=r"${{\rm shower\:{} \: / \: mean \: {} }}$".format(
         sample_label, sample_label
@@ -360,7 +405,6 @@ ax[1].set(
     ylabel="PDF",
     ylim=(0, 1.5),
 )
-
 ax[2].set(
     # xlim=(theory_x.min(), 3),
     # xlabel=r"${\rm shower\:X_{max} \: / \: mean \: X_{max}}$",
@@ -368,19 +412,25 @@ ax[2].set(
     ylabel="PDF",
     ylim=(0, 1.5),
 )
-
 ax[1].legend(
     loc="upper right",
-    title=r"${\rm Fit}(\chi^2,\:\lambda,\:\sigma,\:\mu)$",
+    title=r"${\rm Fit} \:(\chi^2,\:\lambda,\:\sigma,\:\mu)$",
+    fontsize=8,
 )
+ax[2].legend(loc="upper right", title=r"${\rm Resampled}$", fontsize=8)
 
-ax[2].legend(loc="upper right", title=r"${\rm Resampled}$")
+plt.savefig(
+    "../../../../../g_drive/Research/NASA/rms_hadronic.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
 #%%
 fig, ax = plt.subplots(
     nrows=1,
     ncols=3,
     dpi=300,
-    figsize=(7.5, 2.5),
+    figsize=(10, 3),
     sharey=True,
 )
 plt.subplots_adjust(wspace=0)
@@ -451,27 +501,23 @@ for ci, chnl in enumerate(shwr_groups):
         lw=1,
         color=cmap[ci],
         alpha=0.2,
-        label="${:.2f}$".format(np.max(reco_mean / mean_perchan[ci])),
+        label=r"${{\:{:.2f}}}$".format(np.max(reco_mean / mean_perchan[ci])),
     )
 
 
 ax[0].axvline(depths[0, 2:][sample_idx], ls="--", lw=2, color="grey")
-ax[0].legend(
-    loc="lower center", bbox_to_anchor=(0.5, 1), ncol=2, title=r"${\rm Groupings}$"
-)
-ax[1].legend(
-    loc="lower center", bbox_to_anchor=(0.5, 1), ncol=2, title=r"${\rm Mean\:and\:RMS}$"
-)
-ax[2].legend(
-    title=r"${\rm Reconstructed\:Showers}$",
-    loc="lower center",
-    bbox_to_anchor=(0.5, 1),
-    ncol=2,
-)
+# ax[0].legend(
+#     loc="lower center", bbox_to_anchor=(0.5, 1), ncol=2, title=r"${\rm Groupings}$"
+# )
+ax[0].legend(fontsize=8)
+# ax[1].legend()
+ax[2].legend(title=r"${\rmreco\:mean/ mean }$", fontsize=8)
 
-ax[0].set(
-    yscale="log",
-    ylabel="$N$",
-    ylim=(1, 5e8),
-)
+ax[0].set(yscale="log", ylim=(100, 3e8), ylabel="$N$")
 ax[1].set(xlabel=r"${\rm\:slant\:depth\:(g \: cm^{-2})}$")
+plt.savefig(
+    "../../../../../g_drive/Research/NASA/reco_hadronic.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)

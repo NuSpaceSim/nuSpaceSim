@@ -1,0 +1,1 @@
+Composite eas modeling using GH fit with quadratic lambda like CONEX. Only describes the bulk of the tail-- poor agreement in the tails. 
