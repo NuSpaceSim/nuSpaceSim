@@ -209,7 +209,7 @@ decay_labels = [
 #     r"$1 K$",
 #     r"$1 \pi^{+/-}$",
 # ]
-#%%
+#%% nmax rms
 
 cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))[1:]
 
@@ -219,6 +219,8 @@ xmax_scale_perchan = []
 mean_perchan = []
 rms_err_perchan = []
 mean_xmax_perchan = []
+
+rms_reco_params = []
 
 # sample_label = "6000 g cm^{-2}"
 sample_label = "Nmax"
@@ -257,6 +259,7 @@ for ci, chnl in enumerate(shwr_groups):
     # last hist bin before 0 to truncate sampling range
     non_zero_mask = cts > 0
     max_val = bin_edges[1:][non_zero_mask][-1]
+
     # print(cts)
     # print(bin_edges[1:][int(np.argwhere((cts==0) | (cts==bin_end) )[1])])
 
@@ -281,6 +284,7 @@ for ci, chnl in enumerate(shwr_groups):
     sig = params[1]
     mu = params[2]
     print(lamb, sig, mu, max_val)
+    rms_reco_params.append([lamb, sig, mu, max_val])
     nonzero_mask = cts > 0
     chi2 = np.sum(
         (cts[nonzero_mask] - gauss_exp(bin_ctrs, *params)[nonzero_mask]) ** 2
@@ -521,3 +525,35 @@ plt.savefig(
     bbox_inches="tight",
     pad_inches=0.05,
 )
+
+#%% save RMS dist
+
+keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
+fname = "nmax_rms_params"
+with as_file(files("nuspacesim.data.eas_reco.rms_params") / f"{fname}.h5") as path:
+    print(path)
+    with h5py.File(path, "w") as f:
+        for i, rms in enumerate(np.array(rms_reco_params)):
+
+            f.create_dataset(
+                keys[i],
+                data=rms,
+                dtype="f",
+            )
+            f.create_dataset(
+                "mean_" + keys[i],
+                data=mean_perchan[i],
+                dtype="f",
+            )
+
+            f.create_dataset(
+                "rms_" + keys[i],
+                data=rms_err_perchan[i],
+                dtype="f",
+            )
+
+        f.create_dataset(
+            "slant_depth",
+            data=depths[0, :],
+            dtype="f",
+        )

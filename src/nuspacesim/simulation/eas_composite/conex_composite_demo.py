@@ -15,7 +15,7 @@ from nuspacesim.simulation.eas_composite.comp_eas_utils import (
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
 from matplotlib.lines import Line2D
 
-from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
+
 from scipy.signal import argrelextrema
 
 plt.rcParams.update(

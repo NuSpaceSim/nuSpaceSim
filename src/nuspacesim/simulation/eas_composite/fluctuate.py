@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import os
 from scipy.optimize import curve_fit
 from comp_eas_utils import get_decay_channel
-from nuspacesim.simulation.eas_composite.x_to_z_lookup import depth_to_alt_lookup_v2
+
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
 
-from nuspacesim.simulation.eas_composite.mc_mean_shwr import MCVariedMean
+
 from scipy.signal import argrelextrema
 from scipy.stats import poisson
 from scipy.stats import skewnorm

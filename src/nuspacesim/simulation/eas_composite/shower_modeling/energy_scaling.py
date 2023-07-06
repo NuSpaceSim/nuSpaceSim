@@ -24,9 +24,7 @@ except ImportError:
 
 
 # tup_folder = "../conex_7_50_runs"
-tup_folder = (
-    "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts_10km_start"
-)
+tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts"
 # tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
 
 ntuples = sorted(os.listdir(tup_folder))  # [1:]
@@ -64,7 +62,7 @@ for tup in ntuples:
 
     mus = shwr_data.get_muons()
     char = shwr_data.get_charged()
-    el = shwr_data.get_elec_pos()
+    el = shwr_data.get_elec()
     had = shwr_data.get_hadrons()
     gam = shwr_data.get_gamma()
 
@@ -108,7 +106,21 @@ def lin_func(x, m, b):
     return (m * x) + b
 
 
-ptype = ["muons", "charged", "e-+", "hadrons", "gammas"]
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "mathtext.fontset": "cm",
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "font.size": 10,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "ytick.right": True,
+        "xtick.top": True,
+    }
+)
+
+ptype = ["muons", "charged", "e^{-/+}", "hadrons", "gammas"]
 mtype = ["^", "s", "x", "o", "+"]
 
 three_angles = []
@@ -119,15 +131,15 @@ intercept = []
 intercept_uncertainty = []
 
 fig, ax = plt.subplots(
-    ncols=int(len(sorted(list(set(angles)))) / 2),
-    nrows=2,
-    # sharex=True,
+    ncols=2,
+    nrows=3,
+    sharex=True,
     sharey=True,
-    figsize=(2.2 * len(sorted(list(set(angles)))), 8),
-    dpi=300,
+    figsize=(6, 8),
+    dpi=400,
 )
 ax = ax.ravel()
-plt.subplots_adjust(wspace=0)
+plt.subplots_adjust(wspace=0, hspace=0)
 for angle_idx, a in enumerate(sorted(list(set(angles)))):
     angle = a
     mask = angles == angle
@@ -169,13 +181,23 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
 
         theory_x = np.linspace(14, 21, 100)
         ax[angle_idx].plot(theory_x, lin_func(theory_x, *params), ls="--", alpha=0.8)
-        mus_scatter = ax[angle_idx].scatter(
-            masked_energies,
-            np.log10(particle_nmaxs[idx]),
-            marker=mtype[idx],
-            label=r"{} ({:.2f}, {:.2f})".format(p, *params),
-            alpha=0.5,
-        )
+
+        if angle_idx == 0:
+            mus_scatter = ax[angle_idx].scatter(
+                masked_energies,
+                np.log10(particle_nmaxs[idx]),
+                marker=mtype[idx],
+                label=r"${{\rm {} }} \: ({:.1f}, {:.1f})$".format(p, *params),
+                alpha=0.5,
+            )
+        else:
+            mus_scatter = ax[angle_idx].scatter(
+                masked_energies,
+                np.log10(particle_nmaxs[idx]),
+                marker=mtype[idx],
+                label=r"$({:.1f}, {:.1f})$".format(*params),
+                alpha=0.5,
+            )
 
         three_angles.append(a)
         particle_types.append(p)
@@ -183,31 +205,48 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
         slope_uncertainty.append(uncertainties[0])
         intercept.append(params[1])
         intercept_uncertainty.append(uncertainties[1])
-    ax[angle_idx].legend(
-        title=r"$\beta = {} \degree$ (slope, intercept)".format(angle),
-        # loc="upper center",
-        # bbox_to_anchor=(0.5, 1.5),
-        fontsize=7,
-        title_fontsize=7,
-    )
-    ax[angle_idx].set(xlabel="$\log_{10}$ Energy (eV)", ylim=(1, 15))
+
+    if angle_idx == 0:
+        ax[angle_idx].legend(
+            title=r"${\rm component\: (slope,\:intercept)}$",
+            fontsize=8,
+            title_fontsize=8,
+        )
+    else:
+        ax[angle_idx].legend(fontsize=8, title_fontsize=8)
+    ax[angle_idx].set(ylim=(2, 15), xlim=(13.5, 20.5))
     ax[angle_idx].grid(ls="--")
 
-fig.text(
-    0.1,
-    0.90,
-    tup_folder,
-    ha="left",
-)
 
+fig.text(0.5, 0.09, r"${\rm \log_{10} \: E({\rm eV})}$", ha="center")
 fig.text(
-    0.025,
+    0.07,
     0.5,
-    r"log mean Nmax (g/cm$^2$)",
+    r"$\log_{10}\: {\rm mean}\:N_{\rm max}$",
     va="center",
     rotation="vertical",
 )
-plt.savefig("./E_scaling_{}.pdf".format(tup_folder.split("/")[-1]))
+
+# fig.text(
+#     0.1,
+#     0.90,
+#     tup_folder,
+#     ha="left",
+# )
+
+# fig.text(
+#     0.025,
+#     0.5,
+#     r"log mean Nmax (g/cm$^2$)",
+#     va="center",
+#     rotation="vertical",
+# )
+plt.savefig(
+    "../../../../../g_drive/Research/NASA/energy_scaling.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
 #%% save
 
 three_angles = np.array(three_angles)
@@ -217,12 +256,10 @@ slope_uncertainty = np.array(slope_uncertainty)
 intercept = np.array(intercept)
 intercept_uncertainty = np.array(intercept_uncertainty)
 
-ptypes = ["muons", "charged", "hadrons", "gammas", "electron_positron"]
+ptypes = ["muons", "charged", "hadrons", "gammas", "e-+"]
 earth_emer_angles = sorted(list(set(angles)))
 fname = tup_folder.split("/")[-1]
-with as_file(
-    files("nuspacesim.data.eas_scaling_tables.energy_scaling") / f"{fname}.h5"
-) as path:
+with as_file(files("nuspacesim.data.eas_reco.energy_scaling") / f"{fname}.h5") as path:
     print(path)
     with h5py.File(path, "w") as f:
         for t in ptypes:
@@ -243,7 +280,7 @@ with as_file(
                         ],
                     )
                 )
-
+                print(ang_data)
                 particle_data.append(ang_data)
 
             f.create_dataset(

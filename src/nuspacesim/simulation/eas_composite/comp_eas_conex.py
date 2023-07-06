@@ -4,8 +4,6 @@ generating composite showers using the profiles themselves from conex, not just 
 """
 
 import numpy as np
-
-
 import h5py
 from nuspacesim.simulation.eas_composite.comp_eas_utils import (
     numpy_argmax_reduceat,

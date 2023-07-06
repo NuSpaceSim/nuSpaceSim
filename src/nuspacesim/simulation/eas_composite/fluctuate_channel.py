@@ -138,79 +138,79 @@ shwrs_perchannel = shwrs_perchannel[most_common_sort]
 decay_labels = [get_decay_channel(x) for x in decay_channels]
 branch_percent = shwrs_perchannel / np.sum(shwrs_perchannel)
 
-# cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 25))
+#%%
+cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 25))
+fig, ax = plt.subplots(
+    nrows=4, ncols=5, dpi=300, figsize=(12, 10), sharex=True, sharey=True
+)
+fig.subplots_adjust(hspace=0.05, wspace=0.05)
+ax = ax.ravel()
 
-# fig, ax = plt.subplots(
-#     nrows=4, ncols=5, dpi=300, figsize=(12, 10), sharex=True, sharey=True
-# )
-# fig.subplots_adjust(hspace=0.05, wspace=0.05)
-# ax = ax.ravel()
+for i, decay in enumerate(decay_channels):
+    y = comp_charged[comp_charged[:, 1] == decay]
+    x = depths[0, :]
+    print(i)
+    if i < 19:
+        ax[i].plot(x, np.log10(y[:, 2:].T), color=cmap[i], lw=1, alpha=0.60)
 
-# for i, decay in enumerate(decay_channels):
-#     y = comp_charged[comp_charged[:, 1] == decay]
-#     x = depths[0, :]
-#     print(i)
-#     if i < 19:
-#         ax[i].plot(x, np.log10(y[:, 2:].T), color=cmap[i], lw=1, alpha=0.60)
+        t = decay_labels[i] + "\n" + r"${{\rm \: {} \: EAS}}$".format(y.shape[0])
+        ax[i].text(
+            0.95,
+            0.96,
+            t,
+            transform=ax[i].transAxes,
+            horizontalalignment="right",
+            verticalalignment="top",
+        )
+        ax[i].grid(ls=":")
+        if i <= 4:
+            ax_twin = ax[i].twiny()
+            ax_twin.plot(x, np.log10(y[0, 2:]), alpha=0)
+            ax_twin.set_xticklabels(
+                list(
+                    np.round(
+                        slant_depth_to_alt(
+                            earth_emergence_ang=beta,
+                            slant_depths=ax[i].get_xticks(),
+                            alt_stop=200,
+                        ),
+                        1,
+                    ).astype("str")
+                )
+            )
 
-#         t = decay_labels[i] + "\n" + r"${{\rm \: {} \: EAS}}$".format(y.shape[0])
-#         ax[i].text(
-#             0.95,
-#             0.96,
-#             t,
-#             transform=ax[i].transAxes,
-#             horizontalalignment="right",
-#             verticalalignment="top",
-#         )
-#         ax[i].grid(ls=":")
-#         if i <= 4:
-#             ax_twin = ax[i].twiny()
-#             ax_twin.plot(x, np.log10(y[0, 2:]), alpha=0)
-#             ax_twin.set_xticklabels(
-#                 list(
-#                     np.round(
-#                         slant_depth_to_alt(
-#                             earth_emergence_ang=beta,
-#                             slant_depths=ax[i].get_xticks(),
-#                             alt_stop=200,
-#                         ),
-#                         1,
-#                     ).astype("str")
-#                 )
-#             )
-
-#     else:
-#         ax[19].plot(
-#             x,
-#             np.log10(y[0, 2:].T),
-#             color=cmap[i],
-#             lw=1,
-#             alpha=1,
-#             label=decay_labels[i],
-#         )
+    else:
+        ax[19].plot(
+            x,
+            np.log10(y[0, 2:].T),
+            color=cmap[i],
+            lw=1,
+            alpha=1,
+            label=decay_labels[i],
+        )
 
 
-# ax[0].set(ylim=(1.5, 8))
-# ax[19].legend(frameon=False)
-# ax[19].grid(ls=":")
-# fig.text(0.5, 0.09, r"${\rm slant\:depth\:(g \: cm^{-2})}$", ha="center")
-# fig.text(0.5, 0.91, r"${\rmaltitude\:(km)}$", ha="center")
-# fig.text(
-#     0.10,
-#     0.91,
-#     r"${{\rm\:\beta ={}\degree,E_{{primary}}=\:10^{{{}}}\:eV,{}\:total\:Composite\:EAS}}$".format(
-#         beta, log_e, total_gen
-#     ),
-#     ha="left",
-# )
-# fig.text(0.1, 0.5, r"$\log_{10}\: N$", va="center", rotation="vertical")
+ax[0].set(ylim=(1.5, 8))
+ax[19].legend(frameon=False)
+ax[19].grid(ls=":")
+fig.text(0.5, 0.09, r"${\rm slant\:depth\:(g \: cm^{-2})}$", ha="center")
+fig.text(0.5, 0.91, r"${\rmaltitude\:(km)}$", ha="center")
+fig.text(
+    0.10,
+    0.91,
+    r"${{\rm\:\beta ={}\degree,E_{{primary}}=\:10^{{{}}}\:eV,{}\:total\:Composite\:EAS}}$".format(
+        beta, log_e, total_gen
+    ),
+    ha="left",
+)
+fig.text(0.1, 0.5, r"$\log_{10}\: N$", va="center", rotation="vertical")
 
-# plt.savefig(
-#     "../../../../../g_drive/Research/NASA/eas_gallery.png",
-#     dpi=300,
-#     bbox_inches="tight",
-#     pad_inches=0.05,
-# )
+plt.savefig(
+    "../../../../../g_drive/Research/NASA/eas_gallery.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
 
 
 # sum channels that contributed less than 3 percent to the decay
