@@ -21,7 +21,7 @@ def conex_out(data, geom):
     TauEnergy = np.log10(data["tauEnergy"]) + 9 #Tau energy in log E/eV units
 
     # Useful masks (Zfirst masks are necessary between 0 and 20km)
-    mask = (Zfirst >= 0) & (Zfirst <= 20) #& (TauEnergy >= 18) & (data["lenDec"] <= 100) & (np.degrees(data["beta_rad"]) >= 3)
+    mask = (Zfirst >= 0) & (Zfirst <= 20) & (data["lenDec"] >= 20) #& (TauEnergy >= 17)# & (np.degrees(data["beta_rad"]) >= 5) )
 
     beta = data["beta_rad"][mask]
     Zfirst = data["altDec"][mask]
@@ -54,7 +54,7 @@ def conex_out(data, geom):
     TauEnergy = TauEnergy[mask2]
     Xfirst = Xfirst[mask2]
     n = np.size(Zfirst)
-    azim = 360 * np.random.rand(n)  #Random azimuth
+    azim = 360 * np.random.rand(n)*0+180 #Random azimuth
     zenith = 90 + np.degrees(beta)
     dEdXratio=0.00258
 
@@ -110,7 +110,7 @@ def conex_out(data, geom):
         init[2]=y[max_pos]
         init[3:] = [1e-7, 4e-4, 44]
 
-        popt, pcov = curve_fit(GH, x, y, p0=init)
+        popt, pcov = curve_fit(GH, x, y, p0=init, maxfev=1000000)
         yfit = GH(x, *popt)
 
         #Calculate chi**2
