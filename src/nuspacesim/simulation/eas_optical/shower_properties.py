@@ -40,7 +40,11 @@ date: 2023 January 23
 import numpy as np
 from scipy.optimize import newton
 
+from ...utils.ode import dormand_prince_rk54
 from . import atmospheric_models as atm
+
+# from scipy.integrate import solve_ivp
+
 
 # from .atmospheric_models import (
 #     cherenkov_photons_created,
@@ -54,7 +58,6 @@ from . import atmospheric_models as atm
 
 __all__ = [
     "propagation_angle",
-    "path_length_tau_atm",
     "altitude_along_path_length",
     "shower_age",
     "greisen_particle_count",
@@ -67,71 +70,87 @@ def propagation_angle(beta_tr, z, Re=6378.1):
     return np.arccos((Re / (Re + z)) * np.cos(beta_tr))
 
 
-def path_length_tau_atm(z, beta_tr, Re=6378.1, xp=np):
+def path_length_tau_atm_theta(z, theta_tr, Re=6378.1):
     """
     From https://arxiv.org/pdf/1902.11287.pdf Eqn (11)
     """
-    Resinb = Re * xp.sin(beta_tr)
-    return xp.sqrt(Resinb**2 + (Re + z) ** 2 - Re**2) - Resinb
+    Recost = Re * np.cos(theta_tr)
+    return np.sqrt(Recost**2 + (Re + z) ** 2 - Re**2) - Recost
 
 
-def altitude_along_path_length(path_len, beta_tr, Re=6378.1, xp=np):
-    """Derived by solving for z in path_length_tau_atm."""
-    return xp.sqrt(path_len**2 + 2.0 * path_len * Re * xp.sin(beta_tr) + Re**2) - Re
+def path_length_tau_atm_beta(z, beta_tr, Re=6378.1):
+    """
+    From https://arxiv.org/pdf/1902.11287.pdf Eqn (11)
+    """
+    Resinb = Re * np.sin(beta_tr)
+    return np.sqrt(Resinb**2 + ((Re + z) ** 2 - Re**2)) - Resinb
 
 
-def shower_age(T):
+def altitude_along_path_length(plen, beta_tr, Re=6378.1):
+    """Simple application of cosine rule."""
+    return np.sqrt(plen**2 + 2.0 * plen * Re * np.sin(beta_tr) + Re**2) - Re
+
+
+def greisen_beta(
+    shower_energy,
+    critical_energy=0.0849282296650717703349282296650717703349282296650717703349282296,
+):
+    r"""Greisen beta (y in hillas 1461) parameter from Energy of Primary and
+    Critical energy (in GeV) is
+    0.710 / 8.36 == 0.0849282296650717703349282296650717703349282296650717703349282296
+    """
+    return np.log(shower_energy / critical_energy)
+
+
+def greisen_beta_opt(shower_energy):
+    r"""Greisen beta (or y in hillas 1461) parameter from Energy of Primary
+    beta = ln(Eprim / Ecrit)
+         = ln(Eprim) - ln(Ecrit)
+         = ln(Eprim) - ln(Ecrit)
+         = ln(Eprim) + (-ln(Ecrit))
+    Where ln(Ecrit) == -2.465948736043386201575980720256301876450509857246490393876
+    """
+    beta = np.log(shower_energy) + 2.46594873604338620157598072025630187645050985724649
+    beta[beta < 0] = 0  # beta < 0 should not be possible. Is this Necessary?
+    return beta
+
+
+def shower_age(T, greisen_param):
     r"""Shower age (s) as a function of atmospheric depth in mass units (g/cm^2)
-
-
-    Hillas 1475 eqn (1)
-
-    s = 3 * T / (T + 2 * beta)
-    where from EASCherGen beta = ln(10 ** 8 / (0.710 / 8.36))
-    so 2 * beta = 41.773258959991503347439824715462431074518643532553348404286170740...
+    Hillas 1461 eqn (7)
+    s = 3 / (1 + 2 * (greisen_param/T))
+    where from EASCherGen greisen_param = ln(10 ** 8 / (0.710 / 8.36))
+    so 2 * greisen_param = 41.773258959991503347439824715462431074518643532553348404286170740...
     """
-    return 3.0 * T / (T + 41.77325895999150334743982471)
+    return 3.0 / (1.0 + 2.0 * (greisen_param / T))
 
 
-def greisen_particle_count(T, s):
+def greisen_particle_count(T, s, greisen_param):
     r"""Particle count as a function of radiation length from atmospheric depth
-
     Hillas 1461 eqn (6)
-
-    N_e(T) where y is beta in EASCherGen, thus
-    (0.31 / sqrt (10^8 / (0.710 / 8.36)))
-    = 0.0678308895484773316048795658058110209448440898800928880798622962...
+    N_e(T) where y is greisen_param in EASCherGen, thus (0.31 / sqrt(greisen_param))
     """
-    # , param_beta=np.log(10 ** 8 / (0.710 / 8.36))
-    # N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
-    # N_e[N_e < 0] = 0.0
-    N_e = 0.067830889548477331 * np.exp(T * (1.0 - 1.5 * np.log(s)))
-    N_e[N_e < 0] = 0.0
+    N_e = (0.31 / np.sqrt(greisen_param)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
+    N_e[N_e < 0] = 0.0  # Also shouldn't be possible
     return N_e
 
 
-def greisen_particle_count_shower_age(slant_depth):
+def greisen_particle_count_shower_age(slant_depth, shower_energy):
     r"""greisen_particle_count and shower_age in (g/cm^2)."""
     T = atm.rad_len_atm_depth(slant_depth)
-    s = shower_age(T)
-    RN = greisen_particle_count(T, s)
+    greisen_param = greisen_beta_opt(shower_energy)
+    s = shower_age(T, greisen_param)
+    RN = greisen_particle_count(T, s, greisen_param)
     return RN, s
 
 
-def shower_age_of_greisen_particle_count(target_count, x0=2):
-    # for target_count = 2, shower_age = 1.899901462640018
-    # param_beta = np.log(10 ** 8 / (0.710 / 8.36))
-
+def shower_age_of_greisen_particle_count(target_count, greisen_param, s0=2):
     def rns(s):
-        return (
-            0.067830889548477331
-            * np.exp(
-                (41.77325895999150334743982471 * s * (1.5 * np.log(s) - 1)) / (s - 3.0)
-            )
-            - target_count
-        )
+        T = 2.0 * greisen_param / (3.0 / s - 1)
+        count = 0.31 / np.sqrt(greisen_param) * np.exp(T * (1 - 1.5 * np.log(s)))
+        return count - target_count
 
-    return newton(rns, x0)
+    return newton(rns, s0)
 
 
 def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
@@ -141,31 +160,45 @@ def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
     return Nmax * (x / xmax) ** xmax * np.exp(xmax - x)
 
 
-def altitude_at_shower_age(s, alt_dec, beta_tr, z_max=65.0, **kwargs):
-    """Altitude as a function of shower age, decay altitude and emergence angle."""
-
-    alt_dec = np.asarray(alt_dec)
-    beta_tr = np.asarray(beta_tr)
-
-    theta_tr = 0.5 * np.pi - beta_tr
-    param_beta = np.log(10**8 / (0.710 / 8.36))
-
-    # Check that shower age is within bounds
-    ss = shower_age(
-        atm.rad_len_atm_depth(atm.slant_depth_trig_approx(alt_dec, z_max, theta_tr))
+def slant_depth_range_from_shower_age(
+    shower_age_begin,
+    shower_age_end,
+    decay_altitude,
+    theta_tr,
+    greisen_param,
+    z_max=65.0,
+):
+    X_pmax = atm.slant_depth_us(
+        decay_altitude,
+        np.full_like(decay_altitude, z_max),
+        theta_tr,
+        rtol=1e-5,
+        atol=1e-8,
+        itermax=32,
     )
-    mask = ss < s
 
-    X_s = -1.222e19 * param_beta * s / ((10.0 / 6.0) * 1e17 * s - 5e17)
+    X_low = (73.32 * greisen_param) / ((3.0 / shower_age_begin) - 1)
+    X_low_bound = np.where(X_low > X_pmax, X_pmax, X_low)
+    X_hi = (73.32 * greisen_param) / ((3.0 / shower_age_end) - 1)
+    X_hi_bound = np.where(X_hi > X_pmax, X_pmax, X_hi)
 
-    def f(z):
-        X = atm.slant_depth_trig_approx(alt_dec[~mask], z, theta_tr[~mask])
-        return X - X_s
+    return X_low_bound, X_hi_bound
 
-    altitude = np.full_like(alt_dec, z_max)
-    altitude[~mask] = newton(f, alt_dec[~mask], **kwargs)
 
-    return altitude
+def altitude_range_shower_visible(X_low, X_hi, decay_altitude, theta_tr):
+    """Altitude as a function of shower age, decay altitude and zenith angle."""
+
+    z_range = dormand_prince_rk54(
+        lambda _, y, theta: atm.slant_depth_inverse_func(y, theta),
+        np.stack((np.zeros_like(X_hi), X_hi)),
+        decay_altitude,
+        theta_tr,
+        t_eval=[X_low, X_hi],
+        rtol=1e-8,
+        atol=1e-6,
+    )
+
+    return z_range
 
 
 def cherenkov_yield(w, detector_altitude, z, beta_tr, thetaC, X_ahead):
@@ -178,12 +211,8 @@ def cherenkov_yield(w, detector_altitude, z, beta_tr, thetaC, X_ahead):
     )
 
 
-def differential_track_length(E, s):
-    return E * s
-
-
 def track_length(E, s):
-    r"""Differential Track Length in radiation lengths.
+    r"""Track Length in radiation lengths.
 
     Hillas 1461 eqn (8) variable T(E) =
     (Total track length of all charged particles with kinetic energy > E)
@@ -199,6 +228,17 @@ def track_length(E, s):
     "Kinetic Energy charged primary of shower particles (MeV)"
 
     return ((0.89 * E0 - 1.2) / (E0 + E)) ** s * (1.0 + 1e-4 * s * E) ** -2
+
+
+def differential_track_length(E, s):
+    # -(100000000 s ((0.89 E_0 - 1.2)/(E_0 + x))^s (2 E_0 + (s + 2) x + 10000))/((E_0 + x) (s x + 10000)^3)
+    # return E * s
+    E0 = np.where(s >= 0.4, 44.0 - 17.0 * (s - 1.46), 26.0)
+    "Kinetic Energy charged primary of shower particles (MeV)"
+
+    return -(
+        1e8 * s * ((0.89 * E0 - 1.2) / (E0 + E)) ** s * (2.0 * E0 + (s + 2.0) * E + 1e4)
+    ) / ((E0 + E) * (s * E + 1e-4) ** 3)
 
 
 def hillas_dndu(energy, costheta, shower_age):
@@ -224,6 +264,7 @@ def hillas_dndu(energy, costheta, shower_age):
 
 def cherenkov_cone_particle_count_integrand(logenergy, costheta, shower_age):
     energy = 10.0**logenergy
-    dTdE = differential_track_length(energy, shower_age)
+    # dTdE = differential_track_length(energy, shower_age)
     dndu = hillas_dndu(energy, costheta, shower_age)
-    return dTdE * dndu
+    # return dTdE * dndu
+    return dndu

@@ -42,10 +42,11 @@ r""" Utility classes and methods
    grid
    interp
    misc
+   ode
    plots
 
 """
 
-__all__ = ["cdf", "decorators", "grid", "interp", "misc", "plots"]
+__all__ = ["cdf", "decorators", "grid", "interp", "misc", "ode", "plots"]
 
-from . import cdf, decorators, grid, interp, misc, plots
+from . import cdf, decorators, grid, interp, misc, ode, plots

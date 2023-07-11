@@ -48,7 +48,7 @@ def photon_yield_per_particle_step(
 
 
 def cherenkov_cone_charged_particles(
-    index_of_refraction_air, shower_age, abstol=1e-6, reltol=1e-6
+    index_of_refraction_air, shower_age, rtol=1e-5, atol=1e-6
 ):
     def df(logenergy, costheta, evt_idx, shower_age_):
         return shp.cherenkov_cone_particle_count_integrand(
@@ -60,57 +60,75 @@ def cherenkov_cone_charged_particles(
         df,
         (1.0, np.zeros_like(index_of_refraction_air)),
         (17.0, np.reciprocal(index_of_refraction_air)),
-        args=(shower_age),
-        is_1d=True,
-        evt_idx_arg=True,
-        abstol=abstol,
-        reltol=reltol,
-        tile_byte_limit=2**25,
-        parallel=False,
+        args=(shower_age,),
+        rtol=rtol,
+        atol=atol,
     )
 
 
-def tmp_setup(beta_tr, decay_altitude):
+def tmp_setup(beta_tr, decay_altitude, showerEnergy100PeV):
     """
     single step event-wise eas cphotang computation.
     """
 
+    shower_energy = 1e8 * showerEnergy100PeV  # GeV
     detector_altitude = 100.0  # km
     dL = 0.1
 
+    theta_tr = 0.5 * np.pi - beta_tr
+
+    greisen_param = shp.greisen_beta_opt(shower_energy)
+
     # Shower Age start and stop
     # s0 = np.exp(-1150/454) <-- e2hill == 0: Shower too young.
-    shower_age_begin = np.exp(-1150.0 / 454.0) + np.finfo.eps  # ~0.07941725256837101449
-    # shower age when greisen_particle_count(s) == 1.0.
-    # Make updatable with different parameterizations.
-    # update for primary energy dependence.
-    shower_age_end = 1.899901462640018
+    # ~0.07941725256837101449
+    shower_age_begin = np.exp(-1150.0 / 454.0) + np.finfo(beta_tr.dtype).eps
 
-    # Determine the altitude bounds (in km) over which each shower will be measurable.
-    alt_lo = shp.altitude_at_shower_age(shower_age_begin, decay_altitude, beta_tr)
-    alt_hi = shp.altitude_at_shower_age(shower_age_end, decay_altitude, beta_tr)
+    # shower age when greisen_particle_count == 1.0.
+    # shower_age_end 100PeV shower = 1.899901462640018
+    shower_age_end = shp.shower_age_of_greisen_particle_count(1, greisen_param)
+    #
+
+    path_len_begin = shp.path_length_at_shower_age(
+        shower_age_begin, decay_altitude, theta_tr, greisen_param
+    )
+    path_len_end = shp.path_length_at_shower_age(
+        shower_age_end, decay_altitude, theta_tr, greisen_param
+    )
+
+    # Altitude bounds (in km) over which each shower will be measurable.
+    alt_lo = shp.altitude_at_shower_age(
+        shower_age_begin, decay_altitude, beta_tr, greisen_param
+    )
+    alt_hi = shp.altitude_at_shower_age(
+        shower_age_end, decay_altitude, beta_tr, greisen_param
+    )
     max_altitude = min(65.0, detector_altitude)
     alt_lo[alt_lo > max_altitude] = max_altitude
     alt_hi[alt_hi > max_altitude] = max_altitude
+    #
 
     # Determine the path lengths (in km) of measurable showers
     path_len_begin = shp.path_length_tau_atm(alt_lo, beta_tr)
     path_len_end = shp.path_length_tau_atm(alt_hi, beta_tr)
     path_length_measurable = path_len_end - path_len_begin
+    #
 
     # sanity check. TODO pull out into unit test
     check_alt_lo = shp.altitude_along_path_length(path_len_begin, beta_tr)
     check_alt_hi = shp.altitude_along_path_length(path_len_end, beta_tr)
     assert np.allclose(check_alt_lo, alt_lo)
     assert np.allclose(check_alt_hi, alt_hi)
+    #
 
     # We will step in 100m increments. Determine event_wise integer number of shower
     # propagation steps.
     eventwise_steps = np.ceil(path_length_measurable * (1.0 / dL)).astype(np.uint)
     steps_max = np.max(eventwise_steps)
-    # full_steps = np.arange(steps_max)
+    #
 
     photon_sum = np.zeros_like(beta_tr)
+    #
 
     # Naive looping implementation
     for i in range(steps_max):
@@ -125,7 +143,9 @@ def tmp_setup(beta_tr, decay_altitude):
             alt_lo[m0], z_m, alt_hi[m0], (0.5 * np.pi) - beta_tr[m0]
         )
         index_of_refraction = atm.index_of_refraction_air(z_m)
-        particle_N, shower_age = shp.greisen_particle_count_shower_age(X_behind)
+        particle_N, shower_age = shp.greisen_particle_count_shower_age(
+            X_behind, shower_energy
+        )
         e2hill = 1150.0 + 454.0 * np.log(shower_age)
 
         # Compute the set of events to skip and create a mask for them.
