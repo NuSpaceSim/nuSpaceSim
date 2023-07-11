@@ -1,6 +1,6 @@
 # The Clear BSD License
 #
-# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# Copyright (c) 2023 Alexander Reustle and the NuSpaceSim Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,30 +31,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""NuSpaceSim Simulation Modules.
+from dataclasses import dataclass
 
-.. _simulation:
-
-*****************************
-NuSpaceSim Simulation Modules
-*****************************
+__all__ = ["MonoCloud", "NoCloud"]
 
 
-NuSpaceSim provides a collection of modules for simulating various stages of the
-neutrino propagation and interaction.
-
-.. autosummary::
-   :toctree:
-   :nosignatures:
-
-   geometry
-   eas_optical
-   eas_radio
-   taus
+@dataclass
+class NoCloud:
+    def __call__(self, lat, long) -> float:
+        return float(0)
 
 
-"""
+@dataclass
+class MonoCloud:
+    altitude: float = 0.0
+    """Altitude of monoheight cloud."""
 
-__all__ = ["atmosphere", "geometry", "eas_optical", "eas_radio", "taus"]
-
-from . import atmosphere, eas_optical, eas_radio, geometry, taus
+    def __call__(self, lat, long) -> float:
+        return self.altitude

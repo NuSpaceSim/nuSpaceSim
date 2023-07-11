@@ -580,7 +580,10 @@ class CphotAng:
         CangsigI = taphotstep / taphotsum
         CangsigI *= np.power(thetaC - AveCangI, 2, dtype=self.dtype)
         CangsigI = np.sum(CangsigI, axis=-1, dtype=self.dtype)
-        CangsigI = np.sqrt(CangsigI * nAcnt / (nAcnt - 1), dtype=self.dtype)
+        if nAcnt > 1:
+            CangsigI = np.sqrt(CangsigI * nAcnt / (nAcnt - 1), dtype=self.dtype)
+        else:
+            CangsigI = np.sqrt(CangsigI, dtype=self.dtype)
         return CangsigI
 
     def cherenkov_area(self, AveCangI, DistStep, izRNmax):
@@ -589,7 +592,7 @@ class CphotAng:
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
 
-    def run(self, betaE, alt, Eshow100PeV):
+    def run(self, betaE, alt, Eshow100PeV, lat, long, cloudf=None):
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
@@ -609,6 +612,16 @@ class CphotAng:
             *self.slant_depth(alt, sinThetView), Eshow
         )
 
+        # Cloud top height
+        cloud_top_height = cloudf(lat, long) if cloudf else 0.0
+
+        # early return check
+        if zs[-1] < cloud_top_height:
+            return self.dtype(0), self.dtype(0)
+
+        # Cloud mask. No particles will be considered if generated below the clouds.
+        cloud_mask = zs < cloud_top_height
+
         izRNmax = np.argmax(RN, axis=-1)
         E0 = self.e0(zs.shape, s)  # in MeV
 
@@ -624,8 +637,9 @@ class CphotAng:
         # distance to detector
         DistStep = self.d_to_det(ThetView, ThetPrpA, zs)
 
-        # Scaled Photon Yield
+        # Scaled Photon Yield [zs, w]
         SPYield = self.sphoton_yeild(thetaC, RN, delgram, ZonZ, zs, ThetPrpA)
+        SPYield[cloud_mask, ...] = self.dtype(0)
 
         # Total photons
         photsum = self.photon_sum(
@@ -635,6 +649,9 @@ class CphotAng:
         taphotstep = np.sum(SPYield, axis=-1, dtype=self.dtype) * Tfrac
 
         taphotsum = np.sum(taphotstep, axis=-1, dtype=self.dtype)
+
+        if taphotsum == 0:
+            return self.dtype(0), self.dtype(0)
 
         AveCangI = np.sum(taphotstep * thetaC, axis=-1, dtype=self.dtype) / taphotsum
 
@@ -655,14 +672,16 @@ class CphotAng:
 
         return photonDen, Cang
 
-    def __call__(self, betaE, alt, Eshow100PeV):
+    def __call__(self, betaE, alt, Eshow100PeV, init_lat, init_long, cloudf=None):
         """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
         """
 
         #######################
-        b = db.from_sequence(zip(betaE, alt, Eshow100PeV), partition_size=100)
+        b = db.from_sequence(
+            zip(betaE, alt, Eshow100PeV, init_lat, init_long), partition_size=100
+        )
         with ProgressBar():
-            Dphots, Cang = zip(*b.map(lambda x: self.run(*x)).compute())
+            Dphots, Cang = zip(*b.map(lambda x: self.run(*x, cloudf)).compute())
         return np.asarray(Dphots), np.array(Cang)

@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
 Module contains functions for parsing and interacting with XML configuration files.
 """
@@ -47,6 +46,7 @@ from ..config import (
     PowerSpectrum,
     SimulationParameters,
 )
+from ..types.cloud_types import MonoCloud, NoCloud
 from . import config_xml_schema
 
 __all__ = [
@@ -180,6 +180,14 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
                     simparams["Spectrum"] = FileSpectrum(
                         path=str(node.spectrum_type("FilePath").text)
                     )
+        elif node.tag == "CloudModelType":
+            for cloud_model in node:
+                if "MonoCloudModel" == cloud_model.tag:
+                    simparams["CloudModel"] = MonoCloud(
+                        altitude=float(cloud_model.find("CloudTopHeight").text),
+                    )
+                if "NoCloudModel" == cloud_model.tag:
+                    simparams["CloudModel"] = NoCloud()
         else:
             simparams[node.tag] = str(node.text)
 
@@ -192,6 +200,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         N=int(simparams["NumTrajs"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
         spectrum=simparams["Spectrum"],
+        cloud_model=simparams["CloudModel"],
         e_shower_frac=float(simparams["FracETauInShower"]),
         ang_from_limb=float(simparams["AngleFromLimb"]),
         max_azimuth_angle=float(simparams["AzimuthalAngle"]),
@@ -338,7 +347,7 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
         nutauen = ET.SubElement(mono, "LogNuEnergy")
         nutauen.text = str(config.simulation.spectrum.log_nu_tau_energy)
 
-    if isinstance(config.simulation.spectrum, PowerSpectrum):
+    elif isinstance(config.simulation.spectrum, PowerSpectrum):
         power = ET.SubElement(nutauspectype, "PowerSpectrum")
         sp1 = ET.SubElement(power, "PowerLawIndex")
         sp2 = ET.SubElement(power, "LowerBound")
@@ -347,10 +356,20 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
         sp2.text = str(config.simulation.spectrum.lower_bound)
         sp3.text = str(config.simulation.spectrum.upper_bound)
 
-    if isinstance(config.simulation.spectrum, FileSpectrum):
+    elif isinstance(config.simulation.spectrum, FileSpectrum):
         filespec = ET.SubElement(nutauspectype, "FileSpectrum")
         sp1 = ET.SubElement(filespec, "FilePath")
         sp1.text = str(config.simulation.spectrum.path)
+
+    cloudmodeltype = ET.SubElement(simparams, "CloudModelType")
+
+    if isinstance(config.simulation.cloud_model, MonoCloud):
+        mono = ET.SubElement(cloudmodeltype, "MonoCloudModel")
+        cth = ET.SubElement(mono, "CloudTopHeight")
+        cth.text = str(config.simulation.cloud_model.altitude)
+
+    elif isinstance(config.simulation.cloud_model, NoCloud):
+        ET.SubElement(cloudmodeltype, "NoCloudModel")
 
     azimuthang = ET.SubElement(simparams, "AzimuthalAngle")
     azimuthang.set("Unit", "Radians")

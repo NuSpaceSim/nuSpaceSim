@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """XMLSchema string file. For validating XML configuration files."""
 
 from io import StringIO
@@ -115,6 +114,15 @@ xsd = StringIO(
   </xs:sequence>
 </xs:complexType>
 
+<xs:complexType name="MonoCloudType">
+  <xs:sequence>
+    <xs:element name="CloudTopHeight" type="DistType"/>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="NoCloudType">
+</xs:complexType>
+
 <xs:complexType name="FreqType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
@@ -166,6 +174,14 @@ xsd = StringIO(
                   <xs:element name="MonoSpectrum" type="MonoSpecType"/>
                   <xs:element name="PowerSpectrum" type="PowerSpecType"/>
                   <xs:element name="FileSpectrum" type="FileSpecType"/>
+                </xs:choice>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="CloudModelType">
+              <xs:complexType>
+                <xs:choice>
+                  <xs:element name="MonoCloudModel" type="MonoCloudType"/>
+                  <xs:element name="NoCloudModel" type="NoCloudType"/>
                 </xs:choice>
               </xs:complexType>
             </xs:element>

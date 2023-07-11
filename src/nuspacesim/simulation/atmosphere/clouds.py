@@ -1,6 +1,6 @@
 # The Clear BSD License
 #
-# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# Copyright (c) 2023 Alexander Reustle and the NuSpaceSim Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,30 +31,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""NuSpaceSim Simulation Modules.
+from __future__ import annotations
 
-.. _simulation:
+from dataclasses import dataclass
+from typing import Any, Callable, Union
 
-*****************************
-NuSpaceSim Simulation Modules
-*****************************
+import numpy as np
 
-
-NuSpaceSim provides a collection of modules for simulating various stages of the
-neutrino propagation and interaction.
-
-.. autosummary::
-   :toctree:
-   :nosignatures:
-
-   geometry
-   eas_optical
-   eas_radio
-   taus
+from ...config import NssConfig
 
 
-"""
+class CloudTopHeights:
+    """Energy Spectra of thrown Neutrinos"""
 
-__all__ = ["atmosphere", "geometry", "eas_optical", "eas_radio", "taus"]
+    def __init__(self, config: NssConfig):
+        self.config = config
 
-from . import atmosphere, eas_optical, eas_radio, geometry, taus
+    def __call__(self, lat, long, *args, **kwargs):
+        return self.config.simulation.cloud_model(lat, long)

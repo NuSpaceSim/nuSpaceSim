@@ -47,6 +47,7 @@ except ImportError:
 from numpy import nan, radians, sin
 
 from . import constants as const
+from .types.cloud_types import MonoCloud, NoCloud
 
 __all__ = [
     "DetectorCharacteristics",
@@ -179,6 +180,7 @@ class SimulationParameters:
         default_factory=MonoSpectrum
     )
     """Distribution from which to draw nu_tau energies."""
+    cloud_model: Union[NoCloud, MonoCloud] = field(default_factory=MonoCloud)
     e_shower_frac: float = 0.5
     """Fraction of ETau in Shower. Default = 0.5."""
     ang_from_limb: float = radians(7.0)
