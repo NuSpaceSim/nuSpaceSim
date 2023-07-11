@@ -110,8 +110,8 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
         # Convert Degrees to Radians
         if "Unit" in node.attrib:
             if node.tag in [
-                "InitialDetectorRightAscension",
-                "InitialDetectorDeclination",
+                "InitialDetectorLatitude",
+                "InitialDetectorLongitude",
             ]:
                 x = float(node.text)
                 detchar[node.tag] = (
@@ -125,8 +125,8 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     return DetectorCharacteristics(
         method=detchar["Method"],
         altitude=float(detchar["DetectorAltitude"]),
-        ra_start=float(detchar["InitialDetectorRightAscension"]),
-        dec_start=float(detchar["InitialDetectorDeclination"]),
+        lat_start=float(detchar["InitialDetectorLatitude"]),
+        long_start=float(detchar["InitialDetectorLongitude"]),
         telescope_effective_area=float(detchar["TelescopeEffectiveArea"]),
         quantum_efficiency=float(detchar["QuantumEfficiency"]),
         photo_electron_threshold=float(detchar["NPE"]),
@@ -286,13 +286,13 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     detalt.set("Unit", "km")
     detalt.text = str(config.detector.altitude)
 
-    detra = ET.SubElement(detchar, "InitialDetectorRightAscension")
-    detra.set("Unit", "Degrees")
-    detra.text = str(config.detector.ra_start)
+    detlat = ET.SubElement(detchar, "InitialDetectorLatitude")
+    detlat.set("Unit", "Degrees")
+    detlat.text = str(config.detector.lat_start)
 
-    detdec = ET.SubElement(detchar, "InitialDetectorDeclination")
-    detdec.set("Unit", "Degrees")
-    detdec.text = str(config.detector.dec_start)
+    detlong = ET.SubElement(detchar, "InitialDetectorLongitude")
+    detlong.set("Unit", "Degrees")
+    detlong.text = str(config.detector.long_start)
 
     npe = ET.SubElement(pethres, "NPE")
     npe.text = str(config.detector.photo_electron_threshold)
