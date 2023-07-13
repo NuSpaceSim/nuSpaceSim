@@ -122,7 +122,7 @@ mean_had_xmax = np.array(mean_had_xmax)
 mean_gam_nmax = np.array(mean_gam_nmax)
 mean_gam_xmax = np.array(mean_gam_xmax)
 
-
+#%%
 def lin_func(x, m, b):
     return (m * x) + b
 
@@ -150,7 +150,7 @@ slope = []
 slope_uncertainty = []
 intercept = []
 intercept_uncertainty = []
-#%%
+
 fig, ax = plt.subplots(
     ncols=2,
     nrows=3,
@@ -234,7 +234,7 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
         )
     else:
         ax[angle_idx].legend(fontsize=8, title_fontsize=8)
-    ax[angle_idx].set(ylim=(200, 1100), xlim=(13.5, 20.5))
+
     ax[angle_idx].grid(ls="--")
 
 
@@ -242,27 +242,27 @@ fig.text(0.5, 0.09, r"${\rm \log_{10} \: E({\rm eV})}$", ha="center")
 fig.text(
     0.04,
     0.5,
-    r"$\log_{10}\: {\rm mean}\:X_{\rm max}\: {\rm (g \: cm^{-2}})$",
+    r"${\rm mean}\:X_{\rm max}\: {\rm (g \: cm^{-2}})$",
     va="center",
     rotation="vertical",
 )
 
 # ax.set_xscale("log")
 # ax.set_yscale("log")
-ax[0].set_ylim(bottom=0)
+ax[0].set(ylim=(250, 1600), xlim=(13.5, 20.5))
 # ax.set_xlim(100, 3000)
 plt.savefig(
     "../../../../../../g_drive/Research/NASA/elongation_rate.png",
     dpi=300,
     bbox_inches="tight",
-    pad_inches=0.05,
+    pad_inches=0,
 )
 
 
 #%% save
 
 
-three_angles = np.array(three_angles)
+three_angles_save = np.array(three_angles)
 particle_types = np.array(particle_types)
 slope = np.array(slope)
 slope_uncertainty = np.array(slope_uncertainty)
@@ -285,13 +285,13 @@ with as_file(
                 ang_data = np.concatenate(
                     (
                         np.array([ang]),
-                        slope[(three_angles == ang) & (particle_types == t)],
+                        slope[(three_angles_save == ang) & (particle_types == t)],
                         slope_uncertainty[
-                            (three_angles == ang) & (particle_types == t)
+                            (three_angles_save == ang) & (particle_types == t)
                         ],
-                        intercept[(three_angles == ang) & (particle_types == t)],
+                        intercept[(three_angles_save == ang) & (particle_types == t)],
                         intercept_uncertainty[
-                            (three_angles == ang) & (particle_types == t)
+                            (three_angles_save == ang) & (particle_types == t)
                         ],
                     )
                 )

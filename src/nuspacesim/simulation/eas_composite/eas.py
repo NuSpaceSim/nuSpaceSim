@@ -169,5 +169,5 @@ fig, ax = plt.subplots(
     figsize=(4, 4),
     sharey=True,
 )
-ax.plot(depth, comps.T)
+ax.plot(depth, comps.T, color="grey", alpha=0.5)
 ax.set(yscale="log", ylim=(100, 3e8))

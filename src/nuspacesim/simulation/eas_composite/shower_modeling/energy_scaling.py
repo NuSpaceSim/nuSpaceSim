@@ -245,7 +245,7 @@ plt.savefig(
     "../../../../../g_drive/Research/NASA/energy_scaling.png",
     dpi=300,
     bbox_inches="tight",
-    pad_inches=0.05,
+    pad_inches=0.0,
 )
 #%% save
 
