@@ -288,9 +288,9 @@ for i, s in enumerate(showers):
     #     depth_synth, shower_synth, color="tab:grey", s=3, label="synthetic shower"
     # )
 ax[0].set(
-    xlim=(0, 2700),
-    # yscale="log",
-    # ylim=(100, 8e7),
+    xlim=(0, 2000),
+    yscale="log",
+    ylim=(100, 8e7),
     ylabel=r"$N$",
     xlabel=r"${\rm slant\:depth\:(g\:cm^{-2})}$",
 )
