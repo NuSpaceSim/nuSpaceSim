@@ -44,14 +44,17 @@ class NoCloud:
 
 @dataclass
 class MonoCloud:
-    altitude: float = np.inf
+    altitude: float = -np.inf
     """Altitude of monoheight cloud."""
 
 
 @dataclass
 class PressureMapCloud:
     month: str = "01"
+    """Cloud Map Month in 2-digit MM format."""
+
     version: str = "0"
+    """Cloud Map File Version."""
 
 
 # @dataclass

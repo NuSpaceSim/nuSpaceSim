@@ -74,7 +74,7 @@ class CloudTopHeight:
         return self.altitude(*args, **kwargs)
 
 
-def mono_altitude(altitude=np.inf):
+def mono_altitude(altitude=0.0):
     def f(*args, **kwargs) -> np.single:
         return altitude
 
