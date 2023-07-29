@@ -7,7 +7,6 @@ from . import cpp_region_geometry
 
 
 def test_rg():
-
     cfg = NssConfig()
 
     u = np.random.rand(int(1e6), 4)

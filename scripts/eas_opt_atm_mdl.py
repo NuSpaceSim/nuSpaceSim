@@ -12,7 +12,6 @@ from nuspacesim.simulation.eas_optical.atmospheric_models import (
 )
 
 if __name__ == "__main__":
-
     # print(slant_depth_integrand(0, np.pi/2))
     # slant-depth from gaussian quadriture
     matplotlib.rcParams.update({"font.size": 18})

@@ -4,7 +4,6 @@ from nuspacesim.utils.grid import NssGrid
 
 
 def test_grid_create():
-
     data = np.arange(8 * 16).reshape(8, 16)
     x = np.arange(8)
     y = np.arange(0, 4.0, 0.25)

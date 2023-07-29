@@ -88,7 +88,6 @@ class NssAxes:
     r"""Collection of differently sized, named 1D arrays"""
 
     def __init__(self, values, names):
-
         if not isinstance(values, Iterable):
             values = list([values])
 
@@ -102,7 +101,6 @@ class NssAxes:
         """ List of Axis Names """
 
     def __getitem__(self, item):
-
         if isinstance(item, str):
             if item in self.names:
                 i = self.names.index(item)
@@ -191,7 +189,6 @@ class NssGrid(NDDataArray):
         return self._axes.names
 
     def __repr__(self):
-
         rep = "NssGrid {\n"
         rep += f"meta : {repr(self.meta)}\n"
 
@@ -287,7 +284,6 @@ def grid_concatenate(g1, g2, axis):
 
 
 def fits_nssgrid_reader(filename, **kwargs):
-
     with fits.open(filename, **kwargs) as f:
         naxis = f[0].header["NAXIS"]
         axis_names = [f[0].header[f"AXIS{i}"] for i in range(naxis)]
@@ -298,7 +294,6 @@ def fits_nssgrid_reader(filename, **kwargs):
 
 
 def fits_nssgrid_writer(grid, filename, **kwargs):
-
     primary = fits.PrimaryHDU(grid.data, fits.Header(grid.meta))
     primary.add_checksum()
 
@@ -347,7 +342,6 @@ def hdf5_nssgrid_writer(grid, filename, path="/", **kwargs):
         mode = "a"
 
     with h5py.File(filename, mode) as f:
-
         grp = f[path] if path in f else f.create_group(path)
 
         if kwargs["overwrite"] and "__nss_grid_data__" in grp:

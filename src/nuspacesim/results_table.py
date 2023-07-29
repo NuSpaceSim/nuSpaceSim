@@ -140,7 +140,6 @@ class ResultsTable(AstropyTable):
             kwargs["format"] = "fits"
 
         if kwargs["format"] == "fits":
-
             filename = (
                 f"nuspacesim_run_{self.meta['simTime'][0]}.fits"
                 if filename is None
@@ -149,7 +148,6 @@ class ResultsTable(AstropyTable):
             super().write(filename, **kwargs)
 
         elif kwargs["format"] == "hdf5":
-
             filename = (
                 f"nuspacesim_run_{self.meta['simTime'][0]}.hdf5"
                 if filename is None

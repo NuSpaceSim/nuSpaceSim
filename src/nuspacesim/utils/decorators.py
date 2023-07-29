@@ -134,7 +134,6 @@ def nss_result_store_scalar(names, comments):
     def decorator_store_meta(func):
         @wraps(func)
         def store_f(*args, store=None, **kwargs):
-
             values = func(*args, **kwargs)
 
             if store is not None:
@@ -219,7 +218,6 @@ def nss_result_plot(*plot_fs):
 
 
 def nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot):
-
     f_input = tuple() if inputs is None else tuple(sim[i] for i in inputs)
     results = tuple() if outputs is None else tuple(sim[o] for o in outputs)
 
