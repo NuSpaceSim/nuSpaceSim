@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
     Top level fundamental constants and the Fund_Constants class.
 """
@@ -52,6 +51,31 @@ atmosphere_end = 65.0  # in KM
 c = 2.9979246e5
 massTau = 1.77686  # GeV/c^2
 mean_Tau_life = 2.903e-13  # seconds
+
+# 1976 US Standard Atmosphere
+std_atm_ground_pressure = 1.01325e5  # kPa
+std_atm_geopotential_height = np.array([0, 11, 20, 32, 47, 51, 71, 84.852, np.inf])
+std_atm_lack_rate = np.array([-6.5, 0.0, 1.0, 2.8, 0.0, -2.8, -2.0, 0.0, 0.0])
+std_atm_temperature = np.array(
+    [288.15, 216.65, 216.65, 228.65, 270.65, 270.65, 214.65, 186.946, 0.0]
+)
+std_atm_pressure = std_atm_ground_pressure * np.array(
+    [
+        1.0,
+        2.233611e-1,
+        5.403295e-2,
+        8.5666784e-3,
+        1.0945601e-3,
+        6.6063531e-4,
+        3.9046834e-5,
+        3.68501e-6,
+        0.0,
+    ]
+)
+std_atm_Rstar = 8.31432e-3
+std_atm_M0 = 28.9644
+std_atm_g0 = 9.80665
+std_atm_gmr = 34.163195
 
 
 @dataclass

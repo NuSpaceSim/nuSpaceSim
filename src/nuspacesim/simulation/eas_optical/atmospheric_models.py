@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
 Atmospheric model calculations for upward going showers.
 
@@ -42,10 +41,15 @@ date: 2021 August 12
 """
 
 import numpy as np
-import scipy.integrate
 from numpy.polynomial import Polynomial
 
 from ... import constants as const
+
+H_b = const.std_atm_geopotential_height
+Lm_b = const.std_atm_lack_rate
+T_b = const.std_atm_temperature
+P_b = const.std_atm_pressure
+gmr = const.std_atm_gmr
 
 __all__ = [
     "cummings_atmospheric_density",
@@ -98,7 +102,50 @@ def polyrho(z):
     return p
 
 
-def us_std_atm_density(z, earth_radius=6371):
+def us_std_atm_altitude_from_pressure(P):
+    P = np.asarray(P)
+
+    i = np.zeros_like(P, dtype=int)
+    for j in range(1, len(P_b)):
+        i[P_b[j] >= P] = j
+
+    H = np.full(P.shape, H_b[i])
+    m = Lm_b[i] == 0
+    x = P > 0
+    H[m & x] += T_b[i][m & x] * (1.0 / gmr) * (np.log(P_b[i][m & x] / P[m & x]))
+    H[~m & x] += (T_b[i][~m & x] / Lm_b[i][~m & x]) * (
+        (P_b[i][~m & x] / P[~m & x]) ** ((1.0 / gmr) * Lm_b[i][~m & x]) - 1
+    )
+
+    z = np.empty_like(H)
+    z[x] = const.earth_radius * H[x] / (const.earth_radius - H[x])
+    z[~x] = np.inf
+    return z
+
+
+def us_std_atm_pressure_from_altitude(z):
+    z = np.asarray(z)
+    x = z < np.inf
+    h = np.empty_like(z)
+    h[x] = z[x] * const.earth_radius / (z[x] + const.earth_radius)
+    h[~x] = np.inf
+
+    i = np.zeros_like(h, dtype=int)
+    for j in range(1, len(H_b)):
+        i[H_b[j] <= h] = j
+
+    P = np.full(h.shape, P_b[i])
+    m = Lm_b[i] == 0
+    P[m & x] *= np.exp((-gmr / T_b[i][m & x]) * (h[m & x] - H_b[i][m & x]))
+    P[~m & x] *= (
+        T_b[i][~m & x]
+        / (T_b[i][~m & x] + Lm_b[i][~m & x] * (h[~m & x] - H_b[i][~m & x]))
+    ) ** (gmr / Lm_b[i][~m & x])
+
+    return P
+
+
+def us_std_atm_density(z, earth_radius=const.earth_radius):
     H_b = np.array([0, 11, 20, 32, 47, 51, 71, 84.852])
     Lm_b = np.array([-6.5, 0.0, 1.0, 2.8, 0.0, -2.8, -2.0, 0.0])
     T_b = np.array([288.15, 216.65, 216.65, 228.65, 270.65, 270.65, 214.65, 186.946])
@@ -108,7 +155,7 @@ def us_std_atm_density(z, earth_radius=6371):
          3.9046834e-5, 3.68501e-6, ])
     # fmt: on
 
-    Rstar = 8.31432e3
+    Rstar = 8.31432e-3
     M0 = 28.9644
     gmr = 34.163195
 
@@ -126,7 +173,7 @@ def us_std_atm_density(z, earth_radius=6371):
     pressure[mask] *= np.exp(-gmr * deltah[mask] / T_b[i][mask])
     pressure[~mask] *= (T_b[i][~mask] / temperature[~mask]) ** (gmr / Lm_b[i][~mask])
 
-    density = (pressure * M0) / (Rstar * temperature)  # kg/m^3
+    density = (pressure * M0) / (Rstar * 1e6 * temperature)  # kg/m^3
     return 1e-3 * density  # g/cm^3
 
 

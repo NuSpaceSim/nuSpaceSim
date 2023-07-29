@@ -123,6 +123,13 @@ xsd = StringIO(
 <xs:complexType name="NoCloudType">
 </xs:complexType>
 
+<xs:complexType name="PressureMapCloudType">
+  <xs:sequence>
+    <xs:element name="Month" type="xs:decimal"/>
+    <xs:element name="Version" type="xs:decimal"/>
+  </xs:sequence>
+</xs:complexType>
+
 <xs:complexType name="FreqType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
@@ -182,6 +189,7 @@ xsd = StringIO(
                 <xs:choice>
                   <xs:element name="MonoCloudModel" type="MonoCloudType"/>
                   <xs:element name="NoCloudModel" type="NoCloudType"/>
+                  <xs:element name="PressureMapCloudModel" type="PressureMapCloudType"/>
                 </xs:choice>
               </xs:complexType>
             </xs:element>

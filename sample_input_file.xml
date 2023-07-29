@@ -27,9 +27,10 @@
       </MonoSpectrum>
     </NuTauEnergySpecType>
     <CloudModelType>
-      <MonoCloudModel>
-        <CloudTopHeight>0.0</CloudTopHeight>
-      </MonoCloudModel>
+      <PressureMapCloudModel>
+        <Month>01</Month>
+        <Version>0</Version>
+      </PressureMapCloudModel>
     </CloudModelType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
     <NumTrajs>100</NumTrajs>

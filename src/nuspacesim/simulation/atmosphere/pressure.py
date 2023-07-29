@@ -31,49 +31,57 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from dataclasses import dataclass
+from __future__ import annotations
 
 import numpy as np
 
-__all__ = ["MonoCloud", "NoCloud"]
+from ... import constants as const
+
+H_b = const.std_atm_geopotential_height
+Lm_b = const.std_atm_lack_rate
+T_b = const.std_atm_temperature
+P_b = const.std_atm_pressure
+gmr = const.std_atm_gmr
 
 
-class NoCloud:
-    pass
+def us_std_atm_altitude_from_pressure(P):
+    P = np.asarray(P)
+
+    i = np.zeros_like(P, dtype=int)
+    for j in range(1, len(P_b)):
+        i[P_b[j] >= P] = j
+
+    H = np.full(P.shape, H_b[i])
+    m = Lm_b[i] == 0
+    x = P > 0
+    H[m & x] += T_b[i][m & x] * (1.0 / gmr) * (np.log(P_b[i][m & x] / P[m & x]))
+    H[~m & x] += (T_b[i][~m & x] / Lm_b[i][~m & x]) * (
+        (P_b[i][~m & x] / P[~m & x]) ** ((1.0 / gmr) * Lm_b[i][~m & x]) - 1
+    )
+
+    z = np.empty_like(H)
+    z[x] = const.earth_radius * H[x] / (const.earth_radius - H[x])
+    z[~x] = np.inf
+    return z
 
 
-@dataclass
-class MonoCloud:
-    altitude: float = np.inf
-    """Altitude of monoheight cloud."""
+def us_std_atm_pressure_from_altitude(z):
+    z = np.asarray(z)
+    x = z < np.inf
+    h = np.empty_like(z)
+    h[x] = z[x] * const.earth_radius / (z[x] + const.earth_radius)
+    h[~x] = np.inf
 
+    i = np.zeros_like(h, dtype=int)
+    for j in range(1, len(H_b)):
+        i[H_b[j] <= h] = j
 
-@dataclass
-class PressureMapCloud:
-    month: str = "01"
-    version: str = "0"
+    P = np.full(h.shape, P_b[i])
+    m = Lm_b[i] == 0
+    P[m & x] *= np.exp((-gmr / T_b[i][m & x]) * (h[m & x] - H_b[i][m & x]))
+    P[~m & x] *= (
+        T_b[i][~m & x]
+        / (T_b[i][~m & x] + Lm_b[i][~m & x] * (h[~m & x] - H_b[i][~m & x]))
+    ) ** (gmr / Lm_b[i][~m & x])
 
-
-# @dataclass
-# class BetaPressureMap:
-#     map_file: str | None = None
-
-
-# @dataclass
-# class BetaPressureCloudMap:
-#     map_file: str | None = None
-#
-#     def __init__(self, cloud_map_filename="Default"):
-#         self.map_file = cloud_map_filename
-#         if self.map_file == "Default" or "" or None:
-#             with as_file(
-#                 files("nuspacesim.data.cloud_maps")
-#                 / "nss_rmap_CloudTopPressure_01_2011_2020_9E6D7805.fits"
-#             ) as file:
-#                 pass
-#                 # self.pexit_grid = NssGrid.read(file, path="/", format="hdf5")
-#
-#         self.map = None  # hdu[0].data
-#
-#     def __call__(self, lat, long) -> float:
-#         return self.map[lat, long]
+    return P

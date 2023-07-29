@@ -613,7 +613,7 @@ class CphotAng:
         )
 
         # Cloud top height
-        cloud_top_height = cloudf(lat, long) if cloudf else 0.0
+        cloud_top_height = cloudf(lat, long) if cloudf else np.inf
 
         # early return check, ensure at least 2 segments above cloud-top height.
         if zs[-2] < cloud_top_height:

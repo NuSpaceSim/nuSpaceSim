@@ -50,7 +50,7 @@ from rich.console import Console
 
 from .config import NssConfig
 from .results_table import ResultsTable
-from .simulation.atmosphere.clouds import CloudTopHeights
+from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
@@ -139,7 +139,7 @@ def compute(
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
-    clouds = CloudTopHeights(config)
+    cloud = CloudTopHeight(config)
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
@@ -196,7 +196,7 @@ def compute(
             showerEnergy,
             init_lat,
             init_long,
-            cloudf=clouds,
+            cloudf=cloud,
             store=sw,
             plot=to_plot,
         )
