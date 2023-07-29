@@ -38,6 +38,7 @@ import numpy as np
 __all__ = ["MonoCloud", "NoCloud"]
 
 
+@dataclass
 class NoCloud:
     pass
 
