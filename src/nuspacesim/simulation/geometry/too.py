@@ -44,12 +44,12 @@ class ToOEvent:
         return self.eventcoords.transform_to(detframe)
 
     def get_sun(self, time):
-        sun_coord = astropy.coordinates.get_sun(time)
+        sun_coord = astropy.coordinates.get_body("sun", time)
         detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
         return sun_coord.transform_to(detframe)
 
     def get_moon(self, time):
-        moon_coord = astropy.coordinates.get_moon(time)
+        moon_coord = astropy.coordinates.get_body("moon", time)
         detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
         return moon_coord.transform_to(detframe)
 
@@ -60,8 +60,8 @@ class ToOEvent:
         0 -> full moon
         pi -> new moon
         """
-        sun = astropy.coordinates.get_sun(time)
-        moon = astropy.coordinates.get_moon(time)
+        sun = astropy.coordinates.get_body("sun", time)
+        moon = astropy.coordinates.get_body("moon", time)
         elongation = sun.separation(moon)
         return np.arctan2(
             sun.distance * np.sin(elongation),
