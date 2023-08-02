@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """ Command line client source code.
 
 .. _cli:
@@ -46,7 +45,6 @@
    :show-nested:
 
 """
-
 
 import configparser
 
@@ -120,6 +118,28 @@ def cli():
     default=None,
     help="Power Spectrum index, lower_bound, upper_bound.",
 )
+@click.option(
+    "--nocloud",
+    is_flag=True,
+    default=True,
+    help="No Cloud Model.",
+)
+@click.option(
+    "--monocloud",
+    type=float,
+    default=None,
+    help="Uniform (mono) Height Cloud Model (km).",
+)
+@click.option(
+    "--pressuremapcloud",
+    type=int,
+    default=None,
+    help="Pressure Map Cloud Model (built in and included with NuSpaceSim). This map is"
+    "an instance of a global cloud top pressure map sampled from a model of all days in"
+    "the given month over a 10-year time period from 2011 to 2020. Data provided by the"
+    "MERRA-2 dataset."
+    "User should provide a month-number in the range [1,12]. 1==Jan, 12==Dec.",
+)
 @click.argument(
     "config_file",
     default=None,
@@ -131,6 +151,9 @@ def run(
     count: float,
     monospectrum,
     powerspectrum,
+    nocloud,
+    monocloud,
+    pressuremapcloud,
     no_result_file: bool,
     output: str,
     plot: list,
