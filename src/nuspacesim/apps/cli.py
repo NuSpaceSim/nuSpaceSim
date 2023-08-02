@@ -54,6 +54,7 @@ from .. import NssConfig, SimulationParameters, simulation
 from ..compute import compute
 from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
 from ..results_table import ResultsTable
+from ..types.cloud_types import MonoCloud, NoCloud, PressureMapCloud
 from ..utils import plots
 from ..utils.plot_function_registry import registry
 from ..xml_config import config_from_xml, create_xml
@@ -119,12 +120,6 @@ def cli():
     help="Power Spectrum index, lower_bound, upper_bound.",
 )
 @click.option(
-    "--nocloud",
-    is_flag=True,
-    default=True,
-    help="No Cloud Model.",
-)
-@click.option(
     "--monocloud",
     type=float,
     default=None,
@@ -132,13 +127,13 @@ def cli():
 )
 @click.option(
     "--pressuremapcloud",
-    type=int,
+    type=click.DateTime(["%m", "%B", "%b"]),
     default=None,
     help="Pressure Map Cloud Model (built in and included with NuSpaceSim). This map is"
     "an instance of a global cloud top pressure map sampled from a model of all days in"
     "the given month over a 10-year time period from 2011 to 2020. Data provided by the"
     "MERRA-2 dataset."
-    "User should provide a month-number in the range [1,12]. 1==Jan, 12==Dec.",
+    "User should provide a month name, abbreviation, or number.",
 )
 @click.argument(
     "config_file",
@@ -151,7 +146,6 @@ def run(
     count: float,
     monospectrum,
     powerspectrum,
-    nocloud,
     monocloud,
     pressuremapcloud,
     no_result_file: bool,
@@ -200,6 +194,7 @@ def run(
 
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
 
+    # Spectra
     if monospectrum is not None and powerspectrum is not None:
         raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
     if monospectrum is not None:
@@ -207,6 +202,21 @@ def run(
     if powerspectrum is not None:
         config.simulation.spectrum = PowerSpectrum(*powerspectrum)
 
+    # Clouds
+    # if nocloud is not None and (monocloud is not None or pressuremapcloud is not None):
+    #     raise RuntimeError("Only on of --nocloud, --monocloud or --pressuremapcloud may be used.")
+    if monocloud is not None and pressuremapcloud is not None:
+        raise RuntimeError("Only one of --monocloud or --pressuremapcloud may be used.")
+    if monocloud is not None:
+        config.simulation.cloud_model = MonoCloud(monocloud)
+    elif pressuremapcloud is not None:
+        config.simulation.cloud_model = PressureMapCloud(
+            f"{pressuremapcloud.month:02d}", "0"
+        )
+    else:
+        config.simulation.cloud_model = NoCloud()
+
+    # Compute
     plot = (
         list(registry)
         if plotall
