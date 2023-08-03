@@ -120,6 +120,12 @@ def cli():
     help="Power Spectrum index, lower_bound, upper_bound.",
 )
 @click.option(
+    "--nocloud",
+    is_flag=True,
+    default=None,
+    help="No Cloud Model. [Default]",
+)
+@click.option(
     "--monocloud",
     type=float,
     default=None,
@@ -144,16 +150,17 @@ def cli():
 def run(
     config_file: str,
     count: float,
-    monospectrum,
-    powerspectrum,
-    monocloud,
-    pressuremapcloud,
     no_result_file: bool,
     output: str,
     plot: list,
     plotconfig: str,
     plotall: bool,
     write_stages: bool,
+    monospectrum,
+    powerspectrum,
+    nocloud,
+    monocloud,
+    pressuremapcloud,
 ) -> None:
     """Perform the full nuspacesim simulation.
 
@@ -203,18 +210,21 @@ def run(
         config.simulation.spectrum = PowerSpectrum(*powerspectrum)
 
     # Clouds
-    # if nocloud is not None and (monocloud is not None or pressuremapcloud is not None):
-    #     raise RuntimeError("Only on of --nocloud, --monocloud or --pressuremapcloud may be used.")
-    if monocloud is not None and pressuremapcloud is not None:
-        raise RuntimeError("Only one of --monocloud or --pressuremapcloud may be used.")
-    if monocloud is not None:
-        config.simulation.cloud_model = MonoCloud(monocloud)
-    elif pressuremapcloud is not None:
-        config.simulation.cloud_model = PressureMapCloud(
-            f"{pressuremapcloud.month:02d}", "0"
+    is_nc = nocloud is not None
+    is_mc = monocloud is not None
+    is_pc = pressuremapcloud is not None
+    any_cloud_flags_present = is_nc | is_mc | is_pc
+    exactly_one_cloud_flag = (is_nc ^ is_mc ^ is_pc) and not (is_nc & is_mc & is_pc)
+    if any_cloud_flags_present and not exactly_one_cloud_flag:
+        raise RuntimeError(
+            "Only one of --nocloud, --monocloud or --pressuremapcloud may be used."
         )
-    else:
+    if is_nc:
         config.simulation.cloud_model = NoCloud()
+    if is_mc:
+        config.simulation.cloud_model = MonoCloud(monocloud)
+    if is_pc:
+        config.simulation.cloud_model = PressureMapCloud(pressuremapcloud.month)
 
     # Compute
     plot = (
