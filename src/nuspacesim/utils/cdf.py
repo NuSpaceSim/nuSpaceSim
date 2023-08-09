@@ -372,7 +372,7 @@ def grid_cdf_sampler(grid: NssGrid) -> Callable:
     """
 
     def sample(log_e_nu, beta, u=None):
-        r"""Sampling function for nearest_cdf_sampler.
+        r"""Sampling function for grid_cdf_sampler.
 
         Interpolate cdf values and inverse transfom sample z (E_tau / E_nu) values from
         the tau_cdf grid.
@@ -392,6 +392,15 @@ def grid_cdf_sampler(grid: NssGrid) -> Callable:
             Array of sampled z values parameterized by the interpolated CDFs.
 
         """
+
+        if log_e_nu.shape != beta.shape:
+            raise RuntimeError(
+                f"Input Array Shape Mismatch: {log_e_nu.shape}, {beta.shape}"
+            )
+
+        if 0 in log_e_nu.shape:
+            return np.array([])
+
         it = np.nditer(
             [log_e_nu, beta, u, None],
             flags=["external_loop", "buffered"],

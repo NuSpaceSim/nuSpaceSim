@@ -84,19 +84,20 @@ class EAS:
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
         mask = (altDec < 0.0) | (altDec > 20.0)
-        mask |= beta > np.radians(25.0)
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.
         dphots = np.zeros_like(beta)
-        thetaCh = np.full_like(beta, 1.5)
+        thetaCh100PeV = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
-        dphots[mask], thetaCh[mask] = self.CphotAng(beta[mask], altDec[mask])
+        dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
+            beta[mask], altDec[mask], showerEnergy[mask]
+        )
 
         numPEs = (
             dphots
-            * showerEnergy
+            ###### * showerEnergy  # Scaling no longer necessary. Being done in cphotang.
             * self.config.detector.telescope_effective_area
             * self.config.detector.quantum_efficiency
         )
@@ -108,8 +109,8 @@ class EAS:
         logenhanceFactor[~efMask] = 0.5
 
         hwfm = np.sqrt(2.0 * logenhanceFactor)
-        thetaChEnh = np.multiply(thetaCh, hwfm)
-        thetaChEff = np.where(thetaChEnh >= thetaCh, thetaChEnh, thetaCh)
+        thetaChEnh = np.multiply(thetaCh100PeV, hwfm)
+        thetaChEff = np.where(thetaChEnh >= thetaCh100PeV, thetaChEnh, thetaCh100PeV)
 
         costhetaChEff = np.cos(np.radians(thetaChEff))
 

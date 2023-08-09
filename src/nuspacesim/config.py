@@ -30,14 +30,13 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """Module holding conifiguration class definitions."""
 
 ####
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Union
 
 try:
@@ -176,7 +175,9 @@ class SimulationParameters:
     """Number of thrown trajectories. Default = 1000"""
     theta_ch_max: float = radians(3.0)
     """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""
-    spectrum: Union[MonoSpectrum, PowerSpectrum, FileSpectrum] = MonoSpectrum()
+    spectrum: Union[MonoSpectrum, PowerSpectrum, FileSpectrum] = field(
+        default_factory=MonoSpectrum
+    )
     """Distribution from which to draw nu_tau energies."""
     e_shower_frac: float = 0.5
     """Fraction of ETau in Shower. Default = 0.5."""
@@ -190,6 +191,8 @@ class SimulationParameters:
     """Total Electron Content for ionospheric propagation. Default = 10."""
     TECerr: float = 0.1
     """Error for TEC reconstruction. Default = 0.1"""
+    tau_table_version: str = "3"
+    """Version of tau conversion tables."""
 
     @cached_property
     def log_nu_tau_energy(self) -> float:
@@ -257,9 +260,9 @@ class NssConfig:
 
     """
 
-    detector: DetectorCharacteristics = DetectorCharacteristics()
+    detector: DetectorCharacteristics = field(default_factory=DetectorCharacteristics)
     """The Detector Characteristics."""
-    simulation: SimulationParameters = SimulationParameters()
+    simulation: SimulationParameters = field(default_factory=SimulationParameters)
     """The Simulation Parameters."""
-    constants: const.Fund_Constants = const.Fund_Constants()
+    constants: const.Fund_Constants = field(default_factory=const.Fund_Constants)
     """The Fudimental physical constants."""
