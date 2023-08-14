@@ -7,8 +7,8 @@
       <NPE>10.0</NPE>
     </PhotoElectronThreshold>
     <DetectorAltitude Unit="km">525.0</DetectorAltitude>
-    <InitialDetectorRightAscension Unit="Degrees">0.0</InitialDetectorRightAscension>
-    <InitialDetectorDeclination Unit="Degrees">0.0</InitialDetectorDeclination>
+    <InitialDetectorLatitude Unit="Degrees">0.0</InitialDetectorLatitude>
+    <InitialDetectorLongitude Unit="Degrees">0.0</InitialDetectorLongitude>
     <LowFrequency Unit="MHz">30.0</LowFrequency>
     <HighFrequency Unit="MHz">300.0</HighFrequency>
     <SNRThreshold>5.0</SNRThreshold>
@@ -26,6 +26,9 @@
         <LogNuEnergy>8.0</LogNuEnergy>
       </MonoSpectrum>
     </NuTauEnergySpecType>
+    <CloudModelType>
+      <NoCloudModel/>
+    </CloudModelType>
     <AzimuthalAngle Unit="Radians">6.283185307179586</AzimuthalAngle>
     <NumTrajs>100</NumTrajs>
     <ModelIonosphere>0</ModelIonosphere>

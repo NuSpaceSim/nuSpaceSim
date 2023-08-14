@@ -75,7 +75,6 @@ def spec_norm(
     *args,
     **kwargs,
 ) -> float:
-
     if isinstance(spectra, MonoSpectrum):
         return 1.0
 
@@ -94,7 +93,6 @@ def sum_spec_weights(
     *args,
     **kwargs,
 ) -> float:
-
     if isinstance(spectra, MonoSpectrum):
         return 1.0
 

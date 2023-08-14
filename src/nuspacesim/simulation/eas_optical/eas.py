@@ -76,7 +76,17 @@ class EAS:
 
     @decorators.nss_result_plot(eas_optical_density, eas_optical_histogram)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
-    def __call__(self, beta, altDec, showerEnergy, *args, **kwargs):
+    def __call__(
+        self,
+        beta,
+        altDec,
+        showerEnergy,
+        init_lat,
+        init_long,
+        *args,
+        cloudf=None,
+        **kwargs
+    ):
         """
         Electromagnetic Air Shower operation.
         """
@@ -92,7 +102,12 @@ class EAS:
 
         # Run CphotAng on in-bounds events
         dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
-            beta[mask], altDec[mask], showerEnergy[mask]
+            beta[mask],
+            altDec[mask],
+            showerEnergy[mask],
+            init_lat[mask],
+            init_long[mask],
+            cloudf,
         )
 
         numPEs = (

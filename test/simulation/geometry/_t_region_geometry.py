@@ -7,7 +7,6 @@ from . import cpp_region_geometry
 
 
 def test_rg():
-
     cfg = NssConfig()
 
     u = np.random.rand(int(1e6), 4)
@@ -25,8 +24,8 @@ def test_rg():
 
     assert np.allclose(R.evArray["thetaS"][Rmsk], T.thetaS[Tmsk])
     assert np.allclose(R.evArray["phiS"][Rmsk], T.phiS[Tmsk])
-    assert np.allclose(R.evArray["raS"][Rmsk], T.raS[Tmsk])
-    assert np.allclose(R.evArray["decS"][Rmsk], T.decS[Tmsk])
+    assert np.allclose(R.evArray["latS"][Rmsk], T.latS[Tmsk])
+    assert np.allclose(R.evArray["longS"][Rmsk], T.longS[Tmsk])
     assert np.allclose(R.evArray["thetaTrSubV"][Rmsk], T.thetaTrSubV[Tmsk])
     assert np.allclose(R.evArray["costhetaTrSubV"][Rmsk], T.costhetaTrSubV[Tmsk])
     assert np.allclose(R.evArray["phiTrSubV"][Rmsk], T.phiTrSubV[Tmsk])
@@ -36,6 +35,8 @@ def test_rg():
     assert np.allclose(R.evArray["losPathLen"][Rmsk], T.losPathLen[Tmsk])
     assert np.allclose(R.evArray["thetaTrSubV"][Rmsk], T.thetaTrSubV[Tmsk])
     assert np.allclose(R.evArray["costhetaTrSubV"][Rmsk], T.costhetaTrSubV[Tmsk])
+    assert np.allclose(R.evArray["elevAngVSubN"][Rmsk], T.elevAngVSubN[Tmsk])
+    assert np.allclose(R.evArray["aziAngVSubN"][Rmsk], T.aziAngVSubN[Tmsk])
 
     assert not np.allclose(R.evArray["thetaS"][Rmsk], 1 + T.thetaS[Tmsk])
 

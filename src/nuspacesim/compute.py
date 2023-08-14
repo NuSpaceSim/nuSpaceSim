@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 r"""The main proceedure for performaing a full simulation in nuspacesim.
 
 *********************
@@ -51,6 +50,7 @@ from rich.console import Console
 
 from .config import NssConfig
 from .results_table import ResultsTable
+from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
@@ -139,6 +139,7 @@ def compute(
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
+    cloud = CloudTopHeight(config)
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
@@ -166,6 +167,12 @@ def compute(
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
+    init_lat, init_long = geom.find_lat_long_along_traj(0)
+    sim(
+        ("init_lat", "init_lon"),
+        (init_lat, init_long),
+    )
+
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
@@ -187,6 +194,9 @@ def compute(
             beta_tr,
             altDec,
             showerEnergy,
+            init_lat,
+            init_long,
+            cloudf=cloud,
             store=sw,
             plot=to_plot,
         )

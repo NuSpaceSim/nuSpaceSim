@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
 Module contains functions for parsing and interacting with XML configuration files.
 """
@@ -47,6 +46,7 @@ from ..config import (
     PowerSpectrum,
     SimulationParameters,
 )
+from ..types import cloud_types
 from . import config_xml_schema
 
 __all__ = [
@@ -110,8 +110,8 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
         # Convert Degrees to Radians
         if "Unit" in node.attrib:
             if node.tag in [
-                "InitialDetectorRightAscension",
-                "InitialDetectorDeclination",
+                "InitialDetectorLatitude",
+                "InitialDetectorLongitude",
             ]:
                 x = float(node.text)
                 detchar[node.tag] = (
@@ -125,8 +125,8 @@ def parse_detector_chars(xmlfile: str) -> DetectorCharacteristics:
     return DetectorCharacteristics(
         method=detchar["Method"],
         altitude=float(detchar["DetectorAltitude"]),
-        ra_start=float(detchar["InitialDetectorRightAscension"]),
-        dec_start=float(detchar["InitialDetectorDeclination"]),
+        lat_start=float(detchar["InitialDetectorLatitude"]),
+        long_start=float(detchar["InitialDetectorLongitude"]),
         telescope_effective_area=float(detchar["TelescopeEffectiveArea"]),
         quantum_efficiency=float(detchar["QuantumEfficiency"]),
         photo_electron_threshold=float(detchar["NPE"]),
@@ -180,6 +180,19 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
                     simparams["Spectrum"] = FileSpectrum(
                         path=str(node.spectrum_type("FilePath").text)
                     )
+        elif node.tag == "CloudModelType":
+            for cloud_model in node:
+                if "NoCloudModel" == cloud_model.tag:
+                    simparams["CloudModel"] = cloud_types.NoCloud()
+                if "MonoCloudModel" == cloud_model.tag:
+                    simparams["CloudModel"] = cloud_types.MonoCloud(
+                        altitude=float(cloud_model.find("CloudTopHeight").text),
+                    )
+                if "PressureMapCloudModel" == cloud_model.tag:
+                    simparams["CloudModel"] = cloud_types.PressureMapCloud(
+                        month=str(cloud_model.find("Month").text),
+                        version=str(cloud_model.find("Version").text),
+                    )
         else:
             simparams[node.tag] = str(node.text)
 
@@ -192,6 +205,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         N=int(simparams["NumTrajs"]),
         theta_ch_max=float(simparams["MaximumCherenkovAngle"]),
         spectrum=simparams["Spectrum"],
+        cloud_model=simparams["CloudModel"],
         e_shower_frac=float(simparams["FracETauInShower"]),
         ang_from_limb=float(simparams["AngleFromLimb"]),
         max_azimuth_angle=float(simparams["AzimuthalAngle"]),
@@ -286,13 +300,13 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
     detalt.set("Unit", "km")
     detalt.text = str(config.detector.altitude)
 
-    detra = ET.SubElement(detchar, "InitialDetectorRightAscension")
-    detra.set("Unit", "Degrees")
-    detra.text = str(config.detector.ra_start)
+    detlat = ET.SubElement(detchar, "InitialDetectorLatitude")
+    detlat.set("Unit", "Degrees")
+    detlat.text = str(config.detector.lat_start)
 
-    detdec = ET.SubElement(detchar, "InitialDetectorDeclination")
-    detdec.set("Unit", "Degrees")
-    detdec.text = str(config.detector.dec_start)
+    detlong = ET.SubElement(detchar, "InitialDetectorLongitude")
+    detlong.set("Unit", "Degrees")
+    detlong.text = str(config.detector.long_start)
 
     npe = ET.SubElement(pethres, "NPE")
     npe.text = str(config.detector.photo_electron_threshold)
@@ -338,7 +352,7 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
         nutauen = ET.SubElement(mono, "LogNuEnergy")
         nutauen.text = str(config.simulation.spectrum.log_nu_tau_energy)
 
-    if isinstance(config.simulation.spectrum, PowerSpectrum):
+    elif isinstance(config.simulation.spectrum, PowerSpectrum):
         power = ET.SubElement(nutauspectype, "PowerSpectrum")
         sp1 = ET.SubElement(power, "PowerLawIndex")
         sp2 = ET.SubElement(power, "LowerBound")
@@ -347,10 +361,25 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
         sp2.text = str(config.simulation.spectrum.lower_bound)
         sp3.text = str(config.simulation.spectrum.upper_bound)
 
-    if isinstance(config.simulation.spectrum, FileSpectrum):
+    elif isinstance(config.simulation.spectrum, FileSpectrum):
         filespec = ET.SubElement(nutauspectype, "FileSpectrum")
         sp1 = ET.SubElement(filespec, "FilePath")
         sp1.text = str(config.simulation.spectrum.path)
+
+    cloudmodeltype = ET.SubElement(simparams, "CloudModelType")
+
+    if isinstance(config.simulation.cloud_model, cloud_types.NoCloud):
+        ET.SubElement(cloudmodeltype, "NoCloudModel")
+    elif isinstance(config.simulation.cloud_model, cloud_types.MonoCloud):
+        mono = ET.SubElement(cloudmodeltype, "MonoCloudModel")
+        cth = ET.SubElement(mono, "CloudTopHeight")
+        cth.text = str(config.simulation.cloud_model.altitude)
+    elif isinstance(config.simulation.cloud_model, cloud_types.PressureMapCloud):
+        pmcm = ET.SubElement(cloudmodeltype, "PressureMapCloudModel")
+        m = ET.SubElement(pmcm, "Month")
+        m.text = str(config.simulation.cloud_model.month)
+        v = ET.SubElement(pmcm, "Version")
+        v.text = str(config.simulation.cloud_model.version)
 
     azimuthang = ET.SubElement(simparams, "AzimuthalAngle")
     azimuthang.set("Unit", "Radians")

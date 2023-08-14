@@ -51,8 +51,8 @@ class RegionGeom:
             self.config.constants.earth_radius + self.config.detector.altitude
         )
 
-        self.detRA = np.radians(config.detector.ra_start)
-        self.detDec = np.radians(config.detector.dec_start)
+        self.detLat = np.radians(config.detector.lat_start)
+        self.detLong = np.radians(config.detector.long_start)
 
         alphaHorizon = np.pi / 2 - np.arccos(
             self.config.constants.earth_radius / self.core_alt
@@ -172,39 +172,65 @@ class RegionGeom:
 
         self.betaTrSubN = np.degrees(0.5 * np.pi - self.thetaTrSubN)
 
-        rsindecS = np.sin(self.config.detector.dec_start) * costhetaS - np.cos(
-            self.config.detector.dec_start
-        ) * np.sin(self.thetaS) * np.cos(self.phiS)
+        # Compute latitude and longitude of spot on the ground (based on transforming
+        # from detector's East-North_Up (ENU) frame back to the Earth-Centered-Earth-Fixed (ECEF) frame
 
-        self.decS = np.degrees(np.arcsin(rsindecS))
+        rsinlatS = np.cos(self.detLat) * np.sin(self.thetaS) * np.sin(
+            self.phiS
+        ) + np.sin(self.detLat) * np.cos(self.thetaS)
+
+        latS_rad = np.arcsin(rsinlatS)
+        self.latS = np.degrees(latS_rad)
 
         rxS = (
-            np.sin(self.config.detector.dec_start)
-            * np.cos(self.config.detector.ra_start)
-            * np.sin(self.thetaS)
-            * np.cos(self.phiS)
-            - np.sin(self.config.detector.ra_start)
+            -np.sin(self.detLong) * np.sin(self.thetaS) * np.cos(self.phiS)
+            - np.cos(self.detLong)
+            * np.sin(self.detLat)
             * np.sin(self.thetaS)
             * np.sin(self.phiS)
-            + np.cos(self.config.detector.dec_start)
-            * np.cos(self.config.detector.ra_start)
-            * np.cos(self.thetaS)
+            + np.cos(self.detLong) * np.cos(self.detLat) * np.cos(self.thetaS)
         )
 
         ryS = (
-            np.sin(self.config.detector.dec_start)
-            * np.sin(self.config.detector.ra_start)
-            * np.sin(self.thetaS)
-            * np.cos(self.phiS)
-            + np.cos(self.config.detector.ra_start)
+            np.cos(self.detLong) * np.sin(self.thetaS) * np.cos(self.phiS)
+            - np.sin(self.detLong)
+            * np.sin(self.detLat)
             * np.sin(self.thetaS)
             * np.sin(self.phiS)
-            + np.cos(self.config.detector.dec_start)
-            * np.sin(self.config.detector.ra_start)
-            * np.cos(self.thetaS)
+            + np.sin(self.detLong) * np.cos(self.detLat) * np.cos(self.thetaS)
         )
 
-        self.raS = np.degrees(np.arctan2(ryS, rxS)) % 360.0
+        longS_rad = np.arctan2(ryS, rxS)
+        self.longS = np.degrees(longS_rad) % 360.0  # Unit test possible
+
+        # Compute xy-coordinates and elevation and azimuthal angles of unit vector of the
+        # line-of-sight (los) vector between detector and spot on the ground (technically, the
+        # unit vector parallel to the los with tail at the center of the Earth) in ENU frame of the
+        # spot on the ground
+
+        self.elevAngVSubN = (
+            0.5 * np.pi - thetaNSubV
+        )  # Elevation angle of the detector w.r.t. the spot on the ground; unit test possible
+
+        xVSubN = -np.sin(longS_rad) * np.cos(self.detLat) * np.cos(
+            self.detLong
+        ) + np.cos(longS_rad) * np.cos(self.detLat) * np.sin(self.detLong)
+
+        yVSubN = (
+            -np.cos(longS_rad)
+            * np.sin(latS_rad)
+            * np.cos(self.detLat)
+            * np.cos(self.detLong)
+            - np.sin(longS_rad)
+            * np.sin(latS_rad)
+            * np.cos(self.detLat)
+            * np.sin(self.detLong)
+            + np.cos(latS_rad) * np.sin(self.detLat)
+        )
+
+        self.aziAngVSubN = np.arctan2(
+            yVSubN, xVSubN
+        )  # Azimuthal angle of the detector w.r.t. the spot on the ground
 
         self.event_mask = np.logical_and(self.costhetaTrSubN >= 0, self.betaTrSubN < 42)
 
@@ -220,6 +246,9 @@ class RegionGeom:
         """View angles for valid events."""
         return self.thetaTrSubV[self.event_mask]
 
+    def phis(self):
+        return self.phiTrSubV[self.event_mask]
+
     def pathLens(self):
         """View angles for valid events."""
         # pathLenArr = super().evArray["losPathLen"][super().evMasknpArray]
@@ -234,6 +263,92 @@ class RegionGeom:
 
     def valid_costhetaTrSubV(self):
         return self.costhetaTrSubV[self.event_mask]
+
+    def valid_longS(self):
+        return self.longS[self.event_mask]
+
+    def valid_latS(self):
+        return self.latS[self.event_mask]
+
+    def valid_longS_rad(self):
+        return np.radians(self.valid_longS())
+
+    def valid_latS_rad(self):
+        return np.radians(self.valid_latS())
+
+    def valid_elevAngVSubN(self):
+        return self.elevAngVSubN[self.event_mask]
+
+    def valid_aziAngVSubN(self):
+        return self.aziAngVSubN[self.event_mask]
+
+    def find_lat_long_along_traj(self, dist_along_traj):
+        # Compute xyz-coordinates in ENU frame of los between detector and spot on the ground
+
+        xPath_v = dist_along_traj * np.sin(self.thetas()) * np.cos(self.phis())
+
+        yPath_v = dist_along_traj * np.sin(self.thetas()) * np.sin(
+            self.phis()
+        ) + self.config.constants.earth_radius * np.cos(self.valid_elevAngVSubN())
+
+        zPath_v = dist_along_traj * np.cos(
+            self.thetas()
+        ) + self.config.constants.earth_radius * np.sin(self.valid_elevAngVSubN())
+
+        # Compute xyz-coordinates in the spot's ENU frame (accomplished by transforming from
+        # the los ENU frame to the spot's ENU frame)
+
+        xPath_n = (
+            -np.sin(self.valid_aziAngVSubN()) * xPath_v
+            - np.cos(self.valid_aziAngVSubN())
+            * np.sin(self.valid_elevAngVSubN())
+            * yPath_v
+            + np.cos(self.valid_aziAngVSubN())
+            * np.cos(self.valid_elevAngVSubN())
+            * zPath_v
+        )
+
+        yPath_n = (
+            np.cos(self.valid_aziAngVSubN()) * xPath_v
+            - np.sin(self.valid_aziAngVSubN())
+            * np.sin(self.valid_elevAngVSubN())
+            * yPath_v
+            + np.sin(self.valid_aziAngVSubN())
+            * np.cos(self.valid_elevAngVSubN())
+            * zPath_v
+        )
+
+        zPath_n = (
+            np.cos(self.valid_elevAngVSubN()) * yPath_v
+            + np.sin(self.valid_elevAngVSubN()) * zPath_v
+        )
+
+        # Compute xyz-coordinates in the ECEF frame (accomplished by transforming from the spot's
+        # ENU frame to the ECEF frame)
+
+        xPath_ECEF = (
+            -np.sin(self.valid_longS_rad()) * xPath_n
+            - np.cos(self.valid_longS_rad()) * np.sin(self.valid_latS_rad()) * yPath_n
+            + np.cos(self.valid_longS_rad()) * np.cos(self.valid_latS_rad()) * zPath_n
+        )
+
+        yPath_ECEF = (
+            np.cos(self.valid_longS_rad()) * xPath_n
+            - np.sin(self.valid_longS_rad()) * np.sin(self.valid_latS_rad()) * yPath_n
+            + np.sin(self.valid_longS_rad()) * np.cos(self.valid_latS_rad()) * zPath_n
+        )
+
+        zPath_ECEF = (
+            np.cos(self.valid_latS_rad()) * yPath_n
+            + np.sin(self.valid_latS_rad()) * zPath_n
+        )
+
+        dist2EarthCenter = np.sqrt(xPath_ECEF**2 + yPath_ECEF**2 + zPath_ECEF**2)
+
+        latPath = np.arcsin(zPath_ECEF / dist2EarthCenter)
+        longPath = np.arctan2(yPath_ECEF, xPath_ECEF)
+
+        return latPath, longPath
 
     @decorators.nss_result_plot(geom_beta_tr_hist)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len")

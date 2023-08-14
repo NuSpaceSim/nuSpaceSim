@@ -1,6 +1,6 @@
 # The Clear BSD License
 #
-# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# Copyright (c) 2023 Alexander Reustle and the NuSpaceSim Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,30 +31,53 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""NuSpaceSim Simulation Modules.
+from dataclasses import dataclass
 
-.. _simulation:
+import numpy as np
 
-*****************************
-NuSpaceSim Simulation Modules
-*****************************
+__all__ = ["MonoCloud", "NoCloud"]
 
 
-NuSpaceSim provides a collection of modules for simulating various stages of the
-neutrino propagation and interaction.
-
-.. autosummary::
-   :toctree:
-   :nosignatures:
-
-   geometry
-   eas_optical
-   eas_radio
-   taus
+@dataclass
+class NoCloud:
+    pass
 
 
-"""
+@dataclass
+class MonoCloud:
+    altitude: float = -np.inf
+    """Altitude of monoheight cloud."""
 
-__all__ = ["atmosphere", "geometry", "eas_optical", "eas_radio", "taus"]
 
-from . import atmosphere, eas_optical, eas_radio, geometry, taus
+@dataclass
+class PressureMapCloud:
+    month: str = "01"
+    """Cloud Map Month in 2-digit MM format."""
+
+    version: str = "0"
+    """Cloud Map File Version."""
+
+
+# @dataclass
+# class BetaPressureMap:
+#     map_file: str | None = None
+
+
+# @dataclass
+# class BetaPressureCloudMap:
+#     map_file: str | None = None
+#
+#     def __init__(self, cloud_map_filename="Default"):
+#         self.map_file = cloud_map_filename
+#         if self.map_file == "Default" or "" or None:
+#             with as_file(
+#                 files("nuspacesim.data.cloud_maps")
+#                 / "nss_rmap_CloudTopPressure_01_2011_2020_9E6D7805.fits"
+#             ) as file:
+#                 pass
+#                 # self.pexit_grid = NssGrid.read(file, path="/", format="hdf5")
+#
+#         self.map = None  # hdu[0].data
+#
+#     def __call__(self, lat, long) -> float:
+#         return self.map[lat, long]

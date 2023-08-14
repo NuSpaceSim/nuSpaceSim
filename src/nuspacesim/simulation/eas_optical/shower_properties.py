@@ -115,7 +115,6 @@ def greisen_particle_count(T, s):
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
-
     # for target_count = 2, shower_age = 1.899901462640018
     # param_beta = np.log(10 ** 8 / (0.710 / 8.36))
 
@@ -139,7 +138,6 @@ def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
 
 
 def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
-
     rho = us_std_atm_density
     r0 = rho(0)
     ptan = 92.64363150999402 * np.tan(theta_tr) + 101.4463720303218
@@ -155,7 +153,6 @@ def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
 
 
 def slant_depth_trig_behind_ahead(z_lo, z, z_hi, theta_tr, z_max=100.0):
-
     rho = us_std_atm_density
     r0 = rho(0)
     ptan = 92.64363150999402 * np.tan(theta_tr) + 101.4463720303218
@@ -218,7 +215,6 @@ def track_length(s, E):
 
 
 def hillas_dndu(energy, theta, s):
-
     e2hill = 1150.0 + 454.0 * np.log(s)
     mask = e2hill > 0
     vhill = energy[mask] / e2hill[mask]

@@ -15,12 +15,10 @@ from tabulate import tabulate
 import nuspacesim as nss
 
 if __name__ == "__main__":
-
     results = list()
 
     path = os.path.abspath(sys.argv[1])
     for filename in os.listdir(path):
-
         _, extension = os.path.splitext(filename)
         if extension != ".fits":
             continue

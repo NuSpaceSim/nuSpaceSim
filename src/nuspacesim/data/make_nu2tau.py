@@ -60,9 +60,7 @@ def nu2tau_pexit_from_ascii():
 
 
 def nu2tau_pexit_from_nupyprop_v1(filename: str):
-
     with h5py.File(filename, "r") as f:
-
         pexit_ds = f["Exit_Probability"]
 
         logEnu = np.asarray(list(pexit_ds.keys()), dtype=np.float64)
@@ -91,9 +89,7 @@ def nu2tau_pexit_from_nupyprop_v1(filename: str):
 
 
 def nu2tau_cdf_from_nupyprop_v1(filename: str):
-
     with h5py.File(filename, "r") as f:
-
         cdf_grp = f["CLep_out_cdf"]
 
         log_e_nu = np.asarray(list(cdf_grp.keys()), dtype=np.float64)
@@ -127,7 +123,6 @@ def make_nu2tau_pexit_from_ascii():
 
 
 def nu2tau_tauEDistCDF_from_ascii():
-
     bdeg = np.array([1.0, 3.0, 5.0, 7.0, 10.0, 12.0, 15.0, 17.0, 20.0, 25.0])
     brad = np.radians(bdeg)
 
@@ -151,7 +146,6 @@ def nu2tau_tauEDistCDF_from_ascii():
 
 
 def make_nu2tau_cdf_from_ascii():
-
     tau_cdf_grids = nu2tau_tauEDistCDF_from_ascii()
 
     hname = "src/nuspacesim/data/RenoNu2TauTables/nu2tau_cdf.hdf5"

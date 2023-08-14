@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """ Command line client source code.
 
 .. _cli:
@@ -47,7 +46,6 @@
 
 """
 
-
 import configparser
 
 import click
@@ -56,6 +54,7 @@ from .. import NssConfig, SimulationParameters, simulation
 from ..compute import compute
 from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
 from ..results_table import ResultsTable
+from ..types.cloud_types import MonoCloud, NoCloud, PressureMapCloud
 from ..utils import plots
 from ..utils.plot_function_registry import registry
 from ..xml_config import config_from_xml, create_xml
@@ -120,6 +119,28 @@ def cli():
     default=None,
     help="Power Spectrum index, lower_bound, upper_bound.",
 )
+@click.option(
+    "--nocloud",
+    is_flag=True,
+    default=None,
+    help="No Cloud Model. [Default]",
+)
+@click.option(
+    "--monocloud",
+    type=float,
+    default=None,
+    help="Uniform (mono) Height Cloud Model (km).",
+)
+@click.option(
+    "--pressuremapcloud",
+    type=click.DateTime(["%m", "%B", "%b"]),
+    default=None,
+    help="Pressure Map Cloud Model (built in and included with NuSpaceSim). This map is"
+    "an instance of a global cloud top pressure map sampled from a model of all days in"
+    "the given month over a 10-year time period from 2011 to 2020. Data provided by the"
+    "MERRA-2 dataset."
+    "User should provide a month name, abbreviation, or number.",
+)
 @click.argument(
     "config_file",
     default=None,
@@ -129,14 +150,17 @@ def cli():
 def run(
     config_file: str,
     count: float,
-    monospectrum,
-    powerspectrum,
     no_result_file: bool,
     output: str,
     plot: list,
     plotconfig: str,
     plotall: bool,
     write_stages: bool,
+    monospectrum,
+    powerspectrum,
+    nocloud,
+    monocloud,
+    pressuremapcloud,
 ) -> None:
     """Perform the full nuspacesim simulation.
 
@@ -177,6 +201,7 @@ def run(
 
     config.simulation.N = int(config.simulation.N if count == 0.0 else count)
 
+    # Spectra
     if monospectrum is not None and powerspectrum is not None:
         raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
     if monospectrum is not None:
@@ -184,6 +209,24 @@ def run(
     if powerspectrum is not None:
         config.simulation.spectrum = PowerSpectrum(*powerspectrum)
 
+    # Clouds
+    is_nc = nocloud is not None
+    is_mc = monocloud is not None
+    is_pc = pressuremapcloud is not None
+    any_cloud_flags_present = is_nc | is_mc | is_pc
+    exactly_one_cloud_flag = (is_nc ^ is_mc ^ is_pc) and not (is_nc & is_mc & is_pc)
+    if any_cloud_flags_present and not exactly_one_cloud_flag:
+        raise RuntimeError(
+            "Only one of --nocloud, --monocloud or --pressuremapcloud may be used."
+        )
+    if is_nc:
+        config.simulation.cloud_model = NoCloud()
+    if is_mc:
+        config.simulation.cloud_model = MonoCloud(monocloud)
+    if is_pc:
+        config.simulation.cloud_model = PressureMapCloud(pressuremapcloud.month)
+
+    # Compute
     plot = (
         list(registry)
         if plotall

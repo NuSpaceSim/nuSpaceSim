@@ -52,8 +52,8 @@ class RegionGeom(Geom_params):
         super().__init__(
             radE=config.constants.earth_radius,
             detalt=config.detector.altitude,
-            detra=config.detector.ra_start,
-            detdec=config.detector.dec_start,
+            detlat=config.detector.lat_start,
+            detlong=config.detector.long_start,
             delAlpha=config.simulation.ang_from_limb,
             maxsepangle=config.simulation.theta_ch_max,
             delAziAng=config.simulation.max_azimuth_angle,

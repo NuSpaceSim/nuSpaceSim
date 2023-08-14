@@ -98,7 +98,6 @@ def invert_cdf_grid(grid: NssGrid) -> NssGrid:
     new_data = np.empty(new_shape, dtype=grid.data.dtype)
 
     for i, _ in enumerate(grid["beta_rad"]):
-
         s = np.s_[i, :]
 
         local_cdf = grid[s].data
