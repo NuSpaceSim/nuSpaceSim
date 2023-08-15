@@ -32,10 +32,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 
-__all__ = ["MonoCloud", "NoCloud"]
+__all__ = ["MonoCloud", "NoCloud", "PressureMapCloud"]
 
 
 @dataclass
@@ -51,33 +52,33 @@ class MonoCloud:
 
 @dataclass
 class PressureMapCloud:
-    month: str = "01"
-    """Cloud Map Month in 2-digit MM format."""
+    month: int = 1
+    """Cloud Map Month integer 1-12 inclusive."""
 
     version: str = "0"
     """Cloud Map File Version."""
 
 
-# @dataclass
-# class BetaPressureMap:
-#     map_file: str | None = None
-
-
-# @dataclass
-# class BetaPressureCloudMap:
-#     map_file: str | None = None
-#
-#     def __init__(self, cloud_map_filename="Default"):
-#         self.map_file = cloud_map_filename
-#         if self.map_file == "Default" or "" or None:
-#             with as_file(
-#                 files("nuspacesim.data.cloud_maps")
-#                 / "nss_rmap_CloudTopPressure_01_2011_2020_9E6D7805.fits"
-#             ) as file:
-#                 pass
-#                 # self.pexit_grid = NssGrid.read(file, path="/", format="hdf5")
-#
-#         self.map = None  # hdu[0].data
-#
-#     def __call__(self, lat, long) -> float:
-#         return self.map[lat, long]
+def parse_month(date: str | int | datetime) -> int:
+    if isinstance(date, datetime):
+        return date.month
+    if isinstance(date, int):
+        if date < 1 or date > 12:
+            raise RuntimeError(f"Provided month {date} is invalid")
+        return date
+    if isinstance(date, str):
+        try:
+            return (datetime.strptime(date, "%m")).month
+        except ValueError:
+            pass
+        try:
+            return (datetime.strptime(date, "%B")).month
+        except ValueError:
+            pass
+        try:
+            return (datetime.strptime(date, "%b")).month
+        except ValueError:
+            pass
+        raise ValueError(
+            f"date {date} does not match valid month patterns (%m, %B, %b)"
+        )

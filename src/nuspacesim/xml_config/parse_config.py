@@ -46,7 +46,9 @@ from ..config import (
     PowerSpectrum,
     SimulationParameters,
 )
-from ..types import cloud_types
+
+# from ..types import cloud_types
+from ..types.cloud_types import MonoCloud, NoCloud, PressureMapCloud, parse_month
 from . import config_xml_schema
 
 __all__ = [
@@ -183,14 +185,14 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         elif node.tag == "CloudModelType":
             for cloud_model in node:
                 if "NoCloudModel" == cloud_model.tag:
-                    simparams["CloudModel"] = cloud_types.NoCloud()
+                    simparams["CloudModel"] = NoCloud()
                 if "MonoCloudModel" == cloud_model.tag:
-                    simparams["CloudModel"] = cloud_types.MonoCloud(
+                    simparams["CloudModel"] = MonoCloud(
                         altitude=float(cloud_model.find("CloudTopHeight").text),
                     )
                 if "PressureMapCloudModel" == cloud_model.tag:
-                    simparams["CloudModel"] = cloud_types.PressureMapCloud(
-                        month=str(cloud_model.find("Month").text),
+                    simparams["CloudModel"] = PressureMapCloud(
+                        month=parse_month(cloud_model.find("Month").text),
                         version=str(cloud_model.find("Version").text),
                     )
         else:
@@ -368,13 +370,13 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     cloudmodeltype = ET.SubElement(simparams, "CloudModelType")
 
-    if isinstance(config.simulation.cloud_model, cloud_types.NoCloud):
+    if isinstance(config.simulation.cloud_model, NoCloud):
         ET.SubElement(cloudmodeltype, "NoCloudModel")
-    elif isinstance(config.simulation.cloud_model, cloud_types.MonoCloud):
+    elif isinstance(config.simulation.cloud_model, MonoCloud):
         mono = ET.SubElement(cloudmodeltype, "MonoCloudModel")
         cth = ET.SubElement(mono, "CloudTopHeight")
         cth.text = str(config.simulation.cloud_model.altitude)
-    elif isinstance(config.simulation.cloud_model, cloud_types.PressureMapCloud):
+    elif isinstance(config.simulation.cloud_model, PressureMapCloud):
         pmcm = ET.SubElement(cloudmodeltype, "PressureMapCloudModel")
         m = ET.SubElement(pmcm, "Month")
         m.text = str(config.simulation.cloud_model.month)

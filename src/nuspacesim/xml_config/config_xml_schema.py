@@ -125,7 +125,7 @@ xsd = StringIO(
 
 <xs:complexType name="PressureMapCloudType">
   <xs:sequence>
-    <xs:element name="Month" type="xs:decimal"/>
+    <xs:element name="Month" type="xs:string"/>
     <xs:element name="Version" type="xs:decimal"/>
   </xs:sequence>
 </xs:complexType>
