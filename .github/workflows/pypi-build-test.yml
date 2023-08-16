@@ -18,7 +18,7 @@ on:
 jobs:
 
   build_wheels:
-    name: Wheel cp${{ matrix.python }}-${{ matrix.platform }}
+    name: Wheel cp${{ matrix.python }}-${{ matrix.platform_id }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -28,14 +28,15 @@ jobs:
         python: [310, 311]
         include:
           - os: ubuntu-latest
-            platform: manylinux_x86_64
-          - os: ubuntu-latest
-            platform: manylinux_aarch64
-            # arch: ppc64le
+            platform_id: manylinux_x86_64
+          # - os: ubuntu-latest
+          #   platform_id: manylinux_aarch64
+          # - os: ubuntu-latest
+          #   platform_id: manylinux_ppc64le
           - os: macos-latest
-            platform: macosx_x86_64
-            # arch: arm64
-            # arch: universal2
+            platform_id: macosx_x86_64
+          - os: macos-latest
+            platform_id: macosx_arm64
 
     steps:
     - uses: actions/checkout@v3
