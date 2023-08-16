@@ -18,7 +18,7 @@ on:
 jobs:
 
   build_wheels:
-    name: Wheel cp${{ matrix.python }}-${{ matrix.platform_id }}
+    name: Wheel cp${{ matrix.python }}-${{ matrix.os }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -26,17 +26,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python: [310, 311]
-        include:
-          - os: ubuntu-latest
-            platform_id: manylinux_x86_64
-          # - os: ubuntu-latest
-          #   platform_id: manylinux_aarch64
-          # - os: ubuntu-latest
-          #   platform_id: manylinux_ppc64le
-          - os: macos-latest
-            platform_id: macosx_x86_64
-          - os: macos-latest
-            platform_id: macosx_arm64
+        arch: [x86, arm]
 
     steps:
     - uses: actions/checkout@v3
@@ -45,10 +35,30 @@ jobs:
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
+    - name: Set up QEMU for ARM on Linux
+      if: matrix.arch == 'arm' && matrix.os == 'ubuntu-latest'
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: all
+
+    - name: Set up environment vars
+      run: |
+        case ${{ matrix.os }} in 
+          'ubuntu-latest') 
+              ARCH=$([ ${{matrix.arch}} == 'arm' ] && echo 'aarch' || echo 'x86_')
+              PFID="manylinux_${ARCH}"
+          ;;
+          'macos-latest')
+              ARCH=$([ ${{matrix.arch}} == 'arm' ] && echo 'arm' || echo 'x86_')
+              PFID="macosx_${ARCH}64"
+          ;;
+        esac
+        export "PFID=$PFID"
+
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.15.0
       env:
-        CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform }}
+        CIBW_BUILD: cp${{ matrix.python }}-${PFID}
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3
