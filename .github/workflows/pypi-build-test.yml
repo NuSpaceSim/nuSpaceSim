@@ -58,7 +58,7 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.15.0
       env:
-        CIBW_BUILD: cp${{ matrix.python }}-${PFID}
+        CIBW_BUILD: cp${{ matrix.python }}-$PFID
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3
