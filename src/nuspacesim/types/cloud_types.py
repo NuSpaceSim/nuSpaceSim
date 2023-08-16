@@ -43,13 +43,20 @@ __all__ = ["MonoCloud", "NoCloud", "PressureMapCloud"]
 
 @dataclass
 class NoCloud:
-    pass
+    def __call__(self) -> dict:
+        return {"cloudmdl": ("NoCloud", "Simulation: No Cloud Model")}
 
 
 @dataclass
 class MonoCloud:
     altitude: float = -np.inf
     """Altitude of monoheight cloud."""
+
+    def __call__(self) -> dict:
+        return {
+            "cloudmdl": ("MonoCloud", "Simulation: Uniform Height Cloud Model"),
+            "cloudtop": (self.altitude, "Simulation: Uniform Cloud Top Height"),
+        }
 
 
 @dataclass
@@ -59,6 +66,16 @@ class PressureMapCloud:
 
     version: str = "0"
     """Cloud Map File Version."""
+
+    def __call__(self) -> dict:
+        return {
+            "cloudmdl": (
+                "PressureMapCloud",
+                "Simulation: Builtin PressureMap Cloud Model",
+            ),
+            "cloudMth": (self.month, "Simulation: Month of Model"),
+            "cloudver": (self.version, "Simulation: Version of Model"),
+        }
 
 
 def parse_month(date: str | int | datetime) -> int:

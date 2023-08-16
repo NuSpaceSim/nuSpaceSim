@@ -248,6 +248,7 @@ class SimulationParameters:
         }
 
         d.update(self.spectrum())
+        d.update(self.cloud_model())
 
         return d
 
