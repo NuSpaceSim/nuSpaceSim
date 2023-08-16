@@ -31,6 +31,7 @@ jobs:
           - os: ubuntu-latest
             platform: manylinux
           - os: ubuntu-latest
+            platform: manylinux
             arch: aarch64
             # arch: aarch64
             # arch: ppc64le
