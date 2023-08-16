@@ -17,8 +17,7 @@ parentdir_prefix_version = 'nuspacesim-'
 build = "cp3{8,9,10,11}-*"
 test-requires = "pytest"
 test-command = "pytest {project}/test"
-test-skip = "*-*linux_{aarch64,ppc64le,s390x}"
-test-skip = "*-macosx_arm64 *-macosx_universal2:arm64"
+test-skip = "*-*linux_{aarch64,ppc64le,s390x} *-macosx_arm64 *-macosx_universal2:arm64"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
