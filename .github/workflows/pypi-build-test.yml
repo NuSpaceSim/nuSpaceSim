@@ -27,6 +27,19 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         python: [310, 311]
         arch: [x86, arm]
+        include:
+          - os: ubuntu-latest
+            arch: x86
+            platform_id: manylinux_x86_64
+          - os: ubuntu-latest
+            arch: arm
+            platform_id: manylinux_aarch64
+          - os: macos-latest
+            arch: x86
+            platform_id: macosx_x86_64
+          - os: macos-latest
+            arch: arm
+            platform_id: macosx_arm64
 
     steps:
     - uses: actions/checkout@v3
@@ -41,24 +54,10 @@ jobs:
       with:
         platforms: all
 
-    - name: Set up environment vars
-      run: |
-        case ${{ matrix.os }} in 
-          'ubuntu-latest') 
-              ARCH=$([ ${{matrix.arch}} == 'arm' ] && echo 'aarch' || echo 'x86_')
-              PFID="manylinux_${ARCH}"
-          ;;
-          'macos-latest')
-              ARCH=$([ ${{matrix.arch}} == 'arm' ] && echo 'arm' || echo 'x86_')
-              PFID="macosx_${ARCH}64"
-          ;;
-        esac
-        echo "PFID=$PFID" >> $GITHUB_ENV
-
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.15.0
       env:
-        CIBW_BUILD: cp${{ matrix.python }}-$PFID
+        CIBW_BUILD: cp${{ matrix.python }}-${{ platform_id }}
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3
