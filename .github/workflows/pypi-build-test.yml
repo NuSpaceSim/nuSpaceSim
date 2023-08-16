@@ -22,24 +22,19 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      linux_arch: [x86_64, aarch64]
+      macos_arch: [x86_64, arm64]
       fail-fast: false
       matrix:
-        arch: [x86_64]
         os: [ubuntu-latest, macos-latest]
         python: [310, 311]
         include:
           - os: ubuntu-latest
             platform: manylinux
-              - arch: aarch64
-          # - os: ubuntu-latest
-          #   platform: manylinux
-          #   arch: aarch64
-            # arch: aarch64
-            # arch: ppc64le
+            arch: ${{ strategy.linux_arch }}
           - os: macos-latest
             platform: macosx
-            # arch: arm64
-            # arch: universal2
+            arch: ${{ strategy.macos_arch }}
 
     steps:
     - uses: actions/checkout@v3
