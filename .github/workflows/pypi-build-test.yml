@@ -53,7 +53,7 @@ jobs:
               PFID="macosx_${ARCH}64"
           ;;
         esac
-        export "PFID=$PFID"
+        echo "PFID=$PFID" >> $GITHUB_ENV
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.15.0
