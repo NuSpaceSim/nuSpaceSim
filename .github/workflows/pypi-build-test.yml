@@ -31,15 +31,19 @@ jobs:
           - os: ubuntu-latest
             arch: x86
             platform_id: manylinux_x86_64
+            cibw_archs: auto
           - os: ubuntu-latest
             arch: arm
             platform_id: manylinux_aarch64
+            cibw_archs: aarch64
           - os: macos-latest
             arch: x86
             platform_id: macosx_x86_64
+            cibw_archs: x86_64
           - os: macos-latest
             arch: arm
             platform_id: macosx_arm64
+            cibw_archs: arm64
 
     steps:
     - uses: actions/checkout@v3
@@ -58,6 +62,9 @@ jobs:
       uses: pypa/cibuildwheel@v2.15.0
       env:
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+        CIBW_ARCHS_LINUX: ${{ matrix.cibw_archs }}
+        CIBW_ARCHS_MACOS: ${{ matrix.cibw_archs }}
+        CIBW_TEST_SKIP: "*_aarch64, *_arm64, *_universal2:arm64"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3
