@@ -26,13 +26,14 @@ jobs:
       matrix:
         arch: [x86_64]
         os: [ubuntu-latest, macos-latest]
-        python: [311]
+        python: [310, 311]
         include:
           - os: ubuntu-latest
             platform: manylinux
-          - os: ubuntu-latest
-            platform: manylinux
-            arch: aarch64
+              - arch: aarch64
+          # - os: ubuntu-latest
+          #   platform: manylinux
+          #   arch: aarch64
             # arch: aarch64
             # arch: ppc64le
           - os: macos-latest
