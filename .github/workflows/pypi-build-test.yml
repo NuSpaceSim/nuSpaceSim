@@ -30,14 +30,12 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: manylinux
-            arch: 
-              - aarch64
-              - ppc64le
+            arch: aarch64
+            arch: ppc64le
           - os: macos-latest
             platform: macosx
-            arch:
-              - arm64
-              - universal2
+            arch: arm64
+            arch: universal2
 
     steps:
     - uses: actions/checkout@v3
