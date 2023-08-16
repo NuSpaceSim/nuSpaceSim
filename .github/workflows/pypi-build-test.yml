@@ -15,6 +15,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  linux_arch: [x86_64, aarch64]
+  macos_arch: [x86_64, arm64]
+  
+
 jobs:
 
   build_wheels:
@@ -22,8 +27,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      linux_arch: [x86_64, aarch64]
-      macos_arch: [x86_64, arm64]
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -31,10 +34,10 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: manylinux
-            arch: ${{ strategy.linux_arch }}
+            arch: ${{ env.linux_arch }}
           - os: macos-latest
             platform: macosx
-            arch: ${{ strategy.macos_arch }}
+            arch: ${{ env.macos_arch }}
 
     steps:
     - uses: actions/checkout@v3
