@@ -48,6 +48,9 @@ from numpy.polynomial import Polynomial
 
 from .detector_geometry import distance_to_detector
 
+
+import time
+
 # Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
 # on ReadTheDocs without pre-compiling.
 try:
@@ -548,12 +551,8 @@ class CphotAng:
         gramsum=gramsum[mask]
 
         filename = 'showerdata.csv'
-        try:
-            with open(filename, 'a') as f:
-                np.savetxt(f, [gramsum, zs, RN])
-        except Exception as e:
-            print(f"Exception occurred while writing to file: {e}")
-
+        with open(filename, 'a') as f:
+            np.savetxt(f, [gramsum, zs, RN])
         return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
 
     def e0(self, shape, s):
@@ -670,7 +669,8 @@ class CphotAng:
         """
 
         #######################
-        b = db.from_sequence(zip(betaE, alt, Eshow100PeV), partition_size=100)
+
+        b = db.from_sequence(zip(betaE, alt, Eshow100PeV), partition_size=np.size(alt)//5)  #Default:100
         with ProgressBar():
             Dphots, Cang = zip(*b.map(lambda x: self.run(*x)).compute())
         return np.asarray(Dphots), np.array(Cang)

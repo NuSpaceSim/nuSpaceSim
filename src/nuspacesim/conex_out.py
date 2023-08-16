@@ -5,6 +5,7 @@ import numpy as np
 import awkward as ak
 import math
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 
 from .simulation.eas_optical.shower_properties import slant_depth_trig_approx as slant_depth
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
@@ -21,7 +22,7 @@ def conex_out(data, geom):
     TauEnergy = np.log10(data["tauEnergy"]) + 9 #Tau energy in log E/eV units
 
     # Useful masks (Zfirst masks are necessary between 0 and 20km)
-    mask = (Zfirst >= 0) & (Zfirst <= 20) & (data["lenDec"] >= 20) #& (TauEnergy >= 17)# & (np.degrees(data["beta_rad"]) >= 5) )
+    mask = (Zfirst >= 0) & (Zfirst <= 20)  #& (data["lenDec"]>=10)#(TauEnergy >= 17)# & (np.degrees(data["beta_rad"]) >= 5) )
 
     beta = data["beta_rad"][mask]
     Zfirst = data["altDec"][mask]
@@ -32,7 +33,6 @@ def conex_out(data, geom):
     Z = ak.ArrayBuilder()
     RN = ak.ArrayBuilder()
     H = ak.ArrayBuilder()
-
     Xfirst = slant_depth(0, Zfirst, math.pi / 2 - beta)
     with open('showerdata.csv', 'r') as file:
         lines = csv.reader(file)
@@ -46,18 +46,21 @@ def conex_out(data, geom):
     nX = ak.to_numpy(ak.num(X, axis=1))
     nRN = ak.to_numpy(ak.num(RN, axis=1))
     nZ = ak.to_numpy(ak.num(Z, axis=1))
-
-    mask2 = (nX == nRN) & (nX == nZ)
-    print('Number of incoherent profiles ', np.sum(~mask2))
+    n = np.size(Zfirst)
+    RNmask = ak.values_astype(RN.snapshot(), np.float32)
+    mask2=np.full(n,True)
+    for i in range(n):
+        if RNmask[i][-1]>np.max(RNmask[i])*0.5:
+            mask2[i]=False
+    print('Number of incomplete profiles ', np.sum(~mask2))
     beta = beta[mask2]
     Zfirst = Zfirst[mask2]
+    n = np.size(Zfirst)
     TauEnergy = TauEnergy[mask2]
     Xfirst = Xfirst[mask2]
-    n = np.size(Zfirst)
-    azim = 360 * np.random.rand(n)*0+180 #Random azimuth
+    azim = 360 * np.random.rand(n) #Random azimuth
     zenith = 90 + np.degrees(beta)
     dEdXratio=0.00258
-
     X = ak.values_astype(X.snapshot(), np.float32)[mask2]
     Z = ak.values_astype(Z.snapshot(), np.float32)[mask2]
     RN = ak.values_astype(RN.snapshot(), np.float32)[mask2]
@@ -118,7 +121,6 @@ def conex_out(data, geom):
             chi2[i] += (y[j] - yfit[j]) ** 2 / (yfit[j])
 
         chi2[i] =chi2[i] / (nX[i] - 6)
-
         g3=popt[3]
         g2=popt[4]
         g1=popt[5]
@@ -133,7 +135,6 @@ def conex_out(data, geom):
         Xmx[i]=x[max_pos]+x0
         Nmx[i]=y[max_pos]*1e5
         chi2[i]=chi2[i]*1e5
-
     Hp = ak.values_astype(H.snapshot(), np.float32)
     branches_header = {
         "Seed1": np.dtype('i4')
