@@ -26,10 +26,12 @@ jobs:
       matrix:
         arch: [x86_64]
         os: [ubuntu-latest, macos-latest]
-        python: [38, 39, 310, 311, 312]
+        python: [38, 39, 310, 311]
         include:
           - os: ubuntu-latest
             platform: manylinux
+          - os: ubuntu-latest
+            arch: aarch64
             # arch: aarch64
             # arch: ppc64le
           - os: macos-latest
