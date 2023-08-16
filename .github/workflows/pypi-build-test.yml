@@ -24,15 +24,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        arch: [x86_64]
         os: [ubuntu-latest, macos-latest]
         python: [38, 39, 310, 311, 312]
         include:
           - os: ubuntu-latest
             platform: manylinux
-            arch: [x86_64, aarch64, ppc64le]
+            arch: 
+              - aarch64
+              - ppc64le
           - os: macos-latest
             platform: macosx
-            arch: [x86_64, arm64, universal2]
+            arch:
+              - arm64
+              - universal2
 
     steps:
     - uses: actions/checkout@v3
