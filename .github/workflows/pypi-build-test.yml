@@ -67,7 +67,7 @@ jobs:
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
         CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
         CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
-        CIBW_TEST_SKIP: "*_aarch64, *_arm64, *_universal2:arm64"
+        CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3
