@@ -1,80 +1,150 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 from scipy.optimize import curve_fit
 import h5py
-from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
-from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
-from matplotlib.lines import Line2D
-from scipy.signal import argrelextrema
-from scipy.stats import poisson
-from scipy.stats import skewnorm
-import scipy.special as sse
-from scipy import stats
 from scipy.stats import exponnorm
-import matplotlib
 from scipy import interpolate
 from scipy.interpolate import splrep, BSpline
+from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 
 try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
 
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "mathtext.fontset": "cm",
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "font.size": 10,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "ytick.right": True,
+        "xtick.top": True,
+    }
+)
+
 
 def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
-
     particles = (
         n_max
         * np.nan_to_num(
             ((x - x_0) / (x_max - x_0))
-            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x ** 2)))
+            ** ((x_max - x_0) / (p1 + p2 * x + p3 * (x**2)))
         )
-    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x ** 2))))
+    ) * (np.exp((x_max - x) / (p1 + p2 * x + p3 * (x**2))))
 
     return particles
 
 
 def pwr_law(x, a, b):
     # power law
-    return a * x ** b
+    return a * x**b
 
 
-with as_file(
-    files("nuspacesim.data.eas_reco.rms_params") / "nmax_rms_params.h5"
-) as path:
-    data = h5py.File(path, "r")
+# %%
+def reco_params(n_showers, reco_type):
+    """
+    Pull the shower mean and sample from the  variability PDFs.
 
-    nmax_leptonic = np.array(data["leptonic"])
-    nmax_one_body_kpi = np.array(data["one_body_kpi"])
-    nmax_with_pi0 = np.array(data["with_pi0"])
-    nmax_no_pi0 = np.array(data["no_pi0"])
+    Lepton decay codes are  [300001, 300002]
+    pion or kaon 1 body  [200011, 210001]
+    hadronic with pi0
+    [300111, 310101, 400211, 410111, 410101, 410201, 401111, 400111, 500131,
+    500311, 501211, 501212, 510301, 510121, 510211, 510111, 510112, 600411,
+    600231,
+    ]
+    hadronic without pi0
+    [310001, 311001, 310011, 311002, 311003, 400031, 410021, 410011, 410012,
+    410013, 410014, 501031, 501032, 510031, 600051,]
 
-    mean_leptonic = np.array(data["mean_leptonic"])
-    mean_one_body_kpi = np.array(data["mean_one_body_kpi"])
-    mean_with_pi0 = np.array(data["mean_with_pi0"])
-    mean_no_pi0 = np.array(data["mean_no_pi0"])
+    Parameters
+    ----------
+    n_showers : int
+        number of showers to be made
 
-    slantdepth = np.array(data["slant_depth"])
+    Returns
+    -------
+    mean_leptonic : array
+        mean shower for leptonic decay channel
+    nmaxmult :array
+        length of n_showers, nmax multipliers based on the variability for a given
+        energy level; i.e. 100 PeV
+    xmaxmult : array
+        length of n_showers, xmax multipliers
 
-with as_file(
-    files("nuspacesim.data.eas_reco.rms_params") / "xmax_rms_params.h5"
-) as path:
-    data = h5py.File(path, "r")
+    """
 
-    xmax_leptonic = np.array(data["leptonic"])
-    xmax_one_body_kpi = np.array(data["one_body_kpi"])
-    xmax_with_pi0 = np.array(data["with_pi0"])
-    xmax_no_pi0 = np.array(data["no_pi0"])
+    groupings = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
+    if reco_type not in groupings:
+        print("Grouping does not exist, must be in")
+        print(groupings)
+        raise ValueError
 
-    # mean_leptonic = np.array(data["mean_leptonic"])
-    # mean_one_body_kpi = np.array(data["mean_one_body_kpi"])
-    # mean_with_pi0 = np.array(data["mean_with_pi0"])
-    # mean_no_pi0 = np.array(data["mean_no_pi0"])
+    with as_file(
+        files("nuspacesim.data.eas_reco.rms_params") / "nmax_rms_params.h5"
+    ) as path:
+        nmaxdata = h5py.File(path, "r")
 
-means = [mean_leptonic, mean_one_body_kpi, mean_with_pi0, mean_no_pi0]
-nmax_params = [nmax_leptonic, nmax_one_body_kpi, nmax_with_pi0, nmax_no_pi0]
-xmax_params = [xmax_leptonic, xmax_one_body_kpi, xmax_with_pi0, xmax_no_pi0]
+        nmax_params = np.array(nmaxdata[reco_type])
+        mean = np.array(nmaxdata["mean_" + reco_type])
+
+    nlamb = nmax_params[0]
+    nsig = nmax_params[1]
+    nmu = nmax_params[2]
+    nright_trunc = nmax_params[3]
+
+    with as_file(
+        files("nuspacesim.data.eas_reco.rms_params") / "xmax_rms_params.h5"
+    ) as path:
+        xmaxdata = h5py.File(path, "r")
+        xmax_params = np.array(xmaxdata[reco_type])
+
+    xlamb = xmax_params[0]
+    xsig = xmax_params[1]
+    xmu = xmax_params[2]
+    xleft_trunc = xmax_params[3]
+    xright_trunc = xmax_params[4]
+
+    # pull from the nmax distribution
+    nmaxmult = []
+    while len(nmaxmult) != n_showers:  #!!! edit this for more showers
+        r = exponnorm.rvs(1 / (nlamb * nsig), loc=nmu, scale=nsig)
+        # print(r)
+        if (r > 0) and (r <= nright_trunc):
+            nmaxmult.append(r)
+
+    # pull from the xmax distribution
+    xmaxmult = []
+    while len(xmaxmult) != n_showers:
+        r = exponnorm.rvs(1 / (xlamb * xsig), loc=xmu, scale=xsig)
+        # print(r)
+        if (r >= xleft_trunc) and (r <= xright_trunc):
+            xmaxmult.append(r)
+
+    return mean, nmaxmult, xmaxmult
+
+
+def reco_slt_depth():
+    with as_file(
+        files("nuspacesim.data.eas_reco.rms_params") / "nmax_rms_params.h5"
+    ) as path:
+        data = h5py.File(path, "r")
+
+        slantdepth = np.array(data["slant_depth"])
+
+    return slantdepth
+
+
+lep_m, lep_nmax, lep_xmax = reco_params(1000, reco_type="leptonic")
+kpi_m, kpi_nmax, kpi_xmax = reco_params(1000, reco_type="one_body_kpi")
+pi0_m, pi0_nmax, pi0_xmax = reco_params(1000, reco_type="with_pi0")
+npi_m, npi_nmax, npi_xmax = reco_params(1000, reco_type="no_pi0")
+slantdepth = reco_slt_depth()
+nmax_multipliers = [lep_nmax, kpi_nmax, pi0_nmax, npi_nmax]
+xmax_multipliers = [lep_xmax, kpi_xmax, pi0_xmax, npi_xmax]
 
 decay_labels = [
     r"${\rm leptonic\:decay}$",
@@ -83,15 +153,121 @@ decay_labels = [
     r"${\rm  hadronic\:no\:\pi_0}$",
 ]
 
+with as_file(files("nuspacesim.data.eas_reco") / "mean_shwr_bulk_gh_params.h5") as path:
+    bulk_gh_data = h5py.File(path, "r")
+
+    # each key has the order [nmax, xmax, x0, p1, p2, p3]
+    leptonic_gh = np.array(bulk_gh_data["leptonic"])
+    one_body_gh = np.array(bulk_gh_data["one_body_kpi"])
+    with_pi0_gh = np.array(bulk_gh_data["with_pi0"])
+    no_pi0_gh = np.array(bulk_gh_data["no_pi0"])
+
+
+# =============================================================================
+# # reconstruct nmax xmax correlation
+# =============================================================================
+fig, ax = plt.subplots(
+    nrows=2, ncols=2, dpi=300, figsize=(5, 5), sharey=True, sharex=True
+)
+ax = ax.ravel()
+plt.subplots_adjust(wspace=0, hspace=0)
+for i, n in enumerate([lep_m, kpi_m, pi0_m, npi_m]):
+    # ax.scatter(x, np.log10(nmaxs_perchan[i]), s=1, color=cmap[i], alpha=0.5)
+    cts = ax[i].hist2d(
+        slantdepth[np.argmax(n)] * np.array(xmax_multipliers[i]),
+        np.log10(np.max(n) * np.array(nmax_multipliers[i])),
+        bins=(50, 50),
+        range=[[590, 1100], [6.3, 8]],
+        cmap="RdPu",
+    )
+    ax[i].text(
+        0.95, 0.95, decay_labels[i], transform=ax[i].transAxes, ha="right", va="top"
+    )
+
+
+ax[i].set(ylim=(6.3, 8))
+fig.text(0.5, 0.05, r"${\rm shower} \: X_{\rm max} {\rm (g\:cm^{-2})}$", ha="center")
+fig.text(
+    0.02,
+    0.5,
+    r"$\log_{10}\: {\rm shower}\:{N_{\rm max}}$",
+    va="center",
+    rotation="vertical",
+)
+cbar_ax = ax[0].inset_axes([0.00, 1.1, 2, 0.05])
+cbar = fig.colorbar(cts[3], cax=cbar_ax, pad=-1, orientation="horizontal")
+cbar_ax.set_title(
+    r"${\rm Number\: of\: Synthetic\: Showers\:(1000\:per\:grouping)}$", size=8
+)
+
+plt.savefig(
+    "../../../../../gdrive_umd/Research/NASA/synthetic_correlation.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
+# %%
+
+# =============================================================================
+#
+# fit the mean showers to describe the bulk of the shower and be able
+# to vary the bulk of the shower
+#
+# =============================================================================
+# gh_params = []
+# for m in [lep_m, kpi_m, pi0_m, npi_m]:
+#     print(m)
+#     params, pcov = curve_fit(
+#         modified_gh,
+#         slantdepth,
+#         m,
+#         p0=[np.max(m), slantdepth[np.argmax(m)], 0, 70, 0, 0],
+#         bounds=(
+#             [0, 0, -1e-6, -np.inf, -np.inf, -np.inf],
+#             [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
+#         ),
+#     )
+
+#     nmax = params[0]
+#     xmax = params[1]
+#     x0 = params[2]
+#     p1 = params[3]
+#     p2 = params[4]
+#     p3 = params[5]
+#     print(params)
+#     gh_params.append(params)
+
+# keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
+# fname = "mean_shwr_bulk_gh_params"
+# with as_file(files("nuspacesim.data.eas_reco") / f"{fname}.h5") as path:
+#     print(path)
+#     with h5py.File(path, "w") as f:
+#         for i, gh in enumerate(gh_params):
+#             f.create_dataset(
+#                 keys[i],
+#                 data=gh,
+#                 dtype="f",
+#             )
+
+
+# %% shower reconstruction demo for each decay channel
 showers = []
 noxmaxshowers = []
-for i, m in enumerate(means):
-    if i != 0:
-        continue
+
+cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))[1:]
+
+fig, ax = plt.subplots(4, 1, dpi=300, figsize=(4.3, 11), sharex=True, sharey=True)
+plt.subplots_adjust(hspace=0, wspace=0)
+ax = ax.ravel()
+
+for i, m in enumerate([lep_m, kpi_m, pi0_m, npi_m]):
+    # if i != 0:  # flag if you want to just plot a specific decay channel
+    #     continue
     print(decay_labels[i])
-    fig, ax = plt.subplots(1, 1, dpi=300, figsize=(4, 3.5), sharex=True, sharey=True)
+
     # fit the mean
-    for d in range(100):
+    for d in range(1):
+        # fit the bulk of the mean shower
         params, pcov = curve_fit(
             modified_gh,
             slantdepth,
@@ -110,35 +286,11 @@ for i, m in enumerate(means):
         p2 = params[4]
         p3 = params[5]
 
-        # scale the Nmax of the mean
-        nlamb = nmax_params[i][0]
-        nsig = nmax_params[i][1]
-        nmu = nmax_params[i][2]
-        nright_trunc = nmax_params[i][3]
-        nmult = []
-        while len(nmult) != 1:
-            r = exponnorm.rvs(1 / (nlamb * nsig), loc=nmu, scale=nsig)
-            # print(r)
-            if (r > 0) and (r <= nright_trunc):
-                nmult.append(r * m)
-
-        scaled_m = nmult[0]
+        scaled_m = m * nmax_multipliers[i][0]
 
         # scale the Xmax of the mean
-        xlamb = xmax_params[i][0]
-        xsig = xmax_params[i][1]
-        xmu = xmax_params[i][2]
-        xleft_trunc = xmax_params[i][3]
-        xright_trunc = xmax_params[i][4]
-        print("sampling xmax")
-        xmult = []
-        while len(xmult) != 1:
-            r = exponnorm.rvs(1 / (xlamb * xsig), loc=xmu, scale=xsig)
-            # print(r)
-            if (r >= xleft_trunc) and (r <= xright_trunc):
-                xmult.append(r)
 
-        shifted_xmax = xmult[0] * xmax
+        shifted_xmax = xmax * xmax_multipliers[i][0]
 
         # the theory produces the variability in the bulk
         theory = modified_gh(slantdepth, np.max(scaled_m), shifted_xmax, x0, p1, p2, p3)
@@ -165,6 +317,10 @@ for i, m in enumerate(means):
         # )
         shower_synth = np.concatenate((shwr_bulk, shwr_tail))
         depth_synth = np.concatenate((depth_bulk, depth_tail))
+
+        # =============================================================================
+        #         # two-part spline, with power law middle
+        # =============================================================================
 
         # # power law
         # s_pwrlaw = xmax * 1.75
@@ -217,20 +373,37 @@ for i, m in enumerate(means):
 
         showers.append(spline(slantdepth))
         noxmaxshowers.append(scaled_m)
-        ax.axvline(slantdepth[e_spline], ls=":", color="tab:red", alpha=0.5)
-        ax.axvline(slantdepth[s_spline], ls=":", color="tab:red", alpha=0.5)
+        # ax.axvline(slantdepth[e_spline], ls=":", color="tab:red", alpha=0.5)
+        # ax.axvline(slantdepth[s_spline], ls=":", color="tab:red", alpha=0.5)
 
-        ax.scatter(
+        ax[i].axvspan(
+            slantdepth[s_spline], slantdepth[e_spline], facecolor="grey", alpha=0.5
+        )
+
+        ax[i].plot(
+            slantdepth,
+            m,
+            color="k",
+            # s=1,
+            # label=r"{} ${{\rm mean,\:scaled}}$".format(decay_labels[i]),
+            label=r"${{\rm decay\:grouping\:mean}}$",
+            zorder=4,
+            # alpha=0.6,
+            # marker="s",
+        )
+        ax[i].plot(
             slantdepth,
             scaled_m,
-            color="tab:grey",
-            s=1,
-            label=r"{} ${{\rm mean,\:scaled}}$".format(decay_labels[i]),
-            zorder=4,
-            alpha=0.6,
-            marker="s",
+            color="g",
+            lw=3,
+            # label=r"{} ${{\rm mean,\:scaled}}$".format(decay_labels[i]),
+            label=r"${{\rm scaled\:mean}}$",
+            # zorder=4,
+            ls=":",
+            alpha=0.8,
+            # marker="s",
         )
-        ax.plot(
+        ax[i].plot(
             slantdepth,
             modified_gh(slantdepth, np.max(scaled_m), xmax, x0, p1, p2, p3),
             c="tab:grey",
@@ -239,44 +412,71 @@ for i, m in enumerate(means):
             label=r"${\rm GH\:fit\:to\:scaled\:mean}$",
         )
 
-        # ax.scatter(
-        #     depth_synth,
-        #     shower_synth,
-        #     color="tab:grey",
-        #     s=1,
-        #     label=r"{} ${{\rm mean\:scaled}}$".format(decay_labels[i]),
-        #     zorder=4,
-        # )
-
-        ax.plot(
+        ax[i].plot(
             slantdepth,
             theory,
-            c="k",
+            c="r",
             alpha=0.8,
             ls="--",
             label=r"${\rm GH\:fit,\:X_{max}\:fluctuated}$",
         )
 
-        ax.scatter(
-            slantdepth, spline(slantdepth), label=r"${\rm spline}$", c="tab:red", s=1
+        ax[i].plot(
+            slantdepth,
+            spline(slantdepth),
+            label=r"${\rm synthetic}$",
+            c="tab:blue",
+            alpha=0.5,
+            lw=5,
         )
 
-        ax.set(
+        ax[i].set(
             xlim=(0, 3000),
-            # yscale="log",
-            # ylim=(100, 8e7),
-            ylabel=r"$N$",
-            xlabel=r"${\rm slant\:depth\:(g\:cm^{-2})}$",
+            yscale="log",
+            # xscale="log",
+            ylim=(1000, 8e7),
+            # ylabel=r"$N$",
+            # xlabel=r"${\rm slant\:depth\:(g\:cm^{-2})}$",
         )
-        ax.legend(
-            # title=r"${\rm Decay\:Channel\:|\:mean\:X_{\rm max}(g\:cm^{-2})}$",
-            loc="lower center",
-            fontsize=8,
-            title_fontsize=8,
-            bbox_to_anchor=(0.5, 1),
-            ncol=2,
+        ax[i].text(
+            0.30,
+            0.30,
+            decay_labels[i],
+            transform=ax[i].transAxes,
+            ha="center",
+            va="top",
         )
-#%%
+
+
+ax[0].legend(
+    # title=r"${\rm Decay\:Channel\:|\:mean\:X_{\rm max}(g\:cm^{-2})}$",
+    # loc="lower center",
+    fontsize=8,
+    title_fontsize=8,
+    # bbox_to_anchor=(0.5, 1),
+    # ncol=2,
+)
+ax[1].text(
+    0.50,
+    0.10,
+    r"${\rm interpolated}$",
+    transform=ax[1].transAxes,
+    ha="center",
+    va="bottom",
+    rotation=90,
+    color="w",
+)
+fig.text(0.5, 0.09, r"${\rm slant\:depth\:(g\:cm^{-2})}$", ha="center")
+fig.text(0.02, 0.5, r"$N$", va="center", rotation="vertical")
+
+plt.savefig(
+    "../../../../../gdrive_umd/Research/NASA/synthetic_reco.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
+
+# %%
 
 fig, ax = plt.subplots(1, 2, dpi=300, figsize=(6, 3), sharex=True, sharey=True)
 plt.subplots_adjust(wspace=0, hspace=0)
@@ -297,6 +497,7 @@ ax[0].set(
 ax[1].set(xlabel=r"${\rm slant\:depth\:(g\:cm^{-2})}$")
 # ax.legend()
 
+# %% attempt to use 1d interpolation with bulk and tail with average value as anchor
 
 # for i, m in enumerate(mean_perchan):
 #     if i == 0:

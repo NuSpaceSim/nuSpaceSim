@@ -72,7 +72,7 @@ def gauss(x, mu, sigma, amp):
 
 
 # load showers
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
 # tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
@@ -100,7 +100,7 @@ pion_charged = pion_init.get_charged()
 depths = elec_init.get_depths()
 init = [elec_charged, gamma_charged, pion_charged]
 pids = [11, 22, 211]
-#%% shower decay channels
+# %% shower decay channels
 
 lepton_decay = [300001, 300002]
 had_pionkaon_1bod = [200011, 210001]
@@ -138,7 +138,7 @@ decay_labels = [
 cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))[1:]
 sample_label = r"X_{\rm max}"
 
-#%%
+# %%
 # data save
 mean_perchan = []
 rms_err_perchan = []
@@ -217,7 +217,6 @@ for ci, chnl in enumerate(shwr_groups):
 
     rand_xmax_scale = []
     while len(rand_xmax_scale) != n_samples:
-
         r = exponnorm.rvs(1 / (lamb * sig), loc=mu, scale=sig)
         if (r > 0) and (r <= bin_end):
             rand_xmax_scale.append(r)
@@ -323,20 +322,19 @@ ax[1].legend(
 )
 # ax[2].legend(loc="upper right", title=r"${\rm Resampled}$", fontsize=8)
 
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/xmax_rms_hadronic.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
-#%% see if nmax and xmax correlate
+# plt.savefig(
+#     "../../../../../g_drive/Research/NASA/xmax_rms_hadronic.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
+# %% see if nmax and xmax correlate
 fig, ax = plt.subplots(
     nrows=2, ncols=2, dpi=300, figsize=(5, 5), sharey=True, sharex=True
 )
 ax = ax.ravel()
 plt.subplots_adjust(wspace=0, hspace=0)
 for i, x in enumerate(xmaxs_perchan):
-
     # ax.scatter(x, np.log10(nmaxs_perchan[i]), s=1, color=cmap[i], alpha=0.5)
     cts = ax[i].hist2d(
         x,
@@ -382,14 +380,14 @@ cbar_ax = ax[0].inset_axes([0.00, 1.1, 2, 0.05])
 cbar = fig.colorbar(cts[3], cax=cbar_ax, pad=-1, orientation="horizontal")
 cbar_ax.set_title(r"${\rm Number\: of\: Showers\:(1000\:per\:grouping)}$", size=8)
 
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/xmax_nmax_correlation.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# plt.savefig(
+#     "../../../../../g_drive/Research/NASA/xmax_nmax_correlation.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 
-#%%
+# %%
 
 keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
 fname = "xmax_rms_params"
@@ -397,7 +395,6 @@ with as_file(files("nuspacesim.data.eas_reco.rms_params") / f"{fname}.h5") as pa
     print(path)
     with h5py.File(path, "w") as f:
         for i, rms in enumerate(np.array(rms_reco_params)):
-
             f.create_dataset(
                 keys[i],
                 data=rms,

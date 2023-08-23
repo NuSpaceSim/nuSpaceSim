@@ -66,9 +66,9 @@ def gauss(x, mu, sigma, amp):
     return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
 
-#%% load showers
+# %% load showers
 
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
 # tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
@@ -101,7 +101,7 @@ gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_sta
 comp_charged = gen_comp()
 
 
-#%% filter out composites with subshowers
+# %% filter out composites with subshowers
 
 #!!! how to add stochastic process
 
@@ -122,7 +122,7 @@ for i, s in enumerate(comp_charged):
 no_subshwr_idx = np.array(no_subshwr_idx)
 comp_charged = comp_charged[no_subshwr_idx]
 # comp_sub = comp_charged[~subshwr_idx]
-#%% sampling just the xmax, with no sub showers
+# %% sampling just the xmax, with no sub showers
 
 mean, rms_err = mean_shower(comp_charged[:, 2:])
 xmax_idx = np.argmax(mean)
@@ -270,7 +270,7 @@ ax[1].set(
     ylabel="PDF",
 )
 ax[1].legend()
-#%%
+# %%
 fig, ax = plt.subplots(nrows=1, ncols=2, dpi=300, figsize=(6, 3))
 ax[0].plot(depths[0, :], comp_charged[:, 2:].T, lw=1, color="tab:red", alpha=0.2)
 ax[0].set(
@@ -339,7 +339,7 @@ ax[1].set(
     xlim=(0, 2000),
 )
 ax[1].legend(loc="lower center")
-#%% fluctuate by decay channel
+# %% fluctuate by decay channel
 
 decay_channels, shwrs_perchannel = np.unique(
     comp_charged[:, 1].astype("int"), return_counts=True

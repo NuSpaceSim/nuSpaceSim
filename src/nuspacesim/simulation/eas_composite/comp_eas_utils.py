@@ -61,7 +61,6 @@ def calc_alpha(obs_height, earth_emergence_angle):
     """
 
     def f(xy, r_earth=6371):
-
         x, y = xy
         z = np.array(
             [
@@ -94,7 +93,6 @@ def decay_channel_filter(
 
     # If you want all decay channels that have the nth_digit equal to the digit_flag
     if nth_digit is not None and digit_flag is not None:
-
         n_mask = shwr_dpths[:, 1][nth_digit - 1] == digit_flag
 
         out_shwr_dpths = shwr_dpths[n_mask]
@@ -122,7 +120,7 @@ def depth_to_altitude(x):
     altitude_out = np.empty_like(x)
 
     # for altitudes z < 11
-    altitude = (-11.861 * x ** 0.19) + 44.34
+    altitude = (-11.861 * x**0.19) + 44.34
     mask1 = altitude < 11
     altitude_out[mask1] = altitude[mask1]
 
@@ -413,3 +411,20 @@ def slant_depth_to_alt(
         plt.legend(title=r"$\beta = {}\degree$".format(earth_emergence_ang))
 
     return out_alts
+
+
+def mean_shower(showers_n):
+    average = np.nanmean(showers_n, axis=0)
+    # test = average_composites  - comp_showers
+    # take the square root of the mean of the difference between the average
+    # and each particle content of each shower for one bin, squared
+    rms_error = np.sqrt(np.mean((average - showers_n) ** 2, axis=0))
+
+    # rms = np.sqrt(np.nanmean((showers_n) ** 2, axis=0))
+    # std = np.nanstd(showers_n, axis=0)
+    # err_in_mean = np.nanstd(showers_n, axis=0) / np.sqrt(
+    #     np.sum(~np.isnan(showers_n), 0)
+    # )
+    rms_low = average - rms_error
+    rms_high = average + rms_error
+    return average, rms_error

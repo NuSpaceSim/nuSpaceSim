@@ -91,7 +91,7 @@ def no_subshwrs(comp_charged):
 beta = 5
 log_e = 17
 total_gen = 1000
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
 # tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
@@ -138,7 +138,7 @@ shwrs_perchannel = shwrs_perchannel[most_common_sort]
 decay_labels = [get_decay_channel(x) for x in decay_channels]
 branch_percent = shwrs_perchannel / np.sum(shwrs_perchannel)
 
-#%%
+# %%
 cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 25))
 fig, ax = plt.subplots(
     nrows=4, ncols=5, dpi=300, figsize=(12, 10), sharex=True, sharey=True
@@ -194,7 +194,7 @@ ax[0].set(ylim=(1.5, 8))
 ax[19].legend(frameon=False)
 ax[19].grid(ls=":")
 fig.text(0.5, 0.09, r"${\rm slant\:depth\:(g \: cm^{-2})}$", ha="center")
-fig.text(0.5, 0.91, r"${\rmaltitude\:(km)}$", ha="center")
+fig.text(0.5, 0.91, r"${\rm altitude\:(km)}$", ha="center")
 fig.text(
     0.10,
     0.91,
@@ -238,7 +238,6 @@ fig, ax = plt.subplots(
 )
 
 for ci, chnl in enumerate(decay_codes):
-
     if ci == len(decay_codes) - 1:
         cc = comp_charged[np.isin(comp_charged[:, 1], chnl)]
     else:
@@ -439,7 +438,7 @@ plt.savefig(
     bbox_inches="tight",
     pad_inches=0.05,
 )
-#%%
+# %%
 fig, ax = plt.subplots(
     nrows=3,
     ncols=1,
@@ -452,7 +451,6 @@ plt.subplots_adjust(hspace=0)
 recomean_actualmean = []
 
 for ci, chnl in enumerate(decay_codes):
-
     if ci == len(decay_codes) - 1:
         cc = comp_charged[np.isin(comp_charged[:, 1], chnl)]
     else:

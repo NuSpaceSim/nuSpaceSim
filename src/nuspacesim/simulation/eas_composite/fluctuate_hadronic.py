@@ -88,7 +88,7 @@ def decay_filter(codes, nth_digit, rel, digit_flag):
 
 # load showers
 
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
+tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
 # tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
 elec_init = ReadConex(
@@ -116,7 +116,7 @@ pion_charged = pion_init.get_charged()
 depths = elec_init.get_depths()
 init = [elec_charged, gamma_charged, pion_charged]
 pids = [11, 22, 211]
-#%% shower decay channels
+# %% shower decay channels
 
 lepton_decay = [300001, 300002]
 had_pionkaon_1bod = [200011, 210001]
@@ -155,7 +155,7 @@ decay_labels = [
     r"${\rm  with\:\pi_0}$",
     r"${\rm  no\:\pi_0}$",
 ]
-#%%
+# %%
 # decay_codes = get_decay_channel(None, just_codes=True)
 
 # gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=0)
@@ -209,7 +209,7 @@ decay_labels = [
 #     r"$1 K$",
 #     r"$1 \pi^{+/-}$",
 # ]
-#%% nmax rms
+# %% nmax rms
 
 cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))[1:]
 
@@ -423,13 +423,13 @@ ax[1].legend(
 )
 ax[2].legend(loc="upper right", title=r"${\rm Resampled}$", fontsize=8)
 
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/rms_hadronic.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
-#%%
+# plt.savefig(
+#     "../../../../../g_drive/Research/NASA/rms_hadronic.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
+# %%
 fig, ax = plt.subplots(
     nrows=1,
     ncols=3,
@@ -445,7 +445,6 @@ plt.subplots_adjust(wspace=0)
 recomean_actualmean = []
 
 for ci, chnl in enumerate(shwr_groups):
-
     ax[0].plot(
         depths[0, :],
         chnl[:, 2:].T,
@@ -515,18 +514,18 @@ ax[0].axvline(depths[0, 2:][sample_idx], ls="--", lw=2, color="grey")
 # )
 ax[0].legend(fontsize=8)
 # ax[1].legend()
-ax[2].legend(title=r"${\rmreco\:mean/ mean }$", fontsize=8)
+ax[2].legend(title=r"${\rm reco\:mean/ mean }$", fontsize=8)
 
 ax[0].set(yscale="log", ylim=(100, 3e8), ylabel="$N$")
-ax[1].set(xlabel=r"${\rm\:slant\:depth\:(g \: cm^{-2})}$")
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/reco_hadronic.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+ax[1].set(xlabel=r"${\rm \:slant\:depth\:(g \: cm^{-2})}$")
+# plt.savefig(
+#     "../../../../../g_drive/Research/NASA/reco_hadronic.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 
-#%% save RMS dist
+# %% save RMS dist
 
 keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
 fname = "nmax_rms_params"
@@ -534,7 +533,6 @@ with as_file(files("nuspacesim.data.eas_reco.rms_params") / f"{fname}.h5") as pa
     print(path)
     with h5py.File(path, "w") as f:
         for i, rms in enumerate(np.array(rms_reco_params)):
-
             f.create_dataset(
                 keys[i],
                 data=rms,

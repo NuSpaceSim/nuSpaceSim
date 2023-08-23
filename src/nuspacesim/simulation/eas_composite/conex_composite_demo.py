@@ -1,3 +1,7 @@
+"""
+generate composite EAS directly from CONEX profiles
+Uses the ConexCompositeShowers class in comp_eas_conex.py library
+"""
 import numpy as np
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
 
@@ -32,7 +36,6 @@ plt.rcParams.update(
     }
 )
 
-
 try:
     from importlib.resources import as_file, files
 except ImportError:
@@ -56,8 +59,8 @@ def mean_shower(showers_n):
     return average, rms_error
 
 
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/"
-# tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
+tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
+
 # we can read in the showers with different primaries
 elec_init = ReadConex(
     os.path.join(
@@ -86,61 +89,13 @@ depths = elec_init.get_depths()
 pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
 gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=5000)
-comp_charged = gen_comp(return_table=False)
+comp_charged = gen_comp()
 
-#%% segregate by decay channel and see most common one
-
-decay_channels, shwrs_perchannel = np.unique(
-    comp_charged[:, 1].astype("int"), return_counts=True
-)
-most_common_sort = np.flip(shwrs_perchannel.argsort())
-decay_channels = decay_channels[most_common_sort]
-
-shwrs_perchannel = shwrs_perchannel[most_common_sort]
-branch_percent = shwrs_perchannel / np.sum(shwrs_perchannel)
-
-# sum channels that contributed less than 3 percent to the decay
-other_mask = branch_percent < 0.02
-other_category = np.sum(shwrs_perchannel[other_mask])
-decay_labels = [get_decay_channel(x) for x in decay_channels[~other_mask]]
-decay_labels.append("other")
-
-
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=300, figsize=(5, 4))
-ax.pie(
-    np.append(shwrs_perchannel[~other_mask], other_category),
-    labels=decay_labels,
-    autopct="%1.0f%%",
-    # rotatelabels=True,
-    startangle=75,
-    pctdistance=0.8,
-    radius=1.0,
-    # labeldistance=None,
-    textprops={"fontsize": 10},
-)
-
-
-ax.text(
-    -0.2,
-    0.88,
-    r"${{\rm{:.0f}\:Composites}}$"
-    "\n"
-    r"${{\rm 100\:PeV}}$"
-    "\n"
-    r"${{\rm \beta\:=\:5\:\degree}}$".format(comp_charged.shape[0]),
-    transform=ax.transAxes,
-)
-
-# plt.savefig(
-#     "../../../../../g_drive/Research/NASA/composite_branching_ratio.png",
-#     dpi=300,
-#     bbox_inches="tight",
-#     pad_inches=0.05,
-# )
-
+# %%
 #!!! discovered a bug, having them 1000 each for a shower means the selection is
-# skewed so that 1000 is used up for electron regardless
-#%%
+# this was fixed with putting n_showers = some number
+# however, direct comparisons with GH profiles vs actual CONEX Profiles is harder
+# %% compare actual CONEX profiles vs GH fits, based on making the composite EAS in order
 
 # get gh fits
 elec_gh = elec_init.gh_fits()
@@ -222,7 +177,7 @@ ax[0].legend(
 )
 ax_twin = ax[0].twiny()
 ax_twin.plot(depths[0, :], np.log10(mean), alpha=0)
-ax_twin.set(xlim=(1, 6e3), xlabel=r"${\rmaltitude\:(km)}$")
+ax_twin.set(xlim=(1, 6e3), xlabel=r"${\rm altitude\:(km)}$")
 ax_twin.set_xticklabels(
     list(
         np.round(
@@ -245,112 +200,3 @@ ax_twin.set_xticklabels(
 # fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
 # ax.scatter(depths[0, :], slant_depth_to_alt(5, depths[0, :]), s=1)
 # ax.set(xscale="log", yscale="log")
-#%% filter out composites with subshowers
-
-#!!! how to add stochastic process
-subshwr_idx = []  # index of composite showers with subshowers
-fig, ax = plt.subplots(nrows=1, ncols=1, dpi=200, figsize=(4, 3))
-for i, s in enumerate(comp_charged):
-    num_of_extrema = len(argrelextrema(np.log10(s), np.greater)[0])
-    if num_of_extrema <= 2:
-        # sub_showers = False
-        ax.plot(depths[0, :], np.log10(s[2:]), lw=1, color="tab:blue", alpha=0.2)
-
-    else:
-        # sub_showers = True
-        ax.plot(
-            depths[0, :], np.log10(s[2:]), lw=1, color="tab:red", alpha=0.25, zorder=12
-        )
-        subshwr_idx.append(i)
-
-ax.set(ylim=(0, 8), xlabel=r"${\rm slant\:depth\:(g \: cm^{-2})}$", ylabel=r"${\rm N}$")
-ax_twin = ax.twiny()
-ax_twin.plot(depths[0, :], np.log10(s[2:]), alpha=0)
-
-ax_twin.set_xticklabels(
-    list(
-        np.round(
-            slant_depth_to_alt(
-                earth_emergence_ang=5, slant_depths=ax.get_xticks(), alt_stop=200
-            ),
-            1,
-        ).astype("str")
-    )
-)
-ax_twin.set(xlabel=r"${\rmaltitude\:(km)}$")
-
-
-#%%
-
-fig, ax = plt.subplots(nrows=2, ncols=1, dpi=300, figsize=(10, 5))
-ax[0].pie(
-    np.append(shwrs_perchannel[~other_mask], other_category),
-    labels=decay_labels,
-    autopct="%1.0f%%",
-    # rotatelabels=True,
-    startangle=75,
-    pctdistance=0.8,
-    radius=1.2,
-    # labeldistance=None,
-)
-# ax.legend(
-#     title=r"100 PeV Composites, $\beta = 5 \degree$",
-#     ncol=2,
-#     bbox_to_anchor=(0.08, 1.1),
-#     fontsize=5,
-# )
-
-ax[0].text(
-    -0.3,
-    0.98,
-    r"${{\rm{:.0f}\:Composites}}$"
-    "\n"
-    r"${{\rm 100\:PeV}}$"
-    "\n"
-    r"${{\rm \beta\:=\:5\:\degree}}$".format(comp_charged.shape[0]),
-    transform=ax[0].transAxes,
-)
-
-subshwr_idx = np.array(subshwr_idx)
-comp_sub = comp_charged[subshwr_idx]
-
-decay_channels, shwrs_perchannel = np.unique(
-    comp_sub[:, 1].astype("int"), return_counts=True
-)
-most_common_sort = np.flip(shwrs_perchannel.argsort())
-decay_channels = decay_channels[most_common_sort]
-
-shwrs_perchannel = shwrs_perchannel[most_common_sort]
-branch_percent = shwrs_perchannel / np.sum(shwrs_perchannel)
-
-# sum channels that contributed less than 3 percent to the decay
-other_mask = branch_percent < 0.01
-other_category = np.sum(shwrs_perchannel[other_mask])
-decay_labels = [get_decay_channel(x) for x in decay_channels[~other_mask]]
-decay_labels.append("other")
-
-
-ax[1].pie(
-    np.append(shwrs_perchannel[~other_mask], other_category),
-    labels=decay_labels,
-    autopct="%1.0f%%",
-    # rotatelabels=True,
-    startangle=0,
-    pctdistance=0.8,
-    # explode=[0, 0, 0, 0, 0, 0, 0.1],
-    radius=1.2,
-    # labeldistance=None,
-)
-# ax.legend(
-#     title=r"100 PeV Composites, $\beta = 5 \degree$",
-#     ncol=2,
-#     bbox_to_anchor=(0.08, 1.1),
-#     fontsize=5,
-# )
-
-ax[1].text(
-    -0.3,
-    0.98,
-    r"${{\rm{:.0f}\:Composites, with\:sub-showers}}$" "\n".format(comp_sub.shape[0]),
-    transform=ax[1].transAxes,
-)
