@@ -26,8 +26,8 @@ plt.rcParams.update(
     {
         "font.family": "serif",
         "mathtext.fontset": "cm",
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
         "font.size": 10,
         "xtick.direction": "in",
         "ytick.direction": "in",
@@ -179,7 +179,8 @@ for ci, chnl in enumerate(shwr_groups):
     nmaxs_perchan.append(np.max(chnl[:, 2:], axis=1))
 
     bin_end = 1.40  # np.round(np.max(xmax_column / mean[xmax_idx]), 0)
-    hist_bins = np.linspace(0.8, bin_end, 30)
+    step = 0.02
+    hist_bins = np.arange(0.8, bin_end + step, step)
 
     # histogram from x max
     # cts, bin_edges = np.histogram(xmax_column / mean[xmax_idx], bins=hist_bins)

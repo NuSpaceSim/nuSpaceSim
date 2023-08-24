@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import os
 from scipy.optimize import curve_fit
 import h5py
-from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel
+from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel, mean_shower
 from matplotlib.lines import Line2D
 from nuspacesim.simulation.eas_composite.comp_eas_utils import (
     decay_channel_filter,
@@ -40,23 +40,6 @@ try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
-
-
-def mean_shower(showers_n):
-    average = np.nanmean(showers_n, axis=0)
-    # test = average_composites  - comp_showers
-    # take the square root of the mean of the difference between the average
-    # and each particle content of each shower for one bin, squared
-    rms_error = np.sqrt(np.mean((average - showers_n) ** 2, axis=0))
-
-    # rms = np.sqrt(np.nanmean((showers_n) ** 2, axis=0))
-    # std = np.nanstd(showers_n, axis=0)
-    # err_in_mean = np.nanstd(showers_n, axis=0) / np.sqrt(
-    #     np.sum(~np.isnan(showers_n), 0)
-    # )
-    rms_low = average - rms_error
-    rms_high = average + rms_error
-    return average, rms_error
 
 
 tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"

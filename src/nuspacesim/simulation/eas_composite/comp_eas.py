@@ -7,6 +7,7 @@ from scipy import interpolate
 from scipy.interpolate import splrep, BSpline
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
+from nuspacesim.simulation.eas_composite.comp_eas_utils import mean_shower
 import os
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
 import matplotlib.lines as mlines
@@ -28,6 +29,15 @@ def modified_gh(x, n_max, x_max, x_0, p1, p2, p3):
 
     return particles
 
+class CompositeShowers:
+    
+    def __init__(
+        self,
+        beta: int = 5,
+        log_e: int = 17,
+    ):
+        
+        
 
 def reco_params(n_showers, reco_type):
     """
@@ -259,47 +269,42 @@ plt.rcParams.update(
 
 cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))[1:]
 fig, ax = plt.subplots(
-    nrows=1, ncols=2, dpi=300, figsize=(8, 4), sharex=True, sharey=True
+    nrows=1, ncols=2, dpi=300, figsize=(7, 3.5), sharex=True, sharey=True
 )
 plt.subplots_adjust(wspace=0, hspace=0)
 
 inset0 = ax[0].inset_axes([0.5, 1.15, 0.6, 0.6])
 inset1 = ax[1].inset_axes([0.3, 1.15, 0.6, 0.6])
 
-ax[0].plot(
-    slantdepth.T, np.array(lep_con_eas[:, 2:]).T, color=cmap[0], alpha=0.2, zorder=1
-)
-ax[0].plot(
-    slantdepth.T, np.array(kpi_con_eas[:, 2:]).T, color=cmap[1], alpha=0.2, zorder=1
-)
-ax[0].plot(
-    slantdepth.T, np.array(pi0_con_eas[:, 2:]).T, color=cmap[2], alpha=0.2, zorder=1
-)
-ax[0].plot(
-    slantdepth.T, np.array(npi_con_eas[:, 2:]).T, color=cmap[3], alpha=0.2, zorder=1
-)
-inset0.plot(
-    slantdepth.T, np.array(lep_con_eas[:, 2:]).T, color=cmap[0], alpha=0.2, zorder=1
-)
-inset0.plot(
-    slantdepth.T, np.array(kpi_con_eas[:, 2:]).T, color=cmap[1], alpha=0.2, zorder=1
-)
-inset0.plot(
-    slantdepth.T, np.array(pi0_con_eas[:, 2:]).T, color=cmap[2], alpha=0.2, zorder=1
-)
-inset0.plot(
-    slantdepth.T, np.array(npi_con_eas[:, 2:]).T, color=cmap[3], alpha=0.2, zorder=1
-)
+m_lep_conex, _ = mean_shower(lep_con_eas[:, 2:])
+m_kpi_conex, _ = mean_shower(kpi_con_eas[:, 2:])
+m_pi0_conex, _ = mean_shower(pi0_con_eas[:, 2:])
+m_npi_conex, _ = mean_shower(npi_con_eas[:, 2:])
 
-ax[1].plot(slantdepth.T, np.array(lep_eas).T, color=cmap[0], alpha=0.2, zorder=1)
-ax[1].plot(slantdepth.T, np.array(kpi_eas).T, color=cmap[1], alpha=0.2, zorder=1)
-ax[1].plot(slantdepth.T, np.array(pi0_eas).T, color=cmap[2], alpha=0.2, zorder=1)
-ax[1].plot(slantdepth.T, np.array(npi_eas).T, color=cmap[3], alpha=0.2, zorder=1)
+m_lep, _ = mean_shower(lep_eas)
+m_kpi, _ = mean_shower(kpi_eas)
+m_pi0, _ = mean_shower(pi0_eas)
+m_npi, _ = mean_shower(npi_eas)
 
-inset1.plot(slantdepth.T, np.array(lep_eas).T, color=cmap[0], alpha=0.2, zorder=1)
-inset1.plot(slantdepth.T, np.array(kpi_eas).T, color=cmap[1], alpha=0.2, zorder=1)
-inset1.plot(slantdepth.T, np.array(pi0_eas).T, color=cmap[2], alpha=0.2, zorder=1)
-inset1.plot(slantdepth.T, np.array(npi_eas).T, color=cmap[3], alpha=0.2, zorder=1)
+
+ax[0].plot(slantdepth.T, np.array(lep_con_eas[:, 2:]).T, color=cmap[0], alpha=0.2)
+ax[0].plot(slantdepth.T, np.array(kpi_con_eas[:, 2:]).T, color=cmap[1], alpha=0.2)
+ax[0].plot(slantdepth.T, np.array(pi0_con_eas[:, 2:]).T, color=cmap[2], alpha=0.2)
+ax[0].plot(slantdepth.T, np.array(npi_con_eas[:, 2:]).T, color=cmap[3], alpha=0.2)
+inset0.plot(slantdepth.T, np.array(lep_con_eas[:, 2:]).T, color=cmap[0], alpha=0.2)
+inset0.plot(slantdepth.T, np.array(kpi_con_eas[:, 2:]).T, color=cmap[1], alpha=0.2)
+inset0.plot(slantdepth.T, np.array(pi0_con_eas[:, 2:]).T, color=cmap[2], alpha=0.2)
+inset0.plot(slantdepth.T, np.array(npi_con_eas[:, 2:]).T, color=cmap[3], alpha=0.2)
+
+ax[1].plot(slantdepth.T, np.array(lep_eas).T, color=cmap[0], alpha=0.2)
+ax[1].plot(slantdepth.T, np.array(kpi_eas).T, color=cmap[1], alpha=0.2)
+ax[1].plot(slantdepth.T, np.array(pi0_eas).T, color=cmap[2], alpha=0.2)
+ax[1].plot(slantdepth.T, np.array(npi_eas).T, color=cmap[3], alpha=0.2)
+
+inset1.plot(slantdepth.T, np.array(lep_eas).T, color=cmap[0], alpha=0.2)
+inset1.plot(slantdepth.T, np.array(kpi_eas).T, color=cmap[1], alpha=0.2)
+inset1.plot(slantdepth.T, np.array(pi0_eas).T, color=cmap[2], alpha=0.2)
+inset1.plot(slantdepth.T, np.array(npi_eas).T, color=cmap[3], alpha=0.2)
 
 ax[0].set(
     # xlim=(0, 2300),
@@ -325,8 +330,8 @@ inset1.set(
     xlabel=r"${\rm slant\:depth\:(g\:cm^{-2})}$",
 )
 
-mark_inset(ax[0], inset0, loc1=4, loc2=4, alpha=0.2)
-mark_inset(ax[1], inset1, loc1=4, loc2=4, alpha=0.2)
+mark_inset(ax[0], inset0, loc1=4, loc2=4, zorder=6)
+mark_inset(ax[1], inset1, loc1=4, loc2=4, zorder=6)
 
 decay_labels = [
     r"${\rm leptonic\:decay}$",
@@ -344,7 +349,7 @@ leg = fig.legend(
     # title="$\mathrm{SFE} \: (f_{*})$",
     loc="lower center",
     handles=[lep, kpi, pi0, npi],
-    bbox_to_anchor=(0.18, 0.90),
+    bbox_to_anchor=(0.16, 0.90),
     ncol=1,
     edgecolor="k",
 )
@@ -356,15 +361,28 @@ ax[0].text(
     transform=ax[0].transAxes,
     ha="center",
     va="top",
+    zorder=7,
 )
 ax[1].text(
     0.5,
     0.95,
-    r"${\rm Composite\:EAS\:PDF\:Reconstruction}$",
+    r"${\rm Reconstruction}$",
     transform=ax[1].transAxes,
     ha="center",
     va="top",
+    zorder=7,
 )
+inset0.grid(ls="--", which="both")
+inset1.grid(ls="--", which="both")
+ax[0].grid(ls="--", which="both")
+ax[1].grid(ls="--", which="both")
 
+
+plt.savefig(
+    "../../../../../gdrive_umd/Research/NASA/conex_vs_pdf.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.05,
+)
 
 plt.show()

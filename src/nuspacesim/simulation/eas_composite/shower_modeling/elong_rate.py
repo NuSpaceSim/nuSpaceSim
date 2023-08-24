@@ -20,11 +20,11 @@ try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
-#%%
+# %%
 
 
 # tup_folder = "../conex_7_50_runs"
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts"
+tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/1000_evts"
 # tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
 
 ntuples = sorted(os.listdir(tup_folder))  # [1:]
@@ -122,7 +122,8 @@ mean_had_xmax = np.array(mean_had_xmax)
 mean_gam_nmax = np.array(mean_gam_nmax)
 mean_gam_xmax = np.array(mean_gam_xmax)
 
-#%%
+
+# %%
 def lin_func(x, m, b):
     return (m * x) + b
 
@@ -163,7 +164,6 @@ ax = ax.ravel()
 plt.subplots_adjust(wspace=0, hspace=0)
 
 for angle_idx, a in enumerate(sorted(list(set(angles)))):
-
     angle = a
     mask = angles == angle
     masked_energies = energies[mask]
@@ -194,7 +194,6 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
     ]
 
     for idx, p in enumerate(ptype):
-
         params, uncertainty = curve_fit(
             f=lin_func,
             xdata=masked_energies,
@@ -259,47 +258,47 @@ plt.savefig(
 )
 
 
-#%% save
+# %% save
 
 
-three_angles_save = np.array(three_angles)
-particle_types = np.array(particle_types)
-slope = np.array(slope)
-slope_uncertainty = np.array(slope_uncertainty)
-intercept = np.array(intercept)
-intercept_uncertainty = np.array(intercept_uncertainty)
+# three_angles_save = np.array(three_angles)
+# particle_types = np.array(particle_types)
+# slope = np.array(slope)
+# slope_uncertainty = np.array(slope_uncertainty)
+# intercept = np.array(intercept)
+# intercept_uncertainty = np.array(intercept_uncertainty)
 
-ptypes = ["muons", "charged", "hadrons", "gammas", "e-+"]
-earth_emer_angles = sorted(list(set(angles)))
-fname = tup_folder.split("/")[-1]
-with as_file(
-    files("nuspacesim.data.eas_reco.elongation_rates") / f"{fname}.h5"
-) as path:
-    print(path)
-    with h5py.File(path, "w") as f:
-        for t in ptypes:
-            # aggregate across earth emergence angles
-            particle_data = []
+# ptypes = ["muons", "charged", "hadrons", "gammas", "e-+"]
+# earth_emer_angles = sorted(list(set(angles)))
+# fname = tup_folder.split("/")[-1]
+# with as_file(
+#     files("nuspacesim.data.eas_reco.elongation_rates") / f"{fname}.h5"
+# ) as path:
+#     print(path)
+#     with h5py.File(path, "w") as f:
+#         for t in ptypes:
+#             # aggregate across earth emergence angles
+#             particle_data = []
 
-            for ang in earth_emer_angles:
-                ang_data = np.concatenate(
-                    (
-                        np.array([ang]),
-                        slope[(three_angles_save == ang) & (particle_types == t)],
-                        slope_uncertainty[
-                            (three_angles_save == ang) & (particle_types == t)
-                        ],
-                        intercept[(three_angles_save == ang) & (particle_types == t)],
-                        intercept_uncertainty[
-                            (three_angles_save == ang) & (particle_types == t)
-                        ],
-                    )
-                )
-                print(ang_data)
-                particle_data.append(ang_data)
+#             for ang in earth_emer_angles:
+#                 ang_data = np.concatenate(
+#                     (
+#                         np.array([ang]),
+#                         slope[(three_angles_save == ang) & (particle_types == t)],
+#                         slope_uncertainty[
+#                             (three_angles_save == ang) & (particle_types == t)
+#                         ],
+#                         intercept[(three_angles_save == ang) & (particle_types == t)],
+#                         intercept_uncertainty[
+#                             (three_angles_save == ang) & (particle_types == t)
+#                         ],
+#                     )
+#                 )
+#                 print(ang_data)
+#                 particle_data.append(ang_data)
 
-            f.create_dataset(
-                t,
-                data=np.array(particle_data),
-                dtype="f",
-            )
+#             f.create_dataset(
+#                 t,
+#                 data=np.array(particle_data),
+#                 dtype="f",
+#             )

@@ -1,3 +1,8 @@
+"""
+analysis scripts used to write the CompositeShowers class in comp_eas.py
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -16,8 +21,8 @@ plt.rcParams.update(
     {
         "font.family": "serif",
         "mathtext.fontset": "cm",
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
         "font.size": 10,
         "xtick.direction": "in",
         "ytick.direction": "in",

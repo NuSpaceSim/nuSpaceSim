@@ -21,7 +21,7 @@ import h5py
 #     energy_gammas = np.array(f["gammas"])
 #     energy_hadrons = np.array(f["hadrons"])
 
-tup_folder = "~/g_drive/Research/NASA/Work/conex2r7_50-runs/downward"
+tup_folder = "~/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/downward"
 with h5py.File("./down_lin_log_xmax_vs_energy.h5", "r") as f:
     muons = np.array(f["muons"])
     electron_positrons = np.array(f["electron_positron"])
@@ -39,7 +39,7 @@ with h5py.File("./down_log_log_nmax_vs_energy.h5", "r") as f:
 lg16_shwrs = "log_16_eV_1000shwrs_60_downward_eposlhc_272473279_100.root"
 lg17_shwrs = "log_17_eV_1000shwrs_60_downward_eposlhc_1756896908_100.root"
 lg18_shwrs = "log_18_eV_1000shwrs_60_downward_eposlhc_1791265245_100.root"
-#%%
+# %%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 3.5), dpi=300)
 ax.errorbar(
     muons[:, 0],
@@ -96,7 +96,7 @@ ax.set(
 )
 ax.legend(ncol=2, fontsize=8)
 
-#%% try to reconstruct it using soleley the elenogation rate
+# %% try to reconstruct it using soleley the elenogation rate
 
 beta = 5
 
@@ -108,7 +108,7 @@ def muon_elongation_rate(log_e):
 
 def muon_decade_scaler(log_e):
     y = energy_muons[0, 1:][0] * log_e + energy_muons[0, 1:][2]
-    return 10 ** y
+    return 10**y
 
 
 def reco_shower(ref_shwr, reco_shwr, reco_e, elong, e_scaler, component):
@@ -229,7 +229,7 @@ ax[1].axhline(y=1, c="k", ls=":")
 #     bbox_inches="tight",
 #     pad_inches=0.05,
 # )
-#%%
+# %%
 
 
 def charged_elongation_rate(log_e):
@@ -239,7 +239,7 @@ def charged_elongation_rate(log_e):
 
 def charged_decade_scaler(log_e):
     y = energy_charged[0, 1:][0] * log_e + energy_charged[0, 1:][2]
-    return 10 ** y
+    return 10**y
 
 
 reco_fit_18, ref_17, reco_18 = reco_shower(
@@ -323,7 +323,7 @@ ax[1].axhline(y=1, c="k", ls=":")
 #     bbox_inches="tight",
 #     pad_inches=0.05,
 # )
-#%%
+# %%
 
 
 def elec_pos_elongation_rate(log_e):
@@ -336,7 +336,7 @@ def elec_pos_decade_scaler(log_e):
         energy_electron_positrons[0, 1:][0] * log_e
         + energy_electron_positrons[0, 1:][2]
     )
-    return 10 ** y
+    return 10**y
 
 
 reco_fit_18, ref_17, reco_18 = reco_shower(
