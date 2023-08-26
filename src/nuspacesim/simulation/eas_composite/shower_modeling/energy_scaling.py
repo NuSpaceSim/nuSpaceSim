@@ -3,7 +3,7 @@ Energy scaling; just point it to tup_folder.
 
 The elongation rate tables will be saved at
 
-nuSpaceSim/src/nuspacesim/data/eas_scaling_tables/energy_scaling
+nuSpaceSim/src/nuspacesim/data/eas_reco/energy_scaling
 
 """
 
@@ -20,11 +20,11 @@ try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
-#%%
+# %%
 
 
 # tup_folder = "../conex_7_50_runs"
-tup_folder = "/home/fabg/g_drive/Research/NASA/Work/conex2r7_50-runs/1000_evts"
+tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/1000_evts"
 # tup_folder = r"G:\My Drive\Research\NASA\Work\conex2r7_50-runs\downward"
 
 ntuples = sorted(os.listdir(tup_folder))  # [1:]
@@ -101,7 +101,7 @@ mean_gam_nmax = np.array(mean_gam_nmax)
 mean_gam_xmax = np.array(mean_gam_xmax)
 
 
-#%%
+# %%
 def lin_func(x, m, b):
     return (m * x) + b
 
@@ -120,7 +120,7 @@ plt.rcParams.update(
     }
 )
 
-ptype = ["muons", "charged", "e^{-/+}", "hadrons", "gammas"]
+ptype = ["muons", "charged", "e-+", "hadrons", "gammas"]
 mtype = ["^", "s", "x", "o", "+"]
 
 three_angles = []
@@ -131,12 +131,12 @@ intercept = []
 intercept_uncertainty = []
 
 fig, ax = plt.subplots(
-    ncols=2,
-    nrows=3,
+    ncols=3,
+    nrows=2,
     sharex=True,
     sharey=True,
-    figsize=(6, 8),
-    dpi=400,
+    figsize=(9, 5),
+    dpi=300,
 )
 ax = ax.ravel()
 plt.subplots_adjust(wspace=0, hspace=0)
@@ -171,7 +171,6 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
     ]
 
     for idx, p in enumerate(ptype):
-
         params, uncertainty = curve_fit(
             f=lin_func,
             xdata=masked_energies,
@@ -179,7 +178,7 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
         )
         uncertainties = np.sqrt(np.diag(uncertainty))
 
-        theory_x = np.linspace(14, 21, 100)
+        theory_x = np.linspace(10, 21, 100)
         ax[angle_idx].plot(theory_x, lin_func(theory_x, *params), ls="--", alpha=0.8)
 
         if angle_idx == 0:
@@ -213,12 +212,22 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
             title_fontsize=8,
         )
     else:
-        ax[angle_idx].legend(fontsize=8, title_fontsize=8)
+        ax[angle_idx].legend(fontsize=8, title_fontsize=8, ncols=2)
+
+    ax[angle_idx].text(
+        0.95,
+        0.05,
+        r"${{\rm \beta = {} \degree}}$".format(angle),
+        transform=ax[angle_idx].transAxes,
+        ha="right",
+        va="bottom",
+    )
+
     ax[angle_idx].set(ylim=(2, 15), xlim=(13.5, 20.5))
     ax[angle_idx].grid(ls="--")
 
 
-fig.text(0.5, 0.09, r"${\rm \log_{10} \: E({\rm eV})}$", ha="center")
+fig.text(0.5, 0.08, r"${\rm \log_{10} \: Energy \:({\rm eV})}$", ha="center")
 fig.text(
     0.07,
     0.5,
@@ -231,7 +240,7 @@ fig.text(
 #     0.1,
 #     0.90,
 #     tup_folder,
-#     ha="left",
+#     ha="left"
 # )
 
 # fig.text(
@@ -242,12 +251,12 @@ fig.text(
 #     rotation="vertical",
 # )
 plt.savefig(
-    "../../../../../g_drive/Research/NASA/energy_scaling.png",
+    "../../../../../../gdrive_umd/Research/NASA/energy_scaling.png",
     dpi=300,
     bbox_inches="tight",
     pad_inches=0.0,
 )
-#%% save
+# %% save
 
 three_angles = np.array(three_angles)
 particle_types = np.array(particle_types)
@@ -256,7 +265,7 @@ slope_uncertainty = np.array(slope_uncertainty)
 intercept = np.array(intercept)
 intercept_uncertainty = np.array(intercept_uncertainty)
 
-ptypes = ["muons", "charged", "hadrons", "gammas", "e-+"]
+ptypes = ["muons", "charged", "e-+", "hadrons", "gammas"]
 earth_emer_angles = sorted(list(set(angles)))
 fname = tup_folder.split("/")[-1]
 with as_file(files("nuspacesim.data.eas_reco.energy_scaling") / f"{fname}.h5") as path:

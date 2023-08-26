@@ -6,6 +6,10 @@ import os
 from scipy.optimize import curve_fit
 import h5py
 
+try:
+    from importlib.resources import as_file, files
+except ImportError:
+    from importlib_resources import as_file, files
 # tup_folder = "/home/fabg/conex_runs/1000_showers"
 # with h5py.File("./1000evts/lin_log_xmax_vs_energy.h5", "r") as f:
 #     muons = np.array(f["muons"])
@@ -21,64 +25,116 @@ import h5py
 #     energy_gammas = np.array(f["gammas"])
 #     energy_hadrons = np.array(f["hadrons"])
 
-tup_folder = "~/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/downward"
-with h5py.File("./down_lin_log_xmax_vs_energy.h5", "r") as f:
-    muons = np.array(f["muons"])
-    electron_positrons = np.array(f["electron_positron"])
-    charged = np.array(f["charged"])
-    gammas = np.array(f["gammas"])
-    hadrons = np.array(f["hadrons"])
+tup_folder = "~/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/1000_evts"
 
-with h5py.File("./down_log_log_nmax_vs_energy.h5", "r") as f:
-    energy_muons = np.array(f["muons"])
-    energy_electron_positrons = np.array(f["electron_positron"])
-    energy_charged = np.array(f["charged"])
-    energy_gammas = np.array(f["gammas"])
-    energy_hadrons = np.array(f["hadrons"])
+with as_file(
+    files("nuspacesim.data.eas_reco.elongation_rates") / f"1000_evts.h5"
+) as path:
+    with h5py.File(path, "r") as f:
+        muons = np.array(f["muons"])
+        electron_positrons = np.array(f["e-+"])
+        charged = np.array(f["charged"])
+        gammas = np.array(f["gammas"])
+        hadrons = np.array(f["hadrons"])
 
-lg16_shwrs = "log_16_eV_1000shwrs_60_downward_eposlhc_272473279_100.root"
-lg17_shwrs = "log_17_eV_1000shwrs_60_downward_eposlhc_1756896908_100.root"
-lg18_shwrs = "log_18_eV_1000shwrs_60_downward_eposlhc_1791265245_100.root"
+with as_file(
+    files("nuspacesim.data.eas_reco.energy_scaling") / f"1000_evts.h5"
+) as path:
+    with h5py.File(path, "r") as f:
+        energy_muons = np.array(f["muons"])
+        energy_electron_positrons = np.array(f["e-+"])
+        energy_charged = np.array(f["charged"])
+        energy_gammas = np.array(f["gammas"])
+        energy_hadrons = np.array(f["hadrons"])
+
+lg16_shwrs = "log_16_eV_1000shwrs_5_degearthemergence_eposlhc_371114479_100.root"
+lg17_shwrs = "log_17_eV_1000shwrs_5_degearthemergence_eposlhc_1743428413_100.root"
+lg18_shwrs = "log_18_eV_1000shwrs_5_degearthemergence_eposlhc_342620766_100.root"
+
+
 # %%
+def elongation_scaling(log_primary_ev, earth_emergence_angle):
+    if earth_emergence_angle not in charged[:, 0]:
+        print("Earth Emergence Angle not yet supported")
+        print("Avaialable value of beta are")
+        print(charged[:, 0])
+
+    base_energy = 17  # reference of 100 pev
+    params = charged[:, 1:][charged[:, 0] == earth_emergence_angle]
+    slope = params[0][0]
+    intercept = params[0][2]
+
+    mean_xmax = (slope * log_primary_ev) + intercept
+    ref_mean_xmax = (slope * base_energy) + intercept
+
+    elongation_scaling = mean_xmax / ref_mean_xmax
+
+    return elongation_scaling
+
+
+def energy_scaling(log_primary_ev, earth_emergence_angle):
+    if earth_emergence_angle not in charged[:, 0]:
+        print("Earth Emergence Angle not yet supported")
+        print("Avaialable value of beta are")
+        print(charged[:, 0])
+
+    base_energy = 17
+    params = energy_charged[:, 1:][charged[:, 0] == earth_emergence_angle]
+    slope = params[0][0]
+    intercept = params[0][2]
+
+    log_mean_nmax = (slope * log_primary_ev) + intercept
+    log_ref_mean_nmax = (slope * base_energy) + intercept
+
+    energy_scaling = 10**log_mean_nmax / 10**log_ref_mean_nmax
+
+    return energy_scaling
+
+
+print(elongation_scaling(18, 1))
+print(energy_scaling(18, 1))
+
+
+# %% get elongation rate as a function of earth emergence angle
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 3.5), dpi=300)
-ax.errorbar(
-    muons[:, 0],
-    muons[:, 1],
-    muons[:, 2],
-    fmt="o",
-    capsize=5,
-    alpha=0.8,
-    label="muon",
-)
-ax.errorbar(
-    electron_positrons[:, 0],
-    electron_positrons[:, 1],
-    electron_positrons[:, 2],
-    fmt="o",
-    capsize=5,
-    alpha=0.8,
-    label="electrons_positrons",
-)
+# ax.errorbar(
+#     muons[:, 0],
+#     muons[:, 1],
+#     muons[:, 2],
+#     fmt="o",
+#     capsize=5,
+#     alpha=0.8,
+#     label="muon",
+# )
+# ax.errorbar(
+#     electron_positrons[:, 0],
+#     electron_positrons[:, 1],
+#     electron_positrons[:, 2],
+#     fmt="o",
+#     capsize=5,
+#     alpha=0.8,
+#     label="electrons_positrons",
+# )
 
-ax.errorbar(
-    gammas[:, 0],
-    gammas[:, 1],
-    gammas[:, 2],
-    fmt="o",
-    capsize=5,
-    alpha=0.8,
-    label="gammas",
-)
+# ax.errorbar(
+#     gammas[:, 0],
+#     gammas[:, 1],
+#     gammas[:, 2],
+#     fmt="o",
+#     capsize=5,
+#     alpha=0.8,
+#     label="gammas",
+# )
 
-ax.errorbar(
-    hadrons[:, 0],
-    hadrons[:, 1],
-    hadrons[:, 2],
-    fmt="o",
-    capsize=5,
-    alpha=0.8,
-    label="hadrons",
-)
+# ax.errorbar(
+#     hadrons[:, 0],
+#     hadrons[:, 1],
+#     hadrons[:, 2],
+#     fmt="o",
+#     capsize=5,
+#     alpha=0.8,
+#     label="hadrons",
+# )
 
 ax.errorbar(
     charged[:, 0],
@@ -97,6 +153,12 @@ ax.set(
 ax.legend(ncol=2, fontsize=8)
 
 # %% try to reconstruct it using soleley the elenogation rate
+
+"""
+here we are reconstructing the log 18 eV and log 16 eV shower based solely on the mean
+(and rms) of the log 17 eV showers for 1000 show events. note, these are single component
+showers, which have been assumed to apply to composite showers. 
+"""
 
 beta = 5
 
@@ -122,8 +184,8 @@ def reco_shower(ref_shwr, reco_shwr, reco_e, elong, e_scaler, component):
         ref_shwr_data = ref_ntuple.get_muons()
         reco_shwr_data = reco_ntuple.get_muons()
     elif component == "elec_pos":
-        ref_shwr_data = ref_ntuple.get_elec_pos()
-        reco_shwr_data = reco_ntuple.get_elec_pos()
+        ref_shwr_data = ref_ntuple.get_elec()
+        reco_shwr_data = reco_ntuple.get_elec()
     elif component == "charged":
         ref_shwr_data = ref_ntuple.get_charged()
         reco_shwr_data = reco_ntuple.get_charged()
@@ -229,7 +291,6 @@ ax[1].axhline(y=1, c="k", ls=":")
 #     bbox_inches="tight",
 #     pad_inches=0.05,
 # )
-# %%
 
 
 def charged_elongation_rate(log_e):
@@ -323,7 +384,6 @@ ax[1].axhline(y=1, c="k", ls=":")
 #     bbox_inches="tight",
 #     pad_inches=0.05,
 # )
-# %%
 
 
 def elec_pos_elongation_rate(log_e):
