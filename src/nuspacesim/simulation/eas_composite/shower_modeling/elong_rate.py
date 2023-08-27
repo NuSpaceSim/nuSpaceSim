@@ -246,7 +246,7 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
     )
 
 
-fig.text(0.5, 0.08, r"${\rm \log_{10} \: Energy({\rm eV})}$", ha="center")
+fig.text(0.5, 0.06, r"${\rm \log_{10} \: Energy({\rm eV})}$", ha="center")
 fig.text(
     0.07,
     0.5,

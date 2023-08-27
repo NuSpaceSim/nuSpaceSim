@@ -227,7 +227,7 @@ for angle_idx, a in enumerate(sorted(list(set(angles)))):
     ax[angle_idx].grid(ls="--")
 
 
-fig.text(0.5, 0.08, r"${\rm \log_{10} \: Energy \:({\rm eV})}$", ha="center")
+fig.text(0.5, 0.06, r"${\rm \log_{10} \: Energy \:({\rm eV})}$", ha="center")
 fig.text(
     0.07,
     0.5,

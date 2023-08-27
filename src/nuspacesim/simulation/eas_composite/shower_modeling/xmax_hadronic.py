@@ -388,7 +388,7 @@ cbar_ax.set_title(r"${\rm Number\: of\: Showers\:(1000\:per\:grouping)}$", size=
 #     pad_inches=0.05,
 # )
 
-# %%
+# %% run this to refresh the xmax rms tables
 
 keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
 fname = "xmax_rms_params"

@@ -1,3 +1,8 @@
+"""
+take the mean of all showers and fluctuate energy
+prototype 1
+"""
+
 import numpy as np
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
 import matplotlib.pyplot as plt

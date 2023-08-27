@@ -10,7 +10,7 @@ try:
     from importlib.resources import as_file, files
 except ImportError:
     from importlib_resources import as_file, files
-#%%
+# %%
 # plot_type = "log_log_nmax_vs_xmax"
 plot_type = "lin_log_xmax_vs_energy"
 # plot_type = "log_log_nmax_vs_energy"
@@ -103,7 +103,6 @@ mtype = ["^", "s", "x", "o", "+"]
 
 
 if plot_type == "lin_log_xmax_vs_energy":
-
     three_angles = []
     particle_types = []
     slope = []
@@ -121,7 +120,6 @@ if plot_type == "lin_log_xmax_vs_energy":
     ax = ax.ravel()
     plt.subplots_adjust(wspace=0, hspace=0)
     for angle_idx, a in enumerate(sorted(list(set(angles)))):
-
         angle = a
         mask = angles == angle
         masked_energies = energies[mask]
@@ -152,7 +150,6 @@ if plot_type == "lin_log_xmax_vs_energy":
         ]
 
         for idx, p in enumerate(ptype):
-
             params, uncertainty = curve_fit(
                 f=lin_func,
                 xdata=masked_energies,
@@ -350,7 +347,6 @@ if plot_type == "log_log_nmax_vs_energy":
         ]
 
         for idx, p in enumerate(ptype):
-
             params, uncertainty = curve_fit(
                 f=lin_func,
                 xdata=masked_energies,
@@ -397,48 +393,48 @@ if plot_type == "log_log_nmax_vs_energy":
     #     fontsize=8,
     # )
 
-#%% save
+# %% save
 
 
-three_angles = np.array(three_angles)
-particle_types = np.array(particle_types)
-slope = np.array(slope)
-slope_uncertainty = np.array(slope_uncertainty)
-intercept = np.array(intercept)
-intercept_uncertainty = np.array(intercept_uncertainty)
+# three_angles = np.array(three_angles)
+# particle_types = np.array(particle_types)
+# slope = np.array(slope)
+# slope_uncertainty = np.array(slope_uncertainty)
+# intercept = np.array(intercept)
+# intercept_uncertainty = np.array(intercept_uncertainty)
 
-ptypes = ["muons", "charged", "hadrons", "gammas", "electron_positron"]
-earth_emer_angles = sorted(list(set(angles)))
+# ptypes = ["muons", "charged", "hadrons", "gammas", "electron_positron"]
+# earth_emer_angles = sorted(list(set(angles)))
 
-with as_file(files("nuspacesim.data.eas_scaling_tables") / f"{plot_type}.h5") as path:
+# with as_file(files("nuspacesim.data.eas_scaling_tables") / f"{plot_type}.h5") as path:
 
-    with h5py.File(path, "w") as f:
-        for t in ptypes:
-            # aggregate across earth emergence angles
-            particle_data = []
+#     with h5py.File(path, "w") as f:
+#         for t in ptypes:
+#             # aggregate across earth emergence angles
+#             particle_data = []
 
-            for ang in earth_emer_angles:
-                ang_data = np.concatenate(
-                    (
-                        np.array([ang]),
-                        slope[(three_angles == ang) & (particle_types == t)],
-                        slope_uncertainty[
-                            (three_angles == ang) & (particle_types == t)
-                        ],
-                        intercept[(three_angles == ang) & (particle_types == t)],
-                        intercept_uncertainty[
-                            (three_angles == ang) & (particle_types == t)
-                        ],
-                    )
-                )
+#             for ang in earth_emer_angles:
+#                 ang_data = np.concatenate(
+#                     (
+#                         np.array([ang]),
+#                         slope[(three_angles == ang) & (particle_types == t)],
+#                         slope_uncertainty[
+#                             (three_angles == ang) & (particle_types == t)
+#                         ],
+#                         intercept[(three_angles == ang) & (particle_types == t)],
+#                         intercept_uncertainty[
+#                             (three_angles == ang) & (particle_types == t)
+#                         ],
+#                     )
+#                 )
 
-                particle_data.append(ang_data)
+#                 particle_data.append(ang_data)
 
-            f.create_dataset(
-                t,
-                data=np.array(particle_data),
-                dtype="f",
-            )
+#             f.create_dataset(
+#                 t,
+#                 data=np.array(particle_data),
+#                 dtype="f",
+#             )
 
 
 # muon_5deg_data = np.concatenate(

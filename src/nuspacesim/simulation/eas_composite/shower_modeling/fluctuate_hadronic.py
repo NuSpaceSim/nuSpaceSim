@@ -1,3 +1,8 @@
+"""
+take the most common decay channel and fluctutate energy. 
+prototype 2
+"""
+
 import numpy as np
 from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
 from nuspacesim.simulation.eas_composite.plt_routines import decay_channel_mult_plt
@@ -9,7 +14,6 @@ from comp_eas_utils import numpy_argmax_reduceat, get_decay_channel
 
 from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
 from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
-from nuspacesim.simulation.eas_composite.comp_eas_utils import slant_depth_to_alt
 from matplotlib.lines import Line2D
 
 from scipy.signal import argrelextrema
@@ -21,6 +25,7 @@ from scipy.stats import exponnorm
 import matplotlib
 
 cmap = matplotlib.cm.get_cmap("Spectral")
+
 
 plt.rcParams.update(
     {
@@ -35,7 +40,6 @@ plt.rcParams.update(
         "xtick.top": True,
     }
 )
-
 try:
     from importlib.resources import as_file, files
 except ImportError:
@@ -72,25 +76,23 @@ def gauss(x, mu, sigma, amp):
     return amp * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
 
-def no_subshwrs(comp_charged):
-    no_subshwr_idx = []  # index of composite showers with subshowers
-    for i, s in enumerate(comp_charged):
-        num_of_extrema = len(argrelextrema(np.log10(s), np.greater)[0])
-        if num_of_extrema <= 2:
-            # sub_showers = False
-            # ax.plot(depths[0, :], s[2:], lw=1, color="tab:blue", alpha=0.2)
-            no_subshwr_idx.append(i)
-        else:
-            # sub_showers = True
-            # ax.plot(depths[0, :], s[2:], lw=1, alpha=0.25, zorder=12)
-            pass
-    no_subshwr_idx = np.array(no_subshwr_idx)
-    return comp_charged[no_subshwr_idx]
+def decay_filter(codes, nth_digit, rel, digit_flag):
+    grouping = []
+    for c in codes:
+        l = [int(x) for x in str(c)]
+        idx = nth_digit - 1
+        if (rel == "leq") and (l[idx] <= digit_flag):
+            grouping.append(c)
+        elif (rel == "eq") and (l[idx] == digit_flag):
+            grouping.append(c)
+        elif rel == "geq" and (l[idx] >= digit_flag):
+            grouping.append(c)
+
+    return grouping
 
 
-beta = 5
-log_e = 17
-total_gen = 1000
+# load showers
+
 tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
 # tup_folder = "C:/Users/144/Desktop/g_drive/Research/NASA/Work/conex2r7_50-runs"
 # we can read in the showers with different primaries
@@ -117,110 +119,104 @@ elec_charged = elec_init.get_charged()
 gamma_charged = gamma_init.get_charged()
 pion_charged = pion_init.get_charged()
 depths = elec_init.get_depths()
-
-pids = [11, 22, 211]
 init = [elec_charged, gamma_charged, pion_charged]
-gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=0)
-comp_charged = gen_comp(n_comps=total_gen, no_subshwrs=True)
-# filter out composites with subshowers
-# comp_charged = no_subshwrs(comp_charged)
+pids = [11, 22, 211]
+# %% shower decay channels
 
-#!!! how to add stochastic process
-# decay_labels
-# fluctuate by decay channel
+lepton_decay = [300001, 300002]
+had_pionkaon_1bod = [200011, 210001]
+# fmt: off
+had_pi0 = [300111, 310101, 400211, 410111, 410101, 410201, 401111, 400111, 500131,
+           500311, 501211, 501212, 510301, 510121, 510211, 510111, 510112, 600411,
+           600231,
+           ]
 
-decay_channels, shwrs_perchannel = np.unique(
-    comp_charged[:, 1].astype("int"), return_counts=True
+had_no_pi0 = [310001, 311001, 310011, 311002, 311003, 400031, 410021, 410011, 410012,
+              410013, 410014, 501031, 501032, 510031, 600051,
+              ]
+# fmt: on
+
+
+generator = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=0)
+
+lepton_decay_eas = generator(
+    n_comps=1000, channel=lepton_decay, return_table=False, no_subshwrs=True
 )
-most_common_sort = np.flip(shwrs_perchannel.argsort())
-decay_channels = decay_channels[most_common_sort]
-shwrs_perchannel = shwrs_perchannel[most_common_sort]
-decay_labels = [get_decay_channel(x) for x in decay_channels]
-branch_percent = shwrs_perchannel / np.sum(shwrs_perchannel)
+pk_1bo_eas = generator(
+    n_comps=1000, channel=had_pionkaon_1bod, return_table=False, no_subshwrs=True
+)
+pi0_eas = generator(n_comps=1000, channel=had_pi0, return_table=False, no_subshwrs=True)
+no_pi0_eas = generator(
+    n_comps=1000, channel=had_no_pi0, return_table=False, no_subshwrs=True
+)
 
+
+shwr_groups = [lepton_decay_eas, pk_1bo_eas, pi0_eas, no_pi0_eas]
+
+
+decay_labels = [
+    r"${\rm leptonic\:decay}$",
+    r"${\rm  1\:body\:K,\:\pi^{+/-}}$",
+    r"${\rm  with\:\pi_0}$",
+    r"${\rm  no\:\pi_0}$",
+]
 # %%
-cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 25))
-fig, ax = plt.subplots(
-    nrows=4, ncols=5, dpi=300, figsize=(12, 10), sharex=True, sharey=True
-)
-fig.subplots_adjust(hspace=0.05, wspace=0.05)
-ax = ax.ravel()
+# decay_codes = get_decay_channel(None, just_codes=True)
 
-for i, decay in enumerate(decay_channels):
-    y = comp_charged[comp_charged[:, 1] == decay]
-    x = depths[0, :]
-    print(i)
-    if i < 19:
-        ax[i].plot(x, np.log10(y[:, 2:].T), color=cmap[i], lw=1, alpha=0.60)
+# gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids, tau_table_start=0)
 
-        t = decay_labels[i] + "\n" + r"${{\rm \: {} \: EAS}}$".format(y.shape[0])
-        ax[i].text(
-            0.95,
-            0.96,
-            t,
-            transform=ax[i].transAxes,
-            horizontalalignment="right",
-            verticalalignment="top",
-        )
-        ax[i].grid(ls=":")
-        if i <= 4:
-            ax_twin = ax[i].twiny()
-            ax_twin.plot(x, np.log10(y[0, 2:]), alpha=0)
-            ax_twin.set_xticklabels(
-                list(
-                    np.round(
-                        slant_depth_to_alt(
-                            earth_emergence_ang=beta,
-                            slant_depths=ax[i].get_xticks(),
-                            alt_stop=200,
-                        ),
-                        1,
-                    ).astype("str")
-                )
-            )
+# # decay codes with pi0
+# _, pi0codes = get_decay_channel(None, group_decay=(4, 1))
+# _, pichargedcodes = get_decay_channel(None, group_decay=(5, 1))
 
-    else:
-        ax[19].plot(
-            x,
-            np.log10(y[0, 2:].T),
-            color=cmap[i],
-            lw=1,
-            alpha=1,
-            label=decay_labels[i],
-        )
+# no_chargedpi = []
+# for c in pi0codes:
+#     l = [int(x) for x in str(c)]
+#     if l[4] == 0:
+#         no_chargedpi.append(c)
+# no_pi0 = []
+# for c in pichargedcodes:
+#     l = [int(x) for x in str(c)]
+#     if l[3] == 0:
+#         no_pi0.append(c)
+
+# singlekaoncodes = decay_filter(decay_codes, 2, "eq", 1)
+# singlepioncodes = decay_filter(decay_codes, 4, "eq", 1)
 
 
-ax[0].set(ylim=(1.5, 8))
-ax[19].legend(frameon=False)
-ax[19].grid(ls=":")
-fig.text(0.5, 0.09, r"${\rm slant\:depth\:(g \: cm^{-2})}$", ha="center")
-fig.text(0.5, 0.91, r"${\rm altitude\:(km)}$", ha="center")
-fig.text(
-    0.10,
-    0.91,
-    r"${{\rm\:\beta ={}\degree,E_{{primary}}=\:10^{{{}}}\:eV,{}\:total\:Composite\:EAS}}$".format(
-        beta, log_e, total_gen
-    ),
-    ha="left",
-)
-fig.text(0.1, 0.5, r"$\log_{10}\: N$", va="center", rotation="vertical")
+# comp_elec = gen_comp(n_comps=1000, channel=300001, return_table=False, no_subshwrs=True)
+# comp_no_chargedpi = gen_comp(
+#     n_comps=1000, channel=no_chargedpi, return_table=False, no_subshwrs=True
+# )
+# comp_no_pi0 = gen_comp(
+#     n_comps=1000, channel=no_pi0, return_table=False, no_subshwrs=True
+# )
+# comp_kaons = gen_comp(
+#     n_comps=1000, channel=singlekaoncodes, return_table=False, no_subshwrs=True
+# )
+# comp_single_pi = gen_comp(
+#     n_comps=1000, channel=singlepioncodes, return_table=False, no_subshwrs=True
+# )
 
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/eas_gallery.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# shwr_groups = [
+#     comp_elec,
+#     comp_no_pi0,
+#     comp_no_chargedpi,
+#     comp_kaons,
+#     comp_single_pi,
+# ]
 
 
-# sum channels that contributed less than 3 percent to the decay
-other_mask = branch_percent < 0.18
-other_category = np.sum(shwrs_perchannel[other_mask])
-decay_labels = [get_decay_channel(x) for x in decay_channels[~other_mask]]
-decay_labels.append(r"${\rm other}$")
-decay_codes = list(decay_channels[~other_mask])
-decay_codes.append(decay_channels[other_mask])
-shwrs_perchannel = np.append(shwrs_perchannel[~other_mask], other_category)
+# decay_labels = [
+#     r"$e^{-}$",
+#     r"${\rm \pi^{+/-} \: no \:  \pi_0}$",
+#     r"${\rm \pi_0 \:  no  \: \pi^{+/-}}$",
+#     r"$1 K$",
+#     r"$1 \pi^{+/-}$",
+# ]
+# %% nmax rms
+
+cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 7))[1:]
 
 nmax_scale_perchan = []
 xmax_scale_perchan = []
@@ -228,50 +224,51 @@ xmax_scale_perchan = []
 mean_perchan = []
 rms_err_perchan = []
 mean_xmax_perchan = []
-cmap = plt.cm.get_cmap("inferno")(np.linspace(0, 1, 5))[1:]
-fig, ax = plt.subplots(
-    nrows=1,
-    ncols=3,
-    dpi=300,
-    figsize=(10, 3),
-    sharey=True,
-)
 
-for ci, chnl in enumerate(decay_codes):
-    if ci == len(decay_codes) - 1:
-        cc = comp_charged[np.isin(comp_charged[:, 1], chnl)]
-    else:
-        cc = comp_charged[comp_charged[:, 1] == chnl]
+rms_reco_params = []
 
-    mean, rms_err = mean_shower(cc[:, 2:])
+# sample_label = "6000 g cm^{-2}"
+sample_label = "Nmax"
+fig, ax = plt.subplots(nrows=1, ncols=3, dpi=300, figsize=(10, 3), sharex=True)
+for ci, chnl in enumerate(shwr_groups):
+    # !!! put this in a function
+    mean, rms_err = mean_shower(chnl[:, 2:])
     xmax_idx = np.argmax(mean)
     sample_idx = xmax_idx  # np.argmin(np.abs(depths[0, 2:] - 6000))
 
-    sample_column = cc[:, sample_idx]
+    sample_column = chnl[:, sample_idx]
 
     mean_val = depths[0, 2:][sample_idx]
     mean_perchan.append(mean)
     rms_err_perchan.append(rms_err)
     mean_xmax_perchan.append(mean_val)
 
-    # xmax_column = cc[:, xmax_idx]
-    # xmaxs_idx = np.argmax(cc[:, 2:], axis=1)
+    # xmaxs_idx = np.argmax(chnl[:, 2:], axis=1)
     # xmaxs_column = np.take(comp_charged[:, 2:], xmaxs_idx)
 
     # let's get the grammages where each shower peaks
     # shower_xmaxs = np.take(depths[0, :], xmaxs_idx)
     # xmax_multipliers = shower_xmaxs / mean_xmax
-    rms_dist = sample_column / mean[xmax_idx]
 
-    bin_end = 3  # np.round(np.max(xmax_column / mean[xmax_idx]), 0)
-    hist_bins = np.linspace(0, bin_end, 25)
+    rms_dist = sample_column / mean[sample_idx]
+
+    bin_end = 2.8  # np.round(np.max(xmax_column / mean[xmax_idx]), 0)
+    hist_bins = np.linspace(0, bin_end, 30)
 
     # histogram from x max
     # cts, bin_edges = np.histogram(xmax_column / mean[xmax_idx], bins=hist_bins)
 
     cts, bin_edges = np.histogram(rms_dist, bins=hist_bins, density=True)
     bin_ctrs = (bin_edges[:-1] + bin_edges[1:]) / 2
-    print(cts)
+
+    # last hist bin before 0 to truncate sampling range
+    non_zero_mask = cts > 0
+    max_val = bin_edges[1:][non_zero_mask][-1]
+
+    # print(cts)
+    # print(bin_edges[1:][int(np.argwhere((cts==0) | (cts==bin_end) )[1])])
+
+    # print("-")
     # xmaxs_cts, xmaxs_edges = np.histogram(
     #     xmax_multipliers, bins=np.linspace(0.5, 1.5, 25), density=True
     # )
@@ -291,7 +288,8 @@ for ci, chnl in enumerate(decay_codes):
     lamb = params[0]
     sig = params[1]
     mu = params[2]
-
+    print(lamb, sig, mu, max_val)
+    rms_reco_params.append([lamb, sig, mu, max_val])
     nonzero_mask = cts > 0
     chi2 = np.sum(
         (cts[nonzero_mask] - gauss_exp(bin_ctrs, *params)[nonzero_mask]) ** 2
@@ -304,13 +302,14 @@ for ci, chnl in enumerate(decay_codes):
     theory_x = np.linspace(0, bin_end + 0.5, 200)
 
     # let's loop so that we can control the actual nuber of samples, not just mask it away
-    n_samples = cc[:, 2:].shape[0]
+    n_samples = chnl[:, 2:].shape[0]
 
     rand_nmax_scale = []
     # while is not good, not sure how to approach other way
+    k = 1 / (lamb * sig)  # shape paremeter
     while len(rand_nmax_scale) != n_samples:
-        r = exponnorm.rvs(1 / (lamb * sig), loc=mu, scale=sig)
-        if r > 0:
+        r = exponnorm.rvs(k, loc=mu, scale=sig)
+        if (r > 0) and (r <= max_val):
             rand_nmax_scale.append(r)
 
     nmax_scale_perchan.append(rand_nmax_scale)
@@ -319,7 +318,7 @@ for ci, chnl in enumerate(decay_codes):
     # while len(rand_xmax_scale) != n_samples:
 
     #     r = exponnorm.rvs(1 / (xmax_lamb * xmax_sig), loc=xmax_mu, scale=xmax_sig)
-    #     if r > 0:
+    #     if (r > 0) and (r <= bin_end):
     #         rand_xmax_scale.append(r)
 
     # xmax_scale_perchan.append(rand_xmax_scale)
@@ -355,7 +354,7 @@ for ci, chnl in enumerate(decay_codes):
         # label=r"Prob($\chi^2$, dof) = {:.2f}".format(p_value),
         # label=decay_labels[ci],
         alpha=0.9,
-        label="$({:.2f}, {:.1f}, {:.1f}, {:.1f})$".format(chi2, lamb, sig, mu),
+        label="$({:.2f}, {:.1f}, {:.1f}, {:.1f})$".format(chi2, *params),
     )
 
     ax[2].hist(
@@ -367,7 +366,7 @@ for ci, chnl in enumerate(decay_codes):
         lw=3,
         density=True,
         alpha=0.9,
-        label=r"${{\rm {} \:scaling\:values}}$".format(len(rand_nmax_scale)),
+        label=r"${{\rm {}\:scaling\:values}}$".format(len(rand_nmax_scale)),
     )
 
     # =============================================================================
@@ -402,13 +401,11 @@ for ci, chnl in enumerate(decay_codes):
     #         label=r"${\rm resampled}$",
     #     )
     # =============================================================================
-
 ax[0].set(
     ylabel="Raw Counts",
     # xlabel=r"${\rm shower\:N_{max} \: / \: mean \: N_{max}}$",
     # ylim=(0, 245),
 )
-sample_label = r"N_{\rm max}"
 ax[0].legend(title=r"${\rm Decay\:Channel}$", fontsize=8)
 ax[1].set(
     xlabel=r"${{\rm shower\:{} \: / \: mean \: {} }}$".format(
@@ -417,7 +414,6 @@ ax[1].set(
     ylabel="PDF",
     ylim=(0, 1.5),
 )
-
 ax[2].set(
     # xlim=(theory_x.min(), 3),
     # xlabel=r"${\rm shower\:X_{max} \: / \: mean \: X_{max}}$",
@@ -425,48 +421,46 @@ ax[2].set(
     ylabel="PDF",
     ylim=(0, 1.5),
 )
-
 ax[1].legend(
-    loc="upper right", title=r"${\rm Fit}(\chi^2,\:\lambda,\:\sigma,\:\mu)$", fontsize=8
+    loc="upper right",
+    title=r"${\rm Fit} \:(\chi^2,\:\lambda,\:\sigma,\:\mu)$",
+    fontsize=8,
 )
-
 ax[2].legend(loc="upper right", title=r"${\rm Resampled}$", fontsize=8)
 
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/rms_common.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# plt.savefig(
+#     "../../../../../g_drive/Research/NASA/rms_hadronic.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 # %%
 fig, ax = plt.subplots(
-    nrows=3,
-    ncols=1,
+    nrows=1,
+    ncols=3,
     dpi=300,
-    figsize=(5, 8),
+    figsize=(10, 3),
     sharey=True,
 )
-plt.subplots_adjust(hspace=0)
+plt.subplots_adjust(wspace=0)
+
+# inset = ax[0].inset_axes([0, -0.85, 3, 0.70], transform=ax[0].transAxes)
+
 
 recomean_actualmean = []
 
-for ci, chnl in enumerate(decay_codes):
-    if ci == len(decay_codes) - 1:
-        cc = comp_charged[np.isin(comp_charged[:, 1], chnl)]
-    else:
-        cc = comp_charged[comp_charged[:, 1] == chnl]
-
+for ci, chnl in enumerate(shwr_groups):
     ax[0].plot(
         depths[0, :],
-        cc[:, 2:].T,
+        chnl[:, 2:].T,
         lw=1,
         color=cmap[ci],
-        alpha=0.1,
+        alpha=0.2,
     )
     # just to include the label
     ax[0].plot(
         depths[0, :],
-        cc[0, 2:],
+        chnl[0, 2:],
         lw=1,
         color=cmap[ci],
         alpha=1,
@@ -479,7 +473,7 @@ for ci, chnl in enumerate(decay_codes):
         alpha=1,
         color=cmap[ci],
         ls="--",
-        label=r"${{\rm n_{{showers}} = {:.0f}\:}}$".format(cc.shape[0]),
+        label=r"${{\rm n_{{showers}} = {:.0f}\:}}$".format(chnl.shape[0]),
     )
     ax[1].fill_between(
         depths[0, :],
@@ -515,37 +509,54 @@ for ci, chnl in enumerate(decay_codes):
         lw=1,
         color=cmap[ci],
         alpha=0.2,
-        label="${:.2f}$".format(np.max(reco_mean / mean_perchan[ci])),
+        label=r"${{\:{:.2f}}}$".format(np.max(reco_mean / mean_perchan[ci])),
     )
 
 
 ax[0].axvline(depths[0, 2:][sample_idx], ls="--", lw=2, color="grey")
-ax[0].legend(
-    loc="upper right",
-    # bbox_to_anchor=(0.5, 1),
-    # title=r"${\rm Groupings}$",
-)
-ax[1].legend(
-    loc="upper right",
-    # bbox_to_anchor=(0.5, 1),
-    # title=r"${\rm Mean\:and\:RMS}$",
-)
-ax[2].legend(
-    # title=r"${\rm Reconstructed\:Showers}$",
-    loc="upper right",
-    # bbox_to_anchor=(0.5, 1),
-)
+# ax[0].legend(
+#     loc="lower center", bbox_to_anchor=(0.5, 1), ncol=2, title=r"${\rm Groupings}$"
+# )
+ax[0].legend(fontsize=8)
+# ax[1].legend()
+ax[2].legend(title=r"${\rm reco\:mean/ mean }$", fontsize=8)
 
-ax[1].set(
-    yscale="log",
-    ylabel="$N$",
-    ylim=(15, 2e8),
-)
-ax[2].set(xlabel=r"${\rm\:slant\:depth\:(g \: cm^{-2})}$")
+ax[0].set(yscale="log", ylim=(100, 3e8), ylabel="$N$")
+ax[1].set(xlabel=r"${\rm \:slant\:depth\:(g \: cm^{-2})}$")
+# plt.savefig(
+#     "../../../../../g_drive/Research/NASA/reco_hadronic.png",
+#     dpi=300,
+#     bbox_inches="tight",
+#     pad_inches=0.05,
+# )
 
-plt.savefig(
-    "../../../../../g_drive/Research/NASA/reco_common.png",
-    dpi=300,
-    bbox_inches="tight",
-    pad_inches=0.05,
-)
+# %% save RMS dist
+
+keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
+fname = "nmax_rms_params"
+with as_file(files("nuspacesim.data.eas_reco.rms_params") / f"{fname}.h5") as path:
+    print(path)
+    with h5py.File(path, "w") as f:
+        for i, rms in enumerate(np.array(rms_reco_params)):
+            f.create_dataset(
+                keys[i],
+                data=rms,
+                dtype="f",
+            )
+            f.create_dataset(
+                "mean_" + keys[i],
+                data=mean_perchan[i],
+                dtype="f",
+            )
+
+            f.create_dataset(
+                "rms_" + keys[i],
+                data=rms_err_perchan[i],
+                dtype="f",
+            )
+
+        f.create_dataset(
+            "slant_depth",
+            data=depths[0, :],
+            dtype="f",
+        )

@@ -214,45 +214,45 @@ plt.savefig(
 # %%
 
 # =============================================================================
-#
+
 # fit the mean showers to describe the bulk of the shower and be able
 # to vary the bulk of the shower
-#
+
 # =============================================================================
-# gh_params = []
-# for m in [lep_m, kpi_m, pi0_m, npi_m]:
-#     print(m)
-#     params, pcov = curve_fit(
-#         modified_gh,
-#         slantdepth,
-#         m,
-#         p0=[np.max(m), slantdepth[np.argmax(m)], 0, 70, 0, 0],
-#         bounds=(
-#             [0, 0, -1e-6, -np.inf, -np.inf, -np.inf],
-#             [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
-#         ),
-#     )
+gh_params = []
+for m in [lep_m, kpi_m, pi0_m, npi_m]:
+    print(m)
+    params, pcov = curve_fit(
+        modified_gh,
+        slantdepth,
+        m,
+        p0=[np.max(m), slantdepth[np.argmax(m)], 0, 70, 0, 0],
+        bounds=(
+            [0, 0, -1e-6, -np.inf, -np.inf, -np.inf],
+            [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
+        ),
+    )
 
-#     nmax = params[0]
-#     xmax = params[1]
-#     x0 = params[2]
-#     p1 = params[3]
-#     p2 = params[4]
-#     p3 = params[5]
-#     print(params)
-#     gh_params.append(params)
+    nmax = params[0]
+    xmax = params[1]
+    x0 = params[2]
+    p1 = params[3]
+    p2 = params[4]
+    p3 = params[5]
+    print(params)
+    gh_params.append(params)
 
-# keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
-# fname = "mean_shwr_bulk_gh_params"
-# with as_file(files("nuspacesim.data.eas_reco") / f"{fname}.h5") as path:
-#     print(path)
-#     with h5py.File(path, "w") as f:
-#         for i, gh in enumerate(gh_params):
-#             f.create_dataset(
-#                 keys[i],
-#                 data=gh,
-#                 dtype="f",
-#             )
+keys = ["leptonic", "one_body_kpi", "with_pi0", "no_pi0"]
+fname = "mean_shwr_bulk_gh_params"
+with as_file(files("nuspacesim.data.eas_reco") / f"{fname}.h5") as path:
+    print(path)
+    with h5py.File(path, "w") as f:
+        for i, gh in enumerate(gh_params):
+            f.create_dataset(
+                keys[i],
+                data=gh,
+                dtype="f",
+            )
 
 
 # %% shower reconstruction demo for each decay channel

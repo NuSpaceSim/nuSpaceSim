@@ -1,3 +1,7 @@
+"""
+utilities used in comp_eas.py and comp_eas_conex.py
+"""
+
 import numpy as np
 from scipy.optimize import fsolve
 

@@ -1,8 +1,3 @@
-"""
-generating composite showers using the profiles themselves from conex, not just the GH
-100 PeV or 10^17 eV for 5 degree earth emergence angles
-"""
-
 import numpy as np
 import h5py
 from nuspacesim.simulation.eas_composite.comp_eas_utils import (
@@ -18,6 +13,9 @@ from nuspacesim.simulation.eas_composite.comp_eas_utils import (
     decay_channel_filter,
     slant_depth_to_alt,
 )
+import matplotlib.pyplot as plt
+import os
+from scipy.optimize import curve_fit
 
 try:
     from importlib.resources import as_file, files
@@ -390,16 +388,14 @@ class ConexCompositeShowers:
 Example on how to generate composite EAS from CONEX Profiles
 """
 
-tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
+# tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
 # note, this can be found in the google drive
 # https://drive.google.com/drive/u/2/folders/1wbvLxs71s1LmU88tWqwPfMP5RxCUT7OA
 # in the nuSpaceSim/CONEXresults/conex2r7_50-runs/1000_evts_0km_start
 
 
 # read in pythia decays
-# import matplotlib.pyplot as plt
-# import os
-# from scipy.optimize import curve_fit
+
 
 # # we can read in the showers with different primaries
 # elec_init = ReadConex(
@@ -436,10 +432,10 @@ tup_folder = "/home/fabg/gdrive_umd/Research/NASA/Work/conex2r7_50-runs/"
 # gen_comp = ConexCompositeShowers(shower_comps=init, init_pid=pids)
 # comp_charged = gen_comp(n_comps=5000)  #!!! todo resample table based on composites
 
-# =============================================================================
-# # %%  diagnostics plots
-# =============================================================================
-#
+# ##=============================================================================
+# ## %%  diagnostics plots
+# ##=============================================================================
+
 
 # #  segregate by decay channel and see most common one
 # decay_channels, shwrs_perchannel = np.unique(

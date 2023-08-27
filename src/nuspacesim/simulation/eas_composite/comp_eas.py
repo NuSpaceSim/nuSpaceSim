@@ -1,16 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+import matplotlib as mpl
 import h5py
 from scipy.stats import exponnorm
 from scipy import interpolate
-from scipy.interpolate import splrep, BSpline
-from nuspacesim.simulation.eas_composite.comp_eas_utils import decay_channel_filter
-from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
-from nuspacesim.simulation.eas_composite.comp_eas_utils import mean_shower
 import os
-from nuspacesim.simulation.eas_composite.conex_interface import ReadConex
-import matplotlib.lines as mlines
+
+from nuspacesim.simulation.eas_composite.comp_eas_conex import ConexCompositeShowers
+
 
 try:
     from importlib.resources import as_file, files
@@ -438,7 +435,7 @@ class CompositeShowers:
 
 
 # %% plot of full energy scan
-# import matplotlib as mpl
+
 
 # plt.rcParams.update(
 #     {

@@ -36,4 +36,35 @@ Within each key, there is a table with layout, left to right
 "chi2"     : Chi squared/number of degree of freedom/sqrt (Nmax)
 ```
 
-We also processed PYTHIA8 Runs for tau decays. 
+We also processed PYTHIA8 Runs for tau decays. These can be located in 
+> nuSpaceSim/src/nuspacesim/data/conex_gh_params/pythia_tau_decays
+
+Generated at 100 PeV, the columns have the format
+```
+event number
+decay channel code
+daugther particle PID
+parent particle PID
+energy of the 100 PeV contained in the daughter particle
+```
+
+`comp_eas_conex.py` contains the `class ConexCompositeShowers` which generates CONEX
+Composite showers by using our CONEX runs library. To find this library, go to
+> https://drive.google.com/drive/u/2/folders/1wiKH-Tt-oUvScpikDhYqqF6c3DLHnQbO 
+and use the 1000_evts.
+
+`comp_eas_conex.py` contains `class CompositeShowers` which is intended to be part of 
+nuSpaceSim and is the lightweight version of the previous class, not needing anything
+but the tables already located in  
+> nuSpaceSim/src/nuspacesim/data/ 
+
+To refresh the data tables, see `./shower_modeling` and run the scripts
+```
+elong_rate.py           # refreshes the elongation rate table
+energy_scaling.py       # refreshes the energy scaling tables
+fluctuate_hadronic.py   # refreshes the mean and nmax tables
+xmax_hadronic.py        # refreshes the xmax tables
+reco.py                 # refreshes the GH param fits to the bulk.
+```
+
+
