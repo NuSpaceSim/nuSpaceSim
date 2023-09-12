@@ -84,7 +84,7 @@ class EAS:
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
         length=path_length_tau_atm(altDec, beta)
-        mask = (altDec > 20) | (altDec < 0)  #| (length<10) #(showerEnergy*2 < 1) #| (np.degrees(beta)<5)
+        mask = (altDec > 8) | (altDec < 0) | (showerEnergy*2 < 10) #| (length<50) # #| (np.degrees(beta)<5)
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.

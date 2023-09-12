@@ -5,7 +5,6 @@ import numpy as np
 import awkward as ak
 import math
 from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
 
 from .simulation.eas_optical.shower_properties import slant_depth_trig_approx as slant_depth
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
@@ -22,7 +21,7 @@ def conex_out(data, geom):
     TauEnergy = np.log10(data["tauEnergy"]) + 9 #Tau energy in log E/eV units
 
     # Useful masks (Zfirst masks are necessary between 0 and 20km)
-    mask = (Zfirst >= 0) & (Zfirst <= 20)  #& (data["lenDec"]>=10)#(TauEnergy >= 17)# & (np.degrees(data["beta_rad"]) >= 5) )
+    mask = (Zfirst >= 0) & (Zfirst <= 8) &(TauEnergy >= 18) #& (data["lenDec"]>=50)## & (np.degrees(data["beta_rad"]) >= 5) )
 
     beta = data["beta_rad"][mask]
     Zfirst = data["altDec"][mask]
@@ -44,15 +43,16 @@ def conex_out(data, geom):
             else:
                 RN.append(np.fromstring(line[0], sep=' ', dtype='f4'))
     nX = ak.to_numpy(ak.num(X, axis=1))
-    nRN = ak.to_numpy(ak.num(RN, axis=1))
-    nZ = ak.to_numpy(ak.num(Z, axis=1))
     n = np.size(Zfirst)
     RNmask = ak.values_astype(RN.snapshot(), np.float32)
-    mask2=np.full(n,True)
+    mask2=(Xfirst<=1*10**4) #Fix for Auger Offline aborted core dumped
+    nlong=np.sum(~mask2)
+    print('Number of too long profiles ', nlong)
+
     for i in range(n):
         if RNmask[i][-1]>np.max(RNmask[i])*0.5:
             mask2[i]=False
-    print('Number of incomplete profiles ', np.sum(~mask2))
+    print('Number of incomplete profiles ', np.sum(~mask2)-nlong)
     beta = beta[mask2]
     Zfirst = Zfirst[mask2]
     n = np.size(Zfirst)
@@ -118,9 +118,10 @@ def conex_out(data, geom):
 
         #Calculate chi**2
         for j in range((yfit).size):
-            chi2[i] += (y[j] - yfit[j]) ** 2 / (yfit[j])
+            chi2[i] += (y[j] - yfit[j]) ** 2 / (y[j])
 
-        chi2[i] =chi2[i] / (nX[i] - 6)
+        chi2[i] =chi2[i] / (nX[i] - 6) / (np.sqrt(popt[2]*1e5))
+
         g3=popt[3]
         g2=popt[4]
         g1=popt[5]
