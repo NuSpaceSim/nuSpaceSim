@@ -18,6 +18,13 @@ Alternatively install nuspacesim from our conda channel.::
   conda create -n nuspacesim -c conda-forge -c nuspacesim nuspacesim
   conda activate nuspacesim
 
+----------------------------------
+Open the nuspacesim TUI
+----------------------------------
+::
+
+  python3 -m nuspacesim tui
+
 
 ----------------------------------
 Read the nuspacesim help docstring

@@ -29,3 +29,4 @@ _version.py
 nuspacesim_run_*.fits
 nuspacesim_run_*.h5
 nuspacesim_run_*.hdf5
+*.code-workspace

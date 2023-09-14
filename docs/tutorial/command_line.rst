@@ -9,6 +9,13 @@ in application or module mode.
 
 ::
 
+  nuspacesim tui
+
+
+Opens a TUI to run nuspacesim
+
+::
+
   nuspacesim --help
 
 
