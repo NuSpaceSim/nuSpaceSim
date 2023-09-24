@@ -495,7 +495,7 @@ class CphotAng:
 
         return photsum
 
-    def valid_arrays(self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA, Eshow):
+    def valid_arrays(self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA, Eshow,Conex):
         """
         Return data arrays with invalid values removed
         """
@@ -545,6 +545,12 @@ class CphotAng:
         s = s[mask]
         RN = RN[mask]
         e2hill = e2hill[mask]
+        gramsum=gramsum[mask]
+        if Conex=='1':
+            filename = 'showerdata.csv'
+            with open(filename, 'a') as f:
+                np.savetxt(f, [gramsum, zs, RN])
+
 
         return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
 
@@ -592,7 +598,7 @@ class CphotAng:
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
 
-    def run(self, betaE, alt, Eshow100PeV, lat, long, cloudf=None):
+    def run(self, betaE, alt, Eshow100PeV, lat, long,Conex,cloudf=None):
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
@@ -609,7 +615,7 @@ class CphotAng:
         #
 
         zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill = self.valid_arrays(
-            *self.slant_depth(alt, sinThetView), Eshow
+            *self.slant_depth(alt, sinThetView), Eshow, Conex
         )
 
         # Cloud top height
@@ -672,7 +678,7 @@ class CphotAng:
 
         return photonDen, Cang
 
-    def __call__(self, betaE, alt, Eshow100PeV, init_lat, init_long, cloudf=None):
+    def __call__(self, betaE, alt, Eshow100PeV, init_lat, init_long, Conex, cloudf=None):
         """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
@@ -680,8 +686,8 @@ class CphotAng:
 
         #######################
         b = db.from_sequence(
-            zip(betaE, alt, Eshow100PeV, init_lat, init_long), partition_size=100
+            zip(betaE, alt, Eshow100PeV, init_lat, init_long), partition_size=np.size(alt)//5
         )
         with ProgressBar():
-            Dphots, Cang = zip(*b.map(lambda x: self.run(*x, cloudf)).compute())
+            Dphots, Cang = zip(*b.map(lambda x: self.run(*x, Conex, cloudf)).compute())
         return np.asarray(Dphots), np.array(Cang)

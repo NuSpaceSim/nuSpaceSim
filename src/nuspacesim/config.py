@@ -197,6 +197,8 @@ class SimulationParameters:
     """Error for TEC reconstruction. Default = 0.1"""
     tau_table_version: str = "3"
     """Version of tau conversion tables."""
+    conex_output: str = "0"
+    """1 to have conex-like output, 0 for not."""
 
     @cached_property
     def log_nu_tau_energy(self) -> float:

@@ -57,7 +57,8 @@ from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
-
+from .conex_out import conex_out
+import os
 __all__ = ["compute"]
 
 
@@ -189,6 +190,11 @@ def compute(
 
     if config.detector.method == "Optical" or config.detector.method == "Both":
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
+        conex=config.simulation.conex_output
+        try:
+            os.remove('showerdata.csv')
+        except OSError:
+            pass
 
         numPEs, costhetaChEff = eas(
             beta_tr,
@@ -196,6 +202,7 @@ def compute(
             showerEnergy,
             init_lat,
             init_long,
+            conex,
             cloudf=cloud,
             store=sw,
             plot=to_plot,
@@ -217,6 +224,8 @@ def compute(
         sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
+        if conex=='1':
+            conex_out(sim, config)
 
     if config.detector.method == "Radio" or config.detector.method == "Both":
         logv("Computing [green] EAS Radio signal.[/]")

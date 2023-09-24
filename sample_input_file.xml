@@ -35,5 +35,6 @@
     <TEC>10.0</TEC>
     <TECerr>0.1</TECerr>
     <TauTableVer>3</TauTableVer>
+    <ConexOutput>1</ConexOutput>
   </SimulationParameters>
 </NuSpaceSimParams>
