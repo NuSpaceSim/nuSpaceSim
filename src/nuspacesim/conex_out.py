@@ -18,7 +18,6 @@ def conex_out(data,config):
 
     Zfirst = data["altDec"]
     TauEnergy = np.log10(data["tauEnergy"]) + 9 #Tau energy in log E/eV units
-    ninit=np.size(Zfirst)
     Zmax=20
     Zmin=0
     #TauEnergyMax=18
