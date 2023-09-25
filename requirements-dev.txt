@@ -6,3 +6,4 @@ pytest
 setup-cfg-fmt
 tox
 uproot
+awkward
