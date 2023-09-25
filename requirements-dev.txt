@@ -7,3 +7,4 @@ setup-cfg-fmt
 tox
 uproot
 awkward
+scipy
