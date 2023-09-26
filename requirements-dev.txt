@@ -5,6 +5,3 @@ pre-commit
 pytest
 setup-cfg-fmt
 tox
-uproot
-awkward
-scipy
