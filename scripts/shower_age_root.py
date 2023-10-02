@@ -88,7 +88,6 @@ def shower_age_newton():
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
-
     param_beta = np.log(10**8 / (0.710 / 8.36))
 
     def rns(s):
@@ -103,5 +102,4 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
 
 
 if __name__ == "__main__":
-
     print(shower_age_newton())

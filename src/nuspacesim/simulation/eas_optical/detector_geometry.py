@@ -31,35 +31,40 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from warnings import warn
+
 import numpy as np
+
+from .shower_properties import propagation_angle
 
 
 def viewing_angle(beta_tr, Zdet, Re):
     return np.arcsin((Re / (Re + Zdet)) * np.cos(beta_tr))
 
 
-def propagation_angle(beta_tr, z, Re):
-    return np.arccos((Re / (Re + z)) * np.cos(beta_tr))
-
-
-def propagation_theta(beta_tr, z, Re):
-    return propagation_angle(beta_tr, z, Re)
+#########################################################
+# Should the below functions be deprecated?
+#########################################################
 
 
 def length_along_prop_axis(z_start, z_stop, beta_tr, Re):
+    warn(
+        "This function is deprecated. It will be removed",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     L1 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop**2
     L2 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_start + z_start**2
     L = np.sqrt(L1) - np.sqrt(L2)
     return L
 
 
-def deriv_length_along_prop_axis(z_stop, beta_tr, Re):
-    L1 = Re**2 * np.sin(beta_tr) ** 2 + 2 * Re * z_stop + z_stop**2
-    L = (Re + z_stop) / np.sqrt(L1)
-    return L
-
-
 def altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    warn(
+        "This function is deprecated. It will be removed",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     r1 = Re**2
     r2 = 2 * Re * z_start
     r3 = z_start**2
@@ -69,6 +74,11 @@ def altitude_along_prop_axis(L, z_start, beta_tr, Re):
 
 
 def deriv_altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    warn(
+        "This function is deprecated. It will be removed",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     r1 = Re**2
     r2 = 2 * Re * z_start
     r3 = z_start**2
@@ -79,11 +89,21 @@ def deriv_altitude_along_prop_axis(L, z_start, beta_tr, Re):
 
 
 def gain_in_altitude_along_prop_axis(L, z_start, beta_tr, Re):
+    warn(
+        "This function is deprecated. It will be removed",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return altitude_along_prop_axis(L, z_start, beta_tr, Re) - z_start
 
 
 def distance_to_detector(beta_tr, z, z_det, earth_radius):
+    warn(
+        "This function is deprecated. It will be removed",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     theta_view = viewing_angle(beta_tr, z_det, earth_radius)
     theta_prop = propagation_angle(beta_tr, z, earth_radius)
-    ang_e = np.pi / 2 - theta_view - theta_prop
+    ang_e = 0.5 * np.pi - theta_view - theta_prop
     return np.sin(ang_e) / np.sin(theta_view) * (z + earth_radius)

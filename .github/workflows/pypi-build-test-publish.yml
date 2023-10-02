@@ -15,28 +15,42 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: [37, 38, 39, 310]
+        python: [38, 39, 310, 311]
+        arch: [x86, arm]
         include:
           - os: ubuntu-latest
+            arch: x86
             platform_id: manylinux_x86_64
+            cibw_arch: auto
           - os: macos-latest
+            arch: x86
             platform_id: macosx_x86_64
+            cibw_arch: x86_64
+          - os: macos-latest
+            arch: arm
+            platform_id: macosx_arm64
+            cibw_arch: arm64
+        exclude:
+          - os: ubuntu-latest
+            arch: arm
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Get history and tags for SCM versioning
       run: |
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.3.0
+      uses: pypa/cibuildwheel@v2.15.0
       env:
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-        CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+        CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
+        CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
+        CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v3
       with:
         name: nuspacesim-gh-pypi-artifact
         path: wheelhouse/*.whl
@@ -49,7 +63,7 @@ jobs:
 
     steps:
     - name: Download Build Artifacts
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: nuspacesim-gh-pypi-artifact
         path: wheelhouse/

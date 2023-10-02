@@ -12,8 +12,8 @@ class ToOEvent:
         self.MoonMinPhaseAngleCut = self.config.detector.MoonMinPhaseAngleCut
 
         # Detector definitions
-        self.detlat = self.config.detector.detlat
-        self.detlong = self.config.detector.detlong
+        self.detlat = self.config.detector.lat_start
+        self.detlong = self.config.detector.long_start
         self.detalt = self.config.detector.altitude
         # ToO definitions
         self.sourceRA = self.config.simulation.source_RA

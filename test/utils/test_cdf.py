@@ -23,7 +23,6 @@ def test_grid_inverse_sampler():
 
 
 def test_grid_cdf_sampler():
-
     with as_file(files("nuspacesim.data.nupyprop_tables") / "nu2tau_cdf.1.h5") as file:
         tau_cdf_grid = NssGrid.read(file, format="hdf5")
 

@@ -40,6 +40,7 @@
     NssGrid
     NssGridRead
     NssGridWrite
+    grid_concatenate
     fits_nssgrid_reader
     fits_nssgrid_writer
     hdf5_nssgrid_reader
@@ -59,6 +60,7 @@ __all__ = [
     "NssGrid",
     "NssGridRead",
     "NssGridWrite",
+    "grid_concatenate",
     "fits_nssgrid_reader",
     "fits_nssgrid_writer",
     "hdf5_nssgrid_reader",
@@ -86,7 +88,6 @@ class NssAxes:
     r"""Collection of differently sized, named 1D arrays"""
 
     def __init__(self, values, names):
-
         if not isinstance(values, Iterable):
             values = list([values])
 
@@ -100,7 +101,6 @@ class NssAxes:
         """ List of Axis Names """
 
     def __getitem__(self, item):
-
         if isinstance(item, str):
             if item in self.names:
                 i = self.names.index(item)
@@ -189,7 +189,6 @@ class NssGrid(NDDataArray):
         return self._axes.names
 
     def __repr__(self):
-
         rep = "NssGrid {\n"
         rep += f"meta : {repr(self.meta)}\n"
 
@@ -267,8 +266,24 @@ class NssGrid(NDDataArray):
             raise RuntimeWarning("Axes object has no __getitem__.")
 
 
-def fits_nssgrid_reader(filename, **kwargs):
+def grid_concatenate(g1, g2, axis):
+    # grids have same ndim
+    assert g1.ndim == g2.ndim
+    # grids have same axis names
+    assert g1.axis_names
+    # grids have same shape everywhere except the axis dimension
+    assert (
+        g1.shape[:axis] + g1.shape[axis + 1 :] == g2.shape[:axis] + g2.shape[axis + 1 :]
+    )
 
+    new_axes = g1.axes
+    new_axes[axis] = np.concatenate((g1.axes[axis], g2.axes[axis]))
+    new_data = np.concatenate((g1.data, g2.data), axis=axis)
+
+    return NssGrid(new_data, new_axes, g1.axis_names)
+
+
+def fits_nssgrid_reader(filename, **kwargs):
     with fits.open(filename, **kwargs) as f:
         naxis = f[0].header["NAXIS"]
         axis_names = [f[0].header[f"AXIS{i}"] for i in range(naxis)]
@@ -279,7 +294,6 @@ def fits_nssgrid_reader(filename, **kwargs):
 
 
 def fits_nssgrid_writer(grid, filename, **kwargs):
-
     primary = fits.PrimaryHDU(grid.data, fits.Header(grid.meta))
     primary.add_checksum()
 
@@ -328,7 +342,6 @@ def hdf5_nssgrid_writer(grid, filename, path="/", **kwargs):
         mode = "a"
 
     with h5py.File(filename, mode) as f:
-
         grp = f[path] if path in f else f.create_group(path)
 
         if kwargs["overwrite"] and "__nss_grid_data__" in grp:

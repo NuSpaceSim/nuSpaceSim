@@ -49,7 +49,6 @@ def us_std_atm_density(z, earth_radius=6371):
 
 
 if __name__ == "__main__":
-
     zs = np.linspace(0, 65, int(1e6))
     print(timeit(lambda: us_std_atm_density(zs), number=1))
     print(timeit(lambda: rho(zs), number=1))

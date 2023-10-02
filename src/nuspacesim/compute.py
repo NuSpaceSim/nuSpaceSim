@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 r"""The main proceedure for performaing a full simulation in nuspacesim.
 
 *********************
@@ -54,6 +53,7 @@ from rich.console import Console
 
 from .config import NssConfig
 from .results_table import ResultsTable
+from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
@@ -145,6 +145,8 @@ def compute(
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = ResultsTable()
+    geom = RegionGeom(config)
+    cloud = CloudTopHeight(config)
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
@@ -185,6 +187,12 @@ def compute(
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
+    """init_lat, init_long = geom.find_lat_long_along_traj(0)"""
+    init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
+    """sim(
+        ("init_lat", "init_lon"),
+        (init_lat, init_long),
+    )"""
 
     logv("Computing [green] Energy Spectra.[/]")
 
@@ -207,6 +215,9 @@ def compute(
             beta_tr,
             altDec,
             showerEnergy,
+            init_lat,
+            init_long,
+            cloudf=cloud,
             store=sw,
             plot=to_plot,
         )
@@ -249,7 +260,7 @@ def compute(
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.McIntegral(
             snrs,
-            np.cos(thetaArr),
+            np.cos(config.simulation.theta_ch_max),
             tauExitProb,
             config.detector.det_SNR_thres,
             mc_spec_norm,

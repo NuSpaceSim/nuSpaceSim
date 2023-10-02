@@ -22,8 +22,8 @@ The member attributes are as follows:
 
   * **method**: Type of Detector, default = Optical
   * **altitude**: Altitude from sea level in km
-  * **ra_start**: Right Ascension (Degrees | Radians)
-  * **dec_start**: Declination (Degrees | Radians)
+  * **lat_start**: Latitude (Degrees | Radians)
+  * **long_start**: Longitude (Degrees | Radians)
   * **telescope_effective_area**: Effective area of the detector scope. Default = 2.5 m^2
   * **quantum_efficiency**: Quantum Efficiency of the detector telescope. Default = 0.2
   * **photo_electron_threshold**: Threshold Number of Photo electrons. Default = 10

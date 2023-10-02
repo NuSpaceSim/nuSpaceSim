@@ -36,7 +36,8 @@ def test_nss_result_store_scalar():
         """this is the docstring"""
         return float(input1 + input2), int(input1 * input2)
 
-    iA, iB = np.random.randn(2, 1)
+    iAB = np.random.randn(2, 1)
+    iA, iB = iAB[0, 0], iAB[1, 0]
     vA, vB = test_base_f(iA, iB)
 
     assert vA == iA + iB
@@ -56,7 +57,6 @@ def test_nss_result_store_scalar():
 
 
 def test_nss_result_plot():
-
     plot_written = False
     iA, iB = np.random.randn(2, 128)
 

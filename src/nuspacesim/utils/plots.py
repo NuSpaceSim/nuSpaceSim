@@ -39,7 +39,6 @@ __all__ = ["dashboard", "energy_histograms", "show_plot"]
 
 
 def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
-
     xf = np.log10 if logx else lambda q: q
     yf = np.log10 if logy else lambda q: q
 
@@ -91,7 +90,6 @@ def dashboard(sim):
 
 
 def energy_histograms(sim, fig, ax=None):
-
     energy_bins = np.arange(
         np.round(np.min(np.log10(sim["showerEnergy"]) + 17), 1) - 0.1,
         np.round(np.max(sim["log_e_nu"] + 9), 1) + 0.1,
@@ -126,7 +124,6 @@ def energy_histograms(sim, fig, ax=None):
 
 
 def betas_histogram(sim, fig, ax):
-
     beta_bins = np.arange(
         np.min(np.degrees(sim["beta_rad"])) - 1,
         np.max(np.degrees(sim["beta_rad"])) + 2,
@@ -153,10 +150,10 @@ def tau_lorentz(sim, fig, ax):
     )
 
 
-def tau_pexit_hist(sim, fig, ax):
+def tau_pexit_hist(sim, _, ax):
     ax.hist(sim["tauExitProb"], 100, log=True, facecolor="g")
     ax.set_ylabel("Counts")
-    ax.set_xlabel(r"$\log(P_\mathrm{exit}(\tau))$")
+    ax.set_xlabel(r"$P_\mathrm{exit}(\tau)$")
 
 
 def tau_pexit_density(sim, fig, ax):

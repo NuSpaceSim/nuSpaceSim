@@ -30,14 +30,13 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """Module holding conifiguration class definitions."""
 
 ####
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Union
 
 try:
@@ -48,6 +47,7 @@ except ImportError:
 from numpy import nan, radians, sin
 
 from . import constants as const
+from .types.cloud_types import MonoCloud, NoCloud, PressureMapCloud
 
 __all__ = [
     "DetectorCharacteristics",
@@ -67,10 +67,10 @@ class DetectorCharacteristics:
     """ Type of detector: Default = Optical """
     altitude: float = 525.0
     """ Altitude from sea-level. Default = 525 KM """
-    detlat: float = 0.0
-    """ Latitude in earth coords (Degrees). Default = 0.0 """
-    detlong: float = 0.0
-    """ Longitude (Degrees). Default = 0.0 """
+    lat_start: float = 0.0
+    """ Latitude in Earth coords (Degrees). Default = 0.0 """
+    long_start: float = 0.0
+    """ Longitude in Earth coords (Degrees). Default = 0.0 """
     telescope_effective_area: float = 2.5
     '"" Effective area of the detector telescope. Default = 2.5 sq.meters ""'
     quantum_efficiency: float = 0.2
@@ -89,11 +89,11 @@ class DetectorCharacteristics:
     """ Antenna gain in dB: Default = 1.8 """
     sun_moon_cuts: bool = True
     """ Apply cut for sun and moon: Default = True """
-    sun_alt_cut: float = -12
-    """ Sun altitude beyond which no observations are possible: Default = -12 """
-    moon_alt_cut: float = 0
+    sun_alt_cut: float = radians(-18.0)
+    """ Sun altitude beyond which no observations are possible: Default = -18 deg """
+    moon_alt_cut: float = radians(0.0)
     """ Moon altitude beyond which no observations are possible: Default = 0 """
-    MoonMinPhaseAngleCut: float = radians(150)
+    MoonMinPhaseAngleCut: float = radians(150.0)
     """ Moon phase angle below which, when moon is above moon_alt_cut no observations are possible: Default = 150 """
 
     def __call__(self) -> dict[str, tuple[Any, str]]:
@@ -113,8 +113,8 @@ class DetectorCharacteristics:
         return {
             "method": (self.method, "Detector: Method (Optical, radio or both"),
             "detAlt": (self.altitude, "Detector: Altitude"),
-            "raStart": (self.detlat, "Detector: Initial Right Ascencion"),
-            "decStart": (self.detlong, "Detector: Initial Declination"),
+            "latStart": (self.lat_start, "Detector: Initial Latitude"),
+            "lonStart": (self.long_start, "Detector: Initial Longitude"),
             "telEffAr": (
                 self.telescope_effective_area,
                 "Detector: Telescope Effective Area",
@@ -129,6 +129,13 @@ class DetectorCharacteristics:
             "SNRthres": (self.det_SNR_thres, "Detector: Radio SNR threshold"),
             "detNant": (self.det_Nant, "Detector: Number of Antennas"),
             "detGain": (self.det_gain, "Detector: Antenna Gain"),
+            "sunmoonCuts": (self.sun_moon_cuts, "Detector: Apply Sun Moon Cuts"),
+            "sunMaxElevAng": (self.sun_alt_cut, "Detector: Maximum Sun Elevation"),
+            "moonMaxElevAng": (self.moon_alt_cut, "Detector: Maximum Moon Elevation"),
+            "moonMinPhaseAng": (
+                self.MoonMinPhaseAngleCut,
+                "Detector: Minimum Moon Phase Angle",
+            ),
         }
 
 
@@ -184,8 +191,13 @@ class SimulationParameters:
     """Number of thrown trajectories. Default = 1000"""
     theta_ch_max: float = radians(3.0)
     """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""
-    spectrum: Union[MonoSpectrum, PowerSpectrum, FileSpectrum] = MonoSpectrum()
+    spectrum: Union[MonoSpectrum, PowerSpectrum, FileSpectrum] = field(
+        default_factory=MonoSpectrum
+    )
     """Distribution from which to draw nu_tau energies."""
+    cloud_model: Union[NoCloud, MonoCloud, PressureMapCloud] = field(
+        default_factory=NoCloud
+    )
     e_shower_frac: float = 0.5
     """Fraction of ETau in Shower. Default = 0.5."""
     ang_from_limb: float = radians(7.0)
@@ -198,19 +210,19 @@ class SimulationParameters:
     """Total Electron Content for ionospheric propagation. Default = 10."""
     TECerr: float = 0.1
     """Error for TEC reconstruction. Default = 0.1"""
-    tau_table_version: str = "1"
+    tau_table_version: str = "3"
     """Version of tau conversion tables."""
     det_mode: str = "ToO"
 
-    source_RA: float = 0
-    source_DEC: float = 0
-    """Right Ascencion and Declination of the source"""
+    source_RA: float = 0.0
+    source_DEC: float = 0.0
+    """Right Ascension and Declination of the source"""
 
     source_date: str = "2022-06-02T01:00:00"
     source_date_format: str = "isot"
     """Date of the event and format"""
 
-    source_obst: float = 24 * 60 * 60
+    source_obst: float = 24.0 * 60.0 * 60.0
     """Observation time (s). Default = 1 day"""
 
     @cached_property
@@ -268,6 +280,7 @@ class SimulationParameters:
         }
 
         d.update(self.spectrum())
+        d.update(self.cloud_model())
 
         return d
 
@@ -284,11 +297,11 @@ class NssConfig:
 
     """
 
-    detector: DetectorCharacteristics = DetectorCharacteristics()
+    detector: DetectorCharacteristics = field(default_factory=DetectorCharacteristics)
     """The Detector Characteristics."""
-    simulation: SimulationParameters = SimulationParameters()
+    simulation: SimulationParameters = field(default_factory=SimulationParameters)
     """The Simulation Parameters."""
-    constants: const.Fund_Constants = const.Fund_Constants()
+    constants: const.Fund_Constants = field(default_factory=const.Fund_Constants)
     """The Fudimental physical constants."""
     # source: Source = Source()
     # """The Source parameters."""

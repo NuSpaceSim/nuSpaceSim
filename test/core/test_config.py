@@ -54,6 +54,8 @@ def test_simulation_params():
 def test_nss_config():
     nc1 = nss.NssConfig()
     dc = nss.DetectorCharacteristics()
+    assert nc1.detector == dc
     sp = nss.SimulationParameters()
+    assert nc1.simulation == sp
     nc2 = nss.NssConfig(detector=dc, simulation=sp)
     assert nc1 == nc2

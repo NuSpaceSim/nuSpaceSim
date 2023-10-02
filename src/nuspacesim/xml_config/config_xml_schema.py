@@ -30,7 +30,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """XMLSchema string file. For validating XML configuration files."""
 
 from io import StringIO
@@ -38,7 +37,7 @@ from io import StringIO
 xsd = StringIO(
     """\
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:complexType name="AngleType">
+<xs:complexType name="AngleType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
         <xs:attribute name="Unit">
@@ -51,9 +50,9 @@ xsd = StringIO(
         </xs:attribute>
       </xs:extension>
     </xs:simpleContent>
-  </xs:complexType>
+</xs:complexType>
 
-  <xs:complexType name="AreaType">
+<xs:complexType name="AreaType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
         <xs:attribute name="Unit">
@@ -65,9 +64,9 @@ xsd = StringIO(
         </xs:attribute>
       </xs:extension>
     </xs:simpleContent>
-  </xs:complexType>
+</xs:complexType>
 
-  <xs:complexType name="DistType">
+<xs:complexType name="DistType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
         <xs:attribute name="Unit">
@@ -79,43 +78,59 @@ xsd = StringIO(
         </xs:attribute>
       </xs:extension>
     </xs:simpleContent>
-  </xs:complexType>
+</xs:complexType>
 
-  <xs:complexType name="PETType">
-    <xs:sequence>
-      <xs:element name="NPE" type="xs:decimal"/>
-    </xs:sequence>
-    <xs:attribute name="Preset" type="xs:boolean"/>
-  </xs:complexType>
+<xs:complexType name="PETType">
+  <xs:sequence>
+    <xs:element name="NPE" type="xs:decimal"/>
+  </xs:sequence>
+  <xs:attribute name="Preset" type="xs:boolean"/>
+</xs:complexType>
 
-  <xs:complexType name="TSType">
-    <xs:sequence>
-      <xs:element name="FracETauInShower" type="xs:decimal"/>
-    </xs:sequence>
-    <xs:attribute name="Preset" type="xs:boolean"/>
-  </xs:complexType>
+<xs:complexType name="TSType">
+  <xs:sequence>
+    <xs:element name="FracETauInShower" type="xs:decimal"/>
+  </xs:sequence>
+  <xs:attribute name="Preset" type="xs:boolean"/>
+</xs:complexType>
 
-  <xs:complexType name="MonoSpecType">
-    <xs:sequence>
-      <xs:element name="LogNuEnergy" type="xs:decimal"/>
-    </xs:sequence>
-  </xs:complexType>
+<xs:complexType name="MonoSpecType">
+  <xs:sequence>
+    <xs:element name="LogNuEnergy" type="xs:decimal"/>
+  </xs:sequence>
+</xs:complexType>
 
-  <xs:complexType name="PowerSpecType">
-    <xs:sequence>
-      <xs:element name="PowerLawIndex" type="xs:decimal"/>
-      <xs:element name="LowerBound" type="xs:decimal"/>
+<xs:complexType name="PowerSpecType">
+  <xs:sequence>
+    <xs:element name="PowerLawIndex" type="xs:decimal"/>
+    <xs:element name="LowerBound" type="xs:decimal"/>
     <xs:element name="UpperBound" type="xs:decimal"/>
-    </xs:sequence>
-  </xs:complexType>
+  </xs:sequence>
+</xs:complexType>
 
-  <xs:complexType name="FileSpecType">
-    <xs:sequence>
-      <xs:element name="FilePath" type="xs:string"/>
-    </xs:sequence>
-  </xs:complexType>
+<xs:complexType name="FileSpecType">
+  <xs:sequence>
+    <xs:element name="FilePath" type="xs:string"/>
+  </xs:sequence>
+</xs:complexType>
 
-  <xs:complexType name="FreqType">
+<xs:complexType name="MonoCloudType">
+  <xs:sequence>
+    <xs:element name="CloudTopHeight" type="DistType"/>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="NoCloudType">
+</xs:complexType>
+
+<xs:complexType name="PressureMapCloudType">
+  <xs:sequence>
+    <xs:element name="Month" type="xs:string"/>
+    <xs:element name="Version" type="xs:decimal"/>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="FreqType">
     <xs:simpleContent>
       <xs:extension base="xs:decimal">
         <xs:attribute name="Unit">
@@ -130,9 +145,9 @@ xsd = StringIO(
         </xs:attribute>
       </xs:extension>
     </xs:simpleContent>
-  </xs:complexType>
+</xs:complexType>
 
-  <xs:complexType name="DateType">
+<xs:complexType name="DateType">
     <xs:simpleContent>
       <xs:extension base="xs:string">
         <xs:attribute name="Format">
@@ -162,9 +177,9 @@ xsd = StringIO(
         </xs:attribute>
       </xs:extension>
     </xs:simpleContent>
-  </xs:complexType>
+</xs:complexType>
 
-  <xs:complexType name="DurationType">
+<xs:complexType name="DurationType">
     <xs:simpleContent>
       <xs:extension base="xs:string">
         <xs:attribute name="Unit">
@@ -179,79 +194,88 @@ xsd = StringIO(
         </xs:attribute>
       </xs:extension>
     </xs:simpleContent>
-  </xs:complexType>
+</xs:complexType>
 
-  <xs:complexType name="SourceParamsType">
+<xs:complexType name="SourceParamsType">
+  <xs:sequence>
+    <xs:element name="SourceRightAscension" type="AngleType"/>
+    <xs:element name="SourceDeclination" type="AngleType"/>
+    <xs:element name="SourceDate" type="DateType"/>
+    <xs:element name="ObservationPeriod" type="DurationType"/>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:element name="NuSpaceSimParams">
+  <xs:complexType>
     <xs:sequence>
-      <xs:element name="SourceRightAscension" type="AngleType"/>
-      <xs:element name="SourceDeclination" type="AngleType"/>
-      <xs:element name="SourceDate" type="DateType"/>
-      <xs:element name="ObservationPeriod" type="DurationType"/>
+      <xs:element name="DetectorCharacteristics">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="QuantumEfficiency" type="xs:decimal"/>
+            <xs:element name="TelescopeEffectiveArea" type="AreaType"/>
+            <xs:element name="PhotoElectronThreshold" type="PETType"/>
+            <xs:element name="DetectorAltitude" type="DistType"/>
+            <xs:element name="InitialDetectorLatitude" type="AngleType"/>
+            <xs:element name="InitialDetectorLongitude" type="AngleType"/>
+            <xs:element name="LowFrequency" type="FreqType"/>
+            <xs:element name="HighFrequency" type="FreqType"/>
+            <xs:element name="SNRThreshold" type="xs:decimal"/>
+            <xs:element name="NAntennas" type="xs:integer"/>
+            <xs:element name="AntennaGain" type="xs:decimal"/>
+            <xs:element minOccurs="0" name="SunMoonCuts">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element minOccurs="0" name="SunAngleBelowHorizonCut" type="AngleType"/>
+                  <xs:element minOccurs="0" name="MoonAngleBelowHorizonCut" type="AngleType"/>
+                  <xs:element minOccurs="0" name="MoonMinPhaseAngleCut" type="AngleType"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+          <xs:attribute name="Type" type="xs:string"/>
+          <xs:attribute name="Method" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="SimulationParameters">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="ToOSourceParameters" type="SourceParamsType"/>
+            <xs:element name="MaximumCherenkovAngle" type="AngleType"/>
+            <xs:element name="AngleFromLimb" type="AngleType"/>
+            <xs:element name="TauShowerType" type="TSType"/>
+            <xs:element name="NuTauEnergySpecType">
+              <xs:complexType>
+                <xs:choice>
+                  <xs:element name="MonoSpectrum" type="MonoSpecType"/>
+                  <xs:element name="PowerSpectrum" type="PowerSpecType"/>
+                  <xs:element name="FileSpectrum" type="FileSpecType"/>
+                </xs:choice>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="CloudModelType">
+              <xs:complexType>
+                <xs:choice>
+                  <xs:element name="MonoCloudModel" type="MonoCloudType"/>
+                  <xs:element name="NoCloudModel" type="NoCloudType"/>
+                  <xs:element name="PressureMapCloudModel" type="PressureMapCloudType"/>
+                </xs:choice>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="AzimuthalAngle" type="AngleType"/>
+            <xs:element name="NumTrajs" type="xs:decimal"/>
+            <xs:element name="ModelIonosphere" type="xs:integer"/>
+            <xs:element name="TEC" type="xs:decimal"/>
+            <xs:element name="TECerr" type="xs:decimal"/>
+            <xs:element name="TauTableVer" type="xs:decimal"/>
+          </xs:sequence>
+          <xs:attribute name="DetectionMode" type="xs:string"/>
+          <xs:attribute name="Method" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
     </xs:sequence>
   </xs:complexType>
-
-  <xs:element name="NuSpaceSimParams">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element name="DetectorCharacteristics">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="QuantumEfficiency" type="xs:decimal"/>
-              <xs:element name="TelescopeEffectiveArea" type="AreaType"/>
-              <xs:element name="PhotoElectronThreshold" type="PETType"/>
-              <xs:element name="DetectorAltitude" type="DistType"/>
-              <xs:element name="InitialDetectorLatitude" type="AngleType"/>
-              <xs:element name="InitialDetectorLongitude" type="AngleType"/>
-              <xs:element name="LowFrequency" type="FreqType"/>
-              <xs:element name="HighFrequency" type="FreqType"/>
-              <xs:element name="SNRThreshold" type="xs:decimal"/>
-              <xs:element name="NAntennas" type="xs:integer"/>
-              <xs:element name="AntennaGain" type="xs:decimal"/>
-              <xs:element minOccurs="0" name="SunMoonCuts">
-                <xs:complexType>
-                  <xs:sequence>
-                    <xs:element minOccurs="0" name="SunAngleBelowHorizonCut" type="AngleType"/>
-                    <xs:element minOccurs="0" name="MoonAngleBelowHorizonCut" type="AngleType"/>
-                    <xs:element minOccurs="0" name="MoonMinPhaseAngleCut" type="AngleType"/>
-                  </xs:sequence>
-                </xs:complexType>
-              </xs:element>
-            </xs:sequence>
-            <xs:attribute name="Type" type="xs:string"/>
-            <xs:attribute name="Method" type="xs:string"/>
-          </xs:complexType>
-        </xs:element>
-        <xs:element name="SimulationParameters">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element minOccurs="0" name="ToOSourceParameters" type="SourceParamsType"/>
-              <xs:element name="MaximumCherenkovAngle" type="AngleType"/>
-              <xs:element name="AngleFromLimb" type="AngleType"/>
-              <xs:element name="TauShowerType" type="TSType"/>
-              <xs:element name="NuTauEnergySpecType">
-                <xs:complexType>
-                  <xs:choice>
-                    <xs:element name="MonoSpectrum" type="MonoSpecType"/>
-                    <xs:element name="PowerSpectrum" type="PowerSpecType"/>
-                    <xs:element name="FileSpectrum" type="FileSpecType"/>
-                  </xs:choice>
-                </xs:complexType>
-              </xs:element>
-              <xs:element name="AzimuthalAngle" type="AngleType"/>
-              <xs:element name="NumTrajs" type="xs:decimal"/>
-              <xs:element name="ModelIonosphere" type="xs:integer"/>
-              <xs:element name="TEC" type="xs:decimal"/>
-              <xs:element name="TECerr" type="xs:decimal"/>
-              <xs:element name="TauTableVer" type="xs:decimal"/>
-            </xs:sequence>
-            <xs:attribute name="DetectionMode" type="xs:string"/>
-            <xs:attribute name="Method" type="xs:string"/>
-          </xs:complexType>
-        </xs:element>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
+</xs:element>
 </xs:schema>
-    """
+        """
 )
 """XMLSchema string file. For validating XML configuration files."""
