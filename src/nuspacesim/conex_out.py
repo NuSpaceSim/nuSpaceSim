@@ -1,6 +1,3 @@
-import csv
-import os
-
 import awkward as ak
 import numpy as np
 import uproot
@@ -12,7 +9,7 @@ from .simulation.eas_optical.shower_properties import (
 )
 
 
-def conex_out(data, config):
+def conex_out(data, profiles):
     def GH(X, X0, Xmax, Nmax, p3, p2, p1):
         return (
             Nmax
@@ -32,34 +29,21 @@ def conex_out(data, config):
     beta = data["beta_rad"][mask]
     Zfirst = data["altDec"][mask]
     TauEnergy = TauEnergy[mask]
-    X = ak.ArrayBuilder()
-    Z = ak.ArrayBuilder()
-    RN = ak.ArrayBuilder()
     H = ak.ArrayBuilder()
     Xfirst = slant_depth(0, Zfirst, np.pi / 2 - beta)
-    with open(
-        "showerdata.csv", "r"
-    ) as file:  # Read shower profile, slant depth and height.
-        lines = csv.reader(file)
-        for i, line in enumerate(lines):
-            if i % 3 == 0:
-                X.append(
-                    Xfirst[int(i / 3)] + np.fromstring(line[0], sep=" ", dtype="f4")
-                )
-            elif i % 3 == 1:
-                Z.append(np.fromstring(line[0], sep=" ", dtype="f4"))
-            else:
-                RN.append(np.fromstring(line[0], sep=" ", dtype="f4"))
-    nX = ak.to_numpy(ak.num(X, axis=1))
+
     n = np.size(Zfirst)
-    RNmask = ak.values_astype(RN.snapshot(), np.float32)
+    X = ak.values_astype(ak.Array(profiles)[:, 0] + Xfirst, np.float32)
+    Z = ak.values_astype(profiles, np.float32)[:, 1]
+    RN = ak.values_astype(profiles, np.float32)[:, 2]
+    nX = ak.to_numpy(ak.num(X, axis=1))
+
     Xfirstmax = 1 * 10**4
     mask2 = (
         Xfirst <= Xfirstmax
     )  # Remove too long profiles (which produce errors in offline)
-
     for i in range(n):
-        if RNmask[i][-1] > np.max(RNmask[i]) * 0.5:
+        if RN[i][-1] > np.max(RN[i]) * 0.5:
             mask2[i] = False
     nmasked = np.sum(~mask2) + np.sum(~mask)
 
@@ -76,9 +60,9 @@ def conex_out(data, config):
     print("Number of masked events ", nmasked)
     print("Number of valid events ", n)
 
-    X = ak.values_astype(X.snapshot(), np.float32)[mask2]
-    Z = ak.values_astype(Z.snapshot(), np.float32)[mask2]
-    RN = ak.values_astype(RN.snapshot(), np.float32)[mask2]
+    X = X[mask2]
+    Z = Z[mask2]
+    RN = RN[mask2]
 
     # Useful variables to fill the conex File
     PID = np.array([100], dtype="i4")  # Proton type for Conex
@@ -293,4 +277,3 @@ def conex_out(data, config):
         }
     )
     f.close()
-    os.remove("showerdata.csv")

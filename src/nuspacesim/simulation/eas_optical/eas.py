@@ -105,7 +105,7 @@ class EAS:
         thetaCh100PeV = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
-        dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
+        dphots[mask], thetaCh100PeV[mask], profilesOut = self.CphotAng(
             beta[mask],
             altDec[mask],
             showerEnergy[mask],
@@ -134,7 +134,7 @@ class EAS:
 
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
-        return numPEs, costhetaChEff
+        return numPEs, costhetaChEff, profilesOut
 
 
 def show_plot(sim, plot):

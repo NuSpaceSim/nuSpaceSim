@@ -193,12 +193,8 @@ def compute(
     if config.detector.method == "Optical" or config.detector.method == "Both":
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
         conex = config.simulation.conex_output
-        try:
-            os.remove("showerdata.csv")
-        except OSError:
-            pass
 
-        numPEs, costhetaChEff = eas(
+        numPEs, costhetaChEff, profilesOut = eas(
             beta_tr,
             altDec,
             showerEnergy,
@@ -227,7 +223,7 @@ def compute(
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
         if conex == "1":
-            conex_out(sim, config)
+            conex_out(sim, profilesOut)
 
     if config.detector.method == "Radio" or config.detector.method == "Both":
         logv("Computing [green] EAS Radio signal.[/]")
