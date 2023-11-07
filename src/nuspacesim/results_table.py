@@ -73,7 +73,7 @@ class ResultsTable(AstropyTable):
             config = NssConfig()
 
         if isinstance(config, NssConfig):
-            now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+            now = f"{datetime.datetime.now(): %Y%m%d%H%M%S}"
             super().__init__(
                 meta={
                     **config.detector(),
@@ -163,4 +163,4 @@ class ResultsTable(AstropyTable):
             super().write(filename, **kwargs)
 
         else:
-            raise ValueError(f"File output format {format} not in {{ fits, hdf5 }}!")
+            raise ValueError(f"File output format {format} not in {{  fits, hdf5  }}!")

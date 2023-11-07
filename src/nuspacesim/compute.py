@@ -132,13 +132,13 @@ def compute(
         console.rule("[bold blue] NuSpaceSim")
 
     def mc_logv(mcint, mcintgeo, numEvPass, mcunc, method):
-        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]:", mcint)
+        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]: ", mcint)
         logv(
-            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
+            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]: ",
             mcintgeo,
         )
-        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
-        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
+        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]: ", numEvPass)
+        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]: ", mcunc)
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
