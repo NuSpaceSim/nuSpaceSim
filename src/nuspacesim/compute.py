@@ -202,7 +202,6 @@ def compute(
             init_long,
             conex,
             cloudf=cloud,
-            store=sw,
             plot=to_plot,
         )
 
