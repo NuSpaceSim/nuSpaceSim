@@ -35,5 +35,6 @@
     <TEC>10.0</TEC>
     <TECerr>0.1</TECerr>
     <TauTableVer>3</TauTableVer>
+    <ConexOutput>0</ConexOutput> <!-- 1 for conex-like (.root) output. Anything else to disable  -->
   </SimulationParameters>
 </NuSpaceSimParams>

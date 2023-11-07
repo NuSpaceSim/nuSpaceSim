@@ -199,6 +199,7 @@ xsd = StringIO(
             <xs:element name="TEC" type="xs:decimal"/>
             <xs:element name="TECerr" type="xs:decimal"/>
             <xs:element name="TauTableVer" type="xs:decimal"/>
+            <xs:element name="ConexOutput" type="xs:decimal"/>
           </xs:sequence>
           <xs:attribute name="DetectionMode" type="xs:string"/>
           <xs:attribute name="Method" type="xs:string"/>

@@ -215,6 +215,7 @@ def parse_simulation_params(xmlfile: str) -> SimulationParameters:
         TEC=float(simparams["TEC"]),
         TECerr=np.abs(float(simparams["TECerr"])),
         tau_table_version=simparams["TauTableVer"],
+        conex_output=simparams["ConexOutput"],
     )
 
 
@@ -401,6 +402,9 @@ def create_xml(filename: str, config: NssConfig = NssConfig()) -> None:
 
     TauTableVer = ET.SubElement(simparams, "TauTableVer")
     TauTableVer.text = str(config.simulation.tau_table_version)
+
+    ConexOutput = ET.SubElement(simparams, "ConexOutput")
+    ConexOutput.text = str(config.simulation.ConexOutput)
 
     def indent(elem, level=0):
         i = "\n" + level * "  "

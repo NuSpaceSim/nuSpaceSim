@@ -45,9 +45,12 @@ NuSpaceSim Simulation
    compute
 
 """
+import os
+
 import numpy as np
 from rich.console import Console
 
+from .conex_out import conex_out
 from .config import NssConfig
 from .results_table import ResultsTable
 from .simulation.atmosphere.clouds import CloudTopHeight
@@ -129,13 +132,13 @@ def compute(
         console.rule("[bold blue] NuSpaceSim")
 
     def mc_logv(mcint, mcintgeo, numEvPass, mcunc, method):
-        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]:", mcint)
+        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]: ", mcint)
         logv(
-            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
+            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]: ",
             mcintgeo,
         )
-        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
-        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
+        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]: ", numEvPass)
+        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]: ", mcunc)
 
     sim = ResultsTable(config)
     geom = RegionGeom(config)
@@ -189,15 +192,16 @@ def compute(
 
     if config.detector.method == "Optical" or config.detector.method == "Both":
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
+        conex = config.simulation.conex_output
 
-        numPEs, costhetaChEff = eas(
+        numPEs, costhetaChEff, profilesOut = eas(
             beta_tr,
             altDec,
             showerEnergy,
             init_lat,
             init_long,
+            conex,
             cloudf=cloud,
-            store=sw,
             plot=to_plot,
         )
 
@@ -217,6 +221,8 @@ def compute(
         sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
+        if conex == "1":
+            conex_out(sim, profilesOut)
 
     if config.detector.method == "Radio" or config.detector.method == "Both":
         logv("Computing [green] EAS Radio signal.[/]")

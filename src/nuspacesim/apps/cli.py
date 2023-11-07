@@ -76,6 +76,12 @@ def cli():
     "-o", "--output", type=click.Path(exists=False), default=None, help="Output file."
 )
 @click.option(
+    "-c",
+    "--conex_output",
+    is_flag=True,
+    help="Write output as a .root file with conex-like format.",
+)
+@click.option(
     "-p",
     "--plot",
     type=click.Choice(list(registry), case_sensitive=False),
@@ -155,6 +161,7 @@ def run(
     plot: list,
     plotconfig: str,
     plotall: bool,
+    conex_output: bool,
     write_stages: bool,
     monospectrum,
     powerspectrum,
@@ -185,6 +192,8 @@ def run(
         INI file to select plots for each module, as well as to specifiy global plot settings.
     plotall: bool, optional
         Plot all the available the simulation results plots.
+    conex_output: bool, optional
+        Write output as a .root file with conex-like format.
     no_result_file: bool, optional
         Disables writing results to output files.
 
@@ -208,6 +217,10 @@ def run(
         config.simulation.spectrum = MonoSpectrum(monospectrum)
     if powerspectrum is not None:
         config.simulation.spectrum = PowerSpectrum(*powerspectrum)
+
+    # Conex-like Output
+    if conex_output:
+        config.simulation.conex_output = "1"
 
     # Clouds
     is_nc = nocloud is not None

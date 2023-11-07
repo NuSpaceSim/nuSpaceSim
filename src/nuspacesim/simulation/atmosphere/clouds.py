@@ -99,7 +99,7 @@ def extract_fits_cloud_pressure_map_v0(cloud_model: cloud_types.PressureMapCloud
     version = cloud_model.version
     with as_file(
         files("nuspacesim.data.cloud_maps")
-        / f"nss_map_CloudTopPressure_{month:02d}.v{version}.fits"
+        / f"nss_map_CloudTopPressure_{month: 02d}.v{version}.fits"
     ) as file:
         hdul = fits.open(file)
         map = np.copy(hdul[0].data)

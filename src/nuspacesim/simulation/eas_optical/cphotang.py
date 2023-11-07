@@ -41,6 +41,7 @@ r"""Cherenkov photon density and angle determination class.
 
 """
 
+import awkward as ak
 import dask.bag as db
 import numpy as np
 from dask.diagnostics import ProgressBar
@@ -495,7 +496,9 @@ class CphotAng:
 
         return photsum
 
-    def valid_arrays(self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA, Eshow):
+    def valid_arrays(
+        self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA, Eshow, Conex
+    ):
         """
         Return data arrays with invalid values removed
         """
@@ -545,8 +548,9 @@ class CphotAng:
         s = s[mask]
         RN = RN[mask]
         e2hill = e2hill[mask]
+        gramsum = gramsum[mask]
 
-        return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
+        return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum
 
     def e0(self, shape, s):
         """Hillas Energy Paramaterization.
@@ -592,7 +596,7 @@ class CphotAng:
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
 
-    def run(self, betaE, alt, Eshow100PeV, lat, long, cloudf=None):
+    def run(self, betaE, alt, Eshow100PeV, lat, long, Conex, profilesIn, cloudf=None):
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
@@ -608,9 +612,11 @@ class CphotAng:
         # Shower
         #
 
-        zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill = self.valid_arrays(
-            *self.slant_depth(alt, sinThetView), Eshow
+        zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum = self.valid_arrays(
+            *self.slant_depth(alt, sinThetView), Eshow, Conex
         )
+        if Conex == "1":
+            profilesIn = ak.concatenate([profilesIn, [gramsum], [zs], [RN]], axis=0)
 
         # Cloud top height
         cloud_top_height = cloudf(lat, long) if cloudf else -np.inf
@@ -670,18 +676,23 @@ class CphotAng:
 
         Cang = np.degrees(AveCangI + CangsigI)
 
-        return photonDen, Cang
+        return photonDen, Cang, profilesIn
 
-    def __call__(self, betaE, alt, Eshow100PeV, init_lat, init_long, cloudf=None):
+    def __call__(
+        self, betaE, alt, Eshow100PeV, init_lat, init_long, Conex, cloudf=None
+    ):
         """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
         """
-
+        profilesIn = ak.Array([])
         #######################
         b = db.from_sequence(
-            zip(betaE, alt, Eshow100PeV, init_lat, init_long), partition_size=100
+            zip(betaE, alt, Eshow100PeV, init_lat, init_long),
+            partition_size=100,
         )
         with ProgressBar():
-            Dphots, Cang = zip(*b.map(lambda x: self.run(*x, cloudf)).compute())
-        return np.asarray(Dphots), np.array(Cang)
+            Dphots, Cang, profilesOut = zip(
+                *b.map(lambda x: self.run(*x, Conex, profilesIn, cloudf)).compute()
+            )
+        return np.asarray(Dphots), np.array(Cang), profilesOut
