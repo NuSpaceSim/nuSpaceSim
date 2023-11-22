@@ -460,19 +460,21 @@ class RegionGeomToO:
                 ),
             ]
         )
-        print(
-            np.rad2deg(self.config.simulation.ang_from_limb),
-            np.rad2deg(
-                self.get_beta_angle(
-                    self.alphaHorizon - self.config.simulation.ang_from_limb
-                )
-            ),
-        )
+        # print(
+        #    np.rad2deg(self.config.simulation.ang_from_limb),
+        #    np.rad2deg(
+        #        self.get_beta_angle(
+        #            self.alphaHorizon - self.config.simulation.ang_from_limb
+        #        )
+        #    ),
+        # )
         # Calculate the pathlength through the atmosphere
         self.losPathLen = self.get_path_length(
             self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
         )
         self.test_plot_nadir_angle()
+        # print (np.degrees(self.sourcebeta[self.volume_mask]), self.losPathLen)
+        # self.test_plot_nadir_angle()
 
     def generate_times(self, times) -> np.ndarray:
         """
@@ -567,21 +569,34 @@ class RegionGeomToO:
 
         # cossepangle = self.costhetaTrSubV[self.event_mask]
 
-        mcintfactor = (
-            (self.pathLens() - lenDec) * (self.pathLens() - lenDec) * tanthetaChEff**2
-        )
+        # mcintfactor = (
+        #    (self.pathLens() - lenDec) * (self.pathLens() - lenDec) * tanthetaChEff**2
+        # )
+
+        mcintfactor_umsk = self.pathLens() - lenDec
+        # mcintfactor_umsk = self.pathLens() # For testing purposes only
+
+        mcintfactor = np.where(mcintfactor_umsk > 0.0, mcintfactor_umsk, 0.0)
+
+        mcintfactor *= (self.pathLens() - lenDec) * tanthetaChEff**2
+        # mcintfactor *= self.pathLens() * tanthetaChEff**2 # For testing purposes only
+
+        # Geometry Factors
+
+        mcintfactor *= np.pi
+
+        mcintegralgeoonly = np.sum(mcintfactor) / len(self.times)
 
         # Branching ratio set to 1 to be consistent
         Bshr = 0.826
-        mcnorm = np.pi * Bshr
 
-        mcintfactor *= mcnorm
+        mcintfactor *= Bshr * tauexitprob
 
         # Geometry Factors
-        mcintegralgeoonly = np.mean(mcintfactor)
+        # mcintegralgeoonly = np.mean(mcintfactor)
 
         # Multiply by tau exit probability
-        mcintfactor *= tauexitprob
+        # mcintfactor *= tauexitprob
 
         # Weighting by energy spectrum if other than monoenergetic spectrum
         mcintfactor /= spec_norm
