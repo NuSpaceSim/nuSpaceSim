@@ -1,6 +1,6 @@
 import numpy as np
 
-from nuspacesim import ResultsTable
+from nuspacesim import results_table
 from nuspacesim.utils import decorators
 
 
@@ -16,7 +16,7 @@ def test_nss_result_store():
     assert np.array_equal(cA, iA + iB)
     assert np.array_equal(cB, iA * iB)
 
-    sim = ResultsTable()
+    sim = results_table.init()
     cA, cB = test_base_f(iA, iB, store=sim)
 
     assert np.array_equal(cA, iA + iB)
@@ -43,7 +43,7 @@ def test_nss_result_store_scalar():
     assert vA == iA + iB
     assert vB == int(iA * iB)
 
-    sim = ResultsTable()
+    sim = results_table.init()
     vA, vB = test_base_f(iA, iB, store=sim)
 
     assert vA == iA + iB

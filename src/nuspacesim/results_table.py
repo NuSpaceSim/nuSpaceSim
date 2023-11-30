@@ -37,130 +37,41 @@
    :toctree:
    :recursive:
 
-    ResultsTable
-
 """
 
 import datetime
-from typing import Any, Iterable, Union
 
 from astropy.table import Table as AstropyTable
-from numpy.typing import ArrayLike
 
 from .config import NssConfig
 
-__all__ = ["ResultsTable"]
+__all__ = ["init", "output_filename"]
 
 
-class ResultsTable(AstropyTable):
-    r"""Results of NuSpaceSim simulation stages.
+def init(config: NssConfig | None = None):
+    r"""Initialize a simulation results table with metadata"""
+    if config is None:
+        config = NssConfig()
 
-    ResultsTable inherits from astropy.table.Table and uses that implementation to manage
-    Result data columns. This enables easy serialization of simulation results to
-    output file formats.
-    """
+    if isinstance(config, NssConfig):
+        now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+        return AstropyTable(
+            meta={
+                **config.detector(),
+                **config.simulation(),
+                **config.constants(),
+                "simTime": (now, "Start time of Simulation"),
+            }
+        )
+    elif isinstance(config, AstropyTable):
+        return AstropyTable(config)
 
-    def __init__(self, config=None):
-        r"""Constructor for ResultsTable class instances.
+    else:
+        return AstropyTable()
 
-        Parameters
-        ----------
-        config: NssConfig
-            Configuration object. Used to initialize result metadata.
-        """
 
-        if config is None:
-            config = NssConfig()
-
-        if isinstance(config, NssConfig):
-            now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
-            super().__init__(
-                meta={
-                    **config.detector(),
-                    **config.simulation(),
-                    **config.constants(),
-                    "simTime": (now, "Start time of Simulation"),
-                }
-            )
-        elif isinstance(config, AstropyTable):
-            super().__init__(config)
-
-    def __call__(self, col_names: Iterable[str], columns: Iterable[ArrayLike]) -> None:
-        r"""Add named columns to the simulation results.
-
-        Insert data into the result table, with the names corresponding to the
-        values in col_names.
-
-        Parameters
-        ----------
-        col_names: Iterable[str]
-            List of column names.
-        columns: Iterable[ArrayLike]
-            List of column
-        """
-
-        self.add_columns(columns, names=col_names)
-
-    def add_meta(self, name: str, value: Any, comment: str) -> None:
-        r"""Add metadata attributes to the simulation results.
-
-        Insert a named attribute into the table metadata store, with a descriptive
-        comment.
-
-        Parameters
-        ----------
-        name: str
-            Attribute name keyword.
-        value: Any
-            Attribute scalar value.
-        comment: str
-            Attribute descriptive comments.
-        """
-
-        self.meta[name] = (value, comment)
-
-    def write(self, filename: Union[str, None] = None, **kwargs) -> None:
-        r"""Write the simulation results to a file.
-
-        Uses the astropy.table.Table write method of the ResultsTable base class to write
-        FITS file.
-
-        Parameters
-        ----------
-        filename: {str, None}, optional
-            The filename of the output file. If None, return default with timestamp.
-
-        Raises
-        ------
-        ValueError:
-            If the input format value is not one of fits or hdf5.
-        """
-
-        if "format" not in kwargs:
-            kwargs["format"] = "fits"
-
-        if kwargs["format"] == "fits":
-            filename = (
-                f"nuspacesim_run_{self.meta['simTime'][0]}.fits"
-                if filename is None
-                else filename
-            )
-            super().write(filename, **kwargs)
-
-        elif kwargs["format"] == "hdf5":
-            filename = (
-                f"nuspacesim_run_{self.meta['simTime'][0]}.hdf5"
-                if filename is None
-                else filename
-            )
-
-            if "path" not in kwargs:
-                kwargs["path"] = "/"
-            if "overwrite" not in kwargs:
-                kwargs["overwrite"] = True
-            kwargs["serialize_meta"] = True
-
-            super().write(filename, **kwargs)
-
-        else:
-            raise ValueError(f"File output format {format} not in {{ fits, hdf5 }}!")
+def output_filename(filename: str | None, now: str | None = None) -> str:
+    if filename is not None:
+        return filename
+    now = now if not now else f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+    return f"nuspacesim_run_{now}.fits"

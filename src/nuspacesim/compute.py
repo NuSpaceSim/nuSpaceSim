@@ -45,11 +45,17 @@ NuSpaceSim Simulation
    compute
 
 """
+from __future__ import annotations
+
+from typing import Any, Iterable
+
 import numpy as np
+from astropy.table import Table as AstropyTable
+from numpy.typing import ArrayLike
 from rich.console import Console
 
+from . import results_table
 from .config import NssConfig
-from .results_table import ResultsTable
 from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
@@ -67,14 +73,14 @@ def compute(
     output_file: str = None,
     to_plot: list = [],
     write_stages=False,
-) -> ResultsTable:
+) -> AstropyTable:
     r"""Simulate an upward going shower.
 
     The main proceedure for performaing a full simulation in nuspacesim.
     Given a valid NssConfig object, :func:`compute`, will perform the simulation as
     follows:
 
-    #. Initialize the ResultsTable object.
+    #. Initialize the AstropyTable object.
     #. Initialize the appropritate :ref:`simulation modules<simulation>`.
     #. Compute array of valid beta angle trajectories: beta_tr from :class:`RegionGeom`.
     #. Compute tau interaction attributes componentwise for each element of beta_tr.
@@ -93,7 +99,7 @@ def compute(
     #. Compute the Monte Carlo integral for the resulting shower geometries.
 
     At each stage of the simulation, array results are stored as contiguous columns,
-    and scalar results are stored as attributes, both in the :class:`ResultsTable`
+    and scalar results are stored as attributes, both in the :class:`AstropyTable`
     object.
 
 
@@ -112,7 +118,7 @@ def compute(
 
     Returns
     -------
-    ResultsTable
+    AstropyTable
         The Table of result values from each stage of the simulation.
     """
 
@@ -137,7 +143,8 @@ def compute(
         logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
-    sim = ResultsTable(config)
+    sim = results_table.init(config)
+    output_file = results_table.output_filename(output_file, now=sim.meta["simTime"][0])
     geom = RegionGeom(config)
     cloud = CloudTopHeight(config)
     spec = Spectra(config)
@@ -148,15 +155,21 @@ def compute(
     class StagedWriter:
         """Optionally write intermediate values to file"""
 
-        def __call__(self, *args, **kwargs):
-            sim(*args, **kwargs)
+        def __call__(
+            self,
+            col_names: Iterable[str],
+            columns: Iterable[ArrayLike],
+            *args,
+            **kwargs,
+        ):
+            sim.add_columns(columns, names=col_names, *args, **kwargs)
             if write_stages:
-                sim.write(output_file, overwrite=True)
+                sim.write(output_file, format="fits", overwrite=True)
 
-        def add_meta(self, *args, **kwargs):
-            sim.add_meta(*args, **kwargs)
+        def add_meta(self, name: str, value: Any, comment: str):
+            sim.meta[name] = (value, comment)
             if write_stages:
-                sim.write(output_file, overwrite=True)
+                sim.write(output_file, format="fits", overwrite=True)
 
     sw = StagedWriter()
 
@@ -167,8 +180,8 @@ def compute(
     logv(
         f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
     )
-    init_lat, init_long = geom.find_lat_long_along_traj(0)
-    sim(
+    init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
+    sw(
         ("init_lat", "init_lon"),
         (init_lat, init_long),
     )

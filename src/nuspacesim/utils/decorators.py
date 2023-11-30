@@ -51,10 +51,11 @@ from typing import Callable, Iterable, Union
 
 
 def nss_result_store(*names):
-    r"""Store result columns in nuspacesim.ResultsTable
+    r"""Store result columns in AstropyTable
 
+    Previously nuspacesim.ResultsTable
     This decorator function allows easy decoration of simulation objects to store
-    result arrays in named ResultsTable columns.
+    result arrays in named Table columns.
 
     Parameters
     ----------
@@ -72,7 +73,7 @@ def nss_result_store(*names):
 
     ... in calling code
 
-    >>> sim = ResultsTable(config)
+    >>> sim = AstropyTable()
     >>> beta_tr = geom(config.simulation.N, store=sim)
     """
 
@@ -95,10 +96,11 @@ def nss_result_store(*names):
 
 
 def nss_result_store_scalar(names, comments):
-    r"""Store scalar results in nuspacesim.ResultsTable
+    r"""Store scalar results in an astropy.table.Table.
 
+    Previously a nuspacesim ResultsTable.
     This decorator function allows easy decoration of simulation objects to store
-    result scalars in the metadata section of nuspacesim.ResultsTable.
+    result scalars in the metadata section of the Table.
 
     Parameters
     ----------
@@ -124,7 +126,7 @@ def nss_result_store_scalar(names, comments):
 
     ... in calling code
 
-    >>> sim = ResultsTable(config)
+    >>> sim = AstropyTable()
     >>> beta_tr = geom.mcintegral(numPEs, costhetaCh, tauexitprob, store=sim)
 
     """
@@ -155,7 +157,7 @@ def nss_result_plot(*plot_fs):
     r"""Plot results of function.
 
     This decorator function allows easy decoration of simulation objects to store
-    result scalars in the metadata section of nuspacesim.ResultsTable.
+    result scalars in the metadata section of AstropyTable
 
     Parameters
     ----------

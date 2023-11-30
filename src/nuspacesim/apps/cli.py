@@ -49,11 +49,11 @@
 import configparser
 
 import click
+from astropy.table import Table as AstropyTable
 
 from .. import NssConfig, SimulationParameters, simulation
 from ..compute import compute
 from ..config import FileSpectrum, MonoSpectrum, PowerSpectrum
-from ..results_table import ResultsTable
 from ..types.cloud_types import MonoCloud, NoCloud, PressureMapCloud
 from ..utils import plots
 from ..utils.plot_function_registry import registry
@@ -243,7 +243,7 @@ def run(
     )
 
     if not no_result_file:
-        simulation.write(output, overwrite=True)
+        simulation.write(output, format="fits", overwrite=True)
 
 
 @cli.command()
@@ -336,7 +336,7 @@ def show_plot(
     Parameters
     ----------
     simulation_file: str
-        input ResultsTable fits file.
+        input nuspacesim results file AstropyTable fits file.
     plot: list, optional
         Plot the simulation results.
     plotconfig: str, optional
@@ -352,7 +352,7 @@ def show_plot(
     `nuspacesim show_plot my_sim_results.fits -p taus_overview`
     """
 
-    sim = ResultsTable.read(simulation_file)
+    sim = AstropyTable.read(simulation_file)
 
     plot = (
         list(registry)

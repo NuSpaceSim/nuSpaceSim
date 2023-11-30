@@ -10,9 +10,8 @@
 import os
 import sys
 
+from astropy.table import Table as AstropyTable
 from tabulate import tabulate
-
-import nuspacesim as nss
 
 if __name__ == "__main__":
     results = list()
@@ -24,7 +23,7 @@ if __name__ == "__main__":
             continue
 
         filepath = os.path.join(path, filename)
-        r = nss.ResultsTable.read(filepath)
+        r = AstropyTable.read(filepath)
 
         energy = r.meta["SPECPARA"]
         mci = r.meta["OMCINT"]
