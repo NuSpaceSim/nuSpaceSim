@@ -39,6 +39,8 @@
 
 """
 
+from __future__ import annotations
+
 import datetime
 
 from astropy.table import Table as AstropyTable
