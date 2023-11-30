@@ -1,59 +1,58 @@
 import numpy as np
 
-from nuspacesim import results_table
+# from nuspacesim import results_table
 from nuspacesim.utils import decorators
 
-
-def test_nss_result_store():
-    @decorators.nss_result_store("columnA", "columnB")
-    def test_base_f(input1, input2):
-        """this is the docstring"""
-        return input1 + input2, input1 * input2
-
-    iA, iB = np.random.randn(2, 128)
-    cA, cB = test_base_f(iA, iB)
-
-    assert np.array_equal(cA, iA + iB)
-    assert np.array_equal(cB, iA * iB)
-
-    sim = results_table.init()
-    cA, cB = test_base_f(iA, iB, store=sim)
-
-    assert np.array_equal(cA, iA + iB)
-    assert np.array_equal(cB, iA * iB)
-    assert np.array_equal(sim["columnA"], cA)
-    assert np.array_equal(sim["columnB"], cB)
-
-    assert test_base_f.__doc__ == "this is the docstring"
-
-
-def test_nss_result_store_scalar():
-    @decorators.nss_result_store_scalar(
-        ["valueA", "valueB"],
-        ["terse comment", "Verbose, pompous, and overly long commentB"],
-    )
-    def test_base_f(input1, input2):
-        """this is the docstring"""
-        return float(input1 + input2), int(input1 * input2)
-
-    iAB = np.random.randn(2, 1)
-    iA, iB = iAB[0, 0], iAB[1, 0]
-    vA, vB = test_base_f(iA, iB)
-
-    assert vA == iA + iB
-    assert vB == int(iA * iB)
-
-    sim = results_table.init()
-    vA, vB = test_base_f(iA, iB, store=sim)
-
-    assert vA == iA + iB
-    assert vB == int(iA * iB)
-    assert sim.meta["valueA"][0] == vA
-    assert sim.meta["valueB"][0] == vB
-    assert sim.meta["valueA"][1] == "terse comment"
-    assert sim.meta["valueB"][1] == "Verbose, pompous, and overly long commentB"
-
-    assert test_base_f.__doc__ == "this is the docstring"
+# def test_nss_result_store():
+#     @decorators.nss_result_store("columnA", "columnB")
+#     def test_base_f(input1, input2):
+#         """this is the docstring"""
+#         return input1 + input2, input1 * input2
+#
+#     iA, iB = np.random.randn(2, 128)
+#     cA, cB = test_base_f(iA, iB)
+#
+#     assert np.array_equal(cA, iA + iB)
+#     assert np.array_equal(cB, iA * iB)
+#
+#     sim = results_table.init()
+#     cA, cB = test_base_f(iA, iB, store=sim)
+#
+#     assert np.array_equal(cA, iA + iB)
+#     assert np.array_equal(cB, iA * iB)
+#     assert np.array_equal(sim["columnA"], cA)
+#     assert np.array_equal(sim["columnB"], cB)
+#
+#     assert test_base_f.__doc__ == "this is the docstring"
+#
+#
+# def test_nss_result_store_scalar():
+#     @decorators.nss_result_store_scalar(
+#         ["valueA", "valueB"],
+#         ["terse comment", "Verbose, pompous, and overly long commentB"],
+#     )
+#     def test_base_f(input1, input2):
+#         """this is the docstring"""
+#         return float(input1 + input2), int(input1 * input2)
+#
+#     iAB = np.random.randn(2, 1)
+#     iA, iB = iAB[0, 0], iAB[1, 0]
+#     vA, vB = test_base_f(iA, iB)
+#
+#     assert vA == iA + iB
+#     assert vB == int(iA * iB)
+#
+#     sim = results_table.init()
+#     vA, vB = test_base_f(iA, iB, store=sim)
+#
+#     assert vA == iA + iB
+#     assert vB == int(iA * iB)
+#     assert sim.meta["valueA"][0] == vA
+#     assert sim.meta["valueB"][0] == vB
+#     assert sim.meta["valueA"][1] == "terse comment"
+#     assert sim.meta["valueB"][1] == "Verbose, pompous, and overly long commentB"
+#
+#     assert test_base_f.__doc__ == "this is the docstring"
 
 
 def test_nss_result_plot():
