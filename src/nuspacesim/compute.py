@@ -70,7 +70,7 @@ __all__ = ["compute"]
 def compute(
     config: NssConfig,
     verbose: bool = False,
-    output_file: str = None,
+    output_file: str | None = None,
     to_plot: list = [],
     write_stages=False,
 ) -> AstropyTable:
@@ -124,7 +124,10 @@ def compute(
 
     console = Console(width=80, log_path=False)
 
-    FreqRange = (config.detector.low_freq, config.detector.high_freq)
+    FreqRange = (
+        config.detector.radio.low_frequency,
+        config.detector.radio.high_frequency,
+    )
 
     def logv(*args):
         """optionally print descriptive messages."""
@@ -144,7 +147,6 @@ def compute(
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = results_table.init(config)
-    output_file = results_table.output_filename(output_file, now=sim.meta["simTime"][0])
     geom = RegionGeom(config)
     cloud = CloudTopHeight(config)
     spec = Spectra(config)
@@ -176,9 +178,11 @@ def compute(
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
+    beta_tr, thetaArr, pathLenArr = geom(
+        config.simulation.thrown_events, store=sw, plot=to_plot
+    )
     logv(
-        f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
+        f"\t[blue]Threw {config.simulation.thrown_events} neutrinos. {beta_tr.size} were valid.[/]"
     )
     init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
     sw(
@@ -200,7 +204,8 @@ def compute(
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    if config.detector.method == "Optical" or config.detector.method == "Both":
+    # if config.detector.method == "Optical" or config.detector.method == "Both":
+    if config.detector.optical:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
@@ -219,7 +224,7 @@ def compute(
             numPEs,
             costhetaChEff,
             tauExitProb,
-            config.detector.photo_electron_threshold,
+            config.detector.optical.photo_electron_threshold,
             mc_spec_norm,
             spec_weights_sum,
         )
@@ -231,7 +236,7 @@ def compute(
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
 
-    if config.detector.method == "Radio" or config.detector.method == "Both":
+    if config.detector.radio:
         logv("Computing [green] EAS Radio signal.[/]")
 
         EFields = eas_radio(
@@ -241,17 +246,17 @@ def compute(
         snrs = calculate_snr(
             EFields,
             FreqRange,
-            config.detector.altitude,
-            config.detector.det_Nant,
-            config.detector.det_gain,
+            config.detector.initial_position.altitude,
+            config.detector.radio.nantennas,
+            config.detector.radio.gain,
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             snrs,
-            np.cos(config.simulation.theta_ch_max),
+            np.cos(config.simulation.max_cherenkov_angle),
             tauExitProb,
-            config.detector.det_SNR_thres,
+            config.detector.radio.snr_threshold,
             mc_spec_norm,
             spec_weights_sum,
         )

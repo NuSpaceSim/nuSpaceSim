@@ -32,6 +32,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from astropy import units as u
+from astropy.constants import R_earth
 
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
@@ -44,20 +46,18 @@ class RegionGeom:
 
     def __init__(self, config):
         self.config = config
-
-        self.earth_rad_2 = self.config.constants.earth_radius**2
+        self.earth_radius: np.float64 = R_earth.to(u.km).value
+        self.earth_rad_2: np.float64 = self.earth_radius**2
 
         self.core_alt = (
-            self.config.constants.earth_radius + self.config.detector.altitude
+            self.earth_radius + self.config.detector.initial_position.altitude
         )
 
-        self.detLat = np.radians(config.detector.lat_start)
-        self.detLong = np.radians(config.detector.long_start)
+        self.detLat = config.detector.initial_position.latitude
+        self.detLong = config.detector.initial_position.longitude
 
-        alphaHorizon = np.pi / 2 - np.arccos(
-            self.config.constants.earth_radius / self.core_alt
-        )
-        alphaMin = alphaHorizon - config.simulation.ang_from_limb
+        alphaHorizon = np.pi / 2 - np.arccos(self.earth_radius / self.core_alt)
+        alphaMin = alphaHorizon - config.simulation.angle_from_limb
         minChordLen = 2 * np.sqrt(
             self.earth_rad_2 - (self.core_alt * np.sin(alphaMin)) ** 2
         )
@@ -66,10 +66,10 @@ class RegionGeom:
         self.minLOSpathLen = self.core_alt * np.cos(alphaMin) - minChordLen / 2
         self.maxLOSpathLen = np.sqrt(self.core_alt**2 - self.earth_rad_2)
 
-        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.theta_ch_max)
+        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.max_cherenkov_angle)
 
-        self.maxPhiS = config.simulation.max_azimuth_angle / 2
-        self.minPhiS = -config.simulation.max_azimuth_angle / 2
+        self.maxPhiS = config.simulation.max_azimuth_angle * 0.5
+        self.minPhiS = config.simulation.max_azimuth_angle * -0.5
 
         normThetaTrSubV = 2 / self.sinOfMaxThetaTrSubV**2
         normPhiTrSubV = np.reciprocal(2 * np.pi)
@@ -154,12 +154,12 @@ class RegionGeom:
 
         rvsqrd = self.losPathLen * self.losPathLen
         costhetaS = (self.core_alt**2 + self.earth_rad_2 - rvsqrd) / (
-            2 * self.config.constants.earth_radius * self.core_alt
+            2 * self.earth_radius * self.core_alt
         )
         self.thetaS = np.arccos(costhetaS)
 
         self.costhetaNSubV = (self.core_alt**2 - self.earth_rad_2 - rvsqrd) / (
-            2 * self.config.constants.earth_radius * self.losPathLen
+            2 * self.earth_radius * self.losPathLen
         )
 
         thetaNSubV = np.arccos(self.costhetaNSubV)
@@ -289,11 +289,11 @@ class RegionGeom:
 
         yPath_v = dist_along_traj * np.sin(self.thetas()) * np.sin(
             self.phis()
-        ) + self.config.constants.earth_radius * np.cos(self.valid_elevAngVSubN())
+        ) + self.earth_radius * np.cos(self.valid_elevAngVSubN())
 
-        zPath_v = dist_along_traj * np.cos(
-            self.thetas()
-        ) + self.config.constants.earth_radius * np.sin(self.valid_elevAngVSubN())
+        zPath_v = dist_along_traj * np.cos(self.thetas()) + self.earth_radius * np.sin(
+            self.valid_elevAngVSubN()
+        )
 
         # Compute xyz-coordinates in the spot's ENU frame (accomplished by transforming from
         # the los ENU frame to the spot's ENU frame)

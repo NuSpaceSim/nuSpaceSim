@@ -12,12 +12,12 @@ in application or module mode.
   nuspacesim --help
 
 
-Create an XML configuration file.
+Create an TOML configuration file.
 
 ::
 
   nuspacesim create-config --help
-  nuspacesim create-config my_config_file.xml
+  nuspacesim create-config my_config_file.TOML
 
 
 Run a simulation.

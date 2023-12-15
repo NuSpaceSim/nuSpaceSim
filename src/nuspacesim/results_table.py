@@ -46,6 +46,7 @@ import datetime
 from astropy.table import Table as AstropyTable
 
 from .config import NssConfig
+from .utils.misc import flatten_dict
 
 __all__ = ["init", "output_filename"]
 
@@ -59,10 +60,8 @@ def init(config: NssConfig | None = None):
         now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
         return AstropyTable(
             meta={
-                **config.detector(),
-                **config.simulation(),
-                **config.constants(),
                 "simTime": (now, "Start time of Simulation"),
+                **flatten_dict(config.model_dump(), "HIERARCH Config", sep=" "),
             }
         )
     elif isinstance(config, AstropyTable):
@@ -75,5 +74,5 @@ def init(config: NssConfig | None = None):
 def output_filename(filename: str | None, now: str | None = None) -> str:
     if filename is not None:
         return filename
-    now = now if not now else f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+    now = now if now else f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     return f"nuspacesim_run_{now}.fits"

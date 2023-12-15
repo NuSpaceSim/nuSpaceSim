@@ -36,7 +36,7 @@ from typing import Any, Callable, Union
 import numpy as np
 from numpy.typing import NDArray
 
-from ...config import FileSpectrum, MonoSpectrum, NssConfig, PowerSpectrum
+from ...config import NssConfig, Simulation
 from ...utils import decorators
 from .local_plots import spectra_histogram
 
@@ -45,16 +45,16 @@ from .local_plots import spectra_histogram
 @decorators.nss_result_store("log_e_nu")
 def energy_spectra(
     N: int,
-    spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
+    spectra: Union[Simulation.MonoSpectrum, Simulation.PowerSpectrum, Callable],
     *args,
     **kwargs,
 ) -> NDArray[Any]:
     """Energy Spectra of thrown Neutrinos"""
 
-    if isinstance(spectra, MonoSpectrum):
-        return np.full(shape=(N), fill_value=spectra.log_nu_tau_energy)
+    if isinstance(spectra, Simulation.MonoSpectrum):
+        return np.full(shape=(N), fill_value=spectra.log_nu_energy)
 
-    if isinstance(spectra, PowerSpectrum):
+    if isinstance(spectra, Simulation.PowerSpectrum):
         p = spectra.index
         a = 10**spectra.lower_bound
         b = 10**spectra.upper_bound
@@ -71,14 +71,14 @@ def energy_spectra(
 
 
 def spec_norm(
-    spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
+    spectra: Union[Simulation.MonoSpectrum, Simulation.PowerSpectrum, Callable],
     *args,
     **kwargs,
 ) -> float:
-    if isinstance(spectra, MonoSpectrum):
+    if isinstance(spectra, Simulation.MonoSpectrum):
         return 1.0
 
-    if isinstance(spectra, PowerSpectrum):
+    if isinstance(spectra, Simulation.PowerSpectrum):
         p = spectra.index
         a = 10**spectra.lower_bound
         b = 10**spectra.upper_bound
@@ -89,14 +89,14 @@ def spec_norm(
 
 
 def sum_spec_weights(
-    spectra: Union[MonoSpectrum, PowerSpectrum, FileSpectrum, Callable],
+    spectra: Union[Simulation.MonoSpectrum, Simulation.PowerSpectrum, Callable],
     *args,
     **kwargs,
 ) -> float:
-    if isinstance(spectra, MonoSpectrum):
+    if isinstance(spectra, Simulation.MonoSpectrum):
         return 1.0
 
-    if isinstance(spectra, PowerSpectrum):
+    if isinstance(spectra, Simulation.PowerSpectrum):
         p = spectra.index
         a = 10**spectra.lower_bound
         b = 10**spectra.upper_bound

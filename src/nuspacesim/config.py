@@ -1,6 +1,6 @@
 # The Clear BSD License
 #
-# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# Copyright (c) 2023 Alexander Reustle and the NuSpaceSim Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,238 +36,281 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Union
+from datetime import datetime
+from typing import Literal, Optional, Union
+
+import astropy.units as u
+import numpy as np
+from astropy.units import Quantity
+from pydantic import (  # ValidationError,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 try:
-    from functools import cached_property
-except ImportError:
-    from cached_property import cached_property
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 
-from numpy import nan, radians, sin
-
-from . import constants as const
-from .types.cloud_types import MonoCloud, NoCloud, PressureMapCloud
+import tomli_w
 
 __all__ = [
-    "DetectorCharacteristics",
-    "SimulationParameters",
+    "config_from_toml",
+    "create_toml",
     "NssConfig",
-    "FileSpectrum",
-    "MonoSpectrum",
-    "PowerSpectrum",
+    "Detector",
+    "Simulation",
 ]
 
 
-@dataclass
-class DetectorCharacteristics:
+def config_from_toml(filename: str) -> NssConfig:
+    with open(filename, "rb") as f:
+        c = tomllib.load(f)
+        return NssConfig(**c)
+
+
+def create_toml(filename: str, c: NssConfig):
+    with open(filename, "wb") as f:
+        tomli_w.dump(c.model_dump(), f)
+
+
+def parse_units(value: Union[Quantity, float, str], unit: u.Unit) -> float:
+    if isinstance(value, (Quantity, str)):
+        return Quantity(value).to(unit).value
+    else:
+        return Quantity(value, unit).value
+
+
+class Detector(BaseModel):
     r"""Dataclass holding Detector Characteristics."""
 
-    method: str = "Optical"
-    """ Type of detector: Default = Optical """
-    altitude: float = 525.0
-    """ Altitude from sea-level. Default = 525 KM """
-    lat_start: float = 0.0
-    """ Right Ascencion (Degrees). Default = 0.0 """
-    long_start: float = 0.0
-    """ Declination (Degrees). Default = 0.0 """
-    telescope_effective_area: float = 2.5
-    '"" Effective area of the detector telescope. Default = 2.5 sq.meters ""'
-    quantum_efficiency: float = 0.2
-    """ Quantum Efficiency of the detector telescope. Default = 0.2 """
-    photo_electron_threshold: float = 10.0
-    """Photo Electron Threshold, Number Photo electrons = 10"""
-    low_freq: float = 30.0
-    """ Low end for radio band in MHz: Default = 30 """
-    high_freq: float = 300.0
-    """ High end of radio band in MHz: Default = 300 """
-    det_SNR_thres: float = 5.0
-    """ SNR threshold for radio triggering: Default = 5 """
-    det_Nant: int = 10
-    """ Number of radio antennas: Default = 10 """
-    det_gain: float = 1.8
-    """ Antenna gain in dB: Default = 1.8 """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __call__(self) -> dict[str, tuple[Any, str]]:
-        r"""Dictionary representation of DetectorCharacteristics instance.
+    class InitialPos(BaseModel):
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+        altitude: float = Quantity(525.0, u.km).value
+        """ Altitude from sea-level (KM). """
+        latitude: float = Quantity(0.0, u.rad).value
+        """ Right Ascencion (Radians). """
+        longitude: float = Quantity(0.0, u.rad).value
+        """ Declination (Radians). """
 
-        Groups the data member values with descriptive comments in a tuple. Adds
-        keyword names no longer than eight characters. This is useful for setting the
-        FITS Header Keywords in the simulation ouput file. Descriptive comments are
-        shorter than 80 characters, so as to conform to FITS standards.
+        @field_validator("altitude", mode="before")
+        @classmethod
+        def valid_distkm(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.km)
 
-        Returns
-        -------
-        dict
-            Representation of the data members with comments.
-        """
+        @field_validator("latitude", "longitude", mode="before")
+        @classmethod
+        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.rad)
 
-        return {
-            "method": (self.method, "Detector: Method (Optical, radio or both"),
-            "detAlt": (self.altitude, "Detector: Altitude"),
-            "latStart": (self.lat_start, "Detector: Initial Latitude"),
-            "lonStart": (self.long_start, "Detector: Initial Longitude"),
-            "telEffAr": (
-                self.telescope_effective_area,
-                "Detector: Telescope Effective Area",
-            ),
-            "quantEff": (self.quantum_efficiency, "Detector: Quantum Efficiency"),
-            "phEthres": (
-                self.photo_electron_threshold,
-                "Detector: Photo-Electron Threshold",
-            ),
-            "lowFreq": (self.low_freq, "Detector: Antenna Low Frequency"),
-            "highFreq": (self.high_freq, "Detector: Antenna High Frequency"),
-            "SNRthres": (self.det_SNR_thres, "Detector: Radio SNR threshold"),
-            "detNant": (self.det_Nant, "Detector: Number of Antennas"),
-            "detGain": (self.det_gain, "Detector: Antenna Gain"),
-        }
+        @field_serializer("altitude")
+        def serialize_km(self, altitude: float) -> str:
+            return str(Quantity(altitude, u.km))
 
+        @field_serializer("latitude", "longitude")
+        def serialize_rad(self, x: float) -> str:
+            return str(Quantity(x, u.rad).to(u.deg))
 
-@dataclass
-class MonoSpectrum:
-    log_nu_tau_energy: float = 8.0
-    """Log Energy of the tau neutrinos in GeV."""
+    class Optical(BaseModel):
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+        telescope_effective_area: float = 2.5  # Quantity(2.5, u.m**2)
+        """ Effective area of the detector telescope (sq.meters). """
+        quantum_efficiency: float = 0.2
+        """ Quantum Efficiency of the detector telescope. """
+        photo_electron_threshold: float = 10
+        """ Photo Electron Threshold, Number Photo electrons. """
 
-    def __call__(self) -> dict:
-        return {
-            "specType": ("Mono", "Simulation: nutau energy spectrum"),
-            "specPara": (self.log_nu_tau_energy, "Simulation: Log Energy (GeV)"),
-        }
+        @field_validator("telescope_effective_area", mode="before")
+        @classmethod
+        def valid_aream2(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.m**2)
 
+        @field_serializer("telescope_effective_area")
+        def serialize_aream2(self, x: float) -> str:
+            return str(Quantity(x, u.m**2))
 
-@dataclass
-class PowerSpectrum:
-    index: float = 2.0
-    """Power Law Log Energy of the tau neutrinos in GeV."""
+    class Radio(BaseModel):
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+        low_frequency: float = Quantity(30.0, u.MHz).value
+        """ Low end for radio band in MHz: Default = 30 """
+        high_frequency: float = Quantity(300.0, u.MHz).value
+        """ High end of radio band in MHz: Default = 300 """
+        snr_threshold: float = 5.0
+        """ SNR threshold for radio triggering: Default = 5 """
+        nantennas: int = 10
+        """ Number of radio antennas: Default = 10 """
+        gain: float = Quantity(1.8, u.dB).value
+        """ Antenna gain in dB: Default = 1.8 """
 
-    lower_bound: float = 6.0
-    """Lower Bound Log nu_tau Energy GeV."""
+        @field_validator("low_frequency", "high_frequency", mode="before")
+        @classmethod
+        def valid_freqMHz(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.MHz)
 
-    upper_bound: float = 12.0
-    """Upper Bound Log nu_tau Energy GeV."""
+        @field_validator("gain", mode="before")
+        @classmethod
+        def valid_powerdB(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.dB)
 
-    def __call__(self) -> dict:
-        return {
-            "specType": ("Power", "Simulation: nutau Power Law energy spectrum"),
-            "specPara": (self.index, "Simulation: Power Law Index"),
-            "specLow": (self.lower_bound, "Simulation: Energy Lower Bound"),
-            "specHigh": (self.upper_bound, "Simulation: Energy Upper Bound"),
-        }
+        @field_serializer("low_frequency", "high_frequency")
+        def serialize_freqMHz(self, x: float) -> str:
+            return str(Quantity(x, u.MHz))
 
+        @field_serializer("gain")
+        def serialize_dB(self, x: float) -> str:
+            return str(Quantity(x, u.dB))
 
-@dataclass
-class FileSpectrum:
-    path: str = ""
-    """File path to user defined spectrum file"""
+        @model_validator(mode="after")
+        def validate_high_frequency(self):
+            if self.high_frequency <= self.low_frequency:
+                raise ValueError("High frequency must be greater than low frequency")
+            return self
 
-    def __call__(self) -> dict:
-        return {
-            "specType": ("File", "Simulation: Nutau User Defined energy spectrum"),
-            "specFile": (self.path, "Simulation: FilePath"),
-        }
+    name: str = "Default Name"
+    initial_position: InitialPos = InitialPos()
+    """Initial conditions for detector"""
+    optical: Optional[Optical] = Optical()
+    """Characteristics of the optical detector"""
+    radio: Optional[Radio] = Radio()
+    """Characteristics of the radio detector"""
 
 
-@dataclass
-class SimulationParameters:
-    """Dataclass holding Simulation Parameters."""
+###################################################################
 
-    N: int = 10000
-    """Number of thrown trajectories. Default = 1000"""
-    theta_ch_max: float = radians(3.0)
-    """Maximum Cherenkov Angle in radians. Default = π/60 radians (3 degrees)."""
-    spectrum: Union[MonoSpectrum, PowerSpectrum, FileSpectrum] = field(
-        default_factory=MonoSpectrum
+
+class Simulation(BaseModel):
+    """Model holding Simulation Parameters."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    ################ Radio Ionosphere classes ################
+
+    class Ionosphere(BaseModel):
+        total_electron_content: float = 10.0
+        """Total Electron Content for ionospheric propagation. """
+        total_electron_error: float = 0.1
+        """Error for TEC reconstruction. """
+
+    ################ tau_shower classes ################
+
+    class NuPyPropShower(BaseModel):
+        id: Literal["nupyprop"] = "nupyprop"
+        etau_frac: float = 0.5
+        """Fraction of ETau in Shower. Default = 0.5."""
+        table_version: str = "3"
+        """Version of tau conversion tables."""
+
+    ################ spectrum classes ################
+
+    class MonoSpectrum(BaseModel):
+        id: Literal["monospectrum"] = "monospectrum"
+        log_nu_energy: float = 8.0
+        """Log Energy of the tau neutrinos in GeV."""
+
+    class PowerSpectrum(BaseModel):
+        id: Literal["powerspectrum"] = "powerspectrum"
+        index: float = 2.0
+        """Power Law Log Energy of the tau neutrinos in GeV."""
+        lower_bound: float = 6.0
+        """Lower Bound Log nu_tau Energy GeV."""
+        upper_bound: float = 12.0
+        """Upper Bound Log nu_tau Energy GeV."""
+
+    ################ Cloud Model classes ################
+
+    class NoCloud(BaseModel):
+        id: Literal["no_cloud"] = "no_cloud"
+
+    class MonoCloud(BaseModel):
+        id: Literal["monocloud"] = "monocloud"
+        altitude: float = float("-inf")
+        """Altitude of monoheight cloud."""
+
+    class PressureMapCloud(BaseModel):
+        id: Literal["pressure_map"] = "pressure_map"
+        month: int = 1
+        """Cloud Map Month integer 1-12 inclusive."""
+        version: Union[str, int] = 0
+        """Cloud Map File Version."""
+
+        @field_validator("month", mode="before")
+        @classmethod
+        def valid_month(cls, date: str | int | datetime) -> int:
+            if isinstance(date, datetime):
+                return date.month
+            if isinstance(date, int):
+                if date < 1 or date > 12:
+                    raise ValueError(f"Provided month {date} is invalid")
+                return date
+            if isinstance(date, str):
+                try:
+                    return (datetime.strptime(date, "%m")).month
+                except ValueError:
+                    pass
+                try:
+                    return (datetime.strptime(date, "%B")).month
+                except ValueError:
+                    pass
+                try:
+                    return (datetime.strptime(date, "%b")).month
+                except ValueError:
+                    pass
+                raise ValueError(
+                    f"date {date} does not match valid month patterns (%m, %B, %b)"
+                )
+
+    ################################################################################
+
+    mode: Literal["Diffuse", "ToO"] = "Diffuse"
+    """ The Simulation Mode """
+    thrown_events: int = 1000
+    """ Number of thrown event trajectories. """
+    max_cherenkov_angle: float = np.radians(3)
+    """ Maximum Cherenkov Angle (Radians). """
+    max_azimuth_angle: float = np.radians(360)
+    """ Maximum Azimuthal Angle (Radians). """
+    angle_from_limb: float = np.radians(7)
+    """ Angle From Limb. Default (Radians). """
+    cherenkov_light_engine: Literal["Default"] = "Default"  # "CHASM", "EASCherSim"
+    ionosphere: Optional[Ionosphere] = Ionosphere()
+    tau_shower: NuPyPropShower = NuPyPropShower()
+    """ Tau Shower Generator. """
+    spectrum: Union[MonoSpectrum, PowerSpectrum] = Field(
+        default=MonoSpectrum(), discriminator="id"
     )
-    """Distribution from which to draw nu_tau energies."""
-    cloud_model: Union[NoCloud, MonoCloud, PressureMapCloud] = field(
-        default_factory=NoCloud
+    """ Distribution from which to draw nu_tau energies. """
+    cloud_model: Union[NoCloud, MonoCloud, PressureMapCloud] = Field(
+        default=NoCloud(), discriminator="id"
     )
-    e_shower_frac: float = 0.5
-    """Fraction of ETau in Shower. Default = 0.5."""
-    ang_from_limb: float = radians(7.0)
-    """Angle From Limb. Default = π/25.714 radians (7 degrees)."""
-    max_azimuth_angle: float = radians(360.0)
-    """Maximum Azimuthal Angle. Default = 2π radians (360 degrees)."""
-    model_ionosphere: int = 0
-    """Model ionosphere for radio propagation?. Default = 0 (false)."""
-    TEC: float = 10.0
-    """Total Electron Content for ionospheric propagation. Default = 10."""
-    TECerr: float = 0.1
-    """Error for TEC reconstruction. Default = 0.1"""
-    tau_table_version: str = "3"
-    """Version of tau conversion tables."""
 
-    @cached_property
-    def log_nu_tau_energy(self) -> float:
-        """log10 of nu_tau_energy."""
-        if isinstance(self.spectrum, MonoSpectrum):
-            return self.spectrum.log_nu_tau_energy
-        else:
-            return nan
+    @field_validator(
+        "max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb", mode="before"
+    )
+    @classmethod
+    def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
+        return parse_units(x, u.rad)
 
-    @cached_property
-    def nu_tau_energy(self) -> float:
-        """10 ^ log_nu_tau_energy."""
-        if isinstance(self.spectrum, MonoSpectrum):
-            return 10**self.log_nu_tau_energy
-        else:
-            return nan
-
-    @cached_property
-    def sin_theta_ch_max(self) -> float:
-        """sin of theta_ch_max."""
-        return sin(self.theta_ch_max)
-
-    def __call__(self) -> dict[str, tuple[Union[int, float, str], str]]:
-        r"""Dictionary representation of SimulationParameters instance.
-
-        Groups the data member values with descriptive comments in a tuple. Adds
-        keyword names no longer than eight characters. This is useful for setting the
-        FITS Header Keywords in the simulation ouput file. Descriptive comments are
-        shorter than 80 characters, so as to conform to FITS standards.
-
-        Returns
-        -------
-        dict
-            Representation of the data members with comments.
-        """
-        d = {
-            "N": (self.N, "Simulation: thrown neutrinos"),
-            "thChMax": (self.theta_ch_max, "Simulation: Maximum Cherenkov Angle"),
-            "specUnit": ("log(GeV)", "Simulation: Energy spectrum units"),
-            "eShwFrac": (self.e_shower_frac, "Simulation: Fraction of Etau in Shower"),
-            "angLimb": (self.ang_from_limb, "Simulation: Angle From Limb"),
-            "maxAzAng": (self.max_azimuth_angle, "Simulation: Maximum Azimuthal Angle"),
-            "ionosph": (
-                self.model_ionosphere,
-                "Simulation: Radio ionosphere model flg",
-            ),
-            "TEC": (self.TEC, "Simulation: Actual slant TEC value"),
-            "TECerr": (self.TECerr, "Simulation: Uniform distr. err: TEC est."),
-        }
-
-        d.update(self.spectrum())
-        d.update(self.cloud_model())
-
-        return d
+    @field_serializer("max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb")
+    def serialize_rad(self, x: float) -> str:
+        return str(Quantity(x, u.rad).to(u.deg))
 
 
-@dataclass
-class NssConfig:
+class NssConfig(BaseModel):
     r"""Necessary Configuration Data for NuSpaceSim.
 
     An :class:`NssConfig` is a container object holding all of the other nuSpaceSim
     configuration objects for a simplified access API. Instances of :class:`NssConfig`
-    objects can be serialized to XML.
-
-    .. :ref:`XML<xml_config.create_xml>`.
-
+    objects can be serialized to TOML.
     """
 
-    detector: DetectorCharacteristics = field(default_factory=DetectorCharacteristics)
+    title: str = "NuSpaceSim"
+    detector: Detector = Detector()
     """The Detector Characteristics."""
-    simulation: SimulationParameters = field(default_factory=SimulationParameters)
+    simulation: Simulation = Simulation()
     """The Simulation Parameters."""
-    constants: const.Fund_Constants = field(default_factory=const.Fund_Constants)
-    """The Fudimental physical constants."""

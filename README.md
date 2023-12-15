@@ -13,7 +13,7 @@ This is the official release of the *nuspacesim* simulator tool!
 
 This package simulates upward-going extensive air showers caused by neutrino
 interactions with the atmosphere. It calculates the tau neutrino acceptance for the
-Optical Cherenkov technique. The simulation is parameterized by an input XML
+Optical Cherenkov technique. The simulation is parameterized by an input TOML
 configuration file, with settings for detector characteristics and global parameters.
 The package also provides a python3 API for programatic access.
 
@@ -31,18 +31,18 @@ Tau propagation is interpolated using included data tables from [nupyprop](https
 
 ![NuSpaceSim Usage](https://raw.githubusercontent.com/NuSpaceSim/nuSpaceSim/main/docs/_static/run.svg)
 
-### Create an XML configuration script
+### Create an TOML configuration script
 
-The command line simulator uses an XML file to store configuration parameters. To
+The command line simulator uses an TOML file to store configuration parameters. To
 generate a default configuration file run the following, with your choice of file name.
 
-`nuspacesim create-config my_config_file.xml`
+`nuspacesim create-config my_config_file.toml`
 
 ### Run simulator
 
 Simulate neutrino interactions and save the results to a named fits file.
 
-`nuspacesim run my_config_file.xml -o my_nss_sim.fits`
+`nuspacesim run my_config_file.toml -o my_nss_sim.fits`
 
 # Documentation
 
