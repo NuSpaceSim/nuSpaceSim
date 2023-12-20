@@ -12,7 +12,7 @@ in application or module mode.
   nuspacesim --help
 
 
-Create an TOML configuration file.
+Create a TOML configuration file.
 
 ::
 

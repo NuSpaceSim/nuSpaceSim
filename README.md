@@ -31,9 +31,9 @@ Tau propagation is interpolated using included data tables from [nupyprop](https
 
 ![NuSpaceSim Usage](https://raw.githubusercontent.com/NuSpaceSim/nuSpaceSim/main/docs/_static/run.svg)
 
-### Create an TOML configuration script
+### Create a TOML configuration script
 
-The command line simulator uses an TOML file to store configuration parameters. To
+The command line simulator uses a TOML file to store configuration parameters. To
 generate a default configuration file run the following, with your choice of file name.
 
 `nuspacesim create-config my_config_file.toml`
