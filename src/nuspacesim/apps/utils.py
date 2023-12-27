@@ -9,9 +9,13 @@ def parse_spectra_options(monospectrum, powerspectrum):
     if monospectrum and powerspectrum:
         raise RuntimeError("Only one of --monospectrum or --powerspectrum may be used.")
     if monospectrum:
-        return Simulation.MonoSpectrum(monospectrum)
+        return Simulation.MonoSpectrum(log_nu_energy=monospectrum)
     if powerspectrum:
-        return Simulation.PowerSpectrum(*powerspectrum)
+        return Simulation.PowerSpectrum(
+            index=powerspectrum[0],
+            lower_bound=powerspectrum[1],
+            upper_bound=powerspectrum[2],
+        )
 
 
 def parse_cloud_options(nocloud, monocloud, pressuremapcloud):
@@ -22,7 +26,7 @@ def parse_cloud_options(nocloud, monocloud, pressuremapcloud):
     if nocloud:
         return Simulation.NoCloud()
     if monocloud:
-        return Simulation.MonoCloud(monocloud)
+        return Simulation.MonoCloud(altitude=monocloud)
     if pressuremapcloud:
         return Simulation.PressureMapCloud(month=pressuremapcloud.month)
 
