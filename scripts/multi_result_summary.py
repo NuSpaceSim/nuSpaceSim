@@ -25,7 +25,7 @@ if __name__ == "__main__":
         filepath = os.path.join(path, filename)
         r = AstropyTable.read(filepath)
 
-        energy = r.meta["SPECPARA"]
+        energy = r.meta["Config simulation spectrum log_nu_energy"]
         mci = r.meta["OMCINT"]
         gf = r.meta["OMCINTGO"]
         npe = r.meta["ONEVPASS"]
