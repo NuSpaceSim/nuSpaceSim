@@ -63,15 +63,15 @@ class EAS:
 
         u = np.random.uniform(0, 1, len(beta)) if u is None else u
 
-        tDec = -tauLorentz * mean_Tau_life * np.log(u)
+        tDec = -tauLorentz * mean_Tau_life * np.log(u)  # seconds
 
-        lenDec = tDec * tauBeta * c.value
+        lenDec = 1000.0 * tDec * tauBeta * c.value  # km
 
         altDec = np.sqrt(
             R_earth.to(units.km).value ** 2
             + lenDec**2
             + 2.0 * R_earth.to(units.km).value * lenDec * np.sin(beta)
-        )
+        )  # km
 
         altDec -= R_earth.to(units.km).value
 
