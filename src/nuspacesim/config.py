@@ -39,8 +39,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional, Union
 
-import astropy.units as u
 import numpy as np
+from astropy import units as u
+from astropy.io import fits
 from astropy.units import Quantity
 from pydantic import (  # ValidationError,
     BaseModel,
@@ -59,23 +60,13 @@ except ModuleNotFoundError:
 import tomli_w
 
 __all__ = [
-    "config_from_toml",
-    "create_toml",
     "NssConfig",
     "Detector",
     "Simulation",
+    "config_from_toml",
+    "create_toml",
+    "config_from_fits",
 ]
-
-
-def config_from_toml(filename: str) -> NssConfig:
-    with open(filename, "rb") as f:
-        c = tomllib.load(f)
-        return NssConfig(**c)
-
-
-def create_toml(filename: str, c: NssConfig):
-    with open(filename, "wb") as f:
-        tomli_w.dump(c.model_dump(), f)
 
 
 def parse_units(value: Union[Quantity, float, str], unit: u.Unit) -> float:
@@ -314,3 +305,82 @@ class NssConfig(BaseModel):
     """The Detector Characteristics."""
     simulation: Simulation = Simulation()
     """The Simulation Parameters."""
+
+
+def config_from_toml(filename: str) -> NssConfig:
+    with open(filename, "rb") as f:
+        c = tomllib.load(f)
+        return NssConfig(**c)
+
+
+def create_toml(filename: str, c: NssConfig):
+    with open(filename, "wb") as f:
+        tomli_w.dump(c.model_dump(), f)
+
+
+def config_from_fits(filename: str) -> NssConfig:
+    hdul = fits.open(filename, mode="readonly")
+    h = hdul[1].header
+
+    # header config (v)alue assocciated with partial key string.
+    def v(key: str):
+        fullkey = "Config " + key
+        if fullkey not in h:
+            raise KeyError(fullkey)
+        return h[fullkey]
+
+    # header (d)etector config value assocciated with partial key string.
+    def d(key: str):
+        return v("detector " + key)
+
+    # header (s)etector config value assocciated with partial key string.
+    def s(key: str):
+        return v("simulation " + key)
+
+    c = {
+        "detector": {
+            "initial_position": {
+                "altitude": d("initial_position altitude"),
+                "latitude": d("initial_position latitude"),
+                "longitude": d("initial_position latitude"),
+            },
+            "name": d("name"),
+            "optical": {
+                "photo_electron_threshold": d("optical photo_electron_threshold"),
+                "quantum_efficiency": d("optical quantum_efficiency"),
+                "telescope_effective_area": d("optical telescope_effective_area"),
+            },
+            "radio": {
+                "gain": d("radio gain"),
+                "high_frequency": d("radio high_frequency"),
+                "low_frequency": d("radio low_frequency"),
+                "nantennas": d("radio nantennas"),
+                "snr_threshold": d("radio snr_threshold"),
+            },
+        },
+        "simulation": {
+            "angle_from_limb": s("angle_from_limb"),
+            "cherenkov_light_engine": s("cherenkov_light_engine"),
+            "cloud_model": {"id": s("cloud_model id")},
+            "ionosphere": {
+                "total_electron_content": s("ionosphere total_electron_content"),
+                "total_electron_error": s("ionosphere total_electron_error"),
+            },
+            "max_azimuth_angle": s("max_azimuth_angle"),
+            "max_cherenkov_angle": s("max_cherenkov_angle"),
+            "mode": s("mode"),
+            "spectrum": {
+                "id": s("spectrum id"),
+                "log_nu_energy": s("spectrum log_nu_energy"),
+            },
+            "tau_shower": {
+                "etau_frac": s("tau_shower etau_frac"),
+                "id": s("tau_shower id"),
+                "table_version": s("tau_shower table_version"),
+            },
+            "thrown_events": s("thrown_events"),
+        },
+        "title": h["Config title"],
+    }
+
+    return NssConfig(**c)
