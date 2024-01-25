@@ -65,7 +65,7 @@ class EAS:
 
         tDec = -tauLorentz * mean_Tau_life * np.log(u)  # seconds
 
-        lenDec = 1000.0 * tDec * tauBeta * c.value  # km
+        lenDec = 1e-3 * tDec * tauBeta * c.value  # km
 
         altDec = np.sqrt(
             R_earth.to(units.km).value ** 2
