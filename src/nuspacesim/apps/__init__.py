@@ -15,6 +15,6 @@ r""" Command line client apps
 
 """
 
-__all__ = ["cli"]
+__all__ = ["cli", "run", "create_config", "show_plot", "utils"]
 
-from . import cli
+from . import cli, create_config, run, show_plot, utils

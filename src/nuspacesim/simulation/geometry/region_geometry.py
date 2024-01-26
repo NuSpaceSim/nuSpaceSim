@@ -31,9 +31,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import astropy
-import matplotlib.pyplot as plt
 import numpy as np
+from astropy import units as u
+from astropy.constants import R_earth
+from astropy.time import TimeDelta
 
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
@@ -47,24 +48,20 @@ class RegionGeom:
 
     def __init__(self, config):
         self.config = config
-
-        self.earth_rad_2 = self.config.constants.earth_radius**2
+        self.earth_radius: np.float64 = R_earth.to(u.km).value
+        self.earth_rad_2: np.float64 = self.earth_radius**2
 
         self.core_alt = (
-            self.config.constants.earth_radius + self.config.detector.altitude
+            self.earth_radius + self.config.detector.initial_position.altitude
         )
-        self.detection_mode = self.config.simulation.det_mode
-        self.sun_moon_cut = self.config.detector.sun_moon_cuts
+        self.detection_mode = self.config.simulation.mode
+        self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
 
-        self.detLat = np.radians(config.detector.lat_start)
-        self.detLong = np.radians(config.detector.long_start)
+        self.detLat = config.detector.initial_position.latitude
+        self.detLong = config.detector.initial_position.longitude
 
-        self.alphaHorizon = np.pi / 2 - np.arccos(
-            self.config.constants.earth_radius / self.core_alt
-        )
-
-        alphaMin = self.alphaHorizon - config.simulation.ang_from_limb
-
+        alphaHorizon = np.pi / 2 - np.arccos(self.earth_radius / self.core_alt)
+        alphaMin = alphaHorizon - config.simulation.angle_from_limb
         minChordLen = 2 * np.sqrt(
             self.earth_rad_2 - (self.core_alt * np.sin(alphaMin)) ** 2
         )
@@ -73,10 +70,10 @@ class RegionGeom:
         self.minLOSpathLen = self.core_alt * np.cos(alphaMin) - minChordLen / 2
         self.maxLOSpathLen = np.sqrt(self.core_alt**2 - self.earth_rad_2)
 
-        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.theta_ch_max)
+        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.max_cherenkov_angle)
 
-        self.maxPhiS = config.simulation.max_azimuth_angle / 2
-        self.minPhiS = -config.simulation.max_azimuth_angle / 2
+        self.maxPhiS = config.simulation.max_azimuth_angle * 0.5
+        self.minPhiS = config.simulation.max_azimuth_angle * -0.5
 
         normThetaTrSubV = 2 / self.sinOfMaxThetaTrSubV**2
         normPhiTrSubV = np.reciprocal(2 * np.pi)
@@ -161,12 +158,12 @@ class RegionGeom:
 
         rvsqrd = self.losPathLen * self.losPathLen
         costhetaS = (self.core_alt**2 + self.earth_rad_2 - rvsqrd) / (
-            2 * self.config.constants.earth_radius * self.core_alt
+            2 * self.earth_radius * self.core_alt
         )
         self.thetaS = np.arccos(costhetaS)
 
         self.costhetaNSubV = (self.core_alt**2 - self.earth_rad_2 - rvsqrd) / (
-            2 * self.config.constants.earth_radius * self.losPathLen
+            2 * self.earth_radius * self.losPathLen
         )
 
         thetaNSubV = np.arccos(self.costhetaNSubV)
@@ -296,11 +293,11 @@ class RegionGeom:
 
         yPath_v = dist_along_traj * np.sin(self.thetas()) * np.sin(
             self.phis()
-        ) + self.config.constants.earth_radius * np.cos(self.valid_elevAngVSubN())
+        ) + self.earth_radius * np.cos(self.valid_elevAngVSubN())
 
-        zPath_v = dist_along_traj * np.cos(
-            self.thetas()
-        ) + self.config.constants.earth_radius * np.sin(self.valid_elevAngVSubN())
+        zPath_v = dist_along_traj * np.cos(self.thetas()) + self.earth_radius * np.sin(
+            self.valid_elevAngVSubN()
+        )
 
         # Compute xyz-coordinates in the spot's ENU frame (accomplished by transforming from
         # the los ENU frame to the spot's ENU frame)
@@ -364,7 +361,7 @@ class RegionGeom:
         self.throw(numtrajs)
         return self.beta_rad(), self.thetas(), self.pathLens()
 
-    def McIntegral(
+    def mcintegral(
         self,
         triggers,
         costheta,
@@ -413,19 +410,22 @@ class RegionGeom:
 class RegionGeomToO:
     def __init__(self, config):
         self.config = config
+        self.earth_radius: np.float64 = R_earth.to(u.km).value
+        self.earth_rad_2: np.float64 = self.earth_radius**2
 
         self.core_alt = (
-            self.config.constants.earth_radius + self.config.detector.altitude
+            self.earth_radius + self.config.detector.initial_position.altitude
         )
-        self.detection_mode = self.config.simulation.det_mode
-        self.sun_moon_cut = self.config.detector.sun_moon_cuts
+        self.detection_mode = self.config.simulation.mode
+        self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
 
-        self.sourceOBSTime = self.config.simulation.source_obst
+        self.detLat = config.detector.initial_position.latitude
+        self.detLong = config.detector.initial_position.longitude
+
+        self.sourceOBSTime = self.config.simulation.too.source_obst
         self.too_source = ToOEvent(self.config)
 
-        self.alphaHorizon = np.pi / 2 - np.arccos(
-            self.config.constants.earth_radius / self.core_alt
-        )
+        self.alphaHorizon = 0.5 * np.pi - np.arccos(self.earth_radius / self.core_alt)
 
     @decorators.nss_result_plot(geom_beta_tr_hist)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len", "times")
@@ -440,7 +440,7 @@ class RegionGeomToO:
         # Calculate the local nadir angle of the source
         self.times = self.generate_times(times)
         local_coords = self.too_source.localcoords(self.times)
-        self.sourceNadRad = np.pi / 2 + local_coords.alt.rad
+        self.sourceNadRad = 0.5 * np.pi + local_coords.alt.rad
 
         self.alt_deg = local_coords.alt.deg
         self.az_deg = local_coords.az.deg
@@ -456,7 +456,7 @@ class RegionGeomToO:
             [
                 np.radians(42),
                 self.get_beta_angle(
-                    self.alphaHorizon - self.config.simulation.ang_from_limb
+                    self.alphaHorizon - self.config.simulation.angle_from_limb
                 ),
             ]
         )
@@ -472,7 +472,7 @@ class RegionGeomToO:
         self.losPathLen = self.get_path_length(
             self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
         )
-        self.test_plot_nadir_angle()
+        # self.test_plot_nadir_angle()
         # print (np.degrees(self.sourcebeta[self.volume_mask]), self.losPathLen)
         # self.test_plot_nadir_angle()
 
@@ -491,14 +491,12 @@ class RegionGeomToO:
 
         times = np.sort(times)
         times *= self.sourceOBSTime  # in s
-        times = astropy.time.TimeDelta(times, format="sec")
+        times = TimeDelta(times, format="sec")
         times = self.too_source.eventtime + times
         return times
 
     def get_beta_angle(self, nadir_angle):
-        return np.arccos(
-            ((self.core_alt) / self.config.constants.earth_radius) * np.sin(nadir_angle)
-        )
+        return np.arccos(((self.core_alt) / self.earth_radius) * np.sin(nadir_angle))
 
     def get_path_length(self, beta, nadir_angle):
         return self.core_alt * np.cos(nadir_angle + beta) / np.cos(beta)
@@ -527,9 +525,9 @@ class RegionGeomToO:
 
     def find_lat_long_along_traj(self, dist_along_traj):
         """Will have to work out the geometry for this."""
-        return self.config.detector.lat_start * np.ones_like(
+        return self.detLat * np.ones_like(dist_along_traj), self.detLong * np.ones_like(
             dist_along_traj
-        ), self.config.detector.long_start * np.ones_like(dist_along_traj)
+        )
 
     def np_save(self, mcintfactor, numEvPass):
         np.savez(
@@ -543,7 +541,7 @@ class RegionGeomToO:
             betas=self.too_betas(),
         )
 
-    def McIntegral(
+    def mcintegral(
         self,
         triggers,
         costhetaChEff,
@@ -610,7 +608,7 @@ class RegionGeomToO:
             sun_moon_cut_mask = self.too_source.sun_moon_cut(self.val_times())
             mcintfactor[~sun_moon_cut_mask] = 0
 
-            self.test_plot_sunmooncut(self.too_source.sun_moon_cut)
+            # self.test_plot_sunmooncut(self.too_source.sun_moon_cut)
 
         mcintegral = np.sum(mcintfactor) / len(self.times)
         mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / len(self.times))
@@ -622,82 +620,6 @@ class RegionGeomToO:
             store([col_name], [mcintfactor])
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
-
-    def test_skymap_plot(self, mcint):
-        from matplotlib import cm
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection="mollweide")
-        ax.set_facecolor("k")
-        color = cm.coolwarm
-        az = self.event_mask(self.alt_deg)
-        alt = self.event_mask(self.alt_deg)
-        for i in range(len(mcint)):
-            # color = [cmap(mcint[i]) for i in mcint]
-            ax.plot(
-                np.radians(az[i]) - np.pi,
-                np.radians(alt[i]),
-                ".",
-                color=color(mcint[i]),
-            )
-        ax.tick_params(axis="x", colors="white")
-        ax.grid(True, color="white")
-        ax.set_title(
-            f"Source: {np.rad2deg(self.config.simulation.source_RA)}°, {np.rad2deg(self.config.simulation.source_DEC)}°(RA, DEC)\n Detector: {np.rad2deg(self.config.detector.detlat)}°N, {np.rad2deg(self.config.detector.detlong)}°W, {self.config.detector.altitude}km"
-        )
-        plt.savefig("Movement_over_sky_5.png")
-        plt.show()
-
-    def test_plot_mcint(self, mcint):
-        times = np.sort(
-            self.event_mask(self.times.gps - np.amin(self.times.gps)) / 3600
-        )
-        mcint = np.take_along_axis(
-            mcint,
-            np.argsort(
-                self.event_mask(self.times.gps - np.amin(self.times.gps)) / 3600
-            ),
-            0,
-        )
-        plt.figure()
-        plt.plot(times, mcint, ".")
-        plt.grid(True)
-        plt.yscale("log")
-        plt.xlabel("Observation time in hours")
-        plt.ylabel("MC Integral factor")
-        plt.savefig("Mcint_vs_time.png")
-
-    def test_plot_sunmooncut(self, sun_moon_cut):
-        import matplotlib.pyplot as plt
-
-        plt.figure("cut_val")
-        plt.plot(self.times.mjd, sun_moon_cut(self.times), ".")
-        plt.grid(True)
-        plt.show()
-
-    def test_plot_nadir_angle(self):
-        import matplotlib.pyplot as plt
-
-        plt.figure("nadir")
-        plt.plot(
-            self.times.gps, np.rad2deg(self.sourceNadRad), ".", label="not visible"
-        )
-        plt.plot(
-            self.event_mask(self.times.gps),
-            np.rad2deg(self.event_mask(self.sourceNadRad)),
-            ".",
-            label="visible",
-        )
-        plt.axhline(np.rad2deg(self.alphaHorizon), label="Horizon")
-        plt.axhline(
-            np.rad2deg(self.alphaHorizon - self.config.simulation.ang_from_limb),
-            label="angle from limb",
-            color="k",
-        )
-        plt.axhline(np.rad2deg(self.get_beta_angle(np.radians(42))), label="End of sim")
-        plt.legend()
-        plt.xlabel("GPS time in s")
-        plt.ylabel("Nadir angle in deg")
 
 
 def show_plot(sim, plot):

@@ -74,7 +74,7 @@ your simulations.
    nuspacesim.NssConfig
    nuspacesim.DetectorCharacteristics
    nuspacesim.SimulationParameters
-   nuspacesim.xml_config
+   nuspacesim.config
 
 *****************
 Simulate Function
@@ -131,20 +131,17 @@ Supporting classes and functions for gridded data, CDF sampling, Interpolation, 
 
 """
 
-from . import constants, data, utils, xml_config
+from . import constants, data, utils
 from ._version import version, version_tuple
 from .compute import compute
-from .config import DetectorCharacteristics, NssConfig, SimulationParameters
-from .results_table import ResultsTable
+from .config import NssConfig, config_from_toml
 from .simulation import eas_optical, geometry, taus
 
 __all__ = [
     # Core
     "constants",
     "NssConfig",
-    "DetectorCharacteristics",
-    "SimulationParameters",
-    "ResultsTable",
+    "config_from_toml",
     "compute",
     # modules
     "geometry",
@@ -153,7 +150,6 @@ __all__ = [
     # other
     "data",
     "utils",
-    "xml_config",
     # version
     "version",
     "version_tuple",

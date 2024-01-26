@@ -32,9 +32,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from astropy import units
+from astropy.constants import R_earth, c
 
 from ...config import NssConfig
 from ...utils import decorators
+from ..taus.taus import mean_Tau_life
 from .cphotang import CphotAng
 from .local_plots import eas_optical_density, eas_optical_histogram
 
@@ -50,7 +53,7 @@ class EAS:
 
     def __init__(self, config: NssConfig):
         self.config = config
-        self.CphotAng = CphotAng(self.config.detector.altitude)
+        self.CphotAng = CphotAng(self.config.detector.initial_position.altitude)
 
     @decorators.nss_result_store("altDec", "lenDec")
     def altDec(self, beta, tauBeta, tauLorentz, u=None, *args, **kwargs):
@@ -60,17 +63,17 @@ class EAS:
 
         u = np.random.uniform(0, 1, len(beta)) if u is None else u
 
-        tDec = (-1.0 * tauLorentz / self.config.constants.inv_mean_Tau_life) * np.log(u)
+        tDec = -tauLorentz * mean_Tau_life * np.log(u)  # seconds
 
-        lenDec = tDec * tauBeta * self.config.constants.c
+        lenDec = 1e-3 * tDec * tauBeta * c.value  # km
 
         altDec = np.sqrt(
-            self.config.constants.earth_radius**2
+            R_earth.to(units.km).value ** 2
             + lenDec**2
-            + 2.0 * self.config.constants.earth_radius * lenDec * np.sin(beta)
-        )
+            + 2.0 * R_earth.to(units.km).value * lenDec * np.sin(beta)
+        )  # km
 
-        altDec -= self.config.constants.earth_radius
+        altDec -= R_earth.to(units.km).value
 
         return altDec, lenDec
 
@@ -112,12 +115,12 @@ class EAS:
 
         numPEs = (
             dphots
-            ###### * showerEnergy  # Scaling no longer necessary. Being done in cphotang.
-            * self.config.detector.telescope_effective_area
-            * self.config.detector.quantum_efficiency
+            # * showerEnergy  # Scaling no longer necessary. Being done in cphotang.
+            * self.config.detector.optical.telescope_effective_area
+            * self.config.detector.optical.quantum_efficiency
         )
 
-        enhanceFactor = numPEs / self.config.detector.photo_electron_threshold
+        enhanceFactor = numPEs / self.config.detector.optical.photo_electron_threshold
         logenhanceFactor = np.empty_like(enhanceFactor)
         efMask = enhanceFactor > 2.0
         logenhanceFactor[efMask] = np.log(enhanceFactor[efMask])

@@ -40,7 +40,7 @@ from ...utils.plots import hist2d
 def eas_optical_density(inputs, results, *args, **kwargs):
     r"""Plot some density plots"""
 
-    _, betas, altDec, showerEnergy = inputs
+    _, betas, altDec, showerEnergy, *_ = inputs
     numPEs, costhetaChEff = results
 
     fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)

@@ -27,13 +27,13 @@ Read the nuspacesim help docstring
   python3 -m nuspacesim --help
 
 ----------------------------------
-Create the XML configuration file
+Create the TOML configuration file
 ----------------------------------
 
 Create a configuration file with the ``create-config`` command. This is editable by the
 user for defining different simulation parameters.  ::
 
-  nuspacesim create-config --numtrajs 1e6 --monospectrum 10.25 my_config_file.xml
+  nuspacesim create-config --numtrajs 1e6 --monospectrum 10.25 my_config_file.toml
 
 -----------------
 Run the simulator
@@ -42,11 +42,11 @@ Run the simulator
 Simulate neutrino interactions, and extensive air showers, then save the results to a
 FITS file.  ::
 
-  nuspacesim run my_config_file.xml -output my_nss_sim.fits
+  nuspacesim run my_config_file.toml -output my_nss_sim.fits
 
 Optionally, override the configuration file on the command line.  ::
 
-  nuspacesim run my_config_file.xml 1e5 --powerspectrum 2 6 12 -o my_nss_sim.fits
+  nuspacesim run my_config_file.toml 1e5 --powerspectrum 2 6 12 -o my_nss_sim.fits
 
 
 .. raw:: html

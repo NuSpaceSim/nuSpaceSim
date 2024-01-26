@@ -13,7 +13,7 @@ This is the public release of the nuspacesim simulator tool!
 
 This package simulates upward-going electromagnetic air showers caused by neutrino
 interactions with the atmosphere. It calculates the tau neutrino acceptance for the
-Optical Cherenkov technique. The simulation is parameterized by an input XML
+Optical Cherenkov technique. The simulation is parameterized by an input TOML
 configuration file, with settings for detector characteristics and global parameters.
 The package also provides a python3 API for programatic access.
 

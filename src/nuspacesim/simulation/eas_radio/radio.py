@@ -1,5 +1,7 @@
 import astropy.io.misc.hdf5 as hf
 import numpy as np
+from astropy.constants import R_earth
+from astropy.units import km
 
 from ...config import NssConfig
 from ...utils import decorators
@@ -41,7 +43,10 @@ class EASRadio:
         """
         EAS radio output from ZHAires lookup tables
         """
-        FreqRange = (self.config.detector.low_freq, self.config.detector.high_freq)
+        FreqRange = (
+            self.config.detector.radio.low_frequency,
+            self.config.detector.radio.high_frequency,
+        )
         radioParams = RadioEFieldParams(FreqRange)
         mask = (altDec < 0.0) | (
             altDec > 10.0
@@ -55,11 +60,11 @@ class EASRadio:
         nssDist = distance_to_detector(
             beta[mask],
             altDec[mask],
-            self.config.detector.altitude,
-            self.config.constants.earth_radius,
+            self.config.detector.initial_position.altitude,
+            R_earth.to(km).value,
         )
         zhairesDist = distance_to_detector(
-            beta[mask], altDec[mask], 525.0, self.config.constants.earth_radius
+            beta[mask], altDec[mask], 525.0, R_earth.to(km).value
         )
 
         EFields = np.zeros_like(beta)
@@ -74,17 +79,17 @@ class EASRadio:
         distScale = np.abs(zhairesDist / nssDist)
         EFields[mask] = (EFields[mask].T * distScale).T
         # no ionosphere if the detector is below 90km
-        if self.config.detector.altitude > 90.0:
-            if self.config.simulation.model_ionosphere:
-                if self.config.simulation.TEC < 0:
+        if self.config.detector.initial_position.altitude > 90.0:
+            if self.config.simulation.ionosphere:
+                if self.config.simulation.ionosphere.total_electron_content < 0:
                     print(
                         "TEC should be positive!! continuing without ionospheric dispersion"
                     )
                 else:
                     ionosphere = IonosphereParams(
                         FreqRange,
-                        self.config.simulation.TECerr,
-                        self.config.simulation.TEC,
+                        self.config.simulation.ionosphere.total_electron_error,
+                        self.config.simulation.ionosphere.total_electron_content,
                     )
                     ionosphereScaling = ionosphere(EFields[mask])
                     EFields[mask] *= ionosphereScaling
@@ -95,7 +100,7 @@ class EASRadio:
         # geomagnetic is only full strength when perpendicular to Earth B-field
         # here i apply a scaling for vxB for an orbit close to equatorial
 
-        Re = self.config.constants.earth_radius
+        Re = R_earth.to(km).value
         B_angle = np.ones(altDec[mask].shape)
         B_angle *= np.pi / 2.0 - np.arccos(
             (lenDec[mask] ** 2.0 + (altDec[mask] + Re) ** 2.0 - Re**2.0)

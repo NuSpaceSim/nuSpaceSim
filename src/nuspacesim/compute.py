@@ -45,14 +45,17 @@ NuSpaceSim Simulation
    compute
 
 """
-from typing import Any, Iterable, Union
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import numpy as np
+from astropy.table import Table as AstropyTable
 from numpy.typing import ArrayLike
 from rich.console import Console
 
+from . import results_table
 from .config import NssConfig
-from .results_table import ResultsTable
 from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
@@ -68,17 +71,17 @@ __all__ = ["compute"]
 def compute(
     config: NssConfig,
     verbose: bool = False,
-    output_file: str = None,
+    output_file: str | None = None,
     to_plot: list = [],
     write_stages=False,
-) -> ResultsTable:
+) -> AstropyTable:
     r"""Simulate an upward going shower.
 
     The main proceedure for performaing a full simulation in nuspacesim.
     Given a valid NssConfig object, :func:`compute`, will perform the simulation as
     follows:
 
-    #. Initialize the ResultsTable object.
+    #. Initialize the AstropyTable object.
     #. Initialize the appropritate :ref:`simulation modules<simulation>`.
     #. Compute array of valid beta angle trajectories: beta_tr from :class:`RegionGeom`.
     #. Compute tau interaction attributes componentwise for each element of beta_tr.
@@ -97,7 +100,7 @@ def compute(
     #. Compute the Monte Carlo integral for the resulting shower geometries.
 
     At each stage of the simulation, array results are stored as contiguous columns,
-    and scalar results are stored as attributes, both in the :class:`ResultsTable`
+    and scalar results are stored as attributes, both in the :class:`AstropyTable`
     object.
 
 
@@ -116,13 +119,16 @@ def compute(
 
     Returns
     -------
-    ResultsTable
+    AstropyTable
         The Table of result values from each stage of the simulation.
     """
 
     console = Console(width=80, log_path=False)
 
-    FreqRange = (config.detector.low_freq, config.detector.high_freq)
+    freqRange = (
+        config.detector.radio.low_frequency,
+        config.detector.radio.high_frequency,
+    )
 
     def logv(*args):
         """optionally print descriptive messages."""
@@ -138,13 +144,10 @@ def compute(
             f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
             mcintgeo,
         )
-        logv(
-            f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:",
-            numEvPass,
-        )
+        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
-    sim = ResultsTable()
+    sim = results_table.init(config)
     geom = RegionGeom(config)
     cloud = CloudTopHeight(config)
     spec = Spectra(config)
@@ -152,7 +155,7 @@ def compute(
     eas = EAS(config)
     eas_radio = EASRadio(config)
 
-    if config.simulation.det_mode == "ToO":
+    if config.simulation.mode == "ToO":
         geom = RegionGeomToO(config)
     else:
         geom = RegionGeom(config)
@@ -169,35 +172,34 @@ def compute(
         ):
             sim.add_columns(columns, names=col_names, *args, **kwargs)
             if write_stages:
-                sim.write(output_file, overwrite=True)
+                sim.write(output_file, format="fits", overwrite=True)
 
         def add_meta(self, name: str, value: Any, comment: str):
             sim.meta[name] = (value, comment)
             if write_stages:
-                sim.write(output_file, overwrite=True)
+                sim.write(output_file, format="fits", overwrite=True)
 
     sw = StagedWriter()
 
-    logv(
-        f"Running NuSpaceSim in {config.simulation.det_mode}-mode with Energy Spectrum ({config.simulation.spectrum})"
-    )
+    logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr, _ = geom(config.simulation.N, store=sw, plot=to_plot)
-    logv(
-        f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
+    beta_tr, thetaArr, pathLenArr, val_times = geom(
+        config.simulation.thrown_events, store=sw, plot=to_plot
     )
-    """init_lat, init_long = geom.find_lat_long_along_traj(0)"""
+    logv(
+        f"\t[blue]Threw {config.simulation.thrown_events} neutrinos. {beta_tr.size} were valid.[/]"
+    )
     init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
-    """sim(
+    sw(
         ("init_lat", "init_lon"),
         (init_lat, init_long),
-    )"""
+    )
 
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
-        len(beta_tr), store=sw, plot=to_plot
+        beta_tr.shape[0], store=sw, plot=to_plot
     )
 
     logv("Computing [green] Taus.[/]")
@@ -208,7 +210,8 @@ def compute(
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    if config.detector.method == "Optical" or config.detector.method == "Both":
+    # if config.detector.method == "Optical" or config.detector.method == "Both":
+    if config.detector.optical:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
@@ -223,11 +226,11 @@ def compute(
         )
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV, mcunc = geom.McIntegral(
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             numPEs,
             costhetaChEff,
             tauExitProb,
-            config.detector.photo_electron_threshold,
+            config.detector.optical.photo_electron_threshold,
             mc_spec_norm,
             spec_weights_sum,
             lenDec=lenDec,
@@ -242,27 +245,27 @@ def compute(
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
 
-    if config.detector.method == "Radio" or config.detector.method == "Both":
+    if config.detector.radio:
         logv("Computing [green] EAS Radio signal.[/]")
 
-        EFields = eas_radio(
+        eFields = eas_radio(
             beta_tr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw
         )
 
         snrs = calculate_snr(
-            EFields,
-            FreqRange,
-            config.detector.altitude,
-            config.detector.det_Nant,
-            config.detector.det_gain,
+            eFields,
+            freqRange,
+            config.detector.initial_position.altitude,
+            config.detector.radio.nantennas,
+            config.detector.radio.gain,
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
-        mcint, mcintgeo, passEV, mcunc = geom.McIntegral(
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             snrs,
-            np.cos(config.simulation.theta_ch_max),
+            np.cos(config.simulation.max_cherenkov_angle),
             tauExitProb,
-            config.detector.det_SNR_thres,
+            config.detector.radio.snr_threshold,
             mc_spec_norm,
             spec_weights_sum,
             lenDec=lenDec,

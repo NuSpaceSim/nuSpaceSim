@@ -45,6 +45,9 @@ gmr = const.std_atm_gmr
 
 
 def us_std_atm_altitude_from_pressure(P):
+    """
+    (1976) US Standard Atmosphere. Derived from Pressure from altitude equation.
+    """
     P = np.asarray(P)
 
     i = np.zeros_like(P, dtype=int)
@@ -66,6 +69,9 @@ def us_std_atm_altitude_from_pressure(P):
 
 
 def us_std_atm_pressure_from_altitude(z):
+    """
+    (1976) US Standard Atmosphere. Derived from Pressure from altitude equation.
+    """
     z = np.asarray(z)
     x = z < np.inf
     h = np.empty_like(z)

@@ -45,8 +45,9 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 
-from ...config import NssConfig
-from ...types import cloud_types
+from ...config import NssConfig, Simulation
+
+# from ...types import cloud_types
 from ..eas_optical import atmospheric_models as atm
 
 
@@ -57,26 +58,26 @@ class CloudTopHeight:
         if self.cloud_model is None:
             self.altitude = mono_altitude()
 
-        elif isinstance(self.cloud_model, cloud_types.NoCloud):
+        elif isinstance(self.cloud_model, Simulation.NoCloud):
             self.altitude = mono_altitude()
 
-        elif isinstance(self.cloud_model, cloud_types.MonoCloud):
+        elif isinstance(self.cloud_model, Simulation.MonoCloud):
             self.altitude = mono_altitude(self.cloud_model.altitude)
 
-        elif isinstance(self.cloud_model, cloud_types.PressureMapCloud):
+        elif isinstance(self.cloud_model, Simulation.PressureMapCloud):
             self.map = extract_fits_cloud_pressure_map_v0(self.cloud_model)
             self.altitude = altitude_from_pressure_map_v0(self.map)
 
         else:
             RuntimeError(f"Unrecognized Cloud Model Type: {type(self.cloud_model)}!")
 
-    def __call__(self, *args, **kwargs) -> npt.single:
+    def __call__(self, *args, **kwargs) -> np.single:
         return self.altitude(*args, **kwargs)
 
 
 def mono_altitude(altitude=0.0):
     def f(*args, **kwargs) -> np.single:
-        return altitude
+        return np.single(altitude)
 
     return f
 
@@ -94,7 +95,7 @@ def altitude_from_pressure_map_v0(map: npt.ArrayLike):
     return f
 
 
-def extract_fits_cloud_pressure_map_v0(cloud_model: cloud_types.PressureMapCloud):
+def extract_fits_cloud_pressure_map_v0(cloud_model: Simulation.PressureMapCloud):
     month = cloud_model.month
     version = cloud_model.version
     with as_file(

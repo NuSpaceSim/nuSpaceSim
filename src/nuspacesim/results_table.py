@@ -37,18 +37,42 @@
    :toctree:
    :recursive:
 
-    ResultsTable
-
 """
 
+from __future__ import annotations
+
 import datetime
-from typing import Any, Iterable, Union
 
 from astropy.table import Table as AstropyTable
-from numpy.typing import ArrayLike
 
 from .config import NssConfig
+from .utils.misc import flatten_dict
 
-__all__ = ["ResultsTable"]
+__all__ = ["init", "output_filename"]
 
-ResultsTable = AstropyTable
+
+def init(config: NssConfig | None = None):
+    r"""Initialize a simulation results table with metadata"""
+    if config is None:
+        config = NssConfig()
+
+    if isinstance(config, NssConfig):
+        now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+        return AstropyTable(
+            meta={
+                "simTime": (now, "Start time of Simulation"),
+                **flatten_dict(config.model_dump(), "HIERARCH Config", sep=" "),
+            }
+        )
+    elif isinstance(config, AstropyTable):
+        return AstropyTable(config)
+
+    else:
+        return AstropyTable()
+
+
+def output_filename(filename: str | None, now: str | None = None) -> str:
+    if filename is not None:
+        return filename
+    now = now if now else f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+    return f"nuspacesim_run_{now}.fits"

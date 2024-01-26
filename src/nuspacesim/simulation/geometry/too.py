@@ -7,20 +7,22 @@ import numpy as np
 class ToOEvent:
     def __init__(self, config):
         self.config = config
-        self.sun_alt_cut = self.config.detector.sun_alt_cut
-        self.moon_alt_cut = self.config.detector.moon_alt_cut
-        self.MoonMinPhaseAngleCut = self.config.detector.MoonMinPhaseAngleCut
+        self.sun_alt_cut = self.config.detector.sun_moon.sun_alt_cut
+        self.moon_alt_cut = self.config.detector.sun_moon.moon_alt_cut
+        self.MoonMinPhaseAngleCut = (
+            self.config.detector.sun_moon.moon_min_phase_angle_cut
+        )
 
         # Detector definitions
-        self.detlat = self.config.detector.lat_start
-        self.detlong = self.config.detector.long_start
-        self.detalt = self.config.detector.altitude
+        self.detlat = self.config.detector.initial_position.latitude
+        self.detlong = self.config.detector.initial_position.longitude
+        self.detalt = self.config.detector.initial_position.altitude
         # ToO definitions
-        self.sourceRA = self.config.simulation.source_RA
-        self.sourceDEC = self.config.simulation.source_DEC
-        self.sourceDATE = self.config.simulation.source_date
-        self.sourceDateFormat = self.config.simulation.source_date_format
-        self.sourceOBSTime = self.config.simulation.source_obst
+        self.sourceRA = self.config.simulation.too.source_RA
+        self.sourceDEC = self.config.simulation.too.source_DEC
+        self.sourceDATE = self.config.simulation.too.source_date
+        self.sourceDateFormat = self.config.simulation.too.source_date_format
+        self.sourceOBSTime = self.config.simulation.too.source_obst
 
         self.eventtime = astropy.time.Time(
             self.sourceDATE, format=self.sourceDateFormat, scale="utc"
