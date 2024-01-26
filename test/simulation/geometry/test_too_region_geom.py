@@ -9,24 +9,24 @@ from nuspacesim.simulation.geometry import region_geometry
 @pytest.fixture
 def nss_config_event():
     conf = NssConfig()
-    conf.simulation.source_RA = 100
-    conf.simulation.source_DEC = 0
-    conf.detector.altitude = 33.0
-    conf.detector.detlat = 0.0
-    conf.detector.detlong = 10.0
-    conf.detector.sun_moon_cuts = True
-    conf.detector.sun_alt_cut = -12
-    conf.detector.moon_alt_cut = 0
-    conf.detector.MoonMinPhaseAngleCut = np.radians(90)
+    conf.simulation.too.source_RA = 100
+    conf.simulation.too.source_DEC = 0
+    conf.detector.initial_position.altitude = 33.0
+    conf.detector.initial_position.latitude = 0.0
+    conf.detector.initial_position.longitude = 10.0
+    conf.detector.sun_moon.sun_moon_cuts = True
+    conf.detector.sun_moon.sun_alt_cut = -12
+    conf.detector.sun_moon.moon_alt_cut = 0
+    conf.detector.sun_moon.moon_min_phase_angle_cut = np.radians(90)
 
-    conf.simulation.N: int = 10000
-    conf.simulation.theta_ch_max: float = np.radians(3.0)
-    conf.simulation.det_mode: str = "ToO"
-    conf.simulation.source_RA: float = 0
-    conf.simulation.source_DEC: float = 0
-    conf.simulation.source_date: str = "2022-03-21T00:00:00.000"
-    conf.simulation.source_date_format: str = "isot"
-    conf.simulation.source_obst: float = 24 * 60 * 60
+    conf.simulation.thrown_events: int = 10000
+    conf.simulation.max_cherenkov_angle: float = np.radians(3.0)
+    conf.simulation.mode: str = "ToO"
+    conf.simulation.too.source_RA: float = 0.0
+    conf.simulation.too.source_DEC: float = 0.0
+    conf.simulation.too.source_date: str = "2022-03-21T00:00:00.000"
+    conf.simulation.too.source_date_format: str = "isot"
+    conf.simulation.too.source_obst: float = 24 * 60 * 60
     return conf
 
 

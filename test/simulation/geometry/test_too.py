@@ -9,24 +9,24 @@ from nuspacesim.simulation.geometry import too
 @pytest.fixture
 def nss_config_event():
     conf = NssConfig()
-    conf.simulation.source_RA = 22
-    conf.simulation.source_DEC = -45
-    conf.detector.altitude = 33.0
-    conf.detector.detlat = 0.0
-    conf.detector.detlong = 10.0
-    conf.detector.sun_moon_cuts = True
-    conf.detector.sun_alt_cut = -12
-    conf.detector.moon_alt_cut = 0
-    conf.detector.MoonMinPhaseAngleCut = np.radians(90)
+    conf.simulation.too.source_RA = 22
+    conf.simulation.too.source_DEC = -45
+    conf.detector.initial_position.altitude = 33.0
+    conf.detector.initial_position.latitude = 0.0
+    conf.detector.initial_position.longitude = 10.0
+    conf.detector.sun_moon.sun_moon_cuts = True
+    conf.detector.sun_moon.sun_alt_cut = -12
+    conf.detector.sun_moon.moon_alt_cut = 0
+    conf.detector.sun_moon.moon_min_phase_angle_cut = np.radians(90)
 
-    conf.simulation.N: int = 10000
-    conf.simulation.theta_ch_max: float = np.radians(3.0)
-    conf.simulation.det_mode: str = "ToO"
-    conf.simulation.source_RA: float = 0
-    conf.simulation.source_DEC: float = 0
-    conf.simulation.source_date: str = "2022-06-02T01:00:00.000"
-    conf.simulation.source_date_format: str = "isot"
-    conf.simulation.source_obst: float = 24 * 60 * 60
+    conf.simulation.thrown_events: int = 10000
+    conf.simulation.max_cherenkov_angle: float = np.radians(3.0)
+    conf.simulation.mode: str = "ToO"
+    conf.simulation.too.source_RA: float = 0.0
+    conf.simulation.too.source_DEC: float = 0.0
+    conf.simulation.too.source_date: str = "2022-06-02T01:00:00.000"
+    conf.simulation.too.source_date_format: str = "isot"
+    conf.simulation.too.source_obst: float = 24 * 60 * 60
     return conf
 
 
@@ -37,24 +37,31 @@ def too_event(nss_config_event):
 
 
 def test_too_construction(nss_config_event, too_event):
-    assert too_event.sun_alt_cut == nss_config_event.detector.sun_alt_cut
-    assert too_event.moon_alt_cut == nss_config_event.detector.moon_alt_cut
+    assert too_event.sun_alt_cut == nss_config_event.detector.sun_moon.sun_alt_cut
+    assert too_event.moon_alt_cut == nss_config_event.detector.sun_moon.moon_alt_cut
     assert (
-        too_event.MoonMinPhaseAngleCut == nss_config_event.detector.MoonMinPhaseAngleCut
+        too_event.MoonMinPhaseAngleCut
+        == nss_config_event.detector.sun_moon.moon_min_phase_angle_cut
     )
 
-    assert too_event.sourceOBSTime == nss_config_event.simulation.source_obst
+    assert too_event.sourceOBSTime == nss_config_event.simulation.too.source_obst
 
-    assert too_event.eventtime.utc.isot == nss_config_event.simulation.source_date
-    assert too_event.eventcoords.icrs.ra.deg == nss_config_event.simulation.source_RA
-    assert too_event.eventcoords.icrs.dec.deg == nss_config_event.simulation.source_DEC
+    assert too_event.eventtime.utc.isot == nss_config_event.simulation.too.source_date
+    assert (
+        too_event.eventcoords.icrs.ra.deg == nss_config_event.simulation.too.source_RA
+    )
+    assert (
+        too_event.eventcoords.icrs.dec.deg == nss_config_event.simulation.too.source_DEC
+    )
 
-    assert too_event.detcords.lat.deg == pytest.approx(nss_config_event.detector.detlat)
+    assert too_event.detcords.lat.deg == pytest.approx(
+        nss_config_event.detector.initial_position.latitude
+    )
     assert too_event.detcords.lon.deg == pytest.approx(
-        nss_config_event.detector.detlong
+        nss_config_event.detector.initial_position.longitude
     )
     assert too_event.detcords.height.value == pytest.approx(
-        nss_config_event.detector.altitude * 1000
+        nss_config_event.detector.initial_position.altitude * 1000
     )
 
 
