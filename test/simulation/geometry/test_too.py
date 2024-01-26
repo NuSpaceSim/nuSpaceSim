@@ -9,14 +9,14 @@ from nuspacesim.simulation.geometry import too
 @pytest.fixture
 def nss_config_event():
     conf = NssConfig()
-    conf.simulation.too.source_RA = 22
-    conf.simulation.too.source_DEC = -45
+    conf.simulation.too.source_RA = np.radians(22)
+    conf.simulation.too.source_DEC = np.radians(-45)
     conf.detector.initial_position.altitude = 33.0
-    conf.detector.initial_position.latitude = 0.0
-    conf.detector.initial_position.longitude = 10.0
+    conf.detector.initial_position.latitude = np.radians(0.0)
+    conf.detector.initial_position.longitude = np.radians(10.0)
     conf.detector.sun_moon.sun_moon_cuts = True
-    conf.detector.sun_moon.sun_alt_cut = -12
-    conf.detector.sun_moon.moon_alt_cut = 0
+    conf.detector.sun_moon.sun_alt_cut = np.radians(-12)
+    conf.detector.sun_moon.moon_alt_cut = np.radians(0)
     conf.detector.sun_moon.moon_min_phase_angle_cut = np.radians(90)
 
     conf.simulation.thrown_events: int = 10000
@@ -54,10 +54,10 @@ def test_too_construction(nss_config_event, too_event):
         too_event.eventcoords.icrs.dec.deg == nss_config_event.simulation.too.source_DEC
     )
 
-    assert too_event.detcords.lat.deg == pytest.approx(
+    assert too_event.detcords.lat.rad == pytest.approx(
         nss_config_event.detector.initial_position.latitude
     )
-    assert too_event.detcords.lon.deg == pytest.approx(
+    assert too_event.detcords.lon.rad == pytest.approx(
         nss_config_event.detector.initial_position.longitude
     )
     assert too_event.detcords.height.value == pytest.approx(
