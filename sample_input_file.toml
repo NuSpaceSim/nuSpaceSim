@@ -8,6 +8,12 @@ altitude = "525.0 km"
 latitude = "0.0 deg"
 longitude = "0.0 deg"
 
+[detector.sun_moon]
+sun_moon_cuts = true
+sun_alt_cut = "-18.0 deg"
+moon_alt_cut = "0.0 deg"
+moon_min_phase_angle_cut = "150.0 deg"
+
 [detector.optical]
 telescope_effective_area = "2.5 m2"
 quantum_efficiency = 0.2
@@ -21,8 +27,8 @@ nantennas = 10
 gain = "1.8 dB"
 
 [simulation]
-mode = "Diffuse"
-thrown_events = 10000
+mode = "ToO"
+thrown_events = 100000
 max_cherenkov_angle = "3.0000000000000004 deg"
 max_azimuth_angle = "360.0 deg"
 angle_from_limb = "7.0 deg"
@@ -43,3 +49,10 @@ log_nu_energy = 8.0
 
 [simulation.cloud_model]
 id = "no_cloud"
+
+[simulation.too]
+source_RA = "0.0 deg"
+source_DEC = "0.0 deg"
+source_date = "2022-06-02T01:00:00"
+source_date_format = "isot"
+source_obst = 86400

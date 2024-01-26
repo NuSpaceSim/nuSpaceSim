@@ -135,8 +135,8 @@ class EAS:
         return numPEs, costhetaChEff
 
 
-def show_plot(sim, plot):
+def show_plot(sim, simclass, plot):
     plotfs = (eas_optical_density, eas_optical_histogram)
     inputs = ("beta_rad", "altDec", "showerEnergy")
     outputs = ("numPEs", "costhetaChEff")
-    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)
+    decorators.nss_result_plot_from_file(sim, simclass, inputs, outputs, plotfs, plot)

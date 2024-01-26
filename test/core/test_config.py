@@ -251,6 +251,12 @@ def test_detector_serialization():
             "latitude": "0.0 deg",
             "longitude": "0.0 deg",
         },
+        "sun_moon": {
+            "moon_alt_cut": "0.0 deg",
+            "moon_min_phase_angle_cut": "150.0 deg",
+            "sun_alt_cut": "-18.0 deg",
+            "sun_moon_cuts": True,
+        },
         "optical": {
             "telescope_effective_area": "2.5 m2",
             "quantum_efficiency": 0.2,
@@ -297,6 +303,13 @@ def test_default_simulation():
         "tau_shower": {"id": "nupyprop", "etau_frac": 0.5, "table_version": "3"},
         "spectrum": {"id": "monospectrum", "log_nu_energy": 8.0},
         "cloud_model": {"id": "no_cloud"},
+        "too": {
+            "source_DEC": "0.0 deg",
+            "source_RA": "0.0 deg",
+            "source_date": "2022-06-02T01:00:00",
+            "source_date_format": "isot",
+            "source_obst": 86400,
+        },
     }
 
 

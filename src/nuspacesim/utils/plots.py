@@ -59,7 +59,7 @@ def hist2d(fig, ax, x, y, xlab, ylab, cmap="jet", logx=True, logy=True):
     cbar.set_label("Counts")
 
 
-def dashboard(sim):
+def dashboard(sim, sim_class):
     """Full dashboard of plots"""
 
     fig, ax = plt.subplots(3, 4, figsize=(14, 8), constrained_layout=True)
@@ -72,15 +72,22 @@ def dashboard(sim):
     tau_pexit_density(sim, fig, ax[1, 1])
     decay_altitude(sim, fig, ax[2, 1])
 
-    # decay_altitude_hist(sim, fig, ax[0, 2])
-    num_photo_electrons_hist(sim, fig, ax[0, 2])
-    num_photo_electrons_density(sim, fig, ax[1, 2])
-    num_photo_electrons_altitude(sim, fig, ax[2, 2])
+    # Issue 94 == https://github.com/NuSpaceSim/nuSpaceSim/issues/94
+    # Include only events with Npe >= photo_electron_threshold
+    valid = sim["numPEs"] >= sim_class.config.detector.optical.photo_electron_threshold
+    numPEs = sim["numPEs"][valid]
+    altDec = sim["altDec"][valid]
+    beta_rad = sim["beta_rad"][valid]
+    costhetaChEff = sim["costhetaChEff"][valid]
 
-    # eas_input_density(sim, fig, ax[0, 3])
-    cherenkov_angle_hist(sim, fig, ax[0, 3])
-    eas_results_density(sim, fig, ax[1, 3])
-    cherenkov_angle(sim, fig, ax[2, 3])
+    num_photo_electrons_hist(numPEs, ax[0, 2])
+    num_photo_electrons_density(numPEs, beta_rad, fig, ax[1, 2])
+    num_photo_electrons_altitude(numPEs, altDec, fig, ax[2, 2])
+
+    # eas_input_density(sim, sim_class, fig, ax[0, 3])
+    cherenkov_angle_hist(costhetaChEff, ax[0, 3])
+    eas_results_density(numPEs, costhetaChEff, fig, ax[1, 3])
+    cherenkov_angle(beta_rad, costhetaChEff, fig, ax[2, 3])
 
     # tau_betas(sim, fig, ax[1, 2])
 
@@ -183,25 +190,24 @@ def tau_betas(sim, fig, ax):
     )
 
 
-def decay_altitude_hist(sim, fig, ax):
+def decay_altitude_hist(sim, _, ax):
     ax.hist(sim["altDec"], 100, log=True)
     ax.set_ylabel("Counts")
     ax.set_xlabel("decay_altitude log(km)")
 
 
-def num_photo_electrons_hist(sim, fig, ax):
-    m = sim["numPEs"] != 0
-    ax.hist(np.log(sim["numPEs"][m]), 100, log=False)
+def num_photo_electrons_hist(numPEs, ax):
+    ax.hist(np.log(numPEs), 100, log=False)
     ax.set_ylabel("Counts")
     ax.set_xlabel("log(numPEs)")
 
 
-def num_photo_electrons_density(sim, fig, ax):
+def num_photo_electrons_density(numPEs, beta_rad, fig, ax):
     hist2d(
         fig,
         ax,
-        sim["numPEs"],
-        np.degrees(sim["beta_rad"]),
+        numPEs,
+        np.degrees(beta_rad),
         "numPEs",
         "β",
         "plasma",
@@ -210,12 +216,12 @@ def num_photo_electrons_density(sim, fig, ax):
     )
 
 
-def num_photo_electrons_altitude(sim, fig, ax):
+def num_photo_electrons_altitude(numPEs, altDec, fig, ax):
     hist2d(
         fig,
         ax,
-        sim["numPEs"],
-        sim["altDec"],
+        numPEs,
+        altDec,
         "numPEs",
         "decay_altitude km",
         "plasma",
@@ -238,19 +244,19 @@ def decay_altitude(sim, fig, ax):
     )
 
 
-def cherenkov_angle_hist(sim, fig, ax):
-    ax.hist(np.degrees(np.arccos(sim["costhetaChEff"])), 100, log=True)
+def cherenkov_angle_hist(costhetaChEff, ax):
+    ax.hist(np.degrees(np.arccos(costhetaChEff)), 100, log=True)
     ax.set_ylabel("Counts")
     ax.set_xlabel("θ_chEff")
 
 
-def eas_input_density(sim, fig, ax):
+def eas_input_density(beta_rad, altDec, fig, ax):
     hist2d(
         fig,
         ax,
-        np.degrees(sim["beta_rad"]),
-        sim["altDec"],
-        "beta_rad",
+        np.degrees(beta_rad),
+        altDec,
+        "β",
         "decay alt km",
         cmap="jet",
         logx=False,
@@ -258,12 +264,12 @@ def eas_input_density(sim, fig, ax):
     )
 
 
-def cherenkov_angle(sim, fig, ax):
+def cherenkov_angle(beta_rad, costhetaChEff, fig, ax):
     hist2d(
         fig,
         ax,
-        np.degrees(np.arccos(sim["costhetaChEff"])),
-        np.degrees(sim["beta_rad"]),
+        np.degrees(np.arccos(costhetaChEff)),
+        np.degrees(beta_rad),
         "θ_chEff",
         "β",
         cmap="jet",
@@ -272,12 +278,12 @@ def cherenkov_angle(sim, fig, ax):
     )
 
 
-def eas_results_density(sim, fig, ax):
+def eas_results_density(numPEs, costhetaChEff, fig, ax):
     hist2d(
         fig,
         ax,
-        np.degrees(np.arccos(sim["costhetaChEff"])),
-        sim["numPEs"],
+        np.degrees(np.arccos(costhetaChEff)),
+        numPEs,
         "θ_chEff",
         "NumPEs",
         cmap="jet",
@@ -287,8 +293,8 @@ def eas_results_density(sim, fig, ax):
 
 
 @decorators.ensure_plot_registry(dashboard)
-def show_plot(sim, plot):
+def show_plot(sim, sim_class, plot):
     if dashboard.__name__ in plot:
-        dashboard(sim)
+        dashboard(sim, sim_class)
 
     # dashboard(sim, plot)

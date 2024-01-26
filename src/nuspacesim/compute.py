@@ -60,7 +60,8 @@ from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
-from .simulation.geometry.region_geometry import RegionGeom
+from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
+from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
 
@@ -124,7 +125,7 @@ def compute(
 
     console = Console(width=80, log_path=False)
 
-    FreqRange = (
+    freqRange = (
         config.detector.radio.low_frequency,
         config.detector.radio.high_frequency,
     )
@@ -154,6 +155,11 @@ def compute(
     eas = EAS(config)
     eas_radio = EASRadio(config)
 
+    if config.simulation.mode == "ToO":
+        geom = RegionGeomToO(config)
+    else:
+        geom = RegionGeom(config)
+
     class StagedWriter:
         """Optionally write intermediate values to file"""
 
@@ -178,7 +184,7 @@ def compute(
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr = geom(
+    beta_tr, thetaArr, pathLenArr, val_times = geom(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
     logv(
@@ -227,6 +233,9 @@ def compute(
             config.detector.optical.photo_electron_threshold,
             mc_spec_norm,
             spec_weights_sum,
+            lenDec=lenDec,
+            method="Optical",
+            store=sw,
         )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
@@ -239,13 +248,13 @@ def compute(
     if config.detector.radio:
         logv("Computing [green] EAS Radio signal.[/]")
 
-        EFields = eas_radio(
+        eFields = eas_radio(
             beta_tr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw
         )
 
         snrs = calculate_snr(
-            EFields,
-            FreqRange,
+            eFields,
+            freqRange,
             config.detector.initial_position.altitude,
             config.detector.radio.nantennas,
             config.detector.radio.gain,
@@ -259,6 +268,9 @@ def compute(
             config.detector.radio.snr_threshold,
             mc_spec_norm,
             spec_weights_sum,
+            lenDec=lenDec,
+            method="Radio",
+            store=sw,
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
