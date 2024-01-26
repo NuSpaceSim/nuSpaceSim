@@ -40,8 +40,17 @@ from ...utils.plots import hist2d
 def eas_optical_density(inputs, results, *args, **kwargs):
     r"""Plot some density plots"""
 
-    _, betas, altDec, showerEnergy, *_ = inputs
+    eas_cls, betas, altDec, showerEnergy, *_ = inputs
     numPEs, costhetaChEff = results
+
+    # Issue 94 == https://github.com/NuSpaceSim/nuSpaceSim/issues/94
+    # Include only events with Npe >=photo_electron_threshold
+    valid = numPEs >= eas_cls.config.detector.optical.photo_electron_threshold
+    betas = betas[valid]
+    altDec = altDec[valid]
+    showerEnergy = showerEnergy[valid]
+    numPEs = numPEs[valid]
+    costhetaChEff = costhetaChEff[valid]
 
     fig, ax = plt.subplots(2, 3, figsize=(15, 8), constrained_layout=True)
 
@@ -97,8 +106,14 @@ def eas_optical_density(inputs, results, *args, **kwargs):
 def eas_optical_histogram(inputs, results, *args, **kwargs):
     r"""Plot some histograms"""
 
-    # eas_self, betas, altDec, showerEnergy = inputs
+    eas_cls, *_ = inputs
     numPEs, costhetaChEff = results
+
+    # Issue 94 == https://github.com/NuSpaceSim/nuSpaceSim/issues/94
+    # Include only events with Npe >=photo_electron_threshold
+    valid = numPEs >= eas_cls.config.detector.optical.photo_electron_threshold
+    numPEs = numPEs[valid]
+    costhetaChEff = costhetaChEff[valid]
 
     color = "salmon"
     alpha = 1

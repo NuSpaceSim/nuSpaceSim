@@ -1,7 +1,12 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
 import click
 from astropy.table import Table as AstropyTable
 
 from .. import simulation
+from ..config import NssConfig, config_from_fits
 from ..utils import plots
 from ..utils.plot_function_registry import registry
 from .utils import read_plot_config
@@ -63,11 +68,18 @@ def show_plot(
     `nuspacesim show_plot my_sim_results.fits -p taus_overview`
     """
 
-    sim = AstropyTable.read(simulation_file)
+    sim_cfg = config_from_fits(simulation_file)
+    sim_results = AstropyTable.read(simulation_file)
 
     plot = read_plot_config(registry, plotall, plotconfig, plot)
 
-    simulation.geometry.region_geometry.show_plot(sim, plot)
-    simulation.taus.taus.show_plot(sim, plot)
-    simulation.eas_optical.eas.show_plot(sim, plot)
-    plots.show_plot(sim, plot)
+    @dataclass
+    class cfgwrap:
+        config: NssConfig | None = None
+
+    sim_class = cfgwrap(sim_cfg)
+
+    simulation.geometry.region_geometry.show_plot(sim_results, sim_class, plot)
+    simulation.taus.taus.show_plot(sim_results, sim_class, plot)
+    simulation.eas_optical.eas.show_plot(sim_results, sim_class, plot)
+    plots.show_plot(sim_results, sim_class, plot)

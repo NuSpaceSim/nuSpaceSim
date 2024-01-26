@@ -622,8 +622,10 @@ class RegionGeomToO:
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
 
-def show_plot(sim, plot):
+def show_plot(sim_results, simclass, plot):
     plotfs = tuple([geom_beta_tr_hist])
     inputs = tuple([0])
     outputs = ("beta_rad", "theta_rad", "path_len")
-    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)
+    decorators.nss_result_plot_from_file(
+        sim_results, simclass, inputs, outputs, plotfs, plot
+    )
