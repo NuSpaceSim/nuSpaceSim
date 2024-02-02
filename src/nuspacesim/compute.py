@@ -61,7 +61,8 @@ from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
-from .simulation.geometry.too import *
+
+# from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
 
@@ -184,7 +185,7 @@ def compute(
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr, val_times = geom(
+    beta_tr, thetaArr, pathLenArr, *_ = geom(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
     logv(
