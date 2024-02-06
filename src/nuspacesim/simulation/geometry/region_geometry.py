@@ -478,10 +478,11 @@ class RegionGeomToO:
 
     def generate_times(self, times) -> np.ndarray:
         """
-        Function to generate random times within the simulation time period
+        Function to generate times within the simulation time period
         """
         if isinstance(times, int):
-            times = np.random.rand(times)
+            # times = np.random.rand(times)
+            times = np.arange(0.0, 1.0, 1.0 / times)
 
         if times is None:
             raise RuntimeError(
@@ -489,7 +490,7 @@ class RegionGeomToO:
                 "numbers in [0, 1]"
             )
 
-        times = np.sort(times)
+        # times = np.sort(times)
         times *= self.sourceOBSTime  # in s
         times = TimeDelta(times, format="sec")
         times = self.too_source.eventtime + times
