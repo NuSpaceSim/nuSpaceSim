@@ -482,7 +482,7 @@ class RegionGeomToO:
         """
         if isinstance(times, int):
             # times = np.random.rand(times)
-            times = np.arange(0.0, 1.0, 1.0 / times)
+            times = np.arange(times) / times
 
         if times is None:
             raise RuntimeError(
