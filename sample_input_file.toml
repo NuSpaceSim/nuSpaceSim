@@ -27,7 +27,7 @@ nantennas = 10
 gain = "1.8 dB"
 
 [simulation]
-mode = "ToO"
+mode = "Diffuse"
 thrown_events = 100000
 max_cherenkov_angle = "3.0000000000000004 deg"
 max_azimuth_angle = "360.0 deg"
