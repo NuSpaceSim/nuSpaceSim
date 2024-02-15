@@ -390,8 +390,10 @@ class RegionGeom:
         mcintfactor[cossepangle < costheta] = 0
         mcintegralgeoonly = np.sum(mcintfactor) * mcnorm / numTrajs
 
-        # Multiply by tau exit probability
-        mcintfactor *= tauexitprob
+        Bshr = 0.826
+
+        # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
+        mcintfactor *= Bshr * tauexitprob
 
         # Weighting by energy spectrum if other than monoenergetic spectrum
         mcintfactor /= spec_norm
@@ -460,28 +462,17 @@ class RegionGeomToO:
                 ),
             ]
         )
-        # print(
-        #    np.rad2deg(self.config.simulation.ang_from_limb),
-        #    np.rad2deg(
-        #        self.get_beta_angle(
-        #            self.alphaHorizon - self.config.simulation.ang_from_limb
-        #        )
-        #    ),
-        # )
+
         # Calculate the pathlength through the atmosphere
         self.losPathLen = self.get_path_length(
             self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
         )
-        # self.test_plot_nadir_angle()
-        # print (np.degrees(self.sourcebeta[self.volume_mask]), self.losPathLen)
-        # self.test_plot_nadir_angle()
 
     def generate_times(self, times) -> np.ndarray:
         """
         Function to generate times within the simulation time period
         """
         if isinstance(times, int):
-            # times = np.random.rand(times)
             times = np.arange(times) / times
 
         if times is None:
@@ -490,7 +481,6 @@ class RegionGeomToO:
                 "numbers in [0, 1]"
             )
 
-        # times = np.sort(times)
         times *= self.sourceOBSTime  # in s
         times = TimeDelta(times, format="sec")
         times = self.too_source.eventtime + times
@@ -566,12 +556,6 @@ class RegionGeomToO:
         thetaChEff = np.arccos(costhetaChEff)
         tanthetaChEff = np.tan(thetaChEff)
 
-        # cossepangle = self.costhetaTrSubV[self.event_mask]
-
-        # mcintfactor = (
-        #    (self.pathLens() - lenDec) * (self.pathLens() - lenDec) * tanthetaChEff**2
-        # )
-
         mcintfactor_umsk = self.pathLens() - lenDec
         # mcintfactor_umsk = self.pathLens() # For testing purposes only
 
@@ -586,16 +570,11 @@ class RegionGeomToO:
 
         mcintegralgeoonly = np.sum(mcintfactor) / len(self.times)
 
-        # Branching ratio set to 1 to be consistent
         Bshr = 0.826
 
+        # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
+
         mcintfactor *= Bshr * tauexitprob
-
-        # Geometry Factors
-        # mcintegralgeoonly = np.mean(mcintfactor)
-
-        # Multiply by tau exit probability
-        # mcintfactor *= tauexitprob
 
         # Weighting by energy spectrum if other than monoenergetic spectrum
         mcintfactor /= spec_norm
