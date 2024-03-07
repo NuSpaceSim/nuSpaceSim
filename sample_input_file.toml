@@ -15,11 +15,13 @@ moon_alt_cut = "0.0 deg"
 moon_min_phase_angle_cut = "150.0 deg"
 
 [detector.optical]
+enable = true
 telescope_effective_area = "2.5 m2"
 quantum_efficiency = 0.2
 photo_electron_threshold = 10
 
 [detector.radio]
+enable = true
 low_frequency = "30.0 MHz"
 high_frequency = "300.0 MHz"
 snr_threshold = 5.0
@@ -35,6 +37,7 @@ angle_from_limb = "7.0 deg"
 cherenkov_light_engine = "Default"
 
 [simulation.ionosphere]
+enable = true
 total_electron_content = 10.0
 total_electron_error = 0.1
 
@@ -50,7 +53,7 @@ log_nu_energy = 8.0
 [simulation.cloud_model]
 id = "no_cloud"
 
-[simulation.too]
+[simulation.target]
 source_RA = "0.0 deg"
 source_DEC = "0.0 deg"
 source_date = "2022-06-02T01:00:00"

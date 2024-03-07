@@ -424,7 +424,7 @@ class RegionGeomToO:
         self.detLat = config.detector.initial_position.latitude
         self.detLong = config.detector.initial_position.longitude
 
-        self.sourceOBSTime = self.config.simulation.too.source_obst
+        self.sourceOBSTime = self.config.simulation.target.source_obst
         self.too_source = ToOEvent(self.config)
 
         self.alphaHorizon = 0.5 * np.pi - np.arccos(self.earth_radius / self.core_alt)
@@ -437,7 +437,7 @@ class RegionGeomToO:
         return self.beta_rad(), self.thetas(), self.pathLens(), self.val_times()
 
     def throw(self, times=None) -> None:
-        """Throw N events with 1 * u random numbers for the ToO detection mode"""
+        """Throw N events with 1 * u random numbers for the Target detection mode"""
 
         # Calculate the local nadir angle of the source
         self.times = self.generate_times(times)

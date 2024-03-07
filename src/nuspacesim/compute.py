@@ -156,10 +156,11 @@ def compute(
     eas = EAS(config)
     eas_radio = EASRadio(config)
 
-    if config.simulation.mode == "ToO":
-        geom = RegionGeomToO(config)
-    else:
-        geom = RegionGeom(config)
+    geom = (
+        RegionGeomToO(config)
+        if config.simulation.mode == "Target"
+        else RegionGeom(config)
+    )
 
     class StagedWriter:
         """Optionally write intermediate values to file"""
@@ -212,7 +213,7 @@ def compute(
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
     # if config.detector.method == "Optical" or config.detector.method == "Both":
-    if config.detector.optical:
+    if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
@@ -246,7 +247,7 @@ def compute(
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
 
-    if config.detector.radio:
+    if config.detector.radio.enable:
         logv("Computing [green] EAS Radio signal.[/]")
 
         eFields = eas_radio(

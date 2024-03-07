@@ -9,8 +9,8 @@ from nuspacesim.simulation.geometry import region_geometry
 @pytest.fixture
 def nss_config_event():
     conf = NssConfig()
-    conf.simulation.too.source_RA = np.radians(100)
-    conf.simulation.too.source_DEC = 0
+    conf.simulation.target.source_RA = np.radians(100)
+    conf.simulation.target.source_DEC = 0
     conf.detector.initial_position.altitude = 33.0
     conf.detector.initial_position.latitude = 0.0
     conf.detector.initial_position.longitude = np.radians(10.0)
@@ -21,12 +21,12 @@ def nss_config_event():
 
     conf.simulation.thrown_events: int = 10000
     conf.simulation.max_cherenkov_angle: float = np.radians(3.0)
-    conf.simulation.mode: str = "ToO"
-    conf.simulation.too.source_RA: float = 0.0
-    conf.simulation.too.source_DEC: float = 0.0
-    conf.simulation.too.source_date: str = "2022-03-21T00:00:00.000"
-    conf.simulation.too.source_date_format: str = "isot"
-    conf.simulation.too.source_obst: float = 24 * 60 * 60
+    conf.simulation.mode: str = "Target"
+    conf.simulation.target.source_RA: float = 0.0
+    conf.simulation.target.source_DEC: float = 0.0
+    conf.simulation.target.source_date: str = "2022-03-21T00:00:00.000"
+    conf.simulation.target.source_date_format: str = "isot"
+    conf.simulation.target.source_obst: float = 24 * 60 * 60
     return conf
 
 

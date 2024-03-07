@@ -50,12 +50,12 @@ class ToOEvent:
         self.detlat = self.config.detector.initial_position.latitude
         self.detlong = self.config.detector.initial_position.longitude
         self.detalt = self.config.detector.initial_position.altitude
-        # ToO definitions
-        self.sourceRA = self.config.simulation.too.source_RA
-        self.sourceDEC = self.config.simulation.too.source_DEC
-        self.sourceDATE = self.config.simulation.too.source_date
-        self.sourceDateFormat = self.config.simulation.too.source_date_format
-        self.sourceOBSTime = self.config.simulation.too.source_obst
+        # Target(ToO) definitions
+        self.sourceRA = self.config.simulation.target.source_RA
+        self.sourceDEC = self.config.simulation.target.source_DEC
+        self.sourceDATE = self.config.simulation.target.source_date
+        self.sourceDateFormat = self.config.simulation.target.source_date_format
+        self.sourceOBSTime = self.config.simulation.target.source_obst
 
         self.eventtime = astropy.time.Time(
             self.sourceDATE, format=self.sourceDateFormat, scale="utc"

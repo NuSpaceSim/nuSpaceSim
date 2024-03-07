@@ -9,8 +9,8 @@ from nuspacesim.simulation.geometry import too
 @pytest.fixture
 def nss_config_event():
     conf = NssConfig()
-    conf.simulation.too.source_RA = np.radians(22)
-    conf.simulation.too.source_DEC = np.radians(-45)
+    conf.simulation.target.source_RA = np.radians(22)
+    conf.simulation.target.source_DEC = np.radians(-45)
     conf.detector.initial_position.altitude = 33.0
     conf.detector.initial_position.latitude = np.radians(0.0)
     conf.detector.initial_position.longitude = np.radians(10.0)
@@ -21,12 +21,12 @@ def nss_config_event():
 
     conf.simulation.thrown_events: int = 10000
     conf.simulation.max_cherenkov_angle: float = np.radians(3.0)
-    conf.simulation.mode: str = "ToO"
-    conf.simulation.too.source_RA: float = 0.0
-    conf.simulation.too.source_DEC: float = 0.0
-    conf.simulation.too.source_date: str = "2022-06-02T01:00:00.000"
-    conf.simulation.too.source_date_format: str = "isot"
-    conf.simulation.too.source_obst: float = 24 * 60 * 60
+    conf.simulation.mode: str = "Target"
+    conf.simulation.target.source_RA: float = 0.0
+    conf.simulation.target.source_DEC: float = 0.0
+    conf.simulation.target.source_date: str = "2022-06-02T01:00:00.000"
+    conf.simulation.target.source_date_format: str = "isot"
+    conf.simulation.target.source_obst: float = 24 * 60 * 60
     return conf
 
 
@@ -44,14 +44,18 @@ def test_too_construction(nss_config_event, too_event):
         == nss_config_event.detector.sun_moon.moon_min_phase_angle_cut
     )
 
-    assert too_event.sourceOBSTime == nss_config_event.simulation.too.source_obst
+    assert too_event.sourceOBSTime == nss_config_event.simulation.target.source_obst
 
-    assert too_event.eventtime.utc.isot == nss_config_event.simulation.too.source_date
     assert (
-        too_event.eventcoords.icrs.ra.deg == nss_config_event.simulation.too.source_RA
+        too_event.eventtime.utc.isot == nss_config_event.simulation.target.source_date
     )
     assert (
-        too_event.eventcoords.icrs.dec.deg == nss_config_event.simulation.too.source_DEC
+        too_event.eventcoords.icrs.ra.deg
+        == nss_config_event.simulation.target.source_RA
+    )
+    assert (
+        too_event.eventcoords.icrs.dec.deg
+        == nss_config_event.simulation.target.source_DEC
     )
 
     assert too_event.detcords.lat.rad == pytest.approx(

@@ -132,6 +132,7 @@ class Detector(BaseModel):
 
     class Optical(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
+        enable: bool = True
         telescope_effective_area: float = 2.5  # Quantity(2.5, u.m**2)
         """ Effective area of the detector telescope (sq.meters). """
         quantum_efficiency: float = 0.2
@@ -150,6 +151,7 @@ class Detector(BaseModel):
 
     class Radio(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
+        enable: bool = True
         low_frequency: float = Quantity(30.0, u.MHz).value
         """ Low end for radio band in MHz: Default = 30 """
         high_frequency: float = Quantity(300.0, u.MHz).value
@@ -188,8 +190,8 @@ class Detector(BaseModel):
     name: str = "Default Name"
     initial_position: InitialPos = InitialPos()
     """Initial conditions for detector"""
-    sun_moon: SunMoon = SunMoon()
-    """[ToO only] Detector sensitivity to effects of the sun and moon"""
+    sun_moon: Optional[SunMoon] = SunMoon()
+    """[Target only] Detector sensitivity to effects of the sun and moon"""
     optical: Optional[Optical] = Optical()
     """Characteristics of the optical detector"""
     radio: Optional[Radio] = Radio()
@@ -207,6 +209,7 @@ class Simulation(BaseModel):
     ################ Radio Ionosphere classes ################
 
     class Ionosphere(BaseModel):
+        enable: bool = True
         total_electron_content: float = 10.0
         """Total Electron Content for ionospheric propagation. """
         total_electron_error: float = 0.1
@@ -303,7 +306,7 @@ class Simulation(BaseModel):
 
     ################################################################################
 
-    mode: Literal["Diffuse", "ToO"] = "Diffuse"
+    mode: Literal["Diffuse", "Target"] = "Diffuse"
     """ The Simulation Mode """
     thrown_events: int = 1000
     """ Number of thrown event trajectories. """
@@ -324,7 +327,7 @@ class Simulation(BaseModel):
     cloud_model: Union[NoCloud, MonoCloud, PressureMapCloud] = Field(
         default=NoCloud(), discriminator="id"
     )
-    too: Optional[TargetOfOpportunity] = TargetOfOpportunity()
+    target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
 
     @field_validator(
         "max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb", mode="before"

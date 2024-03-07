@@ -90,6 +90,7 @@ def test_detector_optical_default():
     assert a.photo_electron_threshold == 10
 
     assert a.model_dump() == {
+        "enable": True,
         "telescope_effective_area": "2.5 m2",
         "quantum_efficiency": 0.2,
         "photo_electron_threshold": 10.0,
@@ -107,6 +108,7 @@ def test_detector_optical_units():
     assert a.photo_electron_threshold == 100
 
     assert a.model_dump() == {
+        "enable": True,
         "telescope_effective_area": "16.0 m2",
         "quantum_efficiency": 0.5,
         "photo_electron_threshold": 100.0,
@@ -118,6 +120,7 @@ def test_detector_optical_units():
     assert b.photo_electron_threshold == 10
 
     assert b.model_dump() == {
+        "enable": True,
         "telescope_effective_area": "2.5 m2",
         "quantum_efficiency": 0.2,
         "photo_electron_threshold": 10.0,
@@ -138,6 +141,7 @@ def test_detector_radio_default():
     assert radio.gain == 1.8
 
     assert radio.model_dump() == {
+        "enable": True,
         "low_frequency": "30.0 MHz",
         "high_frequency": "300.0 MHz",
         "snr_threshold": 5.0,
@@ -161,6 +165,7 @@ def test_detector_radio_units():
     assert radio.gain == 2.5
 
     assert radio.model_dump() == {
+        "enable": True,
         "low_frequency": "40.0 MHz",
         "high_frequency": "200.0 MHz",
         "snr_threshold": 7.0,
@@ -176,6 +181,7 @@ def test_detector_radio_units():
     assert radio_with_units.gain == 3.0
 
     assert radio_with_units.model_dump() == {
+        "enable": True,
         "low_frequency": "0.001 MHz",
         "high_frequency": "1000.0 MHz",
         "snr_threshold": 5.0,
@@ -258,11 +264,13 @@ def test_detector_serialization():
             "sun_moon_cuts": True,
         },
         "optical": {
+            "enable": True,
             "telescope_effective_area": "2.5 m2",
             "quantum_efficiency": 0.2,
             "photo_electron_threshold": 10.0,
         },
         "radio": {
+            "enable": True,
             "low_frequency": "30.0 MHz",
             "high_frequency": "300.0 MHz",
             "snr_threshold": 5.0,
@@ -299,11 +307,15 @@ def test_default_simulation():
         "max_azimuth_angle": "360.0 deg",
         "angle_from_limb": "7.0 deg",
         "cherenkov_light_engine": "Default",
-        "ionosphere": {"total_electron_content": 10.0, "total_electron_error": 0.1},
+        "ionosphere": {
+            "enable": True,
+            "total_electron_content": 10.0,
+            "total_electron_error": 0.1,
+        },
         "tau_shower": {"id": "nupyprop", "etau_frac": 0.5, "table_version": "3"},
         "spectrum": {"id": "monospectrum", "log_nu_energy": 8.0},
         "cloud_model": {"id": "no_cloud"},
-        "too": {
+        "target": {
             "source_DEC": "0.0 deg",
             "source_RA": "0.0 deg",
             "source_date": "2022-06-02T01:00:00",
@@ -315,7 +327,7 @@ def test_default_simulation():
 
 def test_custom_simulation():
     a = Simulation(
-        mode="ToO",
+        mode="Target",
         thrown_events=500,
         max_cherenkov_angle=3.5 * u.deg,
         max_azimuth_angle=270.0 * u.deg,
@@ -326,7 +338,7 @@ def test_custom_simulation():
         cloud_model=Simulation.MonoCloud(altitude=20.0),
     )
 
-    assert a.mode == "ToO"
+    assert a.mode == "Target"
     assert a.thrown_events == 500
     assert a.max_cherenkov_angle == np.radians(3.5)
     assert a.max_azimuth_angle == np.radians(270.0)
