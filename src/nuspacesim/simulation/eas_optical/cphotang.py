@@ -678,6 +678,15 @@ class CphotAng:
         numpy arrays.
         """
 
+        if (
+            len(betaE) < 1
+            or len(alt) < 1
+            or len(Eshow100PeV) < 1
+            or len(init_lat) < 1
+            or len(init_long) < 1
+        ):
+            return np.empty([]), np.empty([])
+
         #######################
         b = db.from_sequence(
             zip(betaE, alt, Eshow100PeV, init_lat, init_long), partition_size=100
