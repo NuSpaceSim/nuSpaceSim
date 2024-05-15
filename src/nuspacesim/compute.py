@@ -45,6 +45,7 @@ NuSpaceSim Simulation
    compute
 
 """
+
 from __future__ import annotations
 
 from typing import Any, Iterable
@@ -189,9 +190,19 @@ def compute(
     beta_tr, thetaArr, pathLenArr, *_ = geom(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
+    thrown_color = "[blue]" if beta_tr.size == 0 else "[red]"
     logv(
-        f"\t[blue]Threw {config.simulation.thrown_events} neutrinos. {beta_tr.size} were valid.[/]"
+        f"\t{thrown_color}Threw {config.simulation.thrown_events} neutrinos.\
+        {beta_tr.size} were valid.[/]"
     )
+
+    # Avoid Exceptions and return a (valid) empty sim object
+    if beta_tr.size:
+        console.log(
+            "\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]"
+        )
+        return sim
+
     init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
     sw(
         ("init_lat", "init_lon"),
