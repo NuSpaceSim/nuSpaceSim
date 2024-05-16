@@ -197,7 +197,7 @@ def compute(
     )
 
     # Avoid Exceptions and return a (valid) empty sim object
-    if beta_tr.size:
+    if beta_tr.size == 0:
         console.log(
             "\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]"
         )
