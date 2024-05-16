@@ -190,7 +190,7 @@ def compute(
     beta_tr, thetaArr, pathLenArr, *_ = geom(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
-    thrown_color = "[blue]" if beta_tr.size == 0 else "[red]"
+    thrown_color = "[blue]" if beta_tr.size else "[red]"
     logv(
         f"\t{thrown_color}Threw {config.simulation.thrown_events} neutrinos.\
         {beta_tr.size} were valid.[/]"
