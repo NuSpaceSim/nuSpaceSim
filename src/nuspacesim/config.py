@@ -36,13 +36,15 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone, tzinfo
 from typing import Literal, Optional, Union
 
 import numpy as np
 from astropy import units as u
 from astropy.io import fits
 from astropy.units import Quantity
+import astropy.time
+from dateutil import parser
 from pydantic import (  # ValidationError,
     BaseModel,
     ConfigDict,
@@ -85,10 +87,10 @@ class Detector(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
         altitude: float = Quantity(525.0, u.km).value
         """ Altitude from sea-level (KM). """
-        latitude: float = Quantity(0.0, u.rad).value
-        """ Right Ascencion (Radians). """
-        longitude: float = Quantity(0.0, u.rad).value
-        """ Declination (Radians). """
+        latitude: float = Quantity(np.radians(0.0), u.rad).value
+        """ Earth Latitude (deg --> rad) """
+        longitude: float = Quantity(np.radians(0.0), u.rad).value
+        """ Earth Longitude (deg --> rad) """
 
         @field_validator("altitude", mode="before")
         @classmethod
@@ -133,7 +135,7 @@ class Detector(BaseModel):
     class Optical(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
         enable: bool = True
-        telescope_effective_area: float = 2.5  # Quantity(2.5, u.m**2)
+        telescope_effective_area: float = Quantity(2.5, u.m**2).value  # Quantity(2.5, u.m**2)
         """ Effective area of the detector telescope (sq.meters). """
         quantum_efficiency: float = 0.2
         """ Quantum Efficiency of the detector telescope. """
@@ -283,16 +285,20 @@ class Simulation(BaseModel):
                     f"date {date} does not match valid month patterns (%m, %B, %b)"
                 )
 
-    class TargetOfOpportunity(BaseModel):
-        source_RA: float = 0.0
-        """Right Ascension of the source"""
-        source_DEC: float = 0.0
-        """Declination of the source"""
-        source_date: str = "2022-06-02T01:00:00"
-        """Date of source observation"""
-        source_date_format: str = "isot"
-        """Date of the event and format"""
-        source_obst: float = 86400  # 24.0 * 60.0 * 60.0
+    ################ Source Target classes ################
+
+    class SingleTarget(BaseModel):
+        id = Literal["single_target"] = "single_target"
+        source_RA: float = Quantity(np.radians(0.0), u.rad).value
+        """Right Ascension of the source (deg --> rad)"""
+        source_DEC: float = Quantity(np.radians(0.0), u.rad).value
+        """Declination of the source (deg --> rad)"""
+        #source_date: str = "2022-06-02T01:00:00"
+        source_obs_datetime_start: Union[astropy.time.Time, datetime, float, str] = astropy.time.Time(datetime.now(timezone.utc), scale='utc')
+        """Start date and time of source observation. Default is the current date and time (in UTC)"""
+        source_obs_date_format: Optional[str] = "astropy Time object"
+        """Format of the start date and time (if specified)"""
+        source_obs_dur: float = Quantity(86400, u.s).value  # 24.0 * 60.0 * 60.0
         """Observation time (s). Default = 1 day"""
 
         @field_validator("source_RA", "source_DEC", mode="before")
@@ -300,9 +306,41 @@ class Simulation(BaseModel):
         def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
             return parse_units(x, u.rad)
 
+        @field_validator("source_obs_datetime_start", mode="before")
+        @classmethod
+        def valid_datetime(cls, d: Union[astropy.time.Time, datetime, float, str, None], d_format: Union[str, None]) -> astropy.time.Time:
+            if isinstance(d, astropy.time.Time):
+                return d
+            if isinstance(d, datetime):
+                d_tz_aware = d.astimezone(datetime.timezone.utc)
+                return astropy.time.Time(d_tz_aware, scale='utc')
+            if isinstance(d, (float,str)):
+                try:
+                    return astropy.time.Time(d, format=d_format)
+                except TypeError:
+                    print("Observation start date and time and the corresponding format do not match valid astropy Time object input patterns.")
+
+        @field_validator("source_obs_dur", mode="before")
+        @classmethod
+        def valid_time_sec(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.s)
+
         @field_serializer("source_RA", "source_DEC")
         def serialize_rad(self, x: float) -> str:
             return str(Quantity(x, u.rad).to(u.deg))
+
+        @field_serializer("source_obs_datetime_start")
+        def serialize_obs_start_datetime(self, x: astropy.time.Time) -> str:
+            return str(x.isot)
+
+        @field_serializer("source_obs_dur")
+        def serialize_obs_dur_sec(self, x: float) -> str:
+            return str(Quantity(x, u.s))
+
+    class CatalogOfTargets(BaseModel):
+        id = Literal["catalog"] = "catalog"
+        file_name: str = "./src/nuspacesim/data/target_catalogs/sample_catalog.fits"
+
 
     ################################################################################
 
@@ -327,7 +365,10 @@ class Simulation(BaseModel):
     cloud_model: Union[NoCloud, MonoCloud, PressureMapCloud] = Field(
         default=NoCloud(), discriminator="id"
     )
-    target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
+    target: Union[SingleTarget, CatalogOfTargets, None] = Field(
+        default=None, discriminator="id"
+    )
+    #target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
 
     @field_validator(
         "max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb", mode="before"
