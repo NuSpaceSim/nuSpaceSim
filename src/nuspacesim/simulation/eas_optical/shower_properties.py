@@ -40,8 +40,9 @@ date: 2023 January 23
 
 import numpy as np
 from scipy.optimize import newton
-
+import matplotlib.pyplot as plt
 from .atmospheric_models import us_std_atm_density
+from .local_plots import greisen_plot, gaisser_hillas_plot, greisen_gaisser_hillas_overview
 
 
 def propagation_angle(beta_tr, z, Re=6378.1):
@@ -113,6 +114,33 @@ def greisen_particle_count(T, s):
     N_e[N_e < 0] = 0.0
     return N_e
 
+x=np.linspace(1,1500,1500)
+def greisen(x,Eprime):
+    x0=36.62 #g/cm^2
+    t=x/x0 #radiation length
+    Ecrit=86.0 #mev
+    y=np.log(Eprime/Ecrit)
+    s=3/(1+2*(y/t))
+    return ((0.31)/((y**(1/2))))*(np.exp(t*(1-(3/2)*(np.log(s)))))
+
+Eprime=1.e10 #mev (10 pev)
+
+
+def gaisser_hillas(x,n,x0,xm,λ):
+    #return np.where(x<x0,0,n*(((x-x0)/(xm-x0))**((xm-x0)/λ))*(np.exp((xm-x)/λ)))
+    return n*(((x-x0)/(xm-x0))**((xm-x0)/λ))*(np.exp((xm-x)/λ))
+
+
+n=2.39372e+10
+x0=3.11012
+xm=852.778
+λ=63.7327
+x=np.linspace(x0,1500,1500)
+def show_plot(sim, sim_class, plot):
+    inputs = ("x")
+    outputs = ("greisen(x,Eprime)","gaisser_hillas(x,n,x0,xm,λ)")
+    plotfs = (greisen_plot, gaisser_hillas_plot,greisen_gaisser_hillas_overview)
+    #decorators.nss_result_plot_from_file(sim, sim_class, inputs, outputs, plotfs, plot)
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
     # for target_count = 2, shower_age = 1.899901462640018

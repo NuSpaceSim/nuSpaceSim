@@ -128,3 +128,28 @@ def eas_optical_histogram(inputs, results, *args, **kwargs):
 
     fig.suptitle("EAS Optical Cherenkov property Histograms")
     plt.show()
+
+def greisen_plot(inputs, results, *args, **kwargs):
+    x= inputs
+    greisen (x,Eprime)= results
+
+    plt.plot (x,greisen(x,Eprime))
+    plt.title("Greisen")
+    plt.xlabel("Depth (g/cm^2)")
+    plt.ylabel("N(t)")
+    plt.show()
+
+
+def gaisser_hillas_plot(inputs, results, *args, **kwargs):
+    x = inputs
+    gaisser_hillas(x,n,x0,xm,λ) = results
+
+    plt.plot(x, gaisser_hillas(x,n,x0,xm,λ))
+    plt.title("Gaisser Hillas")
+    plt.xlabel("Depth (g/cm^2)")
+    plt.ylabel("N(x)")
+    plt.show()
+
+def greisen_gaisser_hillas_overview(inputs, results, *args, **kwargs):
+    x= inputs
+    greisen(x,Eprime),gaisser_hillas(x,n,x0,xm,λ)= results
