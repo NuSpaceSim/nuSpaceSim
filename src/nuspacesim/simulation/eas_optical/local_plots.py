@@ -33,7 +33,13 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
+#from shower_properties import greisen, x0, Eprime, x
+import sys
+import os
 
+from .shower_properties import greisen, Eprime, x, x0, gaisser_hillas, n, xm, λ
+
+sys.path.append(os.path.abspath('~/nuspacesim/simulation/eas_optical/shower_properties.py'))
 from ...utils.plots import hist2d
 
 
@@ -128,28 +134,43 @@ def eas_optical_histogram(inputs, results, *args, **kwargs):
 
     fig.suptitle("EAS Optical Cherenkov property Histograms")
     plt.show()
+def greisen_plot(x,y):
+    x=np.linspace(1,1500,1500)
+y=greisen(x,Eprime)
+plt.plot (x,y)
+plt.title("Greisen")
+plt.xlabel("Depth (g/cm^2)")
+plt.ylabel("N(x)")
+plt.show()
 
-def greisen_plot(inputs, results, *args, **kwargs):
-    x= inputs
-    greisen (x,Eprime)= results
+def gaisser_hillas_plot(x,n,x0,xm,λ):
+    x = np.linspace(x0, 1500, 1500)
+y=gaisser_hillas(x,n,x0,xm,λ)
+plt.plot(x, y)
+plt.title("Gaisser Hillas")
+plt.xlabel("Depth (g/cm^2)")
+plt.ylabel("N(x)")
+plt.show()
 
-    plt.plot (x,greisen(x,Eprime))
-    plt.title("Greisen")
-    plt.xlabel("Depth (g/cm^2)")
-    plt.ylabel("N(t)")
-    plt.show()
+def greisen_gaisser_hillas_overview():
+    x = np.linspace(x0, 1500, 1500)
 
+fig, ax = plt.subplots(3, 1,figsize=(7, 7), constrained_layout=True)
 
-def gaisser_hillas_plot(inputs, results, *args, **kwargs):
-    x = inputs
-    gaisser_hillas(x,n,x0,xm,λ) = results
+ax[0].plot(x, greisen(x,Eprime))
+ax[0].set_title("Greisen")
+ax[0].set_xlabel("Depth (g/cm^2)")
+ax[0].set_ylabel("N(x)")
 
-    plt.plot(x, gaisser_hillas(x,n,x0,xm,λ))
-    plt.title("Gaisser Hillas")
-    plt.xlabel("Depth (g/cm^2)")
-    plt.ylabel("N(x)")
-    plt.show()
+ax[1].plot(x, gaisser_hillas(x, n, x0, xm, λ))
+ax[1].set_title("Gaisser Hillas")
+ax[1].set_xlabel("Depth (g/cm^2)")
+ax[1].set_ylabel("N(x)")
 
-def greisen_gaisser_hillas_overview(inputs, results, *args, **kwargs):
-    x= inputs
-    greisen(x,Eprime),gaisser_hillas(x,n,x0,xm,λ)= results
+ax[2].plot(x, greisen(x,Eprime))
+ax[2].plot(x, gaisser_hillas(x, n, x0, xm, λ))
+ax[2].set_title("Greisen and Gaisser Hillas")
+ax[2].set_xlabel("Depth (g/cm^2)")
+ax[2].set_ylabel("N(x)")
+
+plt.show()
