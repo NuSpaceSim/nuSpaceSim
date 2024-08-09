@@ -40,6 +40,7 @@ r"""Cherenkov photon density and angle determination class.
     CphotAng
 
 """
+from importlib.resources import as_file
 
 import dask.bag as db
 import numpy as np
@@ -48,12 +49,21 @@ from numpy.polynomial import Polynomial
 
 from .detector_geometry import distance_to_detector
 
+#Importing Greisen and Gaisser Hillas from Shower properties
+#from .shower_properties import greisen_particle_count, gaisser_hillas_particle_count
+#from .shower_properties import gaisser_hillas, gaisser_hillas_particle_count
+
 # Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
 # on ReadTheDocs without pre-compiling.
 try:
     from .zsteps import zsteps as cppzsteps
 except ImportError:
     pass
+
+try:
+    from importlib.resources import as_file, files
+except ImportError:
+    from importlib_resources import as_file, files
 
 __all__ = ["CphotAng"]
 
@@ -246,6 +256,13 @@ class CphotAng:
 
         Zair = self.dtype(7.4)
         self.ecrit = self.dtype(0.710 / (Zair + 0.96))
+
+       # Implamenting CONEX Data
+       # with as_file(
+       #     files("nuspacesim.data.CONEX_table")
+       #     / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
+       # ) as file:
+       #     self.CONEX_table=np.loadtxt(file, usecols=(4,5,6,7,8,9))
 
     def theta_view(self, ThetProp):
         """
@@ -516,14 +533,55 @@ class CphotAng:
         s = np.zeros_like(zsave, dtype=self.dtype)
         s[mask] = self.dtype(3) * t[mask] / (t[mask] + self.dtype(2) * greisen_beta)
 
+       # Gaisser Hillas Values from CONEX File
+        # idx=np.random.randint(low=0,high=self.CONEX_table.shape[0])
+        # Nm, Xm, X0, p1, p2, p3 = self.CONEX_table[idx]
+        # X0=0.0 if X0<0.0 else X0
+        # Nmax=Nm*(Eshow/1.e8)
+        # Xmax = Xm + (70. * np.log10(Eshow / 1.e8))
+        #λ=p1 + p2 * Xmask + p3 * Xmask * Xmask # val7+val8*t+val9*t*t
+        #λ[λ > 100] = 100
+        #λ[λ < 0] = 1
+
+       # Parameters for Gaisser Hillas (Nmax and Xmax Scaled)
+        #Nmax= 0.045 * (1.+0.0217*(np.log(Eshow/1.e5)))*(Eshow/0.074)
+        #Xmax= 36.* np.log(Eshow/0.074)
+        #X0= 0.
+        #invlam = 1/70.
+
+       # p Parameter for scaled equation
+        #p=(Xmax/λ)-1
+
+       # Masking Gramsum
+        #gramsum_mask = gramsum > X0
+        #mask &= gramsum_mask
+        #Xmask=(gramsum[gramsum_mask])
+
+        # Parametric Form Parameters
+         #x=(Xmask-X0)/λ
+         #m=(Xmax-X0)/λ
+
         RN = np.zeros_like(zsave, dtype=self.dtype)
         RN[mask] = (
-            self.dtype(0.31)
-            / np.sqrt(greisen_beta, dtype=self.dtype)
-            * np.exp(
-                t[mask] * (1 - self.dtype(3 / 2) * np.log(s[mask], dtype=self.dtype)),
-                dtype=self.dtype,
-            )
+
+        # Gaisser Hillas Parametric Form Equation (to get rid of overflow errors)
+        # Nmax * np.exp(m*(np.log(x)-np.log(m))-(x-m))
+
+        # Gaisser Hillas Equation From Shower Properties
+        #gaisser_hillas_particle_count(gramsum, Nmax, X0, Xmax, invlam)
+
+        # Gaisser Hillas Scaled Equation
+        #Nmax * (p/p+1.))*(np.exp(p))*((Xmask/(Xmax-λ))**(p+1.))*(np.exp((-1.*Xmask)/λ))
+
+        # Greisen Equation from Shower Properties
+        #greisen_particle_count(t, s)
+
+        #    self.dtype(0.31)
+        #    / np.sqrt(greisen_beta, dtype=self.dtype)
+        #    * np.exp(
+        #        t[mask] * (1 - self.dtype(3 / 2) * np.log(s[mask], dtype=self.dtype)),
+        #        dtype=self.dtype,
+        #    )
         )
         RN[RN < 0] = self.dtype(0)
 
@@ -611,6 +669,10 @@ class CphotAng:
         zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill = self.valid_arrays(
             *self.slant_depth(alt, sinThetView), Eshow
         )
+
+       # Alex added this for GH fluctuated Equation
+       # if len(zs)<2:
+       #     return self.dtype(0), self.dtype(0)
 
         # Cloud top height
         cloud_top_height = cloudf(lat, long) if cloudf else -np.inf

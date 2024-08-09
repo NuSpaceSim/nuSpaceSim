@@ -1,0 +1,61 @@
+title = "NuSpaceSim"
+
+[detector]
+name = "Default Name"
+
+[detector.initial_position]
+altitude = "33.0 km"
+latitude = "-44.6943 deg"
+longitude = "169.1417 deg"
+
+[detector.sun_moon]
+sun_moon_cuts = true
+sun_alt_cut = "-18.0 deg"
+moon_alt_cut = "0.0 deg"
+moon_min_phase_angle_cut = "150.0 deg"
+
+[detector.optical]
+enable = true
+telescope_effective_area = "0.625 m2"
+quantum_efficiency = 0.2
+photo_electron_threshold = 25 
+
+[detector.radio]
+enable = true
+low_frequency = "30.0 MHz"
+high_frequency = "300.0 MHz"
+snr_threshold = 5.0
+nantennas = 10
+gain = "1.8 dB"
+
+[simulation]
+mode = "Diffuse"
+thrown_events = 100
+max_cherenkov_angle = "9.0 deg"
+max_azimuth_angle = "360.0 deg"
+angle_from_limb = "6.4 deg"
+cherenkov_light_engine = "Default"
+
+[simulation.ionosphere]
+enable = true
+total_electron_content = 10.0
+total_electron_error = 0.1
+
+[simulation.tau_shower]
+id = "nupyprop"
+etau_frac = 0.5
+table_version = "3"
+
+[simulation.spectrum]
+id = "monospectrum"
+log_nu_energy = 8.0
+
+[simulation.cloud_model]
+id = "no_cloud"
+
+[simulation.target]
+source_RA = "0.0 deg"
+source_DEC = "0.0 deg"
+source_date = "2022-06-02T01:00:00"
+source_date_format = "isot"
+source_obst = 86400

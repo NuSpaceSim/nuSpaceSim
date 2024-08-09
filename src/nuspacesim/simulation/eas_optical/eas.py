@@ -39,7 +39,8 @@ from ...config import NssConfig
 from ...utils import decorators
 from ..taus.taus import mean_Tau_life
 from .cphotang import CphotAng
-from .local_plots import eas_optical_density, eas_optical_histogram
+from .local_plots import eas_optical_density, eas_optical_histogram #, greisen_plot, gaisser_hillas_plot, \
+    #greisen_gaisser_hillas_overview
 
 __all__ = ["EAS", "show_plot"]
 
@@ -77,7 +78,7 @@ class EAS:
 
         return altDec, lenDec
 
-    @decorators.nss_result_plot(eas_optical_density, eas_optical_histogram)
+    @decorators.nss_result_plot(eas_optical_density, eas_optical_histogram) #greisen_plot, gaisser_hillas_plot,greisen_gaisser_hillas_overview)
     @decorators.nss_result_store("numPEs", "costhetaChEff")
     def __call__(
         self,
@@ -136,7 +137,7 @@ class EAS:
 
 
 def show_plot(sim, simclass, plot):
-    plotfs = (eas_optical_density, eas_optical_histogram)
+    plotfs = (eas_optical_density, eas_optical_histogram,greisen_plot,gaisser_hillas_plot,greisen_gaisser_hillas_overview)
     inputs = ("beta_rad", "altDec", "showerEnergy")
     outputs = ("numPEs", "costhetaChEff")
     decorators.nss_result_plot_from_file(sim, simclass, inputs, outputs, plotfs, plot)
