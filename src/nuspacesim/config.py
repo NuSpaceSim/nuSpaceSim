@@ -317,7 +317,7 @@ class Simulation(BaseModel):
     angle_from_limb: float = np.radians(7)
     """ Angle From Limb. Default (Radians). """
     cherenkov_light_engine: Literal[
-        "Default", "Greisen", "Giaser-Hillas"
+        "Default", "Greisen", "Gaisser-Hillas"
     ] = "Default"  # "CHASM", "EASCherSim"
 
     ionosphere: Optional[Ionosphere] = Ionosphere()

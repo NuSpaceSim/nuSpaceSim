@@ -144,52 +144,6 @@ def gaisser_hillas_particle_count(
     return Nmax * np.exp(m * (np.log(x) - np.log(m)) - (x - m)), mask
 
 
-# def
-# # Implamenting CONEX Data
-# with as_file(
-#     files("nuspacesim.data.CONEX_table")
-#     / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
-# ) as file:
-#     self.CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
-
-# Gaisser Hillas Values from CONEX File
-# idx=np.random.randint(low=0,high=self.CONEX_table.shape[0])
-# Nm, Xm, X0, p1, p2, p3 = self.CONEX_table[idx]
-# X0=0.0 if X0<0.0 else X0
-# Nmax=Nm*(Eshow/1.e8)
-# Xmax = Xm + (70. * np.log10(Eshow / 1.e8))
-# λ=p1 + p2 * Xmask + p3 * Xmask * Xmask # val7+val8*t+val9*t*t
-# λ[λ > 100] = 100
-# λ[λ < 0] = 1
-
-# Parameters for Gaisser Hillas (Nmax and Xmax Scaled)
-# Nmax= 0.045 * (1.+0.0217*(np.log(Eshow/1.e5)))*(Eshow/0.074)
-# Xmax= 36.* np.log(Eshow/0.074)
-# X0= 0.
-# invlam = 1/70.
-
-# p Parameter for scaled equation
-# p=(Xmax/λ)-1
-
-# Masking Gramsum
-# gramsum_mask = gramsum > X0
-# mask &= gramsum_mask
-# Xmask=(gramsum[gramsum_mask])
-
-# Parametric Form Parameters
-# x=(Xmask-X0)/λ
-# m=(Xmax-X0)/λ
-
-# RN = np.zeros_like(zsave, dtype=self.dtype)
-# RN[mask] = (
-
-# Gaisser Hillas Parametric Form Equation (to get rid of overflow errors)
-# Nmax * np.exp(m*(np.log(x)-np.log(m))-(x-m))
-
-# Gaisser Hillas Equation From Shower Properties
-# gaisser_hillas_particle_count(gramsum, Nmax, X0, Xmax, invlam)
-
-
 def shower_age_of_greisen_particle_count(target_count, x0=2):
     # for target_count = 2, shower_age = 1.899901462640018
     # param_beta = np.log(10 ** 8 / (0.710 / 8.36))
