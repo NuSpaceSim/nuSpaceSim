@@ -316,7 +316,10 @@ class Simulation(BaseModel):
     """ Maximum Azimuthal Angle (Radians). """
     angle_from_limb: float = np.radians(7)
     """ Angle From Limb. Default (Radians). """
-    cherenkov_light_engine: Literal["Default"] = "Default"  # "CHASM", "EASCherSim"
+    cherenkov_light_engine: Literal[
+        "Default", "Greisen", "Giaser-Hillas"
+    ] = "Default"  # "CHASM", "EASCherSim"
+
     ionosphere: Optional[Ionosphere] = Ionosphere()
     tau_shower: NuPyPropShower = NuPyPropShower()
     """ Tau Shower Generator. """
@@ -375,16 +378,22 @@ def config_from_fits(filename: str) -> NssConfig:
     def v(key: str):
         fullkey = "Config " + key
         if fullkey not in h:
-            raise KeyError(fullkey)
+            raise KeyError(f"Missing required key '{fullkey}' in FITS header.")
         return h[fullkey]
 
     # header (d)etector config value assocciated with partial key string.
     def d(key: str):
-        return v("detector " + key)
+        try:
+            return v("detector " + key)
+        except KeyError as e:
+            raise KeyError(f"Detector configuration key error: {e}")
 
     # header (s)etector config value assocciated with partial key string.
     def s(key: str):
-        return v("simulation " + key)
+        try:
+            return v("simulation " + key)
+        except KeyError as e:
+            raise KeyError(f"Simulation configuration key error: {e}")
 
     c = {
         "detector": {

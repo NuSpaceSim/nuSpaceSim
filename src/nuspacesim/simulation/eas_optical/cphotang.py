@@ -43,10 +43,11 @@ r"""Cherenkov photon density and angle determination class.
 
 import dask.bag as db
 import numpy as np
-from dask.diagnostics import ProgressBar
+from dask.diagnostics.progress import ProgressBar
 from numpy.polynomial import Polynomial
 
 from .detector_geometry import distance_to_detector
+from .shower_properties import gaisser_hillas_particle_count, greisen_particle_count
 
 # Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
 # on ReadTheDocs without pre-compiling.
@@ -55,13 +56,18 @@ try:
 except ImportError:
     pass
 
+try:
+    from importlib.resources import as_file, files
+except ImportError:
+    from importlib_resources import as_file, files
+
 __all__ = ["CphotAng"]
 
 
 class CphotAng:
     r"""Cherenkov Photon Angle"""
 
-    def __init__(self, detector_altitude):
+    def __init__(self, detector_altitude, longitudinal_profile_func="Greisen"):
         r"""CphotAng: Cherenkov photon density and angle determination class.
 
         Iterative summation of cherenkov radiation reimplemented in numpy and
@@ -244,8 +250,20 @@ class CphotAng:
         self.zMaxZ = self.dtype(65.0)
         self.RadE = self.dtype(6378.14)
 
-        Zair = self.dtype(7.4)
-        self.ecrit = self.dtype(0.710 / (Zair + 0.96))
+        # Longitudinal Profile Funciton selection
+        if longitudinal_profile_func == "Greisen":
+            self.particle_count = greisen_particle_count
+        elif longitudinal_profile_func == "Gaisser-Hillas":
+            with as_file(
+                files("nuspacesim.data.CONEX_table")
+                / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
+            ) as file:
+                CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
+                self.particle_count = (
+                    lambda *args, **kwargs: gaisser_hillas_particle_count(
+                        CONEX_table, *args, **kwargs
+                    )
+                )
 
     def theta_view(self, ThetProp):
         """
@@ -512,19 +530,19 @@ class CphotAng:
         t = np.zeros_like(zsave, dtype=self.dtype)
         t[mask] = gramsum[mask] / self.dtype(36.66)
 
-        greisen_beta = self.dtype(np.log(np.float64(Eshow) / np.float64(self.ecrit)))
+        Zair = self.dtype(7.4)
+        ecrit = self.dtype(0.710 / (Zair + 0.96))
+        greisen_beta = self.dtype(np.log(np.float64(Eshow) / np.float64(ecrit)))
         s = np.zeros_like(zsave, dtype=self.dtype)
         s[mask] = self.dtype(3) * t[mask] / (t[mask] + self.dtype(2) * greisen_beta)
 
-        RN = np.zeros_like(zsave, dtype=self.dtype)
-        RN[mask] = (
-            self.dtype(0.31)
-            / np.sqrt(greisen_beta, dtype=self.dtype)
-            * np.exp(
-                t[mask] * (1 - self.dtype(3 / 2) * np.log(s[mask], dtype=self.dtype)),
-                dtype=self.dtype,
-            )
+        # Greisen  or  Gaisser-Hillas  Longitudinal Paramaterization
+        rn, mask = self.particle_count(
+            mask=mask, t=t, s=s, greisen_beta=greisen_beta, gramsum=gramsum, Eshow=Eshow
         )
+
+        RN = np.zeros_like(zsave, dtype=self.dtype)
+        RN[mask] = rn
         RN[RN < 0] = self.dtype(0)
 
         mask &= ~((RN < 1) & (s > 1))

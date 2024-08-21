@@ -97,7 +97,7 @@ def shower_age(T):
     return 3.0 * T / (T + 41.77325895999150334743982471)
 
 
-def greisen_particle_count(T, s):
+def greisen_particle_count(t, s, greisen_beta, mask, *args, dtype=np.float32, **kwargs):
     r"""Particle count as a function of radiation length from atmospheric depth
 
     Hillas 1461 eqn (6)
@@ -106,12 +106,88 @@ def greisen_particle_count(T, s):
     (0.31 / sqrt (10^8 / (0.710 / 8.36)))
     = 0.0678308895484773316048795658058110209448440898800928880798622962...
     """
+
     # , param_beta=np.log(10 ** 8 / (0.710 / 8.36))
     # N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
     # N_e[N_e < 0] = 0.0
-    N_e = 0.067830889548477331 * np.exp(T * (1.0 - 1.5 * np.log(s)))
-    N_e[N_e < 0] = 0.0
-    return N_e
+    alpha = dtype(0.31) / np.sqrt(greisen_beta, dtype=dtype)
+
+    RN = alpha * np.exp(
+        t * (dtype(1) - dtype(1.5) * np.log(s, dtype=dtype)), dtype=dtype
+    )
+    RN[RN < 0] = 0.0
+    return RN, mask
+
+
+def gaisser_hillas_particle_count(
+    CONEX_table, gramsum, Eshow, mask, *args, dtype=np.float32, **kwargs
+):
+    # Gaisser Hillas Values from CONEX File
+    idx = np.random.randint(low=0, high=CONEX_table.shape[0])
+    Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
+    X0 = 0.0 if X0 < 0.0 else X0
+
+    # Masking Gramsum
+    gramsum_mask = gramsum > X0
+    mask &= gramsum_mask
+    Xmask = gramsum[gramsum_mask]
+
+    Nmax = Nm * (Eshow * 1.0e-8)
+    Xmax = Xm + (70.0 * np.log10(Eshow * 1.0e-8))
+    λ = p1 + p2 * Xmask + p3 * Xmask * Xmask
+    λ[λ > 100.0] = 100.0
+    λ[λ < 0.0] = 1.0
+
+    # Parametric Form Parameters
+    x = (Xmask - X0) / λ
+    m = (Xmax - X0) / λ
+    return Nmax * np.exp(m * (np.log(x) - np.log(m)) - (x - m)), mask
+
+
+# def
+# # Implamenting CONEX Data
+# with as_file(
+#     files("nuspacesim.data.CONEX_table")
+#     / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
+# ) as file:
+#     self.CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
+
+# Gaisser Hillas Values from CONEX File
+# idx=np.random.randint(low=0,high=self.CONEX_table.shape[0])
+# Nm, Xm, X0, p1, p2, p3 = self.CONEX_table[idx]
+# X0=0.0 if X0<0.0 else X0
+# Nmax=Nm*(Eshow/1.e8)
+# Xmax = Xm + (70. * np.log10(Eshow / 1.e8))
+# λ=p1 + p2 * Xmask + p3 * Xmask * Xmask # val7+val8*t+val9*t*t
+# λ[λ > 100] = 100
+# λ[λ < 0] = 1
+
+# Parameters for Gaisser Hillas (Nmax and Xmax Scaled)
+# Nmax= 0.045 * (1.+0.0217*(np.log(Eshow/1.e5)))*(Eshow/0.074)
+# Xmax= 36.* np.log(Eshow/0.074)
+# X0= 0.
+# invlam = 1/70.
+
+# p Parameter for scaled equation
+# p=(Xmax/λ)-1
+
+# Masking Gramsum
+# gramsum_mask = gramsum > X0
+# mask &= gramsum_mask
+# Xmask=(gramsum[gramsum_mask])
+
+# Parametric Form Parameters
+# x=(Xmask-X0)/λ
+# m=(Xmax-X0)/λ
+
+# RN = np.zeros_like(zsave, dtype=self.dtype)
+# RN[mask] = (
+
+# Gaisser Hillas Parametric Form Equation (to get rid of overflow errors)
+# Nmax * np.exp(m*(np.log(x)-np.log(m))-(x-m))
+
+# Gaisser Hillas Equation From Shower Properties
+# gaisser_hillas_particle_count(gramsum, Nmax, X0, Xmax, invlam)
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
@@ -128,13 +204,6 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
         )
 
     return newton(rns, x0)
-
-
-def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
-    # return ((X - X0) / (Xmax - X0)) ** xmax * np.exp((Xmax - X) * invlam)
-    xmax = (Xmax - X0) * invlam
-    x = (X - X0) * invlam
-    return Nmax * (x / xmax) ** xmax * np.exp(xmax - x)
 
 
 def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
