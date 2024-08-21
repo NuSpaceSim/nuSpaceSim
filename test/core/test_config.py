@@ -290,7 +290,7 @@ def test_default_simulation():
     assert a.max_cherenkov_angle == np.radians(3.0)
     assert a.max_azimuth_angle == np.radians(360.0)
     assert a.angle_from_limb == np.radians(7.0)
-    assert a.cherenkov_light_engine == "Default"
+    assert a.cherenkov_light_engine == "Greisen"
     assert a.ionosphere is not None
     assert a.ionosphere.total_electron_content == 10.0
     assert a.ionosphere.total_electron_error == 0.1
@@ -306,7 +306,7 @@ def test_default_simulation():
         "max_cherenkov_angle": "3.0000000000000004 deg",
         "max_azimuth_angle": "360.0 deg",
         "angle_from_limb": "7.0 deg",
-        "cherenkov_light_engine": "Default",
+        "cherenkov_light_engine": "Greisen",
         "ionosphere": {
             "enable": True,
             "total_electron_content": 10.0,
@@ -437,3 +437,36 @@ def test_config_serialization():
         loaded_config = config_from_toml(tmpfile_name)
 
     assert loaded_config.model_dump() == a.model_dump()
+
+
+def test_cherenkov_light_engine_default_replacement():
+    sim_default = Simulation(cherenkov_light_engine="Default")
+    assert sim_default.cherenkov_light_engine == "Greisen"
+
+
+def test_cherenkov_light_engine_invalid_value():
+    with pytest.raises(ValueError):
+        Simulation(cherenkov_light_engine="InvalidValue")
+
+
+def test_simulation_cherenkov_light_engine_default():
+    sim = Simulation()
+    assert sim.cherenkov_light_engine == "Greisen"
+
+
+def test_simulation_cherenkov_light_engine_default_replacement():
+    sim = Simulation(cherenkov_light_engine="Default")
+    assert sim.cherenkov_light_engine == "Greisen"
+
+
+def test_simulation_cherenkov_light_engine_valid_values():
+    sim_greisen = Simulation(cherenkov_light_engine="Greisen")
+    assert sim_greisen.cherenkov_light_engine == "Greisen"
+
+    sim_gaisser_hillas = Simulation(cherenkov_light_engine="Gaisser-Hillas")
+    assert sim_gaisser_hillas.cherenkov_light_engine == "Gaisser-Hillas"
+
+
+def test_simulation_cherenkov_light_engine_invalid_value():
+    with pytest.raises(ValidationError):
+        Simulation(cherenkov_light_engine="InvalidValue")
