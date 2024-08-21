@@ -317,8 +317,16 @@ class Simulation(BaseModel):
     angle_from_limb: float = np.radians(7)
     """ Angle From Limb. Default (Radians). """
     cherenkov_light_engine: Literal[
-        "Default", "Greisen", "Gaisser-Hillas"
-    ] = "Default"  # "CHASM", "EASCherSim"
+        "Greisen", "Gaisser-Hillas", "Default"
+    ] = "Greisen"  # "CHASM", "EASCherSim"
+    """Cherenkov Light Engine model: Default = 'Greisen'"""
+
+    @field_validator("cherenkov_light_engine", mode="before")
+    @classmethod
+    def validate_cherenkov_light_engine(cls, value: str) -> str:
+        if value == "Default":
+            return "Greisen"
+        return value
 
     ionosphere: Optional[Ionosphere] = Ionosphere()
     tau_shower: NuPyPropShower = NuPyPropShower()
