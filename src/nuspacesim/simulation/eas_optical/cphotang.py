@@ -634,7 +634,7 @@ class CphotAng:
         cloud_top_height = cloudf(lat, long) if cloudf else -np.inf
 
         # early return check, ensure at least 2 segments above cloud-top height.
-        if zs[-2] < cloud_top_height:
+        if len(zs) <= 1 or zs[-2] < cloud_top_height:
             return self.dtype(0), self.dtype(0)
 
         # Cloud mask. No particles will be considered if generated below the clouds.
