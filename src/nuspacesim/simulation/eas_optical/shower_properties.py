@@ -97,7 +97,7 @@ def shower_age(T):
     return 3.0 * T / (T + 41.77325895999150334743982471)
 
 
-def greisen_particle_count(T, s):
+def greisen_particle_count(t, s, greisen_beta, mask, *args, dtype=np.float32, **kwargs):
     r"""Particle count as a function of radiation length from atmospheric depth
 
     Hillas 1461 eqn (6)
@@ -106,12 +106,42 @@ def greisen_particle_count(T, s):
     (0.31 / sqrt (10^8 / (0.710 / 8.36)))
     = 0.0678308895484773316048795658058110209448440898800928880798622962...
     """
+
     # , param_beta=np.log(10 ** 8 / (0.710 / 8.36))
     # N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
     # N_e[N_e < 0] = 0.0
-    N_e = 0.067830889548477331 * np.exp(T * (1.0 - 1.5 * np.log(s)))
-    N_e[N_e < 0] = 0.0
-    return N_e
+    alpha = dtype(0.31) / np.sqrt(greisen_beta, dtype=dtype)
+
+    RN = alpha * np.exp(
+        t * (dtype(1) - dtype(1.5) * np.log(s, dtype=dtype)), dtype=dtype
+    )
+    RN[RN < 0] = 0.0
+    return RN, mask
+
+
+def gaisser_hillas_particle_count(
+    CONEX_table, gramsum, Eshow, mask, *args, dtype=np.float32, **kwargs
+):
+    # Gaisser Hillas Values from CONEX File
+    idx = np.random.randint(low=0, high=CONEX_table.shape[0])
+    Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
+    X0 = 0.0 if X0 < 0.0 else X0
+
+    # Masking Gramsum
+    gramsum_mask = gramsum > X0
+    mask &= gramsum_mask
+    Xmask = gramsum[gramsum_mask]
+
+    Nmax = Nm * (Eshow * 1.0e-8)
+    Xmax = Xm + (70.0 * np.log10(Eshow * 1.0e-8))
+    gh_lam = p1 + p2 * Xmask + p3 * Xmask * Xmask
+    gh_lam[gh_lam > 100.0] = 100.0
+    gh_lam[gh_lam < 1.0e-5] = 1.0e-5
+
+    # Parametric Form Parameters
+    x = (Xmask - X0) / gh_lam
+    m = (Xmax - X0) / gh_lam
+    return Nmax * np.exp(m * (np.log(x) - np.log(m)) - (x - m)), mask
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
@@ -128,13 +158,6 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
         )
 
     return newton(rns, x0)
-
-
-def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
-    # return ((X - X0) / (Xmax - X0)) ** xmax * np.exp((Xmax - X) * invlam)
-    xmax = (Xmax - X0) * invlam
-    x = (X - X0) * invlam
-    return Nmax * (x / xmax) ** xmax * np.exp(xmax - x)
 
 
 def slant_depth_trig_approx(z_lo, z_hi, theta_tr, z_max=100.0):
