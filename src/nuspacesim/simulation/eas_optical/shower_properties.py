@@ -134,13 +134,13 @@ def gaisser_hillas_particle_count(
 
     Nmax = Nm * (Eshow * 1.0e-8)
     Xmax = Xm + (70.0 * np.log10(Eshow * 1.0e-8))
-    λ = p1 + p2 * Xmask + p3 * Xmask * Xmask
-    λ[λ > 100.0] = 100.0
-    λ[λ < 1.0e-5] = 1.0e-5
+    gh_lam = p1 + p2 * Xmask + p3 * Xmask * Xmask
+    gh_lam[gh_lam > 100.0] = 100.0
+    gh_lam[gh_lam < 1.0e-5] = 1.0e-5
 
     # Parametric Form Parameters
-    x = (Xmask - X0) / λ
-    m = (Xmax - X0) / λ
+    x = (Xmask - X0) / gh_lam
+    m = (Xmax - X0) / gh_lam
     return Nmax * np.exp(m * (np.log(x) - np.log(m)) - (x - m)), mask
 
 
