@@ -431,6 +431,9 @@ class CphotAng:
 
         # c   set limits by distance to det
         # c     and Cherenkov Angle
+        # [zs] Cherenkov Radiation Limit. 1/2 Cross sectional width of the cone formed
+        # with tip at the current point of the shower propagation, and the base at the
+        # detector.
         CradLim = DistStep * np.tan(thetaC, dtype=self.dtype)
         jlim = np.floor(CradLim) + 1
         max_jlim = np.amax(jlim)
@@ -597,7 +600,7 @@ class CphotAng:
 
         # Should we just skip these with a mask in valid_arrays?
         betaE = self.dtype(
-            np.radians(self.dtype(1)) if betaE < np.radians(1.0) else betaE
+            np.radians(self.dtype(0.1)) if betaE < np.radians(0.1) else betaE
         )
 
         Eshow = self.dtype(Eshow100PeV * 1e8)  # GeV
@@ -659,6 +662,8 @@ class CphotAng:
 
         CherArea = self.cherenkov_area(AveCangI, DistStep, izRNmax)
 
+        Cang = np.degrees(AveCangI + CangsigI)
+
         photonDen = self.dtype(0.5) * photsum / CherArea
 
         altitude_scaling = (
@@ -667,8 +672,6 @@ class CphotAng:
         ) ** 2
 
         photonDen *= altitude_scaling
-
-        Cang = np.degrees(AveCangI + CangsigI)
 
         return photonDen, Cang
 

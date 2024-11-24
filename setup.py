@@ -5,12 +5,40 @@ nuspacesim
 A Simulator for Space-based Neutrino Detections.
 """
 
-from pybind11.setup_helpers import Pybind11Extension, build_ext
-from setuptools import setup
+import os
+import sys
 
-zsteps = Pybind11Extension(
-    "simulation.eas_optical.zsteps",
-    ["src/nuspacesim/simulation/eas_optical/src/zsteps.cpp"],
+from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
+
+
+class ZigBuilder(build_ext):
+    def build_extension(self, ext):
+        ext_path = self.get_ext_fullpath(ext.name)
+        os.makedirs(os.path.dirname(ext_path), exist_ok=True)
+        self.spawn(
+            [
+                sys.executable,
+                "-m",
+                "ziglang",
+                "build-lib",
+                "-O",
+                "ReleaseFast",
+                "-lc",
+                *([]),
+                f"-femit-bin={ext_path}",
+                "-fallow-shlib-undefined",
+                # "-dynamic",
+                *[f"-I{d}" for d in self.include_dirs],
+                *(),
+                ext.sources[0],
+            ]
+        )
+
+
+cphotang = Extension(
+    "simulation.eas_optical.cphotang",
+    sources=["src/nuspacesim/simulation/eas_optical/cphotang.zig"],
 )
 
-setup(cmdclass={"build_ext": build_ext}, ext_modules=[zsteps])
+setup(cmdclass={"build_ext": ZigBuilder}, ext_modules=[cphotang])

@@ -2,8 +2,8 @@
 requires = ["setuptools>=46",
             "setuptools_scm[toml]>=3.4",
             "wheel",
-            "pybind11>=2.8",
-            "numpy>1.17",
+            "ziglang",
+            "numpy>2.0",
            ]
 build-backend = "setuptools.build_meta"
 
@@ -18,10 +18,10 @@ test-requires = "pytest"
 test-command = "pytest {project}/test"
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64"] #, "universal2", "arm64"]
+archs = ["x86_64", "arm64"] #, "universal2", "arm64"]
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64"]
+archs = ["x86_64", "arm64"]
 
 [tool.black]
 line-length = 88
@@ -51,3 +51,6 @@ ignore = "E501,W6"  # or ["E501", "W6"]
 
 [tool.isort]
 profile = "black"
+
+[tool.ruff.lint]
+select = ["NPY201"]

@@ -39,7 +39,7 @@ date: 2023 January 23
 """
 
 import numpy as np
-from scipy.optimize import newton
+from scipy.optimize import minimize_scalar, newton
 
 from .atmospheric_models import us_std_atm_density
 
@@ -94,10 +94,11 @@ def shower_age(T):
     where from EASCherGen beta = ln(10 ** 8 / (0.710 / 8.36))
     so 2 * beta = 41.773258959991503347439824715462431074518643532553348404286170740...
     """
-    return 3.0 * T / (T + 41.77325895999150334743982471)
+    s = 3.0 * T / (T + 41.77325895999150334743982471)
+    return s
 
 
-def greisen_particle_count(T, s):
+def greisen_particle_count(X):
     r"""Particle count as a function of radiation length from atmospheric depth
 
     Hillas 1461 eqn (6)
@@ -109,13 +110,14 @@ def greisen_particle_count(T, s):
     # , param_beta=np.log(10 ** 8 / (0.710 / 8.36))
     # N_e = (0.31 / np.sqrt(param_beta)) * np.exp(T * (1.0 - 1.5 * np.log(s)))
     # N_e[N_e < 0] = 0.0
+    T = rad_len_atm_depth(X)
+    s = shower_age(rad_len_atm_depth(X))
     N_e = 0.067830889548477331 * np.exp(T * (1.0 - 1.5 * np.log(s)))
-    N_e[N_e < 0] = 0.0
     return N_e
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):
-    # for target_count = 2, shower_age = 1.899901462640018
+    # for target_count = 1, shower_age = 1.899901462640018
     # param_beta = np.log(10 ** 8 / (0.710 / 8.36))
 
     def rns(s):
@@ -128,6 +130,32 @@ def shower_age_of_greisen_particle_count(target_count, x0=2):
         )
 
     return newton(rns, x0)
+
+
+def slant_depth_of_greisen_particle_count(target_count, X0=2644.7846080608183):
+    # for target_count = 1, X = 2644.7846080608188
+
+    def f(X):
+        return greisen_particle_count(X) - target_count
+
+    return newton(f, X0)
+
+
+def maximum_particle_count():
+    """
+    message: Solution found.
+    success: True
+     status: 0
+        fun: 79868484.03172788
+          x: 765.7038220997491
+        nit: 11
+       nfev: 11
+    """
+    res = minimize_scalar(
+        lambda X: -greisen_particle_count(X), bounds=(500, 1000), method="bounded"
+    )
+
+    return res
 
 
 def gaisser_hillas_particle_count(X, Nmax, X0, Xmax, invlam):
