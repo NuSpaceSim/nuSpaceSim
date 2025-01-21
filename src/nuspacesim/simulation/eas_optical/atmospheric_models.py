@@ -41,6 +41,7 @@ date: 2021 August 12
 """
 
 import numpy as np
+import scipy.integrate
 from numpy.polynomial import Polynomial
 
 from ... import constants as const
@@ -194,46 +195,48 @@ def slant_depth_integrand(z, theta_tr, rho=polyrho, earth_radius=const.earth_rad
     return 1e5 * rho(z) * ((z + earth_radius) / np.sqrt(ijk))
 
 
-# def slant_depth(
-#     z_lo,
-#     z_hi,
-#     theta_tr,
-#     earth_radius=const.earth_radius,
-#     func=slant_depth_integrand,
-#     epsabs=1e-2,
-#     epsrel=1e-2,
-#     *args,
-#     **kwargs
-# ):
-#     """
-#     Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
-#
-#     Parameters
-#     ----------
-#     z_lo : float
-#         Starting altitude for slant depth track.
-#     z_hi : float
-#         Stopping altitude for slant depth track.
-#     theta_tr: float, array_like
-#         Trajectory angle in radians between the track and earth zenith.
-#     earth_radius: float
-#         Radius of a spherical earth. Default from nuspacesim.constants
-#     func: callable
-#         The integrand for slant_depth. If None, defaults to `slant_depth_integrand()`.
-#
-#     Returns
-#     -------
-#     x_sd: ndarray
-#         slant_depth g/cm^2
-#     err: (float) numerical error.
-#
-#     """
-#
-#     theta_tr = np.asarray(theta_tr)
-#
-#     def f(x):
-#         y = np.multiply.outer(z_hi - z_lo, x).T + z_lo
-#         return (func(y, theta_tr=theta_tr, earth_radius=earth_radius) * (z_hi - z_lo)).T
-#
-#     return qp.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel, **kwargs)
-#     # return scipy.integrate.nquad(f, [0.0, 1.0], **kwargs)
+def slant_depth(
+    z_lo,
+    z_hi,
+    theta_tr,
+    earth_radius=const.earth_radius,
+    func=slant_depth_integrand,
+    epsabs=1e-2,
+    epsrel=1e-2,
+    *args,
+    **kwargs
+):
+    """
+    Slant-depth in g/cm^2 from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
+
+    Parameters
+    ----------
+    z_lo : float
+        Starting altitude for slant depth track.
+    z_hi : float
+        Stopping altitude for slant depth track.
+    theta_tr: float, array_like
+        Trajectory angle in radians between the track and earth zenith.
+    earth_radius: float
+        Radius of a spherical earth. Default from nuspacesim.constants
+    func: callable
+        The integrand for slant_depth. If None, defaults to `slant_depth_integrand()`.
+
+    Returns
+    -------
+    x_sd: ndarray
+        slant_depth g/cm^2
+    err: (float) numerical error.
+
+    """
+
+    theta_tr = np.asarray(theta_tr)
+
+    def f(x):
+        y = np.multiply.outer(z_hi - z_lo, x).T + z_lo
+        return (func(y, theta_tr=theta_tr, earth_radius=earth_radius) * (z_hi - z_lo)).T
+
+    #return np.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel, **kwargs)
+    #return scipy.integrate.nquad(f, [0.0, 1.0], **kwargs)
+    return scipy.integrate.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel, **kwargs)
+

@@ -62,7 +62,6 @@ def conex_out(data, profiles):
     plt.title('Slant depths hist')
     plt.savefig('Xfirsttest.png')
     """
-
     X=ak.values_astype(ak.Array(profiles)[:,0],np.float32) #    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32)
     Z=ak.values_astype(profiles,np.float32)[:,1]
     RN=ak.values_astype(profiles,np.float32)[:,2]
@@ -125,13 +124,13 @@ def conex_out(data, profiles):
     for i in range(n):
         Zi = np.array(Z[i])
         H.append(path_length_tau_atm(Zi, beta[i]))  #Build distance array
-        RNmax=np.max(RN[i])
-        RNargmax=np.argmax(RN[i])
-        RNratio=np.array(RN[i]/RNmax)
-        pos99=int(np.argmax(RNratio[RNargmax:]<0.05)+RNargmax)
-        dist=path_length_tau_atm(Zi, beta[i])-path_length_tau_atm(Zi, beta[i])[0]
-        dist99[i]=dist[pos99]
-        if i==0:
+        #RNmax=np.max(RN[i])
+        #RNargmax=np.argmax(RN[i])
+        #RNratio=np.array(RN[i]/RNmax)
+        #pos99=int(np.argmax(RNratio[RNargmax:]<0.05)+RNargmax)
+        #dist=path_length_tau_atm(Zi, beta[i])-path_length_tau_atm(Zi, beta[i])[0]
+        #dist99[i]=dist[pos99]
+        if i=='patata':
             plt.figure()
             plt.plot(X[i],RN[i],label=f'Energy={TauEnergy[i]}')
             plt.scatter(X[i][pos99],RN[i][pos99])
@@ -158,7 +157,7 @@ def conex_out(data, profiles):
         init[2]=y[max_pos]
         init[3:] = [1e-7, 4e-4, 44]
 
-        popt, pcov = curve_fit(GH, x, y, p0=init, maxfev=1000000)
+        popt, pcov = curve_fit(GH, x, y, p0=init, maxfev=10000)
         yfit = GH(x, *popt)
 
         #Calculate chi**2
@@ -185,13 +184,13 @@ def conex_out(data, profiles):
     #Hp = -Hp + Hp[:, 0, None]  #Shift Distance array to start at 0 and be negative (according to Conex) THIS SHOULD BE UNCOMMENTED
 
     #Calculate average lendecay
-    dist99=dist99[dist99<80]
+    """dist99=dist99[dist99<80]
     plt.figure()
     plt.hist(dist99,bins=50)
     plt.grid()
     plt.xlabel('distance (km)')
     plt.title(f'distance of shower when N=1% of Nmax, Emin={TauEnergyMin}')
-    plt.savefig('distto1percenthistE19.png')
+    plt.savefig('distto1percenthistE19.png')"""
 
     branches_header = {
         "Seed1": np.dtype('i4')

@@ -214,6 +214,7 @@ class Simulation(BaseModel):
         """Total Electron Content for ionospheric propagation. """
         total_electron_error: float = 0.1
         """Error for TEC reconstruction. """
+    
 
     ################ tau_shower classes ################
 
@@ -327,6 +328,8 @@ class Simulation(BaseModel):
     cloud_model: Union[NoCloud, MonoCloud, PressureMapCloud] = Field(
         default=NoCloud(), discriminator="id"
     )
+    conex_output: bool = False
+
     target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
 
     @field_validator(
@@ -428,6 +431,7 @@ def config_from_fits(filename: str) -> NssConfig:
                 "table_version": s("tau_shower table_version"),
             },
             "thrown_events": s("thrown_events"),
+            "conex_output": s("conex_output")
         },
         "title": h["Config title"],
     }

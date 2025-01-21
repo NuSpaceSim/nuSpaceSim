@@ -43,6 +43,14 @@ from .utils import parse_cloud_options, parse_spectra_options
     "MERRA-2 dataset."
     "User should provide a month name, abbreviation, or number.",
 )
+@click.option(
+    "-c", "--conex_output",
+    is_flag=True,
+    default=False,
+    help="Write output as a .root file with conex-like format."
+)
+
+
 @click.argument("filename")
 def create_config(
     filename: str,
@@ -52,6 +60,8 @@ def create_config(
     nocloud: bool,
     monocloud: float,
     pressuremapcloud: click.DateTime,
+    conex_output: bool,
+    
 ) -> None:
     """Generate a configuration file from the given parameters.
 
@@ -81,5 +91,6 @@ def create_config(
         config.simulation.cloud_model = overwrite_cloud
 
     config.simulation.thrown_events = int(numthrown)
+    config.simulation.conex_output = conex_output
 
     create_toml(filename, config)

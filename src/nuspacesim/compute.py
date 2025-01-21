@@ -66,6 +66,7 @@ from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
 # from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .conex_out import conex_out
 
 __all__ = ["compute"]
 
@@ -226,18 +227,21 @@ def compute(
     # if config.detector.method == "Optical" or config.detector.method == "Both":
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
-
-        numPEs, costhetaChEff = eas(
+        Conex=config.simulation.conex_output
+        numPEs, costhetaChEff, profilesOut = eas(
             beta_tr,
             altDec,
             showerEnergy,
             init_lat,
             init_long,
+            Conex,
             cloudf=cloud,
-            store=sw,
+            #store=sw,
             plot=to_plot,
         )
-
+        if Conex:
+            conex_out(sim, profilesOut)
+        """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             numPEs,
@@ -291,7 +295,7 @@ def compute(
         sw.add_meta("RNEVPASS", passEV, "Radio Number of Passing Events")
         sw.add_meta("RMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
-        mc_logv(mcint, mcintgeo, passEV, mcunc, "Radio")
+        mc_logv(mcint, mcintgeo, passEV, mcunc, "Radio")"""
 
     logv("\n :sparkles: [cyan]Done[/] :sparkles:")
 
