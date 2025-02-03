@@ -31,7 +31,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-""" nuspacesim - Main command-line application mode.  """
+"""nuspacesim - Main command-line application mode."""
 
 from .apps import cli
 

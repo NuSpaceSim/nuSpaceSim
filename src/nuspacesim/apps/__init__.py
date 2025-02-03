@@ -1,4 +1,4 @@
-r""" Command line client apps
+r"""Command line client apps
 
 .. _apps:
 
