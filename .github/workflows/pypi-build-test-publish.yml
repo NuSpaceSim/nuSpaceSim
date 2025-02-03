@@ -50,7 +50,7 @@ jobs:
         CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nuspacesim-gh-pypi-artifact
         path: wheelhouse/*.whl

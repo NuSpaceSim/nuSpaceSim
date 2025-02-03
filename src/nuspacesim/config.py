@@ -218,7 +218,7 @@ class Simulation(BaseModel):
     ################ tau_shower classes ################
 
     class NuPyPropShower(BaseModel):
-        id: Literal["nupyprop"] = "nupyprop"
+        id: Literal["nupyprop", "nuleptonsim", "nupyprop_bdhm"] = "nupyprop"
         etau_frac: float = 0.5
         """Fraction of ETau in Shower. Default = 0.5."""
         table_version: str = "3"
@@ -316,7 +316,7 @@ class Simulation(BaseModel):
     """ Maximum Azimuthal Angle (Radians). """
     angle_from_limb: float = np.radians(7)
     """ Angle From Limb. Default (Radians). """
-    cherenkov_light_engine: Literal["Default"] = "Default"  # "CHASM", "EASCherSim"
+    cherenkov_light_engine: Literal["Default"] = "Default"  # , "CHASM" , "EASCherSim"
     ionosphere: Optional[Ionosphere] = Ionosphere()
     tau_shower: NuPyPropShower = NuPyPropShower()
     """ Tau Shower Generator. """
