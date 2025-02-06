@@ -52,7 +52,7 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nuspacesim-gh-pypi-artifact
+        name: nuspacesim-gh-pypi-artifact-${{ matrix.os }}-cp${{ matrix.python }}-${{ github.run_id }}
         path: wheelhouse/*.whl
         retention-days: 1
 
@@ -65,7 +65,7 @@ jobs:
     - name: Download Build Artifacts
       uses: actions/download-artifact@v3
       with:
-        name: nuspacesim-gh-pypi-artifact
+        name: nuspacesim-gh-pypi-artifact-${{ matrix.os }}-cp${{ matrix.python }}-${{ github.run_id }}
         path: wheelhouse/
 
     - name: Publish a Python distribution to PyPI
