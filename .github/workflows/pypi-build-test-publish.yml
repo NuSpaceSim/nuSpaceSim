@@ -15,7 +15,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: [39, 310, 311, 312, 312]
+        python: [39, 310, 311, 312, 313]
         arch: [x86, arm]
         include:
           - os: ubuntu-latest
