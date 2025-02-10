@@ -72,6 +72,6 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nuspacesim-gh-pypi-artifact-${{ matrix.os }}-cp${{ matrix.python }}-${{ github.run_id }}
+        name: nuspacesim-gh-pypi-artifact-${{ matrix.os }}-${{ matrix.cibw_arch }}-cp${{ matrix.python }}-${{ github.run_id }}
         path: wheelhouse/*.whl
         retention-days: 1
