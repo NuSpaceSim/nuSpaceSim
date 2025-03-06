@@ -142,7 +142,6 @@ class Taus(object):
             log_e_nu[beta_low], np.full(betas[beta_low].shape, beta_min), u
         )
         E_tau[beta_high] = np.finfo(np.float32).eps
-
         return E_tau * (10**log_e_nu)
 
     @decorators.nss_result_plot(

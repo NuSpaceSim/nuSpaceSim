@@ -5,18 +5,17 @@ from scipy.optimize import curve_fit
 from .simulation.eas_optical.shower_properties import slant_depth_trig_approx as slant_depth_old
 from .simulation.eas_optical.atmospheric_models import slant_depth
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
+from .augermc import ecef_to_utm
 import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 #from .simulation.auger_sim import geomsim as asim
 
-def conex_out(data, profiles):
+def conex_out(data,profiles,id,groundecef,vecef,beta,TauEnergy,decayecef,Zfirst,azim,N,gpsarray,NuEnergy,tauExitProb):
 
     def GH(X, X0, Xmax, Nmax, p3, p2, p1):
 
         return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / (p3 * X ** 2 + p2 * X + p1)) * np.exp(
             (Xmax - X) / (p3 * X ** 2 + p2 * X + p1))
-    Zfirst = data["altDec"]
-    TauEnergy = np.log10(data["tauEnergy"]) + 9 #Tau energy in log E/eV units
     """
     plt.hist(np.degrees(data["beta_rad"]),bins=50)
     time=datetime.datetime.now().microsecond
@@ -32,17 +31,8 @@ def conex_out(data, profiles):
     plt.plot(np.degrees(data["beta_rad"]),data["tauEnergy"],'.')
     plt.savefig('hola.png')
     """
-    Zmax=20
-    Zmin=0
-    TauEnergyMin=20
-    # Useful masks (Zfirst masks are necessary between 0 and 20km). To introduce masks you must also change them in simulation/eas_optical/eas.py
-    mask = (Zfirst >= Zmin) & (Zfirst <= Zmax) #& (TauEnergy >= TauEnergyMin) # & (np.degrees(data["beta_rad"]) <= 3)  & (data["lenDec"]>=58) & (data["lenDec"]<=60)
-    beta = data["beta_rad"][mask]
-    Zfirst = data["altDec"][mask]
-    n = np.size(Zfirst)
-    TauEnergy = TauEnergy[mask]
+    n=np.size(Zfirst)
     H = ak.ArrayBuilder()
-    
     Xfirst=[]
     for i in range(n):
         Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],np.pi / 2 - beta[i])[0])
@@ -67,37 +57,40 @@ def conex_out(data, profiles):
     RN=ak.values_astype(profiles,np.float32)[:,2]
     nX = ak.to_numpy(ak.num(X, axis=1))
 
-    Xfirstmax=3*10**4
-    mask2=(Xfirst<=Xfirstmax) #Remove too long profiles (which produce errors in offline)
-    for i in range(n):
-        if RN[i][-1]>np.max(RN[i])*0.5:
-            mask2[i]=False
-    nmasked=np.sum(~mask2)+np.sum(~mask)
+    #""" REMOVED TEMPORARILY. EITHER FRED G IMPLEMENTATION FIXES THIS (THE IF) OR EXTEND PROFILE WITH GH FIT 
+    #Xfirstmax=3*10**4
+    #mask2=(Xfirst<=Xfirstmax) #Remove too long profiles (which produce errors in offline)
+    #for i in range(n):
+    #    if RN[i][-1]>np.max(RN[i])*0.5:
+    #        mask2[i]=False
+    #        print(i)
+    #nmasked=np.sum(~mask2)
+    #print(mask2.sum())
+    #beta = beta[mask2]  
+    #Zfirst = Zfirst[mask2]
+    #TauEnergy = TauEnergy[mask2]
+    #Xfirst = Xfirst[mask2]
+    
 
-    beta = beta[mask2]
-    Zfirst = Zfirst[mask2]
-    n = np.size(Zfirst)
-    TauEnergy = TauEnergy[mask2]
-    Xfirst = Xfirst[mask2]
-
-    azim = 0*360 * np.random.rand(n) #Random azimuth
     zenith = 90 + np.degrees(beta)
     dEdXratio=0.0025935  #0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
-    rootfile='nss_to_conex.root'
+    rootfile='nss_to_conex_mc.root'
     print('Generating conex-like output in '+rootfile)
-    print('Number of masked events ', nmasked)
+    #print('Number of masked events ', nmasked)
     print('Number of valid events ', n)
-
-    X= X[mask2]
-    Z = Z[mask2]
+    #X= X[mask2]
+    #Z = Z[mask2]
     #Z = Z - Z[:, 0, None]   #Shift profile to start at 0 THIS SHOULD BE UNCOMMENTED
-    RN = RN[mask2]
+    #RN = RN[mask2]
     # Useful variables to fill the conex File
     PID = np.array([100], dtype='i4')  # Proton type for Conex
     zmin = np.array([90], dtype='i4')
     zmax = np.array([132], dtype='i4')
     nan4 = np.array([np.nan], dtype='f4')
     nan8 = np.array([np.nan], dtype='f8')
+    nuEmax=np.array([np.max(NuEnergy)], dtype='f8')
+    nuEmin=np.array([np.min(NuEnergy)], dtype='f8')
+
     int4 = np.array([-1], dtype='i4')
     intn = np.full(n, -1, dtype='i4')
     nan4n = np.full(n, np.nan, dtype='f4')
@@ -108,6 +101,7 @@ def conex_out(data, profiles):
     a = ak.to_regular(ak.Array(b))
     Eground = np.full((n, 3), nan4)
     Eg = ak.to_regular(ak.Array(Eground))
+    easting, northing, height, zonenumber, zoneletter = ecef_to_utm(groundecef)
 
     #Initialize some variables for GH fit
     Xmax = np.empty(n, dtype='f4')
@@ -191,6 +185,8 @@ def conex_out(data, profiles):
     plt.xlabel('distance (km)')
     plt.title(f'distance of shower when N=1% of Nmax, Emin={TauEnergyMin}')
     plt.savefig('distto1percenthistE19.png')"""
+    zoneletter = np.array([ord(letter) for letter in zoneletter], dtype=np.uint8)
+    #decoded_letters = np.array([chr(c) for c in zoneletter])
 
     branches_header = {
         "Seed1": np.dtype('i4')
@@ -222,11 +218,19 @@ def conex_out(data, profiles):
         , "lambdaNitrogen": ("f8", (31,))
         , "lambdaIron": ("f8", (31,))
     }
-
     branches_shower = {
         "lgE": np.dtype('f4')
+        , "lgnuE": np.dtype('f4')
+        , "ExitProb": np.dtype('f4')  
         , "zenith": np.dtype('f4')
         , "azimuth": np.dtype('f4')
+        , "easting": np.dtype('f4')
+        , "northing": np.dtype('f4')
+        , "height": np.dtype('f4')
+        , "zonenumber": np.dtype('i4')
+        , "zoneletter": np.dtype('i4')
+        , "eventid": np.dtype('i4')
+        , "telescopeid": np.dtype('i4')
         , "Seed2": np.dtype('i4')
         , "Seed3": np.dtype('i4')
         , "Xfirst": np.dtype('f4')
@@ -266,8 +270,8 @@ def conex_out(data, profiles):
         "Seed1": int4
         , "Particle": PID  # Proton type (no specific ID for tau)
         , "Alpha": nan8
-        , "lgEmin": nan8
-        , "lgEmax": nan8
+        , "lgEmin": nuEmin
+        , "lgEmax": nuEmax
         , "zMin": zmin
         , "zMax": zmax
         , "SvnRevision": [0]
@@ -293,8 +297,17 @@ def conex_out(data, profiles):
         , "lambdaIron": a})
     f["Shower"].extend({
         "lgE": TauEnergy
+        , "lgnuE": NuEnergy
+        , "ExitProb": tauExitProb
         , "zenith": zenith  # 90+np.degree(beta_rad)
-        , "azimuth": azim
+        , "azimuth": np.degrees(azim)
+        , "easting": easting
+        , "northing": northing
+        , "height": height
+        , "zonenumber": zonenumber
+        , "zoneletter": zoneletter
+        , "eventid": gpsarray
+        , "telescopeid": id
         , "Seed2": intn
         , "Seed3": intn
         , "Xfirst": Xfirst

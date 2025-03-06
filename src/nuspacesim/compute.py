@@ -66,7 +66,10 @@ from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
 # from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .augermc import *
 from .conex_out import conex_out
+from .full_root_out import full_root_out
+
 
 __all__ = ["compute"]
 
@@ -156,7 +159,7 @@ def compute(
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
-    eas_radio = EASRadio(config)
+    #eas_radio = EASRadio(config)
 
     geom = (
         RegionGeomToO(config)
@@ -188,50 +191,82 @@ def compute(
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr, *_ = geom(
+    #beta_tr, thetaArr, pathLenArr, *_ = geom(config.simulation.thrown_events, store=sw, plot=to_plot)
+    #thrown_color = "[blue]" if beta_tr.size else "[red]"
+    logv(
+        f"\t[blue]Threw {config.simulation.thrown_events} neutrinos. All were valid.[/]"
+    )
+    logv("Computing [green] Energy Spectra.[/]")
+
+    log_e_nu, mc_spec_norm, spec_weights_sum = spec(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
-    thrown_color = "[blue]" if beta_tr.size else "[red]"
-    logv(
-        f"\t{thrown_color}Threw {config.simulation.thrown_events} neutrinos.\
-        {beta_tr.size} were valid.[/]"
-    )
+    maxE=np.array(9+np.max(log_e_nu))
+    nuE=np.array(9+log_e_nu)
+    maxangle=np.radians(30)
+    n=config.simulation.thrown_events
+    print('N=',n)
+    radius=roundcalcradius(maxE)
+    groundecef, vecef,beta_tr, azimuth=gen_points(n,radius,maxang=maxangle)
 
-    # Avoid Exceptions and return a (valid) empty sim object
+    #groundenu=eceftoenu(centerecef,groundecef)
+
     if beta_tr.size == 0:
         console.log(
             "\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]"
         )
         return sim
 
-    init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
-    sw(
-        ("init_lat", "init_lon"),
-        (init_lat, init_long),
-    )
-
-    logv("Computing [green] Energy Spectra.[/]")
-
-    log_e_nu, mc_spec_norm, spec_weights_sum = spec(
-        beta_tr.shape[0], store=sw, plot=to_plot
-    )
-
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
         beta_tr, log_e_nu, store=sw, plot=to_plot
     )
+    energies=np.log10(tauEnergy)+9
 
     logv("Computing [green] Decay Altitudes.[/]")
-    altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
+
+    decayecef,altDec=decay(groundecef,vecef,beta_tr, energies,earth_radius=earth_radius_centerlat)
+    #Make .root file of ALL events. Add all simulation parameters
+    
+    energy_threshold=16
+    #Mask events with energies below 10^16 eV
+    gpstime=1261872018  #Time at 1 Jan 2020 00:00:00 UTC
+    gpsarray=np.arange(gpstime,gpstime+n)
+    full_root_out(n,maxangle,nuE,energies,energy_threshold,groundecef,vecef,decayecef,altDec,beta_tr,azimuth,gpsarray,tauExitProb)
+    valid_energies=(energies>energy_threshold)
+    energies=energies[valid_energies]
+    print(energies.size,' Valid events over 10^16 eV')
+    groundecef=groundecef[valid_energies]
+    vecef=vecef[valid_energies]
+    beta_tr=beta_tr[valid_energies]
+    showerEnergy=showerEnergy[valid_energies]
+    decayecef=decayecef[valid_energies]
+    altDec=altDec[valid_energies]
+    azimuth=azimuth[valid_energies]
+    #sw(
+    #    ("init_lat", "init_lon"),
+    #    (init_lat, init_long),
+    #)
+
+    #venu=eceftoenu_vector( centerecef,vecef)
+    ntels=1
+    id,int1,int2=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels=1)
+    idfinal=decay_inside_fov(energies,groundecef,vecef,beta_tr,decayecef, id,int1,int2,ntels=1,diststep=200)
+    #distdecay=np.linalg.norm(decayecef-groundecef,axis=1)/1000
+    valid_evs=(idfinal!=1)
+    dist2EarthCenter = np.sqrt(groundecef[valid_evs,0]**2 + groundecef[valid_evs,1]**2 + groundecef[valid_evs,2]**2)
+    init_lat = np.arcsin(groundecef[valid_evs,2] / dist2EarthCenter)
+    init_long = np.arctan2(groundecef[valid_evs,1], groundecef[valid_evs,0])
+    # Avoid Exceptions and return a (valid) empty sim object
 
     # if config.detector.method == "Optical" or config.detector.method == "Both":
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
         Conex=config.simulation.conex_output
         numPEs, costhetaChEff, profilesOut = eas(
-            beta_tr,
-            altDec,
-            showerEnergy,
+            beta_tr[valid_evs],
+            altDec[valid_evs],
+            showerEnergy[valid_evs],
             init_lat,
             init_long,
             Conex,
@@ -240,7 +275,11 @@ def compute(
             plot=to_plot,
         )
         if Conex:
-            conex_out(sim, profilesOut)
+            conex_out(sim, profilesOut,idfinal[valid_evs],groundecef[valid_evs]
+                      ,vecef[valid_evs],beta_tr[valid_evs]
+                      ,energies[valid_evs],decayecef[valid_evs],altDec[valid_evs]
+                      ,azimuth[valid_evs],n,gpsarray[valid_energies][valid_evs]
+                      ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs])
         """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
