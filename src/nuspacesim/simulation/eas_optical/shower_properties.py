@@ -132,21 +132,21 @@ def gaisser_hillas_particle_count(
     mask &= gramsum_mask
     Xmask = gramsum[gramsum_mask]
 
-#    Nmax = Nm * (Eshow * 1.0e-8)
-#    Xmax = Xm + (70.0 * np.log10(Eshow * 1.0e-8))
-# JFK : put in form from Tom Gaisser's book, pg: 238 - 239
+    #    Nmax = Nm * (Eshow * 1.0e-8)
+    #    Xmax = Xm + (70.0 * np.log10(Eshow * 1.0e-8))
+    # JFK : put in form from Tom Gaisser's book, pg: 238 - 239
     Nmax100 = 6.99e7
-    NmaxE = 0.045 * (1. + 0.0217 * np.log(Eshow/1.e5)) * Eshow/0.074
-    Nmax = Nm * NmaxE/Nmax100    
-# the following from Gaisser leads to ~80 g/cm^2/decade elongation rate
-# DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev 
-#  gives in Egn 3 ~ 85 g/cm^2/decade is for EM showers
-#    Xmax = 36. * np.log(Eshow/0.074)
-# HiRes Measurement:  R. U. Abbasi et al 2005 ApJ 622 910 : gives ~ 56 g/cm^2, Auger ~60 g/cm^2
-# DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev gives in Egn 7 ~ 62 g/cm^2/decade
-#   use a single 60 g/cm^2 per decade energy addition/subtraction,
-#   assume using only 100 PeV energy file for this to be correct
-    XmaxOff=60 * np.log10(Eshow/1.e8)
+    NmaxE = 0.045 * (1.0 + 0.0217 * np.log(Eshow / 1.0e5)) * Eshow / 0.074
+    Nmax = Nm * NmaxE / Nmax100
+    # the following from Gaisser leads to ~80 g/cm^2/decade elongation rate
+    # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev
+    #  gives in Egn 3 ~ 85 g/cm^2/decade is for EM showers
+    #    Xmax = 36. * np.log(Eshow/0.074)
+    # HiRes Measurement:  R. U. Abbasi et al 2005 ApJ 622 910 : gives ~ 56 g/cm^2, Auger ~60 g/cm^2
+    # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev gives in Egn 7 ~ 62 g/cm^2/decade
+    #   use a single 60 g/cm^2 per decade energy addition/subtraction,
+    #   assume using only 100 PeV energy file for this to be correct
+    XmaxOff = 60 * np.log10(Eshow / 1.0e8)
     Xmax = Xm + XmaxOff
 
     gh_lam = p1 + p2 * Xmask + p3 * Xmask * Xmask
