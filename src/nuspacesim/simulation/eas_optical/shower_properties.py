@@ -132,13 +132,14 @@ def particle_count_parameterized_gaisser_hillas(
     gramsum, Eshow, *args, mask=None, dtype=np.float32, **kwargs
 ):
     """
-    Showed Particle count from Gaisser Hillas formula with static parameters.
+    Shower particle count from Gaisser Hillas formula with static parameters.
     """
 
     # Nuclear Collision length in Air from PDG.
     # From https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
     X0 = 61.3
     Xm = 739.0
+    # 65.17 g/cm^2 value obtained by evaluating lambda at Xmax for 1000 upward pion 10^17 eV EAS at 5 deg Earth-emergence angle and starting at sea level
     gh_lam = 65.12
     Nmax = 0.045 * (1.0 + 0.0217 * np.log(Eshow / 1.0e5)) * Eshow / 0.074
     XmaxOff = 58.0 * np.log10(Eshow / 1.0e8)
@@ -155,7 +156,7 @@ def particle_count_fluctuated_gaisser_hillas(
     CONEX_table, gramsum, Eshow, mask, *args, dtype=np.float32, **kwargs
 ):
     """
-    Showed Particle count from Gaisser Hillas formula with fluctuated parameters.
+    Shower particle count from Gaisser Hillas formula with fluctuated parameters.
     """
     # Gaisser Hillas Values from CONEX File
     idx = np.random.randint(low=0, high=CONEX_table.shape[0])
