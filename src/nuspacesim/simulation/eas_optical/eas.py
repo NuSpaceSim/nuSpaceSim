@@ -53,7 +53,10 @@ class EAS:
 
     def __init__(self, config: NssConfig):
         self.config = config
-        self.CphotAng = CphotAng(self.config.detector.initial_position.altitude)
+        self.CphotAng = CphotAng(
+            self.config.detector.initial_position.altitude,
+            self.config.simulation.cherenkov_light_engine,
+        )
 
     @decorators.nss_result_store("altDec", "lenDec")
     def altDec(self, beta, tauBeta, tauLorentz, u=None, *args, **kwargs):
@@ -88,7 +91,7 @@ class EAS:
         init_long,
         *args,
         cloudf=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Electromagnetic Air Shower operation.

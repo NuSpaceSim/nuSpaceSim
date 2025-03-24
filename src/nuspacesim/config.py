@@ -316,7 +316,21 @@ class Simulation(BaseModel):
     """ Maximum Azimuthal Angle (Radians). """
     angle_from_limb: float = np.radians(7)
     """ Angle From Limb. Default (Radians). """
-    cherenkov_light_engine: Literal["Default"] = "Default"  # , "CHASM" , "EASCherSim"
+    cherenkov_light_engine: Literal[
+        "Greisen",
+        "Gaisser-Hillas Parameterized",
+        "Gaisser-Hillas Fluctuated",
+        "Default",
+    ] = "Greisen"  # "CHASM", "EASCherSim"
+    """Cherenkov Light Engine model: Default = 'Greisen'"""
+
+    @field_validator("cherenkov_light_engine", mode="before")
+    @classmethod
+    def validate_cherenkov_light_engine(cls, value: str) -> str:
+        if value == "Default":
+            return "Greisen"
+        return value
+
     ionosphere: Optional[Ionosphere] = Ionosphere()
     tau_shower: NuPyPropShower = NuPyPropShower()
     """ Tau Shower Generator. """
@@ -375,16 +389,22 @@ def config_from_fits(filename: str) -> NssConfig:
     def v(key: str):
         fullkey = "Config " + key
         if fullkey not in h:
-            raise KeyError(fullkey)
+            raise KeyError(f"Missing required key '{fullkey}' in FITS header.")
         return h[fullkey]
 
     # header (d)etector config value assocciated with partial key string.
     def d(key: str):
-        return v("detector " + key)
+        try:
+            return v("detector " + key)
+        except KeyError as e:
+            raise KeyError(f"Detector configuration key error: {e}")
 
     # header (s)etector config value assocciated with partial key string.
     def s(key: str):
-        return v("simulation " + key)
+        try:
+            return v("simulation " + key)
+        except KeyError as e:
+            raise KeyError(f"Simulation configuration key error: {e}")
 
     c = {
         "detector": {
