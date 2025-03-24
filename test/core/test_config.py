@@ -463,8 +463,13 @@ def test_simulation_cherenkov_light_engine_valid_values():
     sim_greisen = Simulation(cherenkov_light_engine="Greisen")
     assert sim_greisen.cherenkov_light_engine == "Greisen"
 
-    sim_gaisser_hillas = Simulation(cherenkov_light_engine="Gaisser-Hillas")
-    assert sim_gaisser_hillas.cherenkov_light_engine == "Gaisser-Hillas"
+    sim_gaisser_hillas = Simulation(
+        cherenkov_light_engine="Gaisser-Hillas Parameterized"
+    )
+    assert sim_gaisser_hillas.cherenkov_light_engine == "Gaisser-Hillas Parameterized"
+
+    sim_gaisser_hillas = Simulation(cherenkov_light_engine="Gaisser-Hillas Fluctuated")
+    assert sim_gaisser_hillas.cherenkov_light_engine == "Gaisser-Hillas Fluctuated"
 
 
 def test_simulation_cherenkov_light_engine_invalid_value():
