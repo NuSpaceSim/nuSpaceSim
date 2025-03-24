@@ -119,9 +119,44 @@ def greisen_particle_count(t, s, greisen_beta, mask, *args, dtype=np.float32, **
     return RN, mask
 
 
-def gaisser_hillas_particle_count(
+def gaisser_hillas_particle_count_exp_form(
+    gramsum, X0, Xmax, Nmax, gh_lam, *args, dtype=np.float32, **kwargs
+):
+    # Parametric Form Parameters
+    x = (gramsum - X0) / gh_lam
+    m = (Xmax - X0) / gh_lam
+    return Nmax * np.exp(m * (np.log(x) - np.log(m)) - (x - m))
+
+
+def particle_count_parameterized_gaisser_hillas(
+    gramsum, Eshow, *args, mask=None, dtype=np.float32, **kwargs
+):
+    """
+    Showed Particle count from Gaisser Hillas formula with static parameters.
+    """
+
+    # Nuclear Collision length in Air from PDG.
+    # From https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
+    X0 = 61.3
+    Xm = 739.0
+    gh_lam = 65.12
+    Nmax = 0.045 * (1.0 + 0.0217 * np.log(Eshow / 1.0e5)) * Eshow / 0.074
+    XmaxOff = 58.0 * np.log10(Eshow / 1.0e8)
+    Xmax = Xm + XmaxOff
+
+    particle_count = gaisser_hillas_particle_count_exp_form(
+        gramsum, X0, Xmax, Nmax, gh_lam
+    )
+
+    return particle_count, mask
+
+
+def particle_count_fluctuated_gaisser_hillas(
     CONEX_table, gramsum, Eshow, mask, *args, dtype=np.float32, **kwargs
 ):
+    """
+    Showed Particle count from Gaisser Hillas formula with fluctuated parameters.
+    """
     # Gaisser Hillas Values from CONEX File
     idx = np.random.randint(low=0, high=CONEX_table.shape[0])
     Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
@@ -132,31 +167,31 @@ def gaisser_hillas_particle_count(
     mask &= gramsum_mask
     Xmask = gramsum[gramsum_mask]
 
-    #    Nmax = Nm * (Eshow * 1.0e-8)
-    #    Xmax = Xm + (70.0 * np.log10(Eshow * 1.0e-8))
     # JFK : put in form from Tom Gaisser's book, pg: 238 - 239
     Nmax100 = 6.99e7
     NmaxE = 0.045 * (1.0 + 0.0217 * np.log(Eshow / 1.0e5)) * Eshow / 0.074
     Nmax = Nm * NmaxE / Nmax100
+
     # the following from Gaisser leads to ~80 g/cm^2/decade elongation rate
     # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev
     #  gives in Egn 3 ~ 85 g/cm^2/decade is for EM showers
     #    Xmax = 36. * np.log(Eshow/0.074)
     # HiRes Measurement:  R. U. Abbasi et al 2005 ApJ 622 910 : gives ~ 56 g/cm^2, Auger ~60 g/cm^2
     # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev gives in Egn 7 ~ 62 g/cm^2/decade
-    #   use a single 60 g/cm^2 per decade energy addition/subtraction,
+    #   use a single 58 g/cm^2 per decade energy addition/subtraction,
     #   assume using only 100 PeV energy file for this to be correct
-    XmaxOff = 60 * np.log10(Eshow / 1.0e8)
+    XmaxOff = 58.0 * np.log10(Eshow / 1.0e8)
     Xmax = Xm + XmaxOff
 
     gh_lam = p1 + p2 * Xmask + p3 * Xmask * Xmask
     gh_lam[gh_lam > 100.0] = 100.0
     gh_lam[gh_lam < 1.0e-5] = 1.0e-5
 
-    # Parametric Form Parameters
-    x = (Xmask - X0) / gh_lam
-    m = (Xmax - X0) / gh_lam
-    return Nmax * np.exp(m * (np.log(x) - np.log(m)) - (x - m)), mask
+    particle_count = gaisser_hillas_particle_count_exp_form(
+        Xmask, X0, Xmax, Nmax, gh_lam
+    )
+
+    return particle_count, mask
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):

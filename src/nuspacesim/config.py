@@ -316,9 +316,12 @@ class Simulation(BaseModel):
     """ Maximum Azimuthal Angle (Radians). """
     angle_from_limb: float = np.radians(7)
     """ Angle From Limb. Default (Radians). """
-    cherenkov_light_engine: Literal["Greisen", "Gaisser-Hillas", "Default"] = (
-        "Greisen"  # "CHASM", "EASCherSim"
-    )
+    cherenkov_light_engine: Literal[
+        "Greisen",
+        "Gaisser-Hillas Parameterized",
+        "Gaisser-Hillas Fluctuated",
+        "Default",
+    ] = "Greisen"  # "CHASM", "EASCherSim"
     """Cherenkov Light Engine model: Default = 'Greisen'"""
 
     @field_validator("cherenkov_light_engine", mode="before")

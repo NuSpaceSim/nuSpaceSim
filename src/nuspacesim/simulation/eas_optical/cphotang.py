@@ -47,7 +47,11 @@ from dask.diagnostics.progress import ProgressBar
 from numpy.polynomial import Polynomial
 
 from .detector_geometry import distance_to_detector
-from .shower_properties import gaisser_hillas_particle_count, greisen_particle_count
+from .shower_properties import (
+    greisen_particle_count,
+    particle_count_fluctuated_gaisser_hillas,
+    particle_count_parameterized_gaisser_hillas,
+)
 
 # Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
 # on ReadTheDocs without pre-compiling.
@@ -253,14 +257,20 @@ class CphotAng:
         # Longitudinal Profile Funciton selection
         if longitudinal_profile_func == "Greisen":
             self.particle_count = greisen_particle_count
-        elif longitudinal_profile_func == "Gaisser-Hillas":
+        elif longitudinal_profile_func == "Gaisser-Hillas Parameterized":
+            self.particle_count = (
+                lambda *args, **kwargs: particle_count_parameterized_gaisser_hillas(
+                    *args, **kwargs
+                )
+            )
+        elif longitudinal_profile_func == "Gaisser-Hillas Fluctuated":
             with as_file(
                 files("nuspacesim.data.CONEX_table")
                 / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
             ) as file:
                 CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
                 self.particle_count = (
-                    lambda *args, **kwargs: gaisser_hillas_particle_count(
+                    lambda *args, **kwargs: particle_count_fluctuated_gaisser_hillas(
                         CONEX_table, *args, **kwargs
                     )
                 )
