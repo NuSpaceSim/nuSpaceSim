@@ -139,7 +139,7 @@ def particle_count_parameterized_gaisser_hillas(
     # From https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
     X0 = 61.3
     Xm = 739.0
-    # 65.17 g/cm^2 value obtained by evaluating lambda at Xmax for 1000 upward pion 10^17 eV EAS at 5 deg Earth-emergence angle and starting at sea level
+    # 65.12 g/cm^2 value obtained by evaluating lambda at Xmax for 1000 upward pion 10^17 eV EAS at 5 deg Earth-emergence angle and starting at sea level
     gh_lam = 65.12
     Nmax = 0.045 * (1.0 + 0.0217 * np.log(Eshow / 1.0e5)) * Eshow / 0.074
     XmaxOff = 58.0 * np.log10(Eshow / 1.0e8)
@@ -161,10 +161,9 @@ def particle_count_fluctuated_gaisser_hillas(
     # Gaisser Hillas Values from CONEX File
     idx = np.random.randint(low=0, high=CONEX_table.shape[0])
     Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
-    X0 = 0.0 if X0 < 0.0 else X0
 
     # Masking Gramsum
-    gramsum_mask = gramsum > X0
+    gramsum_mask = gramsum > (0.0 if X0 < 0.0 else X0)
     mask &= gramsum_mask
     Xmask = gramsum[gramsum_mask]
 

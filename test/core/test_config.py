@@ -290,7 +290,8 @@ def test_default_simulation():
     assert a.max_cherenkov_angle == np.radians(3.0)
     assert a.max_azimuth_angle == np.radians(360.0)
     assert a.angle_from_limb == np.radians(7.0)
-    assert a.cherenkov_light_engine == "Greisen"
+    assert a.eas_long_profile == "Greisen"
+    assert a.cherenkov_light_engine == "nuspacesim"
     assert a.ionosphere is not None
     assert a.ionosphere.total_electron_content == 10.0
     assert a.ionosphere.total_electron_error == 0.1
@@ -306,7 +307,8 @@ def test_default_simulation():
         "max_cherenkov_angle": "3.0000000000000004 deg",
         "max_azimuth_angle": "360.0 deg",
         "angle_from_limb": "7.0 deg",
-        "cherenkov_light_engine": "Greisen",
+        "eas_long_profile": "Greisen",
+        "cherenkov_light_engine": "nuspacesim",
         "ionosphere": {
             "enable": True,
             "total_electron_content": 10.0,
@@ -439,9 +441,48 @@ def test_config_serialization():
     assert loaded_config.model_dump() == a.model_dump()
 
 
+def test_eas_long_profile_default_replacement():
+    sim_default = Simulation(eas_long_profile="Default")
+    assert sim_default.eas_long_profile == "Greisen"
+
+
+def test_eas_long_profile_invalid_value():
+    with pytest.raises(ValueError):
+        Simulation(eas_long_profile="InvalidValue")
+
+
+def test_simulation_eas_long_profile_default():
+    sim = Simulation()
+    assert sim.eas_long_profile == "Greisen"
+
+
+def test_simulation_eas_long_profile_default_replacement():
+    sim = Simulation(eas_long_profile="Default")
+    assert sim.eas_long_profile == "Greisen"
+
+
+def test_simulation_eas_long_profile_valid_values():
+    sim_greisen = Simulation(eas_long_profile="Greisen")
+    assert sim_greisen.eas_long_profile == "Greisen"
+
+    sim_gaisser_hillas = Simulation(eas_long_profile="Gaisser-Hillas Parameterized")
+    assert sim_gaisser_hillas.eas_long_profile == "Gaisser-Hillas Parameterized"
+
+    sim_gaisser_hillas = Simulation(eas_long_profile="Gaisser-Hillas Fluctuated")
+    assert sim_gaisser_hillas.eas_long_profile == "Gaisser-Hillas Fluctuated"
+
+
+def test_simulation_eas_long_profile_invalid_value():
+    with pytest.raises(ValidationError):
+        Simulation(eas_long_profile="InvalidValue")
+
+
+###########
+
+
 def test_cherenkov_light_engine_default_replacement():
     sim_default = Simulation(cherenkov_light_engine="Default")
-    assert sim_default.cherenkov_light_engine == "Greisen"
+    assert sim_default.cherenkov_light_engine == "nuspacesim"
 
 
 def test_cherenkov_light_engine_invalid_value():
@@ -451,25 +492,17 @@ def test_cherenkov_light_engine_invalid_value():
 
 def test_simulation_cherenkov_light_engine_default():
     sim = Simulation()
-    assert sim.cherenkov_light_engine == "Greisen"
+    assert sim.cherenkov_light_engine == "nuspacesim"
 
 
 def test_simulation_cherenkov_light_engine_default_replacement():
     sim = Simulation(cherenkov_light_engine="Default")
-    assert sim.cherenkov_light_engine == "Greisen"
+    assert sim.cherenkov_light_engine == "nuspacesim"
 
 
 def test_simulation_cherenkov_light_engine_valid_values():
-    sim_greisen = Simulation(cherenkov_light_engine="Greisen")
-    assert sim_greisen.cherenkov_light_engine == "Greisen"
-
-    sim_gaisser_hillas = Simulation(
-        cherenkov_light_engine="Gaisser-Hillas Parameterized"
-    )
-    assert sim_gaisser_hillas.cherenkov_light_engine == "Gaisser-Hillas Parameterized"
-
-    sim_gaisser_hillas = Simulation(cherenkov_light_engine="Gaisser-Hillas Fluctuated")
-    assert sim_gaisser_hillas.cherenkov_light_engine == "Gaisser-Hillas Fluctuated"
+    sim_greisen = Simulation(cherenkov_light_engine="nuspacesim")
+    assert sim_greisen.cherenkov_light_engine == "nuspacesim"
 
 
 def test_simulation_cherenkov_light_engine_invalid_value():

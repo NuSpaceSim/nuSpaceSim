@@ -316,19 +316,31 @@ class Simulation(BaseModel):
     """ Maximum Azimuthal Angle (Radians). """
     angle_from_limb: float = np.radians(7)
     """ Angle From Limb. Default (Radians). """
-    cherenkov_light_engine: Literal[
+    eas_long_profile: Literal[
         "Greisen",
         "Gaisser-Hillas Parameterized",
         "Gaisser-Hillas Fluctuated",
         "Default",
-    ] = "Greisen"  # "CHASM", "EASCherSim"
-    """Cherenkov Light Engine model: Default = 'Greisen'"""
+    ] = "Greisen"
+    """EAS Longitudinal Profile model: Default = 'Greisen'"""
+
+    @field_validator("eas_long_profile", mode="before")
+    @classmethod
+    def validate_eas_long_profile(cls, value: str) -> str:
+        if value == "Default":
+            return "Greisen"
+        return value
+
+    cherenkov_light_engine: Literal["nuspacesim", "Default"] = (
+        "nuspacesim"  # "CHASM", "EASCherSim"
+    )
+    """cherenkov light engine model: Default = 'nuspacesim'"""
 
     @field_validator("cherenkov_light_engine", mode="before")
     @classmethod
     def validate_cherenkov_light_engine(cls, value: str) -> str:
         if value == "Default":
-            return "Greisen"
+            return "nuspacesim"
         return value
 
     ionosphere: Optional[Ionosphere] = Ionosphere()
@@ -429,6 +441,7 @@ def config_from_fits(filename: str) -> NssConfig:
         },
         "simulation": {
             "angle_from_limb": s("angle_from_limb"),
+            "eas_long_profile": s("eas_long_profile"),
             "cherenkov_light_engine": s("cherenkov_light_engine"),
             "cloud_model": {"id": s("cloud_model id")},
             "ionosphere": {

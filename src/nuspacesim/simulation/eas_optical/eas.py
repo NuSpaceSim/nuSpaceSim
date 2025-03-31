@@ -55,7 +55,7 @@ class EAS:
         self.config = config
         self.CphotAng = CphotAng(
             self.config.detector.initial_position.altitude,
-            self.config.simulation.cherenkov_light_engine,
+            self.config.simulation.eas_long_profile,
         )
 
     @decorators.nss_result_store("altDec", "lenDec")
