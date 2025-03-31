@@ -129,7 +129,7 @@ def gaisser_hillas_particle_count_exp_form(
 
 
 def particle_count_parameterized_gaisser_hillas(
-    gramsum, Eshow, *args, mask=None, dtype=np.float32, **kwargs
+    gramsum, Eshow, *args, mask, dtype=np.float32, **kwargs
 ):
     """
     Shower particle count from Gaisser Hillas formula with static parameters.
@@ -138,6 +138,9 @@ def particle_count_parameterized_gaisser_hillas(
     # Nuclear Collision length in Air from PDG.
     # From https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
     X0 = 61.3
+    gramsum_mask = gramsum > X0
+    mask &= gramsum_mask
+    Xmask = gramsum[gramsum_mask]
     Xm = 739.0
     # 65.12 g/cm^2 value obtained by evaluating lambda at Xmax for 1000 upward pion 10^17 eV EAS at 5 deg Earth-emergence angle and starting at sea level
     gh_lam = 65.12
@@ -146,7 +149,7 @@ def particle_count_parameterized_gaisser_hillas(
     Xmax = Xm + XmaxOff
 
     particle_count = gaisser_hillas_particle_count_exp_form(
-        gramsum, X0, Xmax, Nmax, gh_lam
+        Xmask, X0, Xmax, Nmax, gh_lam
     )
 
     return particle_count, mask
