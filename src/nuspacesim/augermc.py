@@ -611,7 +611,7 @@ def gen_eye_vectors(telphi, teltheta):  #Vector that points to the center of FoV
     eyevector=np.vstack((LLvector,LMvector,LAvector,COvector))
     return eyevector#/np.linalg.norm(eyevector, axis=1, keepdims=True)
 
-def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,telphi=telphi,teltheta=teltheta,extraradius=1.01,ntels=telposecef.shape[0]):
+def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape[0],telphi=telphi,teltheta=teltheta,extraradius=1.01):
     r=Rcutoff(lgE)*extraradius
     eyevector=gen_eye_vectors(telphi,teltheta)
     identifier=np.ones(coordecef[:,0].size)
@@ -880,8 +880,8 @@ def decay(groundecef,vecef, lgE):
 
 
 
-def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,fullint2,height=h,extraradius=1.01,
- minshowerpct=1,ntels=telposecef.shape[0],step=0.5, diststep=10, telphi=telphi,teltheta=teltheta,telangle=telangle):
+def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,fullint2,ntels=telposecef.shape[0],extraradius=1.01,
+ minshowerpct=1,step=0.5, diststep=10, telphi=telphi,teltheta=teltheta,telangle=telangle):
     r=Rcutoff(lgE)*extraradius
     code=[2,3,5,7]
     eyevector=gen_eye_vectors(telphi,teltheta)
