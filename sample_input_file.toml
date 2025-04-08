@@ -30,12 +30,12 @@ gain = "1.8 dB"
 
 [simulation]
 mode = "Diffuse"
-thrown_events = 23000
+thrown_events = 100
 max_cherenkov_angle = "3.0000000000000004 deg"
 max_azimuth_angle = "360.0 deg"
 angle_from_limb = "7.0 deg"
-cherenkov_light_engine = "Default"
-conex_output = true
+eas_long_profile = "Greisen"
+cherenkov_light_engine = "nuspacesim"
 
 [simulation.ionosphere]
 enable = true

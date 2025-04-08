@@ -15,7 +15,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: [38, 39, 310, 311]
+        python: [39, 310, 311, 312, 313]
         arch: [x86, arm]
         include:
           - os: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.15.0
+      uses: pypa/cibuildwheel@v2.22.0
       env:
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
         CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
@@ -50,9 +50,9 @@ jobs:
         CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: nuspacesim-gh-pypi-artifact
+        name: nuspacesim-gh-pypi-artifact-${{ matrix.os }}-${{ matrix.cibw_arch }}-cp${{ matrix.python }}-${{ github.run_id }}
         path: wheelhouse/*.whl
         retention-days: 1
 
@@ -61,11 +61,34 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_wheels
 
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: [39, 310, 311, 312, 313]
+        arch: [x86, arm]
+        include:
+          - os: ubuntu-latest
+            arch: x86
+            platform_id: manylinux_x86_64
+            cibw_arch: auto
+          - os: macos-latest
+            arch: x86
+            platform_id: macosx_x86_64
+            cibw_arch: x86_64
+          - os: macos-latest
+            arch: arm
+            platform_id: macosx_arm64
+            cibw_arch: arm64
+        exclude:
+          - os: ubuntu-latest
+            arch: arm
+
     steps:
     - name: Download Build Artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: nuspacesim-gh-pypi-artifact
+        name: nuspacesim-gh-pypi-artifact-${{ matrix.os }}-${{ matrix.cibw_arch }}-cp${{ matrix.python }}-${{ github.run_id }}
         path: wheelhouse/
 
     - name: Publish a Python distribution to PyPI
