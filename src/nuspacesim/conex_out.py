@@ -2,86 +2,71 @@ import uproot
 import numpy as np
 import awkward as ak
 from scipy.optimize import curve_fit
-from .simulation.eas_optical.shower_properties import slant_depth_trig_approx as slant_depth_old
 from .simulation.eas_optical.atmospheric_models import slant_depth
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
-from .augermc import ecef_to_utm
+from .augermc import ecef_to_utm, earth_radius_centerlat
 import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt
+
 #from .simulation.auger_sim import geomsim as asim
+def GH(X, X0, Xmax, Nmax, p3, p2, p1):
 
-def conex_out(data,profiles,id,groundecef,vecef,beta,TauEnergy,decayecef,Zfirst,azim,N,gpsarray,NuEnergy,tauExitProb):
+    return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / (p3 * X ** 2 + p2 * X + p1)) * np.exp(
+        (Xmax - X) / (p3 * X ** 2 + p2 * X + p1))
 
-    def GH(X, X0, Xmax, Nmax, p3, p2, p1):
+def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb):
 
-        return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / (p3 * X ** 2 + p2 * X + p1)) * np.exp(
-            (Xmax - X) / (p3 * X ** 2 + p2 * X + p1))
-    """
-    plt.hist(np.degrees(data["beta_rad"]),bins=50)
-    time=datetime.datetime.now().microsecond
-    plt.xlabel('Emergence angle (deg')
-    plt.ylabel('Counts')
-    plt.title('Histogram of thrown beta_tr uniform on the sphere')
-    plt.savefig('beta_hist{}.png'.format(time))
-    plt.figure()
-    plt.hist(data["altDec"][data["altDec"]<2],bins=50)
-    time=datetime.datetime.now().microsecond
-    plt.savefig('altDec{}.png'.format(time))
-    plt.figure()
-    plt.plot(np.degrees(data["beta_rad"]),data["tauEnergy"],'.')
-    plt.savefig('hola.png')
-    """
+    
     n=np.size(Zfirst)
     H = ak.ArrayBuilder()
     Xfirst=[]
-    for i in range(n):
-        Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],np.pi / 2 - beta[i])[0])
-    """
-    Xfirstold = slant_depth_old(0, Zfirst, np.pi / 2 - beta)
-    print(Xfirstold.size,Xfirst.size,'HOLA')
-    plt.figure()
-    bins = np.linspace(0, 40000, 50)
-    plt.hist(Xfirstold,bins,label='Old Xfirst',alpha=0.5)
-    plt.hist(Xfirst,bins,label='new Xfirst',alpha=0.5,linewidth=1.5)
-    plt.ylabel('Counts')
-    plt.xlabel('Xfirst')
-    plt.grid()
-    #plt.xscale('log')
-    plt.yscale('log')
-    plt.legend()   
-    plt.title('Slant depths hist')
-    plt.savefig('Xfirsttest.png')
-    """
-    X=ak.values_astype(ak.Array(profiles)[:,0],np.float32) #    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32)
+    endatm=[]
+
+    for i in range(n): #N AQUI
+        Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
+        endatm=np.append(endatm,slant_depth(0,100,np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
+
+    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32) #    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32)
     Z=ak.values_astype(profiles,np.float32)[:,1]
     RN=ak.values_astype(profiles,np.float32)[:,2]
     nX = ak.to_numpy(ak.num(X, axis=1))
 
+    Xlast=X[:,-1]
+    maskendatm=(Xlast<endatm)
+
+
+
+    print(np.sum(~maskendatm),'events with Xfirst out of atm')
+
     #""" REMOVED TEMPORARILY. EITHER FRED G IMPLEMENTATION FIXES THIS (THE IF) OR EXTEND PROFILE WITH GH FIT 
-    #Xfirstmax=3*10**4
-    #mask2=(Xfirst<=Xfirstmax) #Remove too long profiles (which produce errors in offline)
-    #for i in range(n):
-    #    if RN[i][-1]>np.max(RN[i])*0.5:
-    #        mask2[i]=False
-    #        print(i)
+    #Xfirstmax=2*10**4
+    """ mask2=(Xfirst<=Xfirstmax) #Remove too long profiles (which produce errors in offline)
+    xfirsthigh=(~mask2).sum()
+    print(Xfirst[~mask2],Zfirst[~mask2])
+    for i in range(n):
+        if RN[i][-1]>np.max(RN[i])*0.5:
+            mask2[i]=False """
+    mask2=maskendatm
     #nmasked=np.sum(~mask2)
-    #print(mask2.sum())
-    #beta = beta[mask2]  
-    #Zfirst = Zfirst[mask2]
-    #TauEnergy = TauEnergy[mask2]
-    #Xfirst = Xfirst[mask2]
-    
+    beta = beta[mask2]  
+    Zfirst = Zfirst[mask2]
+    TauEnergy = TauEnergy[mask2]
+    Xfirst = Xfirst[mask2]
+    NuEnergy = NuEnergy[mask2]
+    tauExitProb = tauExitProb[mask2]
+    gpsarray = gpsarray[mask2]
+    azim = azim[mask2]
+    id=id[mask2]
+    groundecef = groundecef[mask2,:]
+
+    n=np.size(Zfirst)
 
     zenith = 90 + np.degrees(beta)
     dEdXratio=0.0025935  #0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
-    rootfile='nss_to_conex_mc.root'
-    print('Generating conex-like output in '+rootfile)
-    #print('Number of masked events ', nmasked)
-    print('Number of valid events ', n)
-    #X= X[mask2]
-    #Z = Z[mask2]
+
+    X= X[mask2]
+    Z = Z[mask2]
     #Z = Z - Z[:, 0, None]   #Shift profile to start at 0 THIS SHOULD BE UNCOMMENTED
-    #RN = RN[mask2]
+    RN = RN[mask2]
     # Useful variables to fill the conex File
     PID = np.array([100], dtype='i4')  # Proton type for Conex
     zmin = np.array([90], dtype='i4')
@@ -115,15 +100,12 @@ def conex_out(data,profiles,id,groundecef,vecef,beta,TauEnergy,decayecef,Zfirst,
     Nmx = np.empty(n, dtype='f4')
 
     dist99=np.zeros(n)
-    for i in range(n):
+
+    for i in range(n):   #AQUI PONER N
         Zi = np.array(Z[i])
-        H.append(path_length_tau_atm(Zi, beta[i]))  #Build distance array
-        #RNmax=np.max(RN[i])
-        #RNargmax=np.argmax(RN[i])
-        #RNratio=np.array(RN[i]/RNmax)
-        #pos99=int(np.argmax(RNratio[RNargmax:]<0.05)+RNargmax)
-        #dist=path_length_tau_atm(Zi, beta[i])-path_length_tau_atm(Zi, beta[i])[0]
-        #dist99[i]=dist[pos99]
+        #H0=path_length_tau_atm(h/1000, beta[i])   #Donde empieza la distance array? Al inicio de la atmosfera? En el punto de decay? Desde el core??? (seguro que no)
+        H.append(path_length_tau_atm(Zi, beta[i]))  #Build distance array from core (surface of Earth at h=1416m)
+
         if i=='patata':
             plt.figure()
             plt.plot(X[i],RN[i],label=f'Energy={TauEnergy[i]}')
@@ -175,18 +157,14 @@ def conex_out(data,profiles,id,groundecef,vecef,beta,TauEnergy,decayecef,Zfirst,
         Nmx[i]=y[max_pos]*1e5
         chi2[i]=chi2[i]*1e5
     Hp = ak.values_astype(H.snapshot(), np.float32)
-    #Hp = -Hp + Hp[:, 0, None]  #Shift Distance array to start at 0 and be negative (according to Conex) THIS SHOULD BE UNCOMMENTED
+    rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"    
+    print('Generating conex-like output in '+rootfile)
+    #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
+    print('Number of valid events ', n)
 
-    #Calculate average lendecay
-    """dist99=dist99[dist99<80]
-    plt.figure()
-    plt.hist(dist99,bins=50)
-    plt.grid()
-    plt.xlabel('distance (km)')
-    plt.title(f'distance of shower when N=1% of Nmax, Emin={TauEnergyMin}')
-    plt.savefig('distto1percenthistE19.png')"""
     zoneletter = np.array([ord(letter) for letter in zoneletter], dtype=np.uint8)
-    #decoded_letters = np.array([chr(c) for c in zoneletter])
+
+
 
     branches_header = {
         "Seed1": np.dtype('i4')
