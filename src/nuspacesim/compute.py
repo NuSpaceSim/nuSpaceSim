@@ -266,7 +266,7 @@ def compute(
             conex_out(profilesOut,idfinal[valid_evs],groundecef[valid_evs],vecef[valid_evs]
                       ,beta_tr[valid_evs],energies[valid_evs],altDec[valid_evs]
                       ,azimuth[valid_evs],gpsarray[valid_energies][valid_evs]
-                      ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs])
+                      ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],h)
         """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
