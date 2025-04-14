@@ -20,7 +20,7 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
     D = ak.ArrayBuilder()
     Xfirst=[]
     endatm=[]
-    #I calculate Xfirst starting at sea level
+    #Calculate Xfirst starting at sea level
     for i in range(n): #N AQUI
         Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
         endatm=np.append(endatm,slant_depth(0,100,np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
@@ -146,7 +146,6 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         Nmx[i]=y[max_pos]*1e5
         chi2[i]=chi2[i]*1e5
     Dp = ak.values_astype(D.snapshot(), np.float32)
-    print('esto es D',Dp[0])
     rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"    
     print('Generating conex-like output in '+rootfile)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)

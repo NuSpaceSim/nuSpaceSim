@@ -444,9 +444,9 @@ def Rcutoff(lgE):
 
     return p1 + p2 * lgE + p3 * lgE * lgE	
 
-def roundcalcradius(E):  #This uses only the sides of the telescope (not the forward direction) since that's the limitant
+def roundcalcradius(E, extraradius=1.01):  #This uses only the sides of the telescope (not the forward direction) since that's the limitant
                          #distance, as the telescopes are pointing inwards, towards the center.
-    rEnergy=Rcutoff(E)
+    rEnergy=Rcutoff(E)*extraradius
     maxdist=0
     for i in range(4):
         centerenu_respect_tel=eceftoenu(telposecef[i],centerelevatedecef)
@@ -456,8 +456,8 @@ def roundcalcradius(E):  #This uses only the sides of the telescope (not the for
         maxdist=np.max([maxdist,maxcandidate])
     return maxdist
 
-def calcradius(E,num_ang,plotfig=False):
-    rEnergy=Rcutoff(E)
+def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
+    rEnergy=Rcutoff(E)*extraradius
 
     #LL
     xLLcirc=rEnergy*np.cos(ang+LLang)+LLenu[0]
@@ -611,8 +611,8 @@ def gen_eye_vectors(telphi, teltheta):  #Vector that points to the center of FoV
     eyevector=np.vstack((LLvector,LMvector,LAvector,COvector))
     return eyevector#/np.linalg.norm(eyevector, axis=1, keepdims=True)
 
-def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape[0],telphi=telphi,teltheta=teltheta,extraradius=1.01):
-    r=Rcutoff(lgE)*extraradius
+def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape[0],telphi=telphi,teltheta=teltheta,radiusfactor=1.01):
+    r=Rcutoff(lgE)*radiusfactor
     eyevector=gen_eye_vectors(telphi,teltheta)
     identifier=np.ones(coordecef[:,0].size)
     int1=[[]]
@@ -880,9 +880,9 @@ def decay(groundecef,vecef, lgE):
 
 
 
-def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,fullint2,ntels=telposecef.shape[0],extraradius=1.01,
+def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,fullint2,ntels=telposecef.shape[0],radiusfactor=1.01,
  minshowerpct=1,step=0.5, diststep=10, telphi=telphi,teltheta=teltheta,telangle=telangle):
-    r=Rcutoff(lgE)*extraradius
+    r=Rcutoff(lgE)*radiusfactor
     code=[2,3,5,7]
     eyevector=gen_eye_vectors(telphi,teltheta)
     for i in range(ntels):#telpos.shape[0]

@@ -196,10 +196,19 @@ def compute(
     )
     maxE=np.array(9+np.max(log_e_nu))
     nuE=np.array(9+log_e_nu)
-    maxangle=np.radians(30)
     n=config.simulation.thrown_events
     print('N=',n)
-    radius=roundcalcradius(maxE)
+    
+    #PARAMETERS
+    maxangle=np.radians(20)
+    radiusfactor=0.5
+    minshowerpct=50   
+    energy_threshold=16
+    gpstime=1261872018  #Time at 1 Jan 2020 00:00:00 UTC
+    ntels=1
+    #PARAMETERS
+
+    radius=roundcalcradius(maxE,radiusfactor)
     groundecef, vecef,beta_tr, azimuth=gen_points(n,radius,maxang=maxangle)
     #groundenu=eceftoenu(centerecef,groundecef)
     if beta_tr.size == 0:
@@ -219,9 +228,7 @@ def compute(
     decayecef,altDec=decay(groundecef,vecef, energies)
     #Make .root file of ALL events. Add all simulation parameters
     
-    energy_threshold=16
     #Mask events with energies below 10^16 eV
-    gpstime=1261872018  #Time at 1 Jan 2020 00:00:00 UTC
     gpsarray=np.arange(gpstime,gpstime+n)
     full_root_out(n,maxangle,nuE,energies,energy_threshold,groundecef,vecef,decayecef,altDec,beta_tr,azimuth,gpsarray,tauExitProb)
     valid_energies=(energies>energy_threshold)
@@ -239,9 +246,9 @@ def compute(
     #    (init_lat, init_long),
     #)
 
-    ntels=1
-    id,int1,int2=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels)
-    idfinal=decay_inside_fov(energies,groundecef,vecef,beta_tr,decayecef,altDec, id,int1,int2,ntels,diststep=200)
+    id,int1,int2=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
+    idfinal=decay_inside_fov(energies,groundecef,vecef,beta_tr,decayecef,altDec, id,int1,int2,ntels
+                             ,diststep=200,radiusfactor=radiusfactor,minshowerpct=minshowerpct)
     valid_evs=(idfinal!=1)
 
     dist2EarthCenter = np.sqrt(groundecef[valid_evs,0]**2 + groundecef[valid_evs,1]**2 + groundecef[valid_evs,2]**2)
