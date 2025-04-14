@@ -13,14 +13,14 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / (p3 * X ** 2 + p2 * X + p1)) * np.exp(
         (Xmax - X) / (p3 * X ** 2 + p2 * X + p1))
 
-def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb):
+def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb,h):
 
     
     n=np.size(Zfirst)
-    H = ak.ArrayBuilder()
+    D = ak.ArrayBuilder()
     Xfirst=[]
     endatm=[]
-
+    #I calculate Xfirst starting at sea level
     for i in range(n): #N AQUI
         Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
         endatm=np.append(endatm,slant_depth(0,100,np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
@@ -98,23 +98,12 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
     chi2 = np.zeros(n, dtype='f4')
     Xmx = np.empty(n, dtype='f4')
     Nmx = np.empty(n, dtype='f4')
-
-    dist99=np.zeros(n)
-
+    
     for i in range(n):   #AQUI PONER N
-        Zi = np.array(Z[i])
+        Zi=np.array(Z[i])
         #H0=path_length_tau_atm(h/1000, beta[i])   #Donde empieza la distance array? Al inicio de la atmosfera? En el punto de decay? Desde el core??? (seguro que no)
-        H.append(path_length_tau_atm(Zi, beta[i]))  #Build distance array from core (surface of Earth at h=1416m)
-
-        if i=='patata':
-            plt.figure()
-            plt.plot(X[i],RN[i],label=f'Energy={TauEnergy[i]}')
-            plt.scatter(X[i][pos99],RN[i][pos99])
-            plt.grid()
-            print(X[i][pos99])
-            #plt.yscale('log')
-            plt.legend()
-            plt.savefig('XDectest.png')
+        D0=path_length_tau_atm(h/1000, beta[i], Re=earth_radius_centerlat) 
+        D.append(path_length_tau_atm(Zi, beta[i],Re=earth_radius_centerlat)-D0)  #Build distance array from core (surface of Earth at h=1416m)
 
         x=np.array(X[i])
         # Shift profile in X and reduce magnitude in N to simplify the fits.
@@ -133,7 +122,7 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         init[2]=y[max_pos]
         init[3:] = [1e-7, 4e-4, 44]
 
-        popt, pcov = curve_fit(GH, x, y, p0=init, maxfev=10000)
+        popt, __ = curve_fit(GH, x, y, p0=init, maxfev=10000)
         yfit = GH(x, *popt)
 
         #Calculate chi**2
@@ -156,7 +145,8 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         Xmx[i]=x[max_pos]+x0
         Nmx[i]=y[max_pos]*1e5
         chi2[i]=chi2[i]*1e5
-    Hp = ak.values_astype(H.snapshot(), np.float32)
+    Dp = ak.values_astype(D.snapshot(), np.float32)
+    print('esto es D',Dp[0])
     rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"    
     print('Generating conex-like output in '+rootfile)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
@@ -307,7 +297,7 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         , "X": X
         , "N": RN
         , "H": Z * 1000  # in meters
-        , "D": Hp * 1000
+        , "D": Dp * 1000
         , "dEdX": RN * dEdXratio
         , "Mu": Xempty  # Xempty
         , "Gamma": Xempty  # Xempty
