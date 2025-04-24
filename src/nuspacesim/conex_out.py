@@ -38,6 +38,7 @@ def conex_out(data, profiles):
     RN = ak.values_astype(profiles, np.float32)[:, 2]
     nX = ak.to_numpy(ak.num(X, axis=1))
 
+    """
     Xfirstmax = 1 * 10**4
     mask2 = (
         Xfirst <= Xfirstmax
@@ -45,24 +46,24 @@ def conex_out(data, profiles):
     for i in range(n):
         if RN[i][-1] > np.max(RN[i]) * 0.5:
             mask2[i] = False
-    nmasked = np.sum(~mask2) + np.sum(~mask)
+    nmasked = np.sum(~mask2) + np.sum(~mask)"""
 
-    beta = beta[mask2]
-    Zfirst = Zfirst[mask2]
+    #beta = beta[mask2]
+    #Zfirst = Zfirst[mask2]
     n = np.size(Zfirst)
-    TauEnergy = TauEnergy[mask2]
-    Xfirst = Xfirst[mask2]
+    #TauEnergy = TauEnergy[mask2]
+    #Xfirst = Xfirst[mask2]
     azim = 360 * np.random.rand(n)  # Random azimuth
     zenith = 90 + np.degrees(beta)
     dEdXratio = 0.0025935  # 0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
     rootfile = "nss_to_conex.root"
     print("Generating conex-like output in " + rootfile)
-    print("Number of masked events ", nmasked)
+    #print("Number of masked events ", nmasked)
     print("Number of valid events ", n)
 
-    X = X[mask2]
-    Z = Z[mask2]
-    RN = RN[mask2]
+    #X = X[mask2]
+    #Z = Z[mask2]
+    #RN = RN[mask2]
 
     # Useful variables to fill the conex File
     PID = np.array([100], dtype="i4")  # Proton type for Conex
