@@ -86,6 +86,8 @@ class EAS:
         showerEnergy,
         init_lat,
         init_long,
+        detcoords,
+        azimuth,
         *args,
         cloudf=None,
         **kwargs
@@ -110,6 +112,8 @@ class EAS:
             showerEnergy[mask],
             init_lat[mask],
             init_long[mask],
+            detcoords,
+            azimuth,
             cloudf,
         )
 

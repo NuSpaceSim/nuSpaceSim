@@ -62,11 +62,12 @@ from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
-from .chasm_testing import *
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
 # from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .chasm_geom import detector_coordinates_and_tr_azimuth
+
 
 __all__ = ["compute"]
 
@@ -224,6 +225,7 @@ def compute(
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
+    """
     #CHASM STUFF
     #Need to figure out how to send azimuth, detcoords to cphotang function
     #Need to check that coord system of detcoords is the same as azimTrSubN (should be correct)
@@ -274,9 +276,12 @@ def compute(
         sim.add(ch.SphericalCounters(detcoords, np.sqrt(1/np.pi)))
         sim.add(ch.Yield(270, 1000, N_bins=100))
         r_coordinates, total_propagation_times, photon_arrival_phZenith, photons_on_plane, wlbins, wlhist, dist_counter = run_chasm(sim, orig)
+    """
 
+    detcoords, azimuth = detector_coordinates_and_tr_azimuth(
+        geom.thetas(), geom.phis(), geom.valid_costhetaNSubV(), geom.valid_aziAngVSubN(), geom.valid_elevAngVSubN(), geom.pathLens()
 
-
+    )
     # if config.detector.method == "Optical" or config.detector.method == "Both":
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
@@ -287,6 +292,8 @@ def compute(
             showerEnergy,
             init_lat,
             init_long,
+            detcoords,
+            azimuth,
             cloudf=cloud,
             store=sw,
             plot=to_plot,

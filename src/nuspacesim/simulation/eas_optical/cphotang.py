@@ -47,7 +47,6 @@ from dask.diagnostics import ProgressBar
 from numpy.polynomial import Polynomial
 
 from .detector_geometry import distance_to_detector
-from .chasm_geom import detector_coordinates_and_tr_azimuth
 import CHASM as ch
 # Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
 # on ReadTheDocs without pre-compiling.
@@ -546,8 +545,9 @@ class CphotAng:
         s = s[mask]
         RN = RN[mask]
         e2hill = e2hill[mask]
+        gramsum = gramsum[mask]
 
-        return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill
+        return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum
 
     def e0(self, shape, s):
         """Hillas Energy Paramaterization.
@@ -593,21 +593,20 @@ class CphotAng:
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
     
-    def chasm(betaE, gramsum, RN):
-        detcoord, azimuth_tr= detector_coordinates_and_tr_azimuth()
+    def chasm(self, betaE, gramsum, RN, detcoord, azimuth_tr):
         sim = ch.ShowerSimulation()
         sim.add(ch.UpwardAxis(np.pi/2-betaE, azimuth_tr, curved=True))
         sim.add(ch.UserShower(np.array(gramsum), np.array(RN)))
         sim.add(ch.SphericalCounters(detcoord, np.sqrt(1/np.pi)))
         sim.add(ch.Yield(270, 1000, N_bins=100))
         sig = sim.run(mesh=False, att=True)
-        del sim
         ch_photons=np.array(sig.photons)
-        times = np.array(sig.times)
-        costheta=np.array(sig.cos_theta)
-        return ch_photons, times, costheta
+        ch_times = np.array(sig.times)
+        ch_costheta=np.array(sig.cos_theta)  #cosine of the angle between the z-axis (zenith of spot on ground) and the vector from the axis to the detector
+        
+        return ch_photons, ch_times, ch_costheta
     
-    def run(self, betaE, alt, Eshow100PeV, lat, long, cloudf=None):
+    def run(self, betaE, alt, Eshow100PeV, lat, long, detcoords, azimuth, cloudf=None):
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
@@ -623,10 +622,10 @@ class CphotAng:
         # Shower
         #
 
-        zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill = self.valid_arrays(
+        zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum = self.valid_arrays(
             *self.slant_depth(alt, sinThetView), Eshow
         )
-
+        ch_photons, ch_times, ch_costheta = self.chasm(betaE, gramsum, RN, detcoords, azimuth)
         # Cloud top height
         cloud_top_height = cloudf(lat, long) if cloudf else -np.inf
 
@@ -684,10 +683,11 @@ class CphotAng:
         photonDen *= altitude_scaling
 
         Cang = np.degrees(AveCangI + CangsigI)
+        print('Cang',Cang.shape, Cang)
 
         return photonDen, Cang
 
-    def __call__(self, betaE, alt, Eshow100PeV, init_lat, init_long, cloudf=None):
+    def __call__(self, betaE, alt, Eshow100PeV, init_lat, init_long, detcoords, azimuth, cloudf=None):
         """
         Iterate over the list of events and return the result as pair of
         numpy arrays.
@@ -707,5 +707,6 @@ class CphotAng:
             zip(betaE, alt, Eshow100PeV, init_lat, init_long), partition_size=100
         )
         with ProgressBar():
-            Dphots, Cang = zip(*b.map(lambda x: self.run(*x, cloudf)).compute())
+            Dphots, Cang = zip(*b.map(lambda x: self.run(*x, detcoords, azimuth, cloudf)).compute())
+        print('Cang',Cang.shape, Cang)
         return np.asarray(Dphots), np.array(Cang)
