@@ -47,7 +47,8 @@ from dask.diagnostics import ProgressBar
 from numpy.polynomial import Polynomial
 
 from .detector_geometry import distance_to_detector
-
+from .chasm_geom import detector_coordinates_and_tr_azimuth
+import CHASM as ch
 # Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
 # on ReadTheDocs without pre-compiling.
 try:
@@ -591,7 +592,21 @@ class CphotAng:
         CherArea *= DistStep[izRNmax]
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
-
+    
+    def chasm(betaE, gramsum, RN):
+        detcoord, azimuth_tr= detector_coordinates_and_tr_azimuth()
+        sim = ch.ShowerSimulation()
+        sim.add(ch.UpwardAxis(np.pi/2-betaE, azimuth_tr, curved=True))
+        sim.add(ch.UserShower(np.array(gramsum), np.array(RN)))
+        sim.add(ch.SphericalCounters(detcoord, np.sqrt(1/np.pi)))
+        sim.add(ch.Yield(270, 1000, N_bins=100))
+        sig = sim.run(mesh=False, att=True)
+        del sim
+        ch_photons=np.array(sig.photons)
+        times = np.array(sig.times)
+        costheta=np.array(sig.cos_theta)
+        return ch_photons, times, costheta
+    
     def run(self, betaE, alt, Eshow100PeV, lat, long, cloudf=None):
         """Main body of simulation code."""
 

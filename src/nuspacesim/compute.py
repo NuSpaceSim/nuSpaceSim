@@ -62,7 +62,8 @@ from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
 from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
-
+from .chasm_testing import *
+from .simulation.eas_optical.shower_properties import path_length_tau_atm
 # from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
@@ -222,6 +223,59 @@ def compute(
 
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
+
+    #CHASM STUFF
+    #Need to figure out how to send azimuth, detcoords to cphotang function
+    #Need to check that coord system of detcoords is the same as azimTrSubN (should be correct)
+    zenith=np.pi/2-beta_tr
+
+    from scipy.spatial.transform import Rotation as R
+
+    #azimuth=
+
+
+    thetaTrSubV=geom.thetas()
+    phiTrSubV=geom.phis()
+    costhetaNSubV=geom.valid_costhetaNSubV()
+    det_azi=geom.valid_aziAngVSubN()
+    det_elev=geom.valid_elevAngVSubN()
+    thetaNSubV=np.arccos(costhetaNSubV)
+    Pvecx=np.sin(thetaTrSubV)*np.cos(phiTrSubV)
+    Pvecy=np.sin(thetaTrSubV)*np.sin(phiTrSubV)
+    Pvecz=np.cos(thetaTrSubV)
+
+    P=np.vstack((Pvecx,Pvecy,Pvecz)).T
+    n_up_rot_axis = np.array([0, 1, 0])
+    rot_vectors = n_up_rot_axis * thetaNSubV[:, np.newaxis]  # Shape (N, 3)
+    theta_rotation = R.from_rotvec(rot_vectors)
+
+    z_rot_axis = np.array([0, 0, 1])  # z-axis
+    z_rot_vectors = z_rot_axis * (det_azi)[:, np.newaxis]  # Shape (N, 3)
+    z_rotation = R.from_rotvec(z_rot_vectors)
+
+    Pn = theta_rotation.apply(P)
+    tr_n=z_rotation.apply(Pn)
+    azimuth=np.arctan2(tr_n[:,1],tr_n[:,0])
+
+
+    path_len=geom.pathLens()
+    #path_len2=path_length_tau_atm(altitude,geom.valid_elevAngVSubN()) This is the same as path_len
+    x = path_len * np.cos(det_elev) * np.cos(det_azi)  # East
+    y = path_len * np.cos(det_elev) * np.sin(det_azi)  # North
+    z = path_len * np.sin(det_elev)                    # Up
+    detcoords=np.vstack((x,y,z)).T
+    print(path_len,np.degrees(beta_tr))
+    #print('Zen, zenith, beta,detazi,detzen',np.degrees(zen),np.degrees(zenith),np.degrees(beta_tr),np.degrees(det_azi),np.degrees(det_zen))
+    #print(det_coord)
+    for i in range(0, len(beta_tr)):
+        sim = ch.ShowerSimulation()
+        sim.add(ch.UpwardAxis(zenith[i], azimuth[i], curved=True))
+        sim.add(ch.UserShower(np.array(X[i]), np.array(N[i])))
+        sim.add(ch.SphericalCounters(detcoords, np.sqrt(1/np.pi)))
+        sim.add(ch.Yield(270, 1000, N_bins=100))
+        r_coordinates, total_propagation_times, photon_arrival_phZenith, photons_on_plane, wlbins, wlhist, dist_counter = run_chasm(sim, orig)
+
+
 
     # if config.detector.method == "Optical" or config.detector.method == "Both":
     if config.detector.optical.enable:
