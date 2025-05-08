@@ -6,7 +6,7 @@ import numpy as np
 from nuspacesim.simulation.eas_optical.atmospheric_models import polyrho, rho
 
 
-def us_std_atm_density(z, earth_radius=6371):
+def us_std_atm_density(z, earth_radius=6371.036063815867):
     H_b = np.array([0, 11, 20, 32, 47, 51, 71, 84.852])
     Lm_b = np.array([-6.5, 0.0, 1.0, 2.8, 0.0, -2.8, -2.0, 0.0])
     T_b = np.array([288.15, 216.65, 216.65, 228.65, 270.65, 270.65, 214.65, 186.946])

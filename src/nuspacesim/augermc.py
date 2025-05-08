@@ -10,7 +10,7 @@ exacttelangle=np.radians(15)
 massTau = 1.77686  # GeV/c^2
 mean_Tau_life = 2.903e-13  # seconds
 inv_mean_Tau_life=1/mean_Tau_life
-earth_radius = 6371.0e3  # in meters
+earth_radius = 6371036.063815867  # in meters
 c = 2.9979246e8
 
 def utm_to_geodetic(easting, northing, zone, band, height=None):
@@ -435,7 +435,6 @@ def radiusatlat(lat):
     return np.sqrt(a**2 * np.cos(lat)**2 + b**2 * np.sin(lat)**2)
 
 earth_radius_centerlat=radiusatlat(mean_lat)
-
 def Rcutoff(lgE):
 
     p1 =  4.86267e+05
@@ -761,7 +760,37 @@ def atmdensity(z):
 
     p = np.where(z < 100, _polyrho(z), np.reciprocal(1e9))
     return p
-def slant_depth_integrand(z, theta_tr, rho=atmdensity, earth_radius=(earth_radius_centerlat/1000)):
+
+_poly_auger= Polynomial(
+    [0.00019355193432475684, -0.00047182138775492445,  0.0006077573072156704,
+ -0.00018349083368990318, -0.0011535442532308456,   0.0006554489686364493,
+  0.003063540076331194,   -0.0018777740361439687,  -0.0039930055059589405,
+  0.0020727809175192487,   0.0024749764026561656,  -0.0008010869519346413,
+ -0.0005693735536631211, ],
+ domain=[0.0, 30.0],
+)
+def exp_auger(z):
+    """
+    Exponential fit for Auger data (height > 30 km)"""
+    #if np.any(z <= 30):
+    #    raise ValueError("Height must be greater than 30 km for this function.")
+    return 0.00119549796648045665581*np.exp(-0.139940733649007831296*z)
+def atmdensity_auger(z):
+    """
+    Density (g/cm^3) parameterized from altitude (z) values in km
+    Computation is an (11) degree polynomial fit to equation (2)
+    in https://arxiv.org/pdf/2011.09869.pdf
+    Fit performed using numpy.Polynomial.fit
+    """
+    p = np.select(
+        [z <= 30, (z > 30) & (z <= 100), z > 100],
+        [_poly_auger(z), exp_auger(z), 1.00e-09],
+        default=1.00e-09
+    )
+    return p
+#z=np.linspace(0, 30, 20)
+
+def slant_depth_integrand(z, theta_tr, rho=atmdensity_auger, earth_radius=(earth_radius_centerlat/1000)):
     """
     Integrand for computing slant_depth from input altitude z.
     Computation from equation (3) in https://arxiv.org/pdf/2011.09869.pdf
@@ -917,8 +946,8 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
         inside=(decayenui[:,2]<maxh) & (decayenui[:,2]>intpoint1[:,2])
         intpoint2insideecef=enutoecef(telposecef[i,:],intpoint2[inside,:])
         altintpoint2=altitude_from_ecef(intpoint2insideecef)/1000
-        densitydec=atmdensity(altdeci[inside]) #height in km
-        density2=atmdensity(altintpoint2)     #height in km
+        densitydec=atmdensity_auger(altdeci[inside]) #height in km
+        density2=atmdensity_auger(altintpoint2)     #height in km
         densityaverageinside=(densitydec+density2)/2
         distinside=np.linalg.norm(intpoint2[inside,:]-decayenui[inside,:],axis=1)
         gramminside=(distinside*100)*densityaverageinside #distance to cm
@@ -941,7 +970,7 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
             intervalsecef=enutoecef(telposecef[i,:],intervalscoords)
             altintervals=altitude_from_ecef(intervalsecef)/1000
 
-            rhointervals=atmdensity(altintervals)
+            rhointervals=atmdensity_auger(altintervals)
             rhointaverage=(rhointervals[:-1]+rhointervals[1:])/2
             grammageintervals=100*diststep*rhointaverage #one 100 to change to cm, the other because 100m per dist step. #We consider the max density in each interval
             cumgrammageintervals=np.cumsum(grammageintervals)
@@ -979,8 +1008,8 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
         altintpoint1=altitude_from_ecef(intpoint1ecef)/1000
 
         distout=np.linalg.norm(decayenui[outside_down,:]-intpoint1[outside_down,:],axis=1)
-        densitydec=atmdensity(altdeci[outside_down]) #height in km
-        density1=atmdensity(altintpoint1)     #height in km
+        densitydec=atmdensity_auger(altdeci[outside_down]) #height in km
+        density1=atmdensity_auger(altintpoint1)     #height in km
         densityaverageout=(densitydec+density1)/2
         grammout=(distout*100)*densityaverageout #distance to cm
         accepted=np.full_like(grammout,True,dtype='bool')
@@ -1007,7 +1036,7 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
             altintervals=altitude_from_ecef(intervalsecef)/1000
 
 
-            rhointervals=atmdensity(altintervals)
+            rhointervals=atmdensity_auger(altintervals)
             rhointaverage=(rhointervals[:-1]+rhointervals[1:])/2
             grammageintervals=100*diststep*rhointaverage #one 100 to change to cm, the other because 100m per dist step. #We consider the max density in each interval
             cumgrammageintervals=startgramm+np.cumsum(grammageintervals)

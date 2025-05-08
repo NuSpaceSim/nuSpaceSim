@@ -8,7 +8,7 @@ from nuspacesim.simulation.eas_optical.quadeas import *
 
 
 def shower_age_newton():
-    earth_radius = 6378.14
+    earth_radius = 6371.036063815867
     alt_dec = 1.0
     # z_obs = 525.0
     z_max = 65.0

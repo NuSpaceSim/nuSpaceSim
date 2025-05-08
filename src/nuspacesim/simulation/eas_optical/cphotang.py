@@ -286,7 +286,81 @@ class CphotAng:
         ThetView = np.arcsin(ThetView, dtype=self.dtype)
         return ThetView
 
+    poly_auger= Polynomial(
+    [0.00019355193432475684, -0.00047182138775492445,  0.0006077573072156704,
+    -0.00018349083368990318, -0.0011535442532308456,   0.0006554489686364493,
+    0.003063540076331194,   -0.0018777740361439687,  -0.0039930055059589405,
+    0.0020727809175192487,   0.0024749764026561656,  -0.0008010869519346413,
+    -0.0005693735536631211, ],
+    domain=[0.0, 30.0],
+    )
+    A=0.00119549796648045665581
+    k=0.139940733649007831296
+    def exp_auger(self, z):
+        """
+        Exponential fit for Auger data (height > 30 km)"""
+        #if np.any(z <= 30):
+        #    raise ValueError("Height must be greater than 30 km for this function.")
+        return self.A*np.exp(-self.k*z)
+    def atmdensity_auger(self, z):
+        """
+        Density (g/cm^3) parameterized from altitude (z) values in km
+        Computation is an (11) degree polynomial fit to equation (2)
+        in https://arxiv.org/pdf/2011.09869.pdf
+        Fit performed using numpy.Polynomial.fit
+        """
+        p = np.select(
+            [z <= 30, (z > 30) & (z <= 100), z > 100],
+            [self.poly_auger(z), self.exp_auger(z), 1.00e-09],
+            default=1.00e-09
+        )
+        return p
+
+    def calculate_grammage_analytical(self, z, poly, A, k):
+        """
+        Calculate grammage X(z) analytically from density_fit, vectorized.
+        
+        Parameters:
+        z (float or np.ndarray): Height(s) in km.
+        poly (Polynomial): Polynomial fit for z <= 30 km.
+        A, k (float): Exponential parameters for 30 < z <= 100 km.
+        
+
+        Returns:
+        np.ndarray: Grammage X(z) in g/cm^2, with X(z) = 0 for z > 100 km.
+        """
+        z = np.asarray(z, dtype=self.dtype)
+        X = np.full_like(z,np.reciprocal(1e5), dtype=self.dtype)
+        
+        # Polynomial antiderivative
+        poly_int = poly.integ()
+        
+        # Masks for regions
+        mask1 = z <= 30
+        mask2 = (z > 30) & (z <= 100)
+        # z > 100: X = 0 (default in X initialization)
+        
+        # For z <= 30: ∫_z^30 poly(z') dz' + ∫_30^100 A e^(-k z') dz'
+        if np.any(mask1):
+            X[mask1] = (poly_int(30) - poly_int(z[mask1])) + (A / k) * (np.exp(-k * 30) - np.exp(-k * 100))
+        
+        # For 30 < z <= 100: ∫_z^100 A e^(-k z') dz'
+        if np.any(mask2):
+            X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * 100))#+7e-7
+        return X*1e5 # Convert to g/cm^2
+    
     def grammage(self, z):
+
+        rho=self.atmdensity_auger(z)
+        X=self.calculate_grammage_analytical(z, self.poly_auger, self.A, self.k)
+        if not np.all(np.isfinite(X)):
+            print("Warning: Non-finite values in X:", X[~np.isfinite(X)])
+            exit()
+        if not np.all(np.isfinite(rho)):
+            print("Warning: Non-finite values in rho:", rho[~np.isfinite(rho)])
+            exit()
+        return X, rho
+    def grammage_old(self, z):
         """
         # c     Calculate Grammage
         """
@@ -325,8 +399,8 @@ class CphotAng:
             X[mask3],
             dtype=self.dtype,
         )
+        #X=self.grammage_auger(z)
         return X, rho
-
     def ozone_losses(self, z):
         """
         Calculate ozone losses from altitudes (z) in km.
@@ -372,6 +446,8 @@ class CphotAng:
         """Determine Rayleigh and Ozone slant depth."""
 
         zsave, delzs = self.zsteps(alt, sinThetView)
+
+        gramzold,rhosold=self.grammage_old(zsave)
         gramz, rhos = self.grammage(zsave)
 
         delgram_vals = rhos * self.dL * self.dtype(1e5)
@@ -534,9 +610,10 @@ class CphotAng:
         AirN[mask] = 1.0 + 0.000296 * (gramz[mask] / 1032.9414) * (
             273.2 / (204.0 + 0.091 * gramz[mask])
         )
+        AirNminus1= 0.000296 * (gramz[mask] / 1032.9414) * (
+            273.2 / (204.0 + 0.091 * gramz[mask]))
 
-        mask &= (AirN != 1) & (AirN != 0)
-
+        mask &= (AirNminus1 != 0) & (AirN != 0)
         # c  do greissen param
         t = np.zeros_like(zsave, dtype=self.dtype)
         t[mask] = gramsum[mask] / self.dtype(36.66)
@@ -548,10 +625,11 @@ class CphotAng:
         s[mask] = self.dtype(3) * t[mask] / (t[mask] + self.dtype(2) * greisen_beta)
 
         # Greisen  or  Gaisser-Hillas  Longitudinal Paramaterization
-        rn, mask = self.particle_count(
+        rn, mask, X0, Xmax, Nmax, p3, p2, p1 = self.particle_count(
             mask=mask, t=t, s=s, greisen_beta=greisen_beta, gramsum=gramsum, Eshow=Eshow
         )
 
+        ghparams=np.array([X0, Xmax, Nmax, p3, p2, p1], dtype=self.dtype)
         RN = np.zeros_like(zsave, dtype=self.dtype)
         RN[mask] = rn
         RN[RN < 0] = self.dtype(0)
@@ -576,7 +654,7 @@ class CphotAng:
         e2hill = e2hill[mask]
         gramsum=gramsum[mask]
 
-        return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum
+        return zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum, ghparams
 
     def e0(self, shape, s):
         """Hillas Energy Paramaterization.
@@ -638,7 +716,7 @@ class CphotAng:
         # Shower
         #
 
-        zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum = self.valid_arrays(
+        zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum, ghparams = self.valid_arrays(
             *self.slant_depth(alt, sinThetView), Eshow
         )
         if Conex:
@@ -702,7 +780,7 @@ class CphotAng:
 
         Cang = np.degrees(AveCangI + CangsigI)
 
-        return photonDen, Cang, profilesIn
+        return photonDen, Cang, profilesIn, ghparams
 
     def __call__(self, betaE, alt, Eshow100PeV, init_lat, init_long, Conex, cloudf=None):
         """
@@ -726,5 +804,5 @@ class CphotAng:
             zip(betaE, alt, Eshow100PeV, init_lat, init_long), partition_size=100
         )
         with ProgressBar():
-            Dphots, Cang, profilesOut = zip(*b.map(lambda x: self.run(*x, Conex, profilesIn, cloudf)).compute())
-        return np.asarray(Dphots), np.array(Cang), profilesOut
+            Dphots, Cang, profilesOut, ghparams = zip(*b.map(lambda x: self.run(*x, Conex, profilesIn, cloudf)).compute())
+        return np.asarray(Dphots), np.array(Cang), profilesOut, ghparams

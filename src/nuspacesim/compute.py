@@ -258,7 +258,7 @@ def compute(
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
         Conex=config.simulation.conex_output
-        numPEs, costhetaChEff, profilesOut = eas(
+        numPEs, costhetaChEff, profilesOut, ghparams = eas(
             beta_tr[valid_evs],
             altDec[valid_evs],
             showerEnergy[valid_evs],
@@ -273,7 +273,7 @@ def compute(
             conex_out(profilesOut,idfinal[valid_evs],groundecef[valid_evs],vecef[valid_evs]
                       ,beta_tr[valid_evs],energies[valid_evs],altDec[valid_evs]
                       ,azimuth[valid_evs],gpsarray[valid_energies][valid_evs]
-                      ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],h)
+                      ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],h,ghparams)
         """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

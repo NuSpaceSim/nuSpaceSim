@@ -2,41 +2,52 @@ import uproot
 import numpy as np
 import awkward as ak
 from scipy.optimize import curve_fit
-from .simulation.eas_optical.atmospheric_models import slant_depth
+#from .simulation.eas_optical.atmospheric_models import slant_depth
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
-from .augermc import ecef_to_utm, earth_radius_centerlat
+from .augermc import ecef_to_utm, earth_radius_centerlat, slant_depth
 import matplotlib.pyplot as plt
 
 #from .simulation.auger_sim import geomsim as asim
 def GH(X, X0, Xmax, Nmax, p3, p2, p1):
+    gh_lam =np.array(p3 * X ** 2 + p2 * X + p1)
+    #gh_lam[gh_lam > 100.0] = 100.0
+    #gh_lam[gh_lam < 1.0e-5] = 1.0e-5
 
-    return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / (p3 * X ** 2 + p2 * X + p1)) * np.exp(
-        (Xmax - X) / (p3 * X ** 2 + p2 * X + p1))
+    return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
+        (Xmax - X) / gh_lam)
 
-def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb,h):
+def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb,h, ghparams):
 
     
     n=np.size(Zfirst)
     D = ak.ArrayBuilder()
     Xfirst=[]
     endatm=[]
+    Xlastheight=[]
+    ghparams=np.array(ghparams)
+    Z=ak.values_astype(profiles,np.float32)[:,1]
+    maskheight=(Z<40)
+    Z=Z[maskheight]
+    RN=ak.values_astype(profiles,np.float32)[:,2]
+    RN=RN[maskheight]
     #Calculate Xfirst starting at sea level
     for i in range(n): #N AQUI
-        Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
-        endatm=np.append(endatm,slant_depth(0,100,np.pi / 2 - beta[i],earth_radius_centerlat/1000)[0])
-
+        Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],beta[i],earth_radius_centerlat/1000)[0])
+        endatm=np.append(endatm,slant_depth(0,100, beta[i],earth_radius_centerlat/1000)[0])
+        #Xlastheight=np.append(Xlastheight,slant_depth(0,Zlast[i], beta[i],earth_radius_centerlat/1000)[0])
     X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32) #    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32)
-    Z=ak.values_astype(profiles,np.float32)[:,1]
-    RN=ak.values_astype(profiles,np.float32)[:,2]
+    X=X[maskheight]
     nX = ak.to_numpy(ak.num(X, axis=1))
-
     Xlast=X[:,-1]
     maskendatm=(Xlast<endatm)
 
 
 
-    print(np.sum(~maskendatm),'events with Xfirst out of atm')
 
+
+    print(np.sum(~maskendatm),'events with Xfirst out of atm')
+    if np.sum(~maskendatm)>0:
+        print('ATTENTION\n \n \n \n ATTENTION, \n \n \n SOME EVENTS HAVE XLAST OUT OF ATMOSPHERE')
     #""" REMOVED TEMPORARILY. EITHER FRED G IMPLEMENTATION FIXES THIS (THE IF) OR EXTEND PROFILE WITH GH FIT 
     #Xfirstmax=2*10**4
     """ mask2=(Xfirst<=Xfirstmax) #Remove too long profiles (which produce errors in offline)
@@ -96,17 +107,37 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
     p2 = np.empty(n, dtype='f4')
     p3 = np.empty(n, dtype='f4')
     chi2 = np.zeros(n, dtype='f4')
+    chi2old = np.zeros(n, dtype='f4')
+
     Xmx = np.empty(n, dtype='f4')
     Nmx = np.empty(n, dtype='f4')
     
-    for i in range(n):   #AQUI PONER N
-        Zi=np.array(Z[i])
-        #H0=path_length_tau_atm(h/1000, beta[i])   #Donde empieza la distance array? Al inicio de la atmosfera? En el punto de decay? Desde el core??? (seguro que no)
+    for i in range(n):   #WITH XFIRST    
+            
         D0=path_length_tau_atm(h/1000, beta[i], Re=earth_radius_centerlat) 
-        D.append(path_length_tau_atm(Zi, beta[i],Re=earth_radius_centerlat)-D0)  #Build distance array from core (surface of Earth at h=1416m)
+        D.append(path_length_tau_atm(Z[i], beta[i],Re=earth_radius_centerlat)-D0)  #Build distance array from core (surface of Earth at h=1416m)
+
+        print('hey',ghparams[i])
+        ghparams[i,0]=ghparams[i,0]+Xfirst[i] 
+        ghparams[i,1]=ghparams[i,1]+Xfirst[i]
+        yfitorig=GH(X[i], *ghparams[i])
+        max_pos = np.argmax(RN[i])
+        #Calculate chi**2
+        for j in range(len(yfitorig)):
+            chi2[i] += (RN[i][j] - yfitorig[j]) ** 2 / (RN[i][j])
+
+
+        chi2[i] =chi2[i] / (len(X[i]) - 6) 
+        X0[i]=ghparams[i,0]
+        Xmax[i]=ghparams[i,1]
+        Nmax[i]=ghparams[i,2]
+        p3[i]=ghparams[i,3]
+        p2[i]=ghparams[i,4]
+        p1[i]=ghparams[i,5]
+        Xmx[i]=X[i,max_pos]
+        Nmx[i]=RN[i,max_pos]
 
         x=np.array(X[i])
-        # Shift profile in X and reduce magnitude in N to simplify the fits.
         x0=x[0]
         x=x-x0
         y=np.array(RN[i])/1e5
@@ -124,27 +155,36 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
 
         popt, __ = curve_fit(GH, x, y, p0=init, maxfev=10000)
         yfit = GH(x, *popt)
+        for j in range(len(yfit)):
+            chi2old[i] += (y[j] - yfit[j]) ** 2 / (y[j])
 
-        #Calculate chi**2
-        for j in range((yfit).size):
-            chi2[i] += (y[j] - yfit[j]) ** 2 / (y[j])
+        chi2old[i] =chi2old[i] / (len(y) - 6) #/ (np.sqrt(popt[2]*1e5)) why is this here??
 
-        chi2[i] =chi2[i] / (nX[i] - 6) / (np.sqrt(popt[2]*1e5))
 
-        g3=popt[3]
-        g2=popt[4]
-        g1=popt[5]
+        if chi2[i]>0.1:
+            print('Original params',ghparams[i])
+            print('Fit params',popt)
+            print('Chi2',chi2[i])
+            print('Chi2 old',chi2old[i])
 
-        #Undo the variable change. For p1, p2, p3 this involves shifting the parabola coefficients.
-        X0[i]=popt[0]+x0
-        Xmax[i]=popt[1]+x0
-        Nmax[i]=popt[2]*1e5
-        p3[i]=popt[3]
-        p2[i]=g2-2*g3*x0
-        p1[i]=g1-g2*x0+g3*x0**2
-        Xmx[i]=x[max_pos]+x0
-        Nmx[i]=y[max_pos]*1e5
-        chi2[i]=chi2[i]*1e5
+            plt.figure(figsize=(10, 6),dpi=250)
+            plt.plot(X[i]-Xfirst[i],RN[i],'.',markersize=2,label=f'Energy={TauEnergy[i]}')
+            plt.plot(x+x0-Xfirst[i],yfit*1e5,linewidth=3,label='GH fit',alpha=0.7,color='black')
+            plt.plot(X[i]-Xfirst[i],yfitorig,linewidth=1,label='GH fit of original params',alpha=0.7,color='red')
+
+            plt.grid()
+            print('Data Xmax, Nmax',Xmx[i],Nmx[i])
+            print('Fit Xmax, Nmax',Xmax[i],Nmax[i])
+            print('Fit X0, chi2 ',X0[i],chi2[i])
+            plt.yscale('log')
+            plt.legend()
+            plt.savefig('proftest.png')
+            print(i)
+            exit()
+
+
+    print(X0,Xmax)
+    print(X0[X0>10000],Xmax[Xmax>10000])
     Dp = ak.values_astype(D.snapshot(), np.float32)
     rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"    
     print('Generating conex-like output in '+rootfile)

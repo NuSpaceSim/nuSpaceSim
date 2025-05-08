@@ -69,14 +69,14 @@ class EAS:
         tDec = -tauLorentz * mean_Tau_life * np.log(u)  # seconds
 
         lenDec = 1e-3 * tDec * tauBeta * c.value  # km
-
+        earthrad=6371.036063815867
         altDec = np.sqrt(
-            R_earth.to(units.km).value ** 2
+            earthrad ** 2
             + lenDec**2
-            + 2.0 * R_earth.to(units.km).value * lenDec * np.sin(beta)
+            + 2.0 * earthrad * lenDec * np.sin(beta)
         )  # km
 
-        altDec -= R_earth.to(units.km).value
+        altDec -= earthrad
 
         return altDec, lenDec
 
@@ -113,7 +113,7 @@ class EAS:
         thetaCh100PeV = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
-        dphots[mask], thetaCh100PeV[mask], profilesOut = self.CphotAng(
+        dphots[mask], thetaCh100PeV[mask], profilesOut, ghparams = self.CphotAng(
             beta[mask],
             altDec[mask],
             showerEnergy[mask],
@@ -142,7 +142,7 @@ class EAS:
 
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
-        return numPEs, costhetaChEff, profilesOut
+        return numPEs, costhetaChEff, profilesOut, ghparams
 
 
 def show_plot(sim, simclass, plot):

@@ -45,7 +45,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-earth_radius = 6371.0  # in KM
+earth_radius = 6371.036063815867  # in KM
 low_earth_orbit = 525.0  # in KM
 atmosphere_end = 65.0  # in KM
 c = 2.9979246e5

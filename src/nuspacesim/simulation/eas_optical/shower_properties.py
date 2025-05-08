@@ -194,7 +194,7 @@ def particle_count_fluctuated_gaisser_hillas(
         Xmask, X0, Xmax, Nmax, gh_lam
     )
 
-    return particle_count, mask
+    return particle_count, mask, X0, Xmax, Nmax, p3, p2, p1
 
 
 def shower_age_of_greisen_particle_count(target_count, x0=2):

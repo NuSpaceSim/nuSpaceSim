@@ -30,11 +30,11 @@ gain = "1.8 dB"
 
 [simulation]
 mode = "Diffuse"
-thrown_events = 20000
+thrown_events = 150000
 max_cherenkov_angle = "3.0000000000000004 deg"
 max_azimuth_angle = "360.0 deg"
 angle_from_limb = "7.0 deg"
-eas_long_profile = "Greisen"
+eas_long_profile = "Gaisser-Hillas Fluctuated"
 cherenkov_light_engine = "nuspacesim"
 conex_output = true
 
