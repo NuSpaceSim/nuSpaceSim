@@ -51,6 +51,7 @@ from __future__ import annotations
 from typing import Any, Iterable
 
 import numpy as np
+import awkward as ak
 from astropy.table import Table as AstropyTable
 from numpy.typing import ArrayLike
 from rich.console import Console
@@ -66,7 +67,7 @@ from .simulation.eas_optical.shower_properties import path_length_tau_atm
 # from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
-from .chasm_geom import detector_coordinates_and_tr_azimuth
+from .chasm_geom import detector_coordinates_and_tr_azimuth, point_to_line_distances, angle_at_decay
 
 
 __all__ = ["compute"]
@@ -279,25 +280,90 @@ def compute(
     """
 
     detcoords, azimuth = detector_coordinates_and_tr_azimuth(
-        geom.thetas(), geom.phis(), geom.valid_costhetaNSubV(), geom.valid_aziAngVSubN(), geom.valid_elevAngVSubN(), geom.pathLens()
-
+        geom.thetas(), geom.phis()%(2*np.pi), geom.valid_costhetaNSubV(), geom.valid_aziAngVSubN()%(2*np.pi), geom.valid_elevAngVSubN(), geom.pathLens()
     )
+    altDec1km= np.full_like(altDec, 1.05)
     # if config.detector.method == "Optical" or config.detector.method == "Both":
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
-        numPEs, costhetaChEff = eas(
+        numPEs, costhetaChEff, ch_photons, ch_times, ch_costheta = eas(
             beta_tr,
-            altDec,
+            altDec1km,
             showerEnergy,
             init_lat,
             init_long,
             detcoords,
             azimuth,
             cloudf=cloud,
-            store=sw,
+            #store=sw,
             plot=to_plot,
         )
+        import matplotlib.pyplot as plt
+
+        mask = (altDec1km < 1) | (altDec1km > 1.1) | (showerEnergy*2 < 100) | (showerEnergy*2 > 200)
+        mask= ~mask
+        distance= point_to_line_distances(detcoords[mask], beta_tr[mask], azimuth[mask])/1000 #km
+        angleatdecay=angle_at_decay(detcoords[mask],altDec1km[mask], beta_tr[mask], azimuth[mask])
+        logtauenergy = np.log10(tauEnergy)+9
+        print(logtauenergy[mask])
+        print('HOLA',ch_photons, ch_times, ak.num(ch_photons,axis=1), ak.num(ch_times))
+        ch_phot_integrated=ak.sum(ch_photons, axis=1)
+        ch_theta=np.arccos(ch_costheta)
+        #print(len(ch_photons), len(ch_photons[0]), len(ch_photons[0][0]))
+        #print(len(ch_phot_integrated), len(ch_phot_integrated[0]), ak.num(ch_phot_integrated))
+        """for i in range(len(ch_photons)):
+            maskphotons=(ch_phot_integrated[i]>0.1)
+            if np.sum(maskphotons) == 0:
+                continue
+            
+            plt.figure()
+            plt.plot(np.degrees(ch_theta[i][maskphotons]),ch_phot_integrated[i][maskphotons],'.',label=f'Tau Energy={logtauenergy[mask][i]:.2f} \n Beta_tr ={np.degrees(beta_tr)[mask][i]:.2f}')
+            plt.legend()
+            plt.grid()
+            plt.xlabel('Theta (degrees)')
+            plt.xscale('log')
+            plt.yscale('log')
+            plt.ylabel('Integrated Photons at detector')
+            plt.title('Integrated Photons vs Theta')
+            plt.savefig(f'IntegratedPhotons_{i}.png')
+            print('TOTAL CHERENKOV PHOTONS AT DETECTOR: ', ak.sum(ch_phot_integrated[i]))
+            print(ch_phot_integrated[i])"""
+        totphot=ak.sum(ch_phot_integrated,axis=1)
+        data = np.column_stack((totphot, distance, np.degrees(angleatdecay)))
+        #n = data.shape[0]  # Get the number of rows
+        np.savetxt('data100000.txt', data, delimiter=',', header='totphot,distance,angleatdecay_degrees', comments='', fmt='%f')
+
+        plt.figure()
+        plt.plot(distance, totphot,'.')
+        plt.xlabel('Distance to shower axis (km)')
+        plt.ylabel('Total Cherenkov Photons at detector for that shower')
+        plt.yscale('log')
+        plt.grid()
+        plt.title('Total photons vs distance to shower axis, tau energy 100-200 EeV')
+        plt.savefig('photonsvsdistance.png')
+
+        plt.figure()
+        plt.plot(np.degrees(angleatdecay), totphot,'.')
+        plt.xlabel('Angle between shower axis and detector at decay point (degrees)')
+        plt.ylabel('Total Cherenkov Photons at detector for that shower')
+        plt.yscale('log')
+        plt.grid()
+        plt.title('Total photons vs angle to shower axis, tau energy 100-200 EeV')
+        plt.savefig('photonsvsangle.png')
+
+        plt.figure()
+        plt.plot(np.degrees(angleatdecay), totphot,'.')
+        plt.xlabel('Angle between shower axis and detector at decay point (degrees)')
+        plt.ylabel('Total Cherenkov Photons at detector for that shower')
+        plt.gca().set_ylim(bottom=50)
+        plt.xlim([0,6])
+        plt.yscale('log')
+        plt.grid()
+        plt.title('Total photons vs angle to shower axis, tau energy 100-200 EeV')
+        plt.savefig('photonsvsangle_lims.png')
+        #NEXT CHECK ANGLE BETWEEN SHOWER AXIS AND DETECTOR AT DECAY POINT OR AT XMAX
+        # Save to CSV with header
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

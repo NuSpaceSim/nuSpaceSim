@@ -98,7 +98,7 @@ class EAS:
 
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
-        mask = (altDec < 0.0) | (altDec > 20.0)
+        mask = (altDec < 1) | (altDec > 1.1) | (showerEnergy*2 < 100) | (showerEnergy*2 > 200)
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.
@@ -106,14 +106,14 @@ class EAS:
         thetaCh100PeV = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
-        dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
+        dphots[mask], thetaCh100PeV[mask], ch_photons, ch_times, ch_costheta = self.CphotAng(
             beta[mask],
             altDec[mask],
             showerEnergy[mask],
             init_lat[mask],
             init_long[mask],
-            detcoords,
-            azimuth,
+            detcoords[mask],
+            azimuth[mask],
             cloudf,
         )
 
@@ -136,7 +136,7 @@ class EAS:
 
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
-        return numPEs, costhetaChEff
+        return numPEs, costhetaChEff, ch_photons, ch_times, ch_costheta
 
 
 def show_plot(sim, simclass, plot):
