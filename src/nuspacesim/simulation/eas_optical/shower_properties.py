@@ -167,6 +167,8 @@ def particle_count_fluctuated_gaisser_hillas(
 
     # Masking Gramsum
     gramsum_mask = gramsum > (0.0 if X0 < 0.0 else X0)
+    endmask= (gramsum <= 6*Xm)
+    gramsum_mask &= endmask
     mask &= gramsum_mask
     Xmask = gramsum[gramsum_mask]
 
@@ -187,8 +189,8 @@ def particle_count_fluctuated_gaisser_hillas(
     Xmax = Xm + XmaxOff
 
     gh_lam = p1 + p2 * Xmask + p3 * Xmask * Xmask
-    gh_lam[gh_lam > 100.0] = 100.0
-    gh_lam[gh_lam < 1.0e-5] = 1.0e-5
+    #gh_lam[gh_lam > 100.0] = 100.0
+    #gh_lam[gh_lam < 1.0e-5] = 1.0e-5
 
     particle_count = gaisser_hillas_particle_count_exp_form(
         Xmask, X0, Xmax, Nmax, gh_lam

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 #from .simulation.auger_sim import geomsim as asim
 def GH(X, X0, Xmax, Nmax, p3, p2, p1):
     gh_lam =np.array(p3 * X ** 2 + p2 * X + p1)
-    #gh_lam[gh_lam > 100.0] = 100.0
+    #gh_lam[gh_lam > 100.0] = 100.0s
     #gh_lam[gh_lam < 1.0e-5] = 1.0e-5
 
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
@@ -26,9 +26,11 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
     Xlastheight=[]
     ghparams=np.array(ghparams)
     Z=ak.values_astype(profiles,np.float32)[:,1]
-    maskheight=(Z<40)
-    Z=Z[maskheight]
     RN=ak.values_astype(profiles,np.float32)[:,2]
+    nan_mask = np.isnan(RN)
+    maskheight=(Z<40)
+    maskheight = maskheight & (~nan_mask)
+    Z=Z[maskheight]
     RN=RN[maskheight]
     #Calculate Xfirst starting at sea level
     for i in range(n): #N AQUI
@@ -111,16 +113,20 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
 
     Xmx = np.empty(n, dtype='f4')
     Nmx = np.empty(n, dtype='f4')
-    
+    shiftedparams=ghparams.copy()
     for i in range(n):   #WITH XFIRST    
-            
+        #RN[i]=RN[i][~nan_mask]   #Why is this happening? Check later
+        #X[i]=X[i][~nan_mask]
+        #Z[i]=Z[i][~nan_mask]
+
         D0=path_length_tau_atm(h/1000, beta[i], Re=earth_radius_centerlat) 
         D.append(path_length_tau_atm(Z[i], beta[i],Re=earth_radius_centerlat)-D0)  #Build distance array from core (surface of Earth at h=1416m)
 
-        print('hey',ghparams[i])
-        ghparams[i,0]=ghparams[i,0]+Xfirst[i] 
-        ghparams[i,1]=ghparams[i,1]+Xfirst[i]
-        yfitorig=GH(X[i], *ghparams[i])
+        shiftedparams[i,0]=ghparams[i,0]+Xfirst[i] 
+        shiftedparams[i,1]=ghparams[i,1]+Xfirst[i]
+        shiftedparams[i,4]=ghparams[i,4]-2*ghparams[i,3]*Xfirst[i]
+        shiftedparams[i,5]=ghparams[i,5]-ghparams[i,4]*Xfirst[i]+ghparams[i,3]*Xfirst[i]**2
+        yfitorig=GH(X[i], *shiftedparams[i])
         max_pos = np.argmax(RN[i])
         #Calculate chi**2
         for j in range(len(yfitorig)):
@@ -128,15 +134,16 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
 
 
         chi2[i] =chi2[i] / (len(X[i]) - 6) 
-        X0[i]=ghparams[i,0]
-        Xmax[i]=ghparams[i,1]
-        Nmax[i]=ghparams[i,2]
-        p3[i]=ghparams[i,3]
-        p2[i]=ghparams[i,4]
-        p1[i]=ghparams[i,5]
+        X0[i]=shiftedparams[i,0]
+        Xmax[i]=shiftedparams[i,1]
+        Nmax[i]=shiftedparams[i,2]
+        p3[i]=shiftedparams[i,3]
+        p2[i]=shiftedparams[i,4]
+        p1[i]=shiftedparams[i,5]
         Xmx[i]=X[i,max_pos]
         Nmx[i]=RN[i,max_pos]
 
+        """
         x=np.array(X[i])
         x0=x[0]
         x=x-x0
@@ -158,19 +165,26 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         for j in range(len(yfit)):
             chi2old[i] += (y[j] - yfit[j]) ** 2 / (y[j])
 
-        chi2old[i] =chi2old[i] / (len(y) - 6) #/ (np.sqrt(popt[2]*1e5)) why is this here??
+        chi2old[i] =1e5*chi2old[i] / (len(y) - 6) #/ (np.sqrt(popt[2]*1e5)) why is this here??
+        """
+        nancheck = np.isnan(chi2[i])
 
-
-        if chi2[i]>0.1:
+        if chi2[i]>=1 or chi2[i]==0 or nancheck:
+            y=RN[i]
+            print('RN',y[y<0.1])
+            for j in range(len(yfitorig)):
+                print(RN[i][j],'RN')
+                print(yfitorig[j],'yfit')
+            print((len(X[i]) - 6))
             print('Original params',ghparams[i])
-            print('Fit params',popt)
+            #print('Fit params',popt)
             print('Chi2',chi2[i])
-            print('Chi2 old',chi2old[i])
-
+            #print('Chi2 old',chi2old[i])
+            print(i)
             plt.figure(figsize=(10, 6),dpi=250)
-            plt.plot(X[i]-Xfirst[i],RN[i],'.',markersize=2,label=f'Energy={TauEnergy[i]}')
-            plt.plot(x+x0-Xfirst[i],yfit*1e5,linewidth=3,label='GH fit',alpha=0.7,color='black')
-            plt.plot(X[i]-Xfirst[i],yfitorig,linewidth=1,label='GH fit of original params',alpha=0.7,color='red')
+            plt.plot(X[i],RN[i],'.',markersize=2,label=f'Energy={TauEnergy[i]}')
+            #plt.plot(x+x0,yfit*1e5,linewidth=3,label='GH fit',alpha=0.7,color='black')
+            plt.plot(X[i],yfitorig,linewidth=1,label='GH fit of original params',alpha=0.7,color='red')
 
             plt.grid()
             print('Data Xmax, Nmax',Xmx[i],Nmx[i])
@@ -182,9 +196,8 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
             print(i)
             exit()
 
-
-    print(X0,Xmax)
-    print(X0[X0>10000],Xmax[Xmax>10000])
+    mask=(chi2>1) & (chi2==np.NaN) & (chi2<=0)
+    print('chi2',chi2,chi2[mask])
     Dp = ak.values_astype(D.snapshot(), np.float32)
     rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"    
     print('Generating conex-like output in '+rootfile)
