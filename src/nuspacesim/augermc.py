@@ -527,9 +527,9 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
     return np.max(d_stack)
 
 #Take random point in hemisphere (surface). Returns points in the ground and vectors pointing up
-def gen_points(n,r,maxang=np.radians(90)):
+def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
     #33% more because we remove 1/4 bcs of FoV. 10% more to make sure we reach the intended n with maxang
-    ninit=int((1+1/3)*4*n/np.sin(maxang)) #
+    ninit=int((1+1/3)*2*n/np.sin(maxang)) #
     xr=np.random.normal(size=(ninit))
     yr=np.random.normal(size=(ninit))
     zr=np.random.normal(size=(ninit))
@@ -564,7 +564,7 @@ def gen_points(n,r,maxang=np.radians(90)):
 
     groundecef, vcoordecefground, beta, azimuth= ground_xy(coordecef,vcoordecef)
 
-    mask=(beta<=maxang)#&(beta>=np.radians(10))  #CUIDADO CON ESTO
+    mask=(beta<=maxang)&(beta>=minang)  #CUIDADO CON ESTO
     return groundecef[mask,:][0:n,:], vcoordecefground[mask,:][0:n,:],beta[mask][0:n],azimuth[mask][0:n]#coordg[mask,:][0:n,:], vcoordg[mask,:][0:n,:]
 
 def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
@@ -602,6 +602,51 @@ def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
     print('Cortan Tierra, ',beta.size)
     return groundecef,vcoord, beta, azimuth
 
+def starting_point(coord,vcoord):
+    a = 6378137.0  # semi-major axis
+    b = 6356752.314245  # semi-minor axis
+    a2 = a**2
+    b2 = b**2
+    c2=vcoord[:,0]**2/a2+vcoord[:,1]**2/a2+vcoord[:,2]**2/b2
+    c1=2*(vcoord[:,0]*coord[:,0]/a2+vcoord[:,1]*coord[:,1]/a2+vcoord[:,2]*coord[:,2]/b2)
+    c0=coord[:,0]**2/a2+coord[:,1]**2/a2+coord[:,2]**2/b2-1
+    D=c1**2-4*c2*c0
+
+
+    #always take bigger t because traj is upward -> starting point is lower and moves in correct direction
+    # Initialize output array
+    startingecef = np.zeros_like(coord)
+    t = np.zeros(coord.shape[0])
+
+    # Mask for cases with valid sea-level intersection (D >= 0)
+    mask = D >= 0
+    if np.any(mask):
+        # For sea-level intersection, use larger t (upward trajectory)
+        t[mask] = (-c1[mask] + np.sqrt(c1[mask]**2 - 4 * c2[mask] * c0[mask])) / (2 * c2[mask])
+        startingecef[mask] = coord[mask] + t[mask, np.newaxis] * vcoord[mask]
+
+    # Handle cases with no sea-level intersection (D < 0)
+    if np.any(~mask):
+        # Adjust axes for 100 km height
+        h=100000
+        a_alt = a + h  # 100 km in meters
+        b_alt = b + h
+        a2_alt = a_alt**2
+        b2_alt = b_alt**2
+
+        # Recalculate coefficients at 100 km altitude
+        c2_alt = vcoord[~mask, 0]**2 / a2_alt + vcoord[~mask, 1]**2 / a2_alt + vcoord[~mask, 2]**2 / b2_alt
+        c1_alt = 2 * (vcoord[~mask, 0] * coord[~mask, 0] / a2_alt + 
+                      vcoord[~mask, 1] * coord[~mask, 1] / a2_alt + 
+                      vcoord[~mask, 2] * coord[~mask, 2] / b2_alt)
+        c0_alt = coord[~mask, 0]**2 / a2_alt + coord[~mask, 1]**2 / a2_alt + coord[~mask, 2]**2 / b2_alt - 1
+
+        # Ensure valid intersection at 100 km
+        # Use smaller t for first intersection point
+        t_alt = (-c1_alt - np.sqrt(c1_alt**2 - 4 * c2_alt * c0_alt)) / (2 * c2_alt)
+        startingecef[~mask] = coord[~mask] + t_alt[:, np.newaxis] * vcoord[~mask]
+
+    return startingecef
 def gen_eye_vectors(telphi, teltheta):  #Vector that points to the center of FoV of the telescope (~15deg elevation, center of azimuth)
     LLvector=[np.cos(teltheta[0])*np.cos(telphi[0]),np.cos(teltheta[0])*np.sin(telphi[0]),np.sin(teltheta[0])]
     LMvector=[np.cos(teltheta[2])*np.cos(telphi[2]),np.cos(teltheta[2])*np.sin(telphi[2]),np.sin(teltheta[2])]
@@ -866,6 +911,181 @@ def slant_depth(
 
     return scipy.integrate.quad(f, 0.0, 1.0, epsabs=epsabs, epsrel=epsrel)
     #return scipy.integrate.nquad(f, [0.0, 1.0], **kwargs)
+def calculate_vertical_grammage(z, poly=_poly_auger, A=0.00119549796648045665581, k=0.139940733649007831296):
+    """
+    Calculate grammage X(z) analytically from density_fit, vectorized.
+    
+    Parameters:
+    z (float or np.ndarray): Height(s) in km.
+    poly (Polynomial): Polynomial fit for z <= 30 km.
+    A, k (float): Exponential parameters for 30 < z <= 100 km.
+    
+
+    Returns:
+    np.ndarray: Grammage X(z) in g/cm^2, with X(z) = 0 for z > 100 km.
+    """
+    z = np.asarray(z)
+    X = np.full_like(z,np.reciprocal(1e5))
+    
+    # Polynomial antiderivative
+    poly_int = poly.integ()
+    
+    # Masks for regions
+    mask1 = z <= 30
+    mask2 = (z > 30) & (z <= 100)
+    # z > 100: X = 0 (default in X initialization)
+    
+    # For z <= 30: ∫_z^30 poly(z') dz' + ∫_30^100 A e^(-k z') dz'
+    if np.any(mask1):
+        X[mask1] = (poly_int(30) - poly_int(z[mask1])) + (A / k) * (np.exp(-k * 30) - np.exp(-k * 100))
+    
+    # For 30 < z <= 100: ∫_z^100 A e^(-k z') dz'
+    if np.any(mask2):
+        X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * 100))#+7e-7
+    return X*1e5 # Convert to g/cm^2
+def integrated_grammage_old(p_start, p_stop, delta):
+    """
+    Calculate integrated grammage along a path from p_start to p_stop.
+    
+    Parameters:
+    p_start, p_stop: 3D points in ECEF coordinates
+    delta: step size in km
+    
+    Returns:
+    float: Integrated grammage in g/cm^2
+    """
+    # Assuming p_start and p_stop are numpy arrays with shape (3,)
+    dir_vec = p_stop - p_start
+    length = np.linalg.norm(dir_vec)
+    dir_vec = dir_vec / length  # Normalize
+
+    depth = 0.0
+    distance = 0.0
+
+    # Reference ellipsoid (WGS84)
+    while distance < length:
+        delta_now = min(length - distance, delta)
+        p1 = p_start + distance * dir_vec
+        distance += delta_now
+        p2 = p_start + distance * dir_vec
+
+        # Convert points to geodetic coordinates (height in km)
+        try:
+            _,_, height_p1=ecef_to_latlong(p1)
+            _,_, height_p2=ecef_to_latlong(p2)
+
+        except Exception:
+            continue
+
+        # Check if heights are within valid atmospheric range
+        if height_p1/1000 <= 0 or height_p1/1000 >= 100 or height_p2/1000 <= 0 or height_p2/1000 >= 100:
+            continue
+        b2=(6356752.314245)**2
+        a2 = (6378137.0)**2
+        #emergence angle calculation
+        normal=np.column_stack((p1[:,0]/a2,p1[:,1]/a2,p1[:,2]/b2))
+        normal=normal/np.linalg.norm(normal, axis=1, keepdims=True)
+
+        costheta_local= np.sum(dir_vec*normal,axis=1)
+
+        #costheta_local=dotprod
+
+        # Calculate grammage at points
+        depth_p1 = calculate_vertical_grammage(height_p1/1000)
+        depth_p2 = calculate_vertical_grammage(height_p2/1000)
+
+        # Integrate grammage along path segment
+        depth += (depth_p1 - depth_p2) / costheta_local
+
+    return depth
+
+def integrated_grammage(p_start, p_stop, delta_m):
+    """
+    Calculate integrated grammage along paths from p_start to p_stop for multiple points.
+    
+    Parameters:
+    p_start, p_stop: 3D points in ECEF coordinates, NumPy arrays of shape (N,3), in meters
+    delta: Step size in km (scalar)
+    
+    Returns:
+    np.ndarray: Integrated grammage for each path in g/cm^2, shape (N,)
+    """
+    b2=(6356752.314245)**2
+    a2 = (6378137.0)**2
+    # Ensure inputs are NumPy arrays with shape (N,3)
+    p_start = np.asarray(p_start)
+    p_stop = np.asarray(p_stop)
+    
+    if p_start.ndim != 2 or p_stop.ndim != 2 or p_start.shape[1] != 3 or p_stop.shape[1] != 3:
+        raise ValueError("p_start and p_stop must have shape (N,3)")
+    if p_start.shape[0] != p_stop.shape[0]:
+        raise ValueError("p_start and p_stop must have the same number of points")
+    
+    N = p_start.shape[0]
+    # Calculate direction vectors and lengths
+    dir_vec = p_stop - p_start  # Shape (N,3)
+    lengths = np.linalg.norm(dir_vec, axis=1)  # Shape (N,)
+    nonzero = lengths > 1e-10
+    dir_vec = np.where(nonzero[:, None], dir_vec / lengths[:, None], 0)  # Normalize, shape (N,3)
+    
+    # Initialize output array for grammage
+    depths = np.zeros(N)
+    # Track remaining distance for each path
+    distances = np.zeros(N)
+    active = nonzero  # Paths still being processed
+    i=0
+    while np.any(active):
+        i+=1
+        # Compute step size for each path
+        delta_now = np.minimum(lengths - distances, delta_m)  # Shape (N,)
+        delta_now[~active] = 0  # Inactive paths take no step
+        
+        # Compute current segment points
+        p1 = p_start + distances[:, None] * dir_vec  # Shape (N,3)
+        distances += delta_now  # Update distances
+        p2 = p_start + distances[:, None] * dir_vec  # Shape (N,3)
+        
+        # Update active paths (those not yet at their full length)
+        active = distances < lengths
+        #print(i,active[-1],len(active),active.sum(),'active')
+        # Convert points to geodetic coordinates
+        _, _, height_p1 = ecef_to_latlong(p1)  # Shape (N,)
+        _, _, height_p2 = ecef_to_latlong(p2)  # Shape (N,)
+        height_p1 = height_p1 / 1000  # Convert to km
+        height_p2 = height_p2 / 1000  # Convert to km
+
+        
+        # Check valid atmospheric range
+        valid = (height_p1 > 0) & (height_p1 < 100) & (height_p2 > 0) & (height_p2 < 100)  # Shape (N,)
+        
+        # Compute normal vectors at p1 using provided ellipsoid formula
+        normal = np.stack([
+            p1[:, 0] / a2,  # x/a²
+            p1[:, 1] / a2,  # y/a²
+            p1[:, 2] / b2   # z/b²
+        ], axis=-1)  # Shape (N,3)
+        normal = normal / np.linalg.norm(normal, axis=-1, keepdims=True)  # Normalize, shape (N,3)
+        
+        # Compute cosine of local zenith angle
+        cos_local_theta = np.sum(dir_vec * normal, axis=-1)  # Shape (N,)
+        #cos_local_theta = np.clip(cos_local_theta, -1.0, 1.0)
+        #valid &= np.abs(cos_local_theta) > 1e-6  # Avoid division by near-zero
+        
+        # Calculate grammage
+        depth_p1 =calculate_vertical_grammage(height_p1)  # Shape (N,)
+        depth_p2 = calculate_vertical_grammage(height_p2)  # Shape (N,)
+
+        # Compute grammage contribution for this segment
+        contribution = (depth_p1 - depth_p2) / cos_local_theta  # Shape (N,)
+        contribution = np.where(valid, contribution, 0)  # Mask invalid segments
+        # Accumulate contributions
+        depths += contribution
+        #print(depths)
+
+    # Ensure zero-length paths return zero
+    depths[~nonzero] = 0
+    
+    return depths
 
 def path_length_tau_atm(z, beta_tr, Re=earth_radius_centerlat, xp=np):  #in m
     """

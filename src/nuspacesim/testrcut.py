@@ -1,4 +1,8 @@
 import numpy as np
+from .simulation.eas_optical.shower_properties import slant_depth_trig_approx
+import matplotlib.pyplot as plt
+from .augermc import *
+from scipy.optimize import brentq
 
 def min_distances_to_lines(xcorecentered, ycorecentered, zcorecentered, xaxis, yaxis, zaxis, LL):
     """
@@ -63,4 +67,37 @@ def test_rcut(xground,yground,zground,xangle,yangle,zangle,LL,lgE):
     print('Analysis min dist and rcut ',np.size(weird),np.sum(weird),np.sum(~weird))
     print(min_dist[weird],rcut[weird])
     return weird
-    
+
+def find_trajectory_points_to_height(groundecef, vcoord, zend, s_max=1e7):
+    """
+    For each vcoord, find the ECEF point along the ray starting at groundecef
+    that reaches height zend.
+
+    Returns:
+        coords_out: (N, 3) ECEF coordinates at height zend
+        path_lengths: (N,) distance along each ray
+    """
+    s_min=zend
+    N = vcoord.shape[0]
+    coords_out = np.zeros((N, 3))
+    path_lengths = np.zeros(N)
+
+    for i in range(N):
+        def height_diff(s):
+            coord = groundecef + s * vcoord[i]
+            _, _, h = ecef_to_latlong(coord)
+            return h - zend
+        
+        try:
+            # Find s where h = zend
+            s_root = brentq(height_diff, s_min, s_max)
+            coords_out[i] = groundecef + s_root * vcoord[i]
+            path_lengths[i] = s_root
+        except ValueError:
+            # No root found in [s_min, s_max]
+            coords_out[i] = np.nan
+            path_lengths[i] = np.nan
+
+    return coords_out, path_lengths
+
+

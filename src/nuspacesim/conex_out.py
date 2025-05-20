@@ -16,40 +16,45 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
         (Xmax - X) / gh_lam)
 
-def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb,h, ghparams):
+def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract):
 
-    
+    X = X_builder.snapshot()
+    RN = RN_builder.snapshot()
     n=np.size(Zfirst)
-    D = ak.ArrayBuilder()
-    Xfirst=[]
-    endatm=[]
-    Xlastheight=[]
+    #D = ak.ArrayBuilder()
+    #Xfirst=[]
     ghparams=np.array(ghparams)
-    Z=ak.values_astype(profiles,np.float32)[:,1]
-    RN=ak.values_astype(profiles,np.float32)[:,2]
+    #Z=ak.values_astype(profiles,np.float32)[:,1]
+    #RN=ak.values_astype(profiles,np.float32)[:,2]
     nan_mask = np.isnan(RN)
-    maskheight=(Z<40)
-    maskheight = maskheight & (~nan_mask)
-    Z=Z[maskheight]
-    RN=RN[maskheight]
+    if np.sum(nan_mask)>0:
+        print('ERROR, NaN in RN')
+        exit()
+    #maskheight=(Z<65)
+    #nZ = ak.to_numpy(ak.num(Z, axis=1))
+
+    #maskheight = maskheight & (~nan_mask)
+    #Z=Z[maskheight]
+    #nZmask = ak.to_numpy(ak.num(Z, axis=1))
+
+    #RN=RN[maskheight]
     #Calculate Xfirst starting at sea level
-    for i in range(n): #N AQUI
-        Xfirst=np.append(Xfirst,slant_depth(0,Zfirst[i],beta[i],earth_radius_centerlat/1000)[0])
-        endatm=np.append(endatm,slant_depth(0,100, beta[i],earth_radius_centerlat/1000)[0])
-        #Xlastheight=np.append(Xlastheight,slant_depth(0,Zlast[i], beta[i],earth_radius_centerlat/1000)[0])
-    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32) #    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32)
-    X=X[maskheight]
+
+    #Xfirst=XfirstOffline+Xnuclearcollision
+
+    #X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32) #    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32)
     nX = ak.to_numpy(ak.num(X, axis=1))
-    Xlast=X[:,-1]
-    maskendatm=(Xlast<endatm)
+    print('nX ', nX)
+    #X=X[maskheight]
+
+    #maskendatm=(Xlast<endatm*10)
 
 
 
 
-
-    print(np.sum(~maskendatm),'events with Xfirst out of atm')
-    if np.sum(~maskendatm)>0:
-        print('ATTENTION\n \n \n \n ATTENTION, \n \n \n SOME EVENTS HAVE XLAST OUT OF ATMOSPHERE')
+    #print(np.sum(~maskendatm),'events with Xfirst out of atm')
+    #if np.sum(~maskendatm)>0:
+    #    print('ATTENTION\n \n \n \n ATTENTION, \n \n \n SOME EVENTS HAVE XLAST OUT OF ATMOSPHERE')
     #""" REMOVED TEMPORARILY. EITHER FRED G IMPLEMENTATION FIXES THIS (THE IF) OR EXTEND PROFILE WITH GH FIT 
     #Xfirstmax=2*10**4
     """ mask2=(Xfirst<=Xfirstmax) #Remove too long profiles (which produce errors in offline)
@@ -57,7 +62,7 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
     print(Xfirst[~mask2],Zfirst[~mask2])
     for i in range(n):
         if RN[i][-1]>np.max(RN[i])*0.5:
-            mask2[i]=False """
+            mask2[i]=False 
     mask2=maskendatm
     #nmasked=np.sum(~mask2)
     beta = beta[mask2]  
@@ -69,17 +74,17 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
     gpsarray = gpsarray[mask2]
     azim = azim[mask2]
     id=id[mask2]
-    groundecef = groundecef[mask2,:]
+    groundecef = groundecef[mask2,:]"""
 
     n=np.size(Zfirst)
 
     zenith = 90 + np.degrees(beta)
     dEdXratio=0.0025935  #0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
 
-    X= X[mask2]
-    Z = Z[mask2]
+    #X= X[mask2]
+    #Z = Z[mask2]
     #Z = Z - Z[:, 0, None]   #Shift profile to start at 0 THIS SHOULD BE UNCOMMENTED
-    RN = RN[mask2]
+    #RN = RN[mask2]
     # Useful variables to fill the conex File
     PID = np.array([100], dtype='i4')  # Proton type for Conex
     zmin = np.array([90], dtype='i4')
@@ -114,18 +119,21 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
     Xmx = np.empty(n, dtype='f4')
     Nmx = np.empty(n, dtype='f4')
     shiftedparams=ghparams.copy()
+    plt.figure(figsize=(14, 10), dpi=200)
+
+
     for i in range(n):   #WITH XFIRST    
         #RN[i]=RN[i][~nan_mask]   #Why is this happening? Check later
         #X[i]=X[i][~nan_mask]
         #Z[i]=Z[i][~nan_mask]
+        y=np.array(RN[i])
+        #D0=path_length_tau_atm(h/1000, beta[i], Re=earth_radius_centerlat) 
+        #D.append(path_length_tau_atm(Z[i], beta[i],Re=earth_radius_centerlat)-D0)  #Build distance array from core (surface of Earth at h=1416m)
 
-        D0=path_length_tau_atm(h/1000, beta[i], Re=earth_radius_centerlat) 
-        D.append(path_length_tau_atm(Z[i], beta[i],Re=earth_radius_centerlat)-D0)  #Build distance array from core (surface of Earth at h=1416m)
-
-        shiftedparams[i,0]=ghparams[i,0]+Xfirst[i] 
-        shiftedparams[i,1]=ghparams[i,1]+Xfirst[i]
-        shiftedparams[i,4]=ghparams[i,4]-2*ghparams[i,3]*Xfirst[i]
-        shiftedparams[i,5]=ghparams[i,5]-ghparams[i,4]*Xfirst[i]+ghparams[i,3]*Xfirst[i]**2
+        shiftedparams[i,0]=ghparams[i,0]+Xfirstinteract[i] 
+        shiftedparams[i,1]=ghparams[i,1]+Xfirstinteract[i]
+        shiftedparams[i,4]=ghparams[i,4]-2*ghparams[i,3]*Xfirstinteract[i]
+        shiftedparams[i,5]=ghparams[i,5]-ghparams[i,4]*Xfirstinteract[i]+ghparams[i,3]*Xfirstinteract[i]**2
         yfitorig=GH(X[i], *shiftedparams[i])
         max_pos = np.argmax(RN[i])
         #Calculate chi**2
@@ -143,7 +151,29 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         Xmx[i]=X[i,max_pos]
         Nmx[i]=RN[i,max_pos]
 
-        """
+        if (chi2[i]>1) | (chi2[i]==np.NaN) | (chi2[i]<=0):
+            print(ghparams[i,1],shiftedparams[i,1])
+            print((len(X[i]) - 6))
+            #print('Fit params',popt)
+            print('Chi2',chi2[i])
+            print(i)
+            plt.figure(figsize=(10, 6),dpi=250)
+            plt.plot(X[i],RN[i],'.',markersize=4,label=f'Energy={TauEnergy[i]}')
+            plt.plot(X[i],yfitorig,linewidth=1,label='GH of original params',alpha=0.7,color='red')
+            plt.title('Example profile, GH fit, and GH function from original parameters')
+            plt.xlabel('Slant depth (g/cm2)')
+            plt.ylabel('Charged particles')
+            plt.grid()
+            print('Data Xmax, Nmax',Xmx[i],Nmx[i])
+            print('Fit Xmax, Nmax',Xmax[i],Nmax[i])
+            print('Fit X0, chi2 ',X0[i],chi2[i])
+            plt.yscale('log')
+            plt.legend()
+            plt.savefig('proftest.png')
+            print('Error in one of the fits. Exiting')
+            exit()
+
+        '''
         x=np.array(X[i])
         x0=x[0]
         x=x-x0
@@ -166,26 +196,26 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
             chi2old[i] += (y[j] - yfit[j]) ** 2 / (y[j])
 
         chi2old[i] =1e5*chi2old[i] / (len(y) - 6) #/ (np.sqrt(popt[2]*1e5)) why is this here??
-        """
-        nancheck = np.isnan(chi2[i])
+        '''
+        plt.plot(X[i],RN[i],linewidth=0.2)
 
-        if chi2[i]>=1 or chi2[i]==0 or nancheck:
+        if i==-1:#chi2[i]>=1 or chi2[i]==0 or nancheck:
             y=RN[i]
             print('RN',y[y<0.1])
-            for j in range(len(yfitorig)):
-                print(RN[i][j],'RN')
-                print(yfitorig[j],'yfit')
+
             print((len(X[i]) - 6))
             print('Original params',ghparams[i])
             #print('Fit params',popt)
             print('Chi2',chi2[i])
-            #print('Chi2 old',chi2old[i])
+            print('Chi2 old',chi2old[i])
             print(i)
             plt.figure(figsize=(10, 6),dpi=250)
-            plt.plot(X[i],RN[i],'.',markersize=2,label=f'Energy={TauEnergy[i]}')
-            #plt.plot(x+x0,yfit*1e5,linewidth=3,label='GH fit',alpha=0.7,color='black')
-            plt.plot(X[i],yfitorig,linewidth=1,label='GH fit of original params',alpha=0.7,color='red')
-
+            plt.plot(X[i],RN[i],'.',markersize=4,label=f'Energy={TauEnergy[i]}')
+            plt.plot(x+x0,yfit*1e5,linewidth=2,label='GH fit',alpha=0.7,color='green')
+            plt.plot(X[i],yfitorig,linewidth=1,label='GH of original params',alpha=0.7,color='red')
+            plt.title('Example profile, GH fit, and GH function from original parameters')
+            plt.xlabel('Slant depth (g/cm2)')
+            plt.ylabel('Charged particles')
             plt.grid()
             print('Data Xmax, Nmax',Xmx[i],Nmx[i])
             print('Fit Xmax, Nmax',Xmax[i],Nmax[i])
@@ -194,18 +224,19 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
             plt.legend()
             plt.savefig('proftest.png')
             print(i)
-            exit()
+    plt.grid()
+    plt.yscale('log')
 
+    plt.savefig('profilesvsslant.png')
     mask=(chi2>1) & (chi2==np.NaN) & (chi2<=0)
-    print('chi2',chi2,chi2[mask])
-    Dp = ak.values_astype(D.snapshot(), np.float32)
+    print('bad chi2 ',chi2[mask])
+    #Dp = ak.values_astype(D.snapshot(), np.float32)
     rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"    
     print('Generating conex-like output in '+rootfile)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)
-
     zoneletter = np.array([ord(letter) for letter in zoneletter], dtype=np.uint8)
-
+    Zempty=ak.full_like(X,0)
 
 
     branches_header = {
@@ -330,7 +361,7 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         , "telescopeid": id
         , "Seed2": intn
         , "Seed3": intn
-        , "Xfirst": Xfirst
+        , "Xfirst": Xfirstinteract
         , "Hfirst": Zfirst * 1000
         , "XfirstIn": ak.ones_like(nan4n) * 0.5
         , "altitude": nan8n
@@ -348,8 +379,8 @@ def conex_out(profiles,id,groundecef,vecef,beta,TauEnergy,Zfirst,azim,gpsarray,N
         , "cpuTime": nan4n
         , "X": X
         , "N": RN
-        , "H": Z * 1000  # in meters
-        , "D": Dp * 1000
+        , "H": Zempty * 1000  # in meters
+        , "D": Zempty * 1000
         , "dEdX": RN * dEdXratio
         , "Mu": Xempty  # Xempty
         , "Gamma": Xempty  # Xempty

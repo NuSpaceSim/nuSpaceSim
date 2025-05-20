@@ -241,7 +241,7 @@ class CphotAng:
         # np.append(self.dfaOD55, 0)
 
         self.alpha = np.reciprocal(self.dtype(137.04))
-        self.pi = self.dtype(3.1415926)
+        self.pi = self.dtype(3.1415926536)
 
         self.PYieldCoeff = (
             self.dtype(2e12)
@@ -250,10 +250,10 @@ class CphotAng:
             * self.alpha
             * (np.reciprocal(self.wave1)[:-1] - np.reciprocal(self.wave1)[1:])
         )
-
-        self.zmax = self.orbit_height
-        self.zMaxZ = self.dtype(65.0)
-        self.RadE = self.dtype(6378.14)
+        h=1.416
+        self.zmax = self.orbit_height - h
+        self.zMaxZ = self.dtype(65.0 - h) #put with respect to Earth radius
+        self.RadE = self.dtype(6371.036063815867 + h) # this is the radius at malargue altitude#old value self.dtype(6378.14)
 
         # Longitudinal Profile Funciton selection
         if longitudinal_profile_func == "Greisen":
@@ -331,22 +331,23 @@ class CphotAng:
         """
         z = np.asarray(z, dtype=self.dtype)
         X = np.full_like(z,np.reciprocal(1e5), dtype=self.dtype)
-        
+        #h=1.416
+        zend=100
         # Polynomial antiderivative
         poly_int = poly.integ()
         
         # Masks for regions
         mask1 = z <= 30
-        mask2 = (z > 30) & (z <= 100)
+        mask2 = (z > 30) & (z <= zend)
         # z > 100: X = 0 (default in X initialization)
         
         # For z <= 30: ∫_z^30 poly(z') dz' + ∫_30^100 A e^(-k z') dz'
         if np.any(mask1):
-            X[mask1] = (poly_int(30) - poly_int(z[mask1])) + (A / k) * (np.exp(-k * 30) - np.exp(-k * 100))
+            X[mask1] = (poly_int(30) - poly_int(z[mask1])) + (A / k) * (np.exp(-k * 30) - np.exp(-k * zend))
         
         # For 30 < z <= 100: ∫_z^100 A e^(-k z') dz'
         if np.any(mask2):
-            X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * 100))#+7e-7
+            X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * zend))#+7e-7
         return X*1e5 # Convert to g/cm^2
     
     def grammage(self, z):
@@ -444,11 +445,14 @@ class CphotAng:
 
     def slant_depth(self, alt, sinThetView):
         """Determine Rayleigh and Ozone slant depth."""
-
-        zsave, delzs = self.zsteps(alt, sinThetView)
-
+        h=1.416 #Since earth radius was changed to 1416m above sea level, 
+                #must setback decay height by 1416 m to calculate z profile, 
+                # then add it back for the atmosphere
+        zsave, delzs = self.zsteps(alt-h, sinThetView) 
+        zsave=zsave+h
         gramzold,rhosold=self.grammage_old(zsave)
         gramz, rhos = self.grammage(zsave)
+
 
         delgram_vals = rhos * self.dL * self.dtype(1e5)
         gramsum = np.cumsum(delgram_vals)
@@ -704,9 +708,9 @@ class CphotAng:
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
-        betaE = self.dtype(
-            np.radians(self.dtype(1)) if betaE < np.radians(1.0) else betaE
-        )
+        #betaE = self.dtype(
+        #    np.radians(self.dtype(1)) if betaE < np.radians(1.0) else betaE
+        #)
 
         Eshow = self.dtype(Eshow100PeV * 1e8)  # GeV
 
