@@ -226,70 +226,16 @@ def compute(
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    """
-    #CHASM STUFF
-    #Need to figure out how to send azimuth, detcoords to cphotang function
-    #Need to check that coord system of detcoords is the same as azimTrSubN (should be correct)
-    zenith=np.pi/2-beta_tr
-
-    from scipy.spatial.transform import Rotation as R
-
-    #azimuth=
-
-
-    thetaTrSubV=geom.thetas()
-    phiTrSubV=geom.phis()
-    costhetaNSubV=geom.valid_costhetaNSubV()
-    det_azi=geom.valid_aziAngVSubN()
-    det_elev=geom.valid_elevAngVSubN()
-    thetaNSubV=np.arccos(costhetaNSubV)
-    Pvecx=np.sin(thetaTrSubV)*np.cos(phiTrSubV)
-    Pvecy=np.sin(thetaTrSubV)*np.sin(phiTrSubV)
-    Pvecz=np.cos(thetaTrSubV)
-
-    P=np.vstack((Pvecx,Pvecy,Pvecz)).T
-    n_up_rot_axis = np.array([0, 1, 0])
-    rot_vectors = n_up_rot_axis * thetaNSubV[:, np.newaxis]  # Shape (N, 3)
-    theta_rotation = R.from_rotvec(rot_vectors)
-
-    z_rot_axis = np.array([0, 0, 1])  # z-axis
-    z_rot_vectors = z_rot_axis * (det_azi)[:, np.newaxis]  # Shape (N, 3)
-    z_rotation = R.from_rotvec(z_rot_vectors)
-
-    Pn = theta_rotation.apply(P)
-    tr_n=z_rotation.apply(Pn)
-    azimuth=np.arctan2(tr_n[:,1],tr_n[:,0])
-
-
-    path_len=geom.pathLens()
-    #path_len2=path_length_tau_atm(altitude,geom.valid_elevAngVSubN()) This is the same as path_len
-    x = path_len * np.cos(det_elev) * np.cos(det_azi)  # East
-    y = path_len * np.cos(det_elev) * np.sin(det_azi)  # North
-    z = path_len * np.sin(det_elev)                    # Up
-    detcoords=np.vstack((x,y,z)).T
-    print(path_len,np.degrees(beta_tr))
-    #print('Zen, zenith, beta,detazi,detzen',np.degrees(zen),np.degrees(zenith),np.degrees(beta_tr),np.degrees(det_azi),np.degrees(det_zen))
-    #print(det_coord)
-    for i in range(0, len(beta_tr)):
-        sim = ch.ShowerSimulation()
-        sim.add(ch.UpwardAxis(zenith[i], azimuth[i], curved=True))
-        sim.add(ch.UserShower(np.array(X[i]), np.array(N[i])))
-        sim.add(ch.SphericalCounters(detcoords, np.sqrt(1/np.pi)))
-        sim.add(ch.Yield(270, 1000, N_bins=100))
-        r_coordinates, total_propagation_times, photon_arrival_phZenith, photons_on_plane, wlbins, wlhist, dist_counter = run_chasm(sim, orig)
-    """
-
     detcoords, azimuth = detector_coordinates_and_tr_azimuth(
         geom.thetas(), geom.phis()%(2*np.pi), geom.valid_costhetaNSubV(), geom.valid_aziAngVSubN()%(2*np.pi), geom.valid_elevAngVSubN(), geom.pathLens()
     )
-    altDec1km= np.full_like(altDec, 1.05)
     # if config.detector.method == "Optical" or config.detector.method == "Both":
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff, ch_photons, ch_times, ch_costheta = eas(
             beta_tr,
-            altDec1km,
+            altDec,
             showerEnergy,
             init_lat,
             init_long,
@@ -299,17 +245,20 @@ def compute(
             #store=sw,
             plot=to_plot,
         )
-        import matplotlib.pyplot as plt
 
-        mask = (altDec1km < 1) | (altDec1km > 1.1) | (showerEnergy*2 < 100) | (showerEnergy*2 > 200)
-        mask= ~mask
-        distance= point_to_line_distances(detcoords[mask], beta_tr[mask], azimuth[mask])/1000 #km
-        angleatdecay=angle_at_decay(detcoords[mask],altDec1km[mask], beta_tr[mask], azimuth[mask])
-        logtauenergy = np.log10(tauEnergy)+9
-        print(logtauenergy[mask])
-        print('HOLA',ch_photons, ch_times, ak.num(ch_photons,axis=1), ak.num(ch_times))
-        ch_phot_integrated=ak.sum(ch_photons, axis=1)
-        ch_theta=np.arccos(ch_costheta)
+        ch_phot_integrated=ak.sum(ch_photons, axis=1)  #sum across all wavelengths
+        ch_theta=np.arccos(ch_costheta)            #angle between the z-axis (zenith of spot on ground) and the vector from the axis to the detector
+        totphot=ak.sum(ch_phot_integrated,axis=1)  #total photons arriving at detector for each event (sum across shower axis)
+
+        #Some plots for checks
+        
+        #mask = (altDec1km < 1) | (altDec1km > 1.1) | (showerEnergy*2 < 100) | (showerEnergy*2 > 200)
+        #mask= ~mask
+        #logtauenergy = np.log10(tauEnergy)+9
+        #distance= point_to_line_distances(detcoords[mask], beta_tr[mask], azimuth[mask])/1000 #km
+        #angleatdecay=angle_at_decay(detcoords[mask],altDec1km[mask], beta_tr[mask], azimuth[mask])
+        #data = np.column_stack((totphot, distance, np.degrees(angleatdecay)))
+        #np.savetxt('cherenkov_data.txt', data, delimiter=',', header='totphot,distance,angleatdecay_degrees', comments='', fmt='%f')        
         #print(len(ch_photons), len(ch_photons[0]), len(ch_photons[0][0]))
         #print(len(ch_phot_integrated), len(ch_phot_integrated[0]), ak.num(ch_phot_integrated))
         """for i in range(len(ch_photons)):
@@ -329,11 +278,8 @@ def compute(
             plt.savefig(f'IntegratedPhotons_{i}.png')
             print('TOTAL CHERENKOV PHOTONS AT DETECTOR: ', ak.sum(ch_phot_integrated[i]))
             print(ch_phot_integrated[i])"""
-        totphot=ak.sum(ch_phot_integrated,axis=1)
-        data = np.column_stack((totphot, distance, np.degrees(angleatdecay)))
-        #n = data.shape[0]  # Get the number of rows
-        np.savetxt('data100000.txt', data, delimiter=',', header='totphot,distance,angleatdecay_degrees', comments='', fmt='%f')
 
+        '''
         plt.figure()
         plt.plot(distance, totphot,'.')
         plt.xlabel('Distance to shower axis (km)')
@@ -361,9 +307,8 @@ def compute(
         plt.yscale('log')
         plt.grid()
         plt.title('Total photons vs angle to shower axis, tau energy 100-200 EeV')
-        plt.savefig('photonsvsangle_lims.png')
-        #NEXT CHECK ANGLE BETWEEN SHOWER AXIS AND DETECTOR AT DECAY POINT OR AT XMAX
-        # Save to CSV with header
+        plt.savefig('photonsvsangle_lims.png') '''
+
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

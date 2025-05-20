@@ -604,10 +604,10 @@ class CphotAng:
         sim.add(ch.SphericalCounters(detcoord[np.newaxis, :], np.sqrt(1/np.pi)))
         sim.add(ch.Yield(270, 1000, N_bins=100))
         sig = sim.run(mesh=False, att=True)
-        ch_photons=np.array(sig.photons.sum(axis=0))
+        ch_photons=np.array(sig.photons.sum(axis=0))  #
         ch_times = np.array(sig.times.sum(axis=0))
         ch_costheta=np.array(sig.cos_theta.sum(axis=0).sum(axis=0))  #cosine of the angle between the z-axis (zenith of spot on ground) and the vector from the axis to the detector
-        
+
         return np.array(ch_photons), np.array(ch_times), np.array(ch_costheta)
     
     def run(self, betaE, alt, Eshow100PeV, lat, long, detcoords, azimuth, cloudf=None):

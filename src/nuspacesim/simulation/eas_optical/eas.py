@@ -98,7 +98,7 @@ class EAS:
 
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
         # Default values for dphots and thetaCh
-        mask = (altDec < 1) | (altDec > 1.1) | (showerEnergy*2 < 100) | (showerEnergy*2 > 200)
+        mask = (altDec < 0) | (altDec > 20)  # | (showerEnergy*2 < 100) | (showerEnergy*2 > 200)
         mask = ~mask
 
         # phots and theta arrays with default 0 and 1.5 values.
