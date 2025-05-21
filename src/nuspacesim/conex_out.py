@@ -44,7 +44,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
 
     #X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32) #    X=ak.values_astype(ak.Array(profiles)[:,0]+Xfirst,np.float32)
     nX = ak.to_numpy(ak.num(X, axis=1))
-    print('nX ', nX)
+    #print('nX ', nX)
     #X=X[maskheight]
 
     #maskendatm=(Xlast<endatm*10)
@@ -171,7 +171,6 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
             plt.legend()
             plt.savefig('proftest.png')
             print('Error in one of the fits. Exiting')
-            exit()
 
         '''
         x=np.array(X[i])
@@ -197,7 +196,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
 
         chi2old[i] =1e5*chi2old[i] / (len(y) - 6) #/ (np.sqrt(popt[2]*1e5)) why is this here??
         '''
-        plt.plot(X[i],RN[i],linewidth=0.2)
+        #plt.plot(X[i],RN[i],linewidth=0.2)
 
         if i==-1:#chi2[i]>=1 or chi2[i]==0 or nancheck:
             y=RN[i]
@@ -224,10 +223,10 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
             plt.legend()
             plt.savefig('proftest.png')
             print(i)
-    plt.grid()
-    plt.yscale('log')
+    #plt.grid()
+    #plt.yscale('log')
 
-    plt.savefig('profilesvsslant.png')
+    #plt.savefig('profilesvsslant.png')
     mask=(chi2>1) & (chi2==np.NaN) & (chi2<=0)
     print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)

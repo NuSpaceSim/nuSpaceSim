@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 from numpy.polynomial import Polynomial
 import scipy.integrate
-
+import pickle
+with open('/home/jorge/Documents/NuSpaceSim/MyNewNuSpaceSim/nuSpaceSim/src/nuspacesim/auger_atm_spline.pkl', 'rb') as f:
+    spline = pickle.load(f)
 telangle=np.radians(15.5) #Increase FoV to 31x31 to remove any edge effects
 exacttelangle=np.radians(15)
 
@@ -833,6 +835,19 @@ def atmdensity_auger(z):
         default=1.00e-09
     )
     return p
+def atmdensity_auger_spline(z):
+    """
+    Density (g/cm^3) parameterized from altitude (z) values in km
+    Computation is an (11) degree polynomial fit to equation (2)
+    in https://arxiv.org/pdf/2011.09869.pdf
+    Fit performed using numpy.Polynomial.fit
+    """
+    p = np.select(
+        [z <= 30, (z > 30) & (z <= 100), z > 100],
+        [spline(z), exp_auger(z), 1.00e-09],
+        default=1.00e-09
+    )
+    return p
 #z=np.linspace(0, 30, 20)
 
 def slant_depth_integrand(z, theta_tr, rho=atmdensity_auger, earth_radius=(earth_radius_centerlat/1000)):
@@ -943,6 +958,38 @@ def calculate_vertical_grammage(z, poly=_poly_auger, A=0.00119549796648045665581
     if np.any(mask2):
         X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * 100))#+7e-7
     return X*1e5 # Convert to g/cm^2
+def calculate_vertical_grammage_spline(z, spline, A=0.00119549796648045665581, k=0.139940733649007831296):
+    """
+    Calculate grammage X(z) analytically from density_fit, vectorized.
+    
+    Parameters:
+    z (float or np.ndarray): Height(s) in km.
+    poly (Polynomial): Polynomial fit for z <= 30 km.
+    A, k (float): Exponential parameters for 30 < z <= 100 km.
+    
+
+    Returns:
+    np.ndarray: Grammage X(z) in g/cm^2, with X(z) = 0 for z > 100 km.
+    """
+    z = np.asarray(z)
+    X = np.full_like(z,np.reciprocal(1e5))
+    
+    # Polynomial antiderivative
+    
+    # Masks for regions
+    mask1 = z <= 30
+    mask2 = (z > 30) & (z <= 100)
+    # z > 100: X = 0 (default in X initialization)
+    
+    # For z <= 30: ∫_z^30 poly(z') dz' + ∫_30^100 A e^(-k z') dz'
+    if np.any(mask1):
+        int_spline = np.array([spline.integral(z_val, 30) for z_val in z[mask1]])
+        X[mask1] = int_spline + (A / k) * (np.exp(-k * 30) - np.exp(-k * 100))
+    
+    # For 30 < z <= 100: ∫_z^100 A e^(-k z') dz'
+    if np.any(mask2):
+        X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * 100))#+7e-7
+    return X*1e5 # Convert to g/cm^2
 def integrated_grammage_old(p_start, p_stop, delta):
     """
     Calculate integrated grammage along a path from p_start to p_stop.
@@ -1005,7 +1052,7 @@ def integrated_grammage(p_start, p_stop, delta_m):
     
     Parameters:
     p_start, p_stop: 3D points in ECEF coordinates, NumPy arrays of shape (N,3), in meters
-    delta: Step size in km (scalar)
+    delta: Step size in m (scalar)
     
     Returns:
     np.ndarray: Integrated grammage for each path in g/cm^2, shape (N,)
@@ -1049,8 +1096,8 @@ def integrated_grammage(p_start, p_stop, delta_m):
         active = distances < lengths
         #print(i,active[-1],len(active),active.sum(),'active')
         # Convert points to geodetic coordinates
-        _, _, height_p1 = ecef_to_latlong(p1)  # Shape (N,)
-        _, _, height_p2 = ecef_to_latlong(p2)  # Shape (N,)
+        height_p1=altitude_from_ecef(p1)
+        height_p2=altitude_from_ecef(p2)
         height_p1 = height_p1 / 1000  # Convert to km
         height_p2 = height_p2 / 1000  # Convert to km
 
@@ -1086,6 +1133,108 @@ def integrated_grammage(p_start, p_stop, delta_m):
     depths[~nonzero] = 0
     
     return depths
+
+def integrated_grammage_opt(p_start, p_stop, delta_m):
+    """
+    Calculate integrated grammage along paths from p_start to p_stop for multiple points.
+    
+    Parameters:
+    p_start, p_stop: 3D points in ECEF coordinates, NumPy arrays of shape (N,3), in meters
+    delta_m: Step size in meters (scalar)
+    
+    Returns:
+    np.ndarray: Integrated grammage for each path in g/cm^2, shape (N,)
+    """
+    # Ellipsoid constants
+    b2 = (6356752.314245)**2
+    a2 = (6378137.0)**2
+    
+    # Ensure inputs are NumPy arrays with shape (N,3)
+    p_start = np.asarray(p_start)
+    p_stop = np.asarray(p_stop)
+    
+    if p_start.ndim != 2 or p_stop.ndim != 2 or p_start.shape[1] != 3 or p_stop.shape[1] != 3:
+        raise ValueError("p_start and p_stop must have shape (N,3)")
+    if p_start.shape[0] != p_stop.shape[0]:
+        raise ValueError("p_start and p_stop must have the same number of points")
+    
+    N = p_start.shape[0]
+    
+    # Calculate direction vectors and lengths
+    dir_vec = p_stop - p_start  # Shape (N,3)
+    lengths = np.linalg.norm(dir_vec, axis=1)  # Shape (N,)
+    nonzero = lengths > 1e-10
+    dir_vec = np.where(nonzero[:, None], dir_vec / lengths[:, None], 0)  # Normalize, shape (N,3)
+    
+    # Initialize arrays
+    depths = np.zeros(N)        # Grammage for each path
+    distances = np.zeros(N)     # Distance traversed for each path
+    active_indices = np.arange(N)[nonzero]  # Indices of paths with nonzero length
+    
+    # Loop until no active paths remain
+    while len(active_indices) > 0:
+        # Select data for active paths only
+        active_p_start = p_start[active_indices]
+        active_dir_vec = dir_vec[active_indices]
+        active_lengths = lengths[active_indices]
+        active_distances = distances[active_indices]
+        
+        # Compute step size for active paths
+        delta_now = np.minimum(active_lengths - active_distances, delta_m)
+        
+        # Compute segment endpoints
+        p1 = active_p_start + active_distances[:, None] * active_dir_vec
+        active_distances += delta_now
+        p2 = active_p_start + active_distances[:, None] * active_dir_vec
+        
+        # Update distances in the original array
+        distances[active_indices] = active_distances
+        
+        # Determine which paths remain active
+        still_active = active_distances < active_lengths
+        
+        # Compute heights in kilometers
+        height_p1 = altitude_from_ecef(p1) / 1000  # km
+        height_p2 = altitude_from_ecef(p2) / 1000  # km
+        
+        # Check valid atmospheric range (0 to 100 km)
+        valid = (height_p1 > 0) & (height_p1 < 100) & (height_p2 > 0) & (height_p2 < 100)
+        
+        # Compute normal vectors at p1
+        normal = np.stack([
+            p1[:, 0] / a2,
+            p1[:, 1] / a2,
+            p1[:, 2] / b2
+        ], axis=-1)
+        normal = normal / np.linalg.norm(normal, axis=-1, keepdims=True)
+        
+        # Compute cosine of local zenith angle
+        cos_local_theta = np.sum(active_dir_vec * normal, axis=-1)
+        
+        # Optional: Prevent numerical issues (uncomment if needed)
+        # cos_local_theta = np.clip(cos_local_theta, -1.0, 1.0)
+        # valid &= np.abs(cos_local_theta) > 1e-6
+        
+        # Calculate grammage at endpoints
+        depth_p1 = calculate_vertical_grammage_spline(height_p1,spline)  #CHECK THIS, BE CAREFUL
+        depth_p2 = calculate_vertical_grammage_spline(height_p2,spline)
+        depth1=calculate_vertical_grammage(height_p1)
+        depth2=calculate_vertical_grammage(height_p2)
+        # Compute grammage contribution for this segment
+        contribution = (depth_p1 - depth_p2) / cos_local_theta
+        contribution = np.where(valid, contribution, 0)
+        
+        # Accumulate contributions
+        depths[active_indices] += contribution
+        
+        # Update active_indices to keep only still-active paths
+        active_indices = active_indices[still_active]
+    
+    # Ensure zero-length paths return zero
+    depths[~nonzero] = 0
+    
+    return depths
+
 
 def path_length_tau_atm(z, beta_tr, Re=earth_radius_centerlat, xp=np):  #in m
     """

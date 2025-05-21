@@ -398,7 +398,10 @@ def compute(
 
     startingecef=starting_point(groundecef,vecef)
     delta=10
-    Xfirst_offline=integrated_grammage(startingecef,decayecef[valid_evs],delta)
+
+
+
+    Xfirst_offline=integrated_grammage_opt(startingecef,decayecef[valid_evs],delta)
 
     with as_file(
         files("nuspacesim.data.CONEX_table")
@@ -410,23 +413,34 @@ def compute(
                 CONEX_table, *args, **kwargs
             )
         )
+    showerEnergy = showerEnergy[valid_evs]
     EshowGeV = (showerEnergy * 1e8)  # GeV
     remainingn=np.sum(valid_evs)
     X_builder = ak.ArrayBuilder()
     RN_builder = ak.ArrayBuilder()
     all_ghparams = np.zeros((remainingn, 6))
 
-    Xnuclearcollision = 61.3 #https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
+    #exponential distribution with mean 61.3 g/cm^2
+    #https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
+    meancollisionlength=61.3
+    Xnuclearcollision = np.random.exponential(scale=meancollisionlength, size=remainingn)
+    #plt.hist(Xnuclearcollision,bins=50)
+    #plt.title('Nuclear interaction length histogram')
+    #plt.xlabel('Slant depth (g/cm2)')
+    #plt.savefig('Xnuclearcollisionhist.png')
+    #print(np.mean(Xnuclearcollision),np.std(Xnuclearcollision))
     Xfirstinteract=Xfirst_offline+Xnuclearcollision
-    xlimfactor=7
+    xlimfactor=6
 
     for i in range(remainingn):
         idx = np.random.randint(low=0, high=CONEX_table.shape[0])
         Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
-        if X0>=0:
-            x=np.arange(X0,xlimfactor*Xm,10)
-        else:
-            x=np.arange(0,xlimfactor*Xm,10)
+        shiftedX0=0
+        shiftedXm=Xm-X0
+        shiftedp3=p3
+        shiftedp2=p2+2*p3*X0
+        shiftedp1=p1+p2*X0+p3*X0**2
+        x=np.arange(0,xlimfactor*Xm,10)
         """
         t = np.zeros_like(X)
         t = X/ (36.66)
@@ -457,29 +471,44 @@ def compute(
         #   use a single 58 g/cm^2 per decade energy addition/subtraction,
         #   assume using only 100 PeV energy file for this to be correct
         XmaxOff = 58.0 * np.log10(EshowGeV[i] / 1.0e8)
-        Xmax = Xm + XmaxOff
-
-        gh_lam = p1 + p2 * x + p3 * x * x
+        #Xmax = Xm + XmaxOff
+        shiftedXmax = shiftedXm + XmaxOff
+        #gh_lam = p1 + p2 * x + p3 * x * x
+        shiftedgh_lam = shiftedp1 + shiftedp2 * x + shiftedp3 * x * x   
         #gh_lam[gh_lam > 100.0] = 100.0
         #gh_lam[gh_lam < 1.0e-5] = 1.0e-5
 
         #return particle_count, mask, X0, Xmax, Nmax, p3, p2, p1
-        ghparams=np.array([X0, Xmax, Nmax, p3, p2, p1])
-        all_ghparams[i] = ghparams
+        shiftedghparams=np.array([shiftedX0, shiftedXmax, Nmax, shiftedp3, shiftedp2, shiftedp1])
+        all_ghparams[i] = shiftedghparams
         #from .conex_out import GH
-        rn = gaisser_hillas_particle_count_exp_form(x, X0, Xmax, Nmax, gh_lam)
+        #rn1 = gaisser_hillas_particle_count_exp_form(x, X0, Xmax, Nmax, gh_lam)
+        rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
+        '''
+        plt.figure(figsize=(8, 6))
+        plt.plot(x, rn1, label='Original ', color='blue')
+        plt.plot(x, rn2, label='Shifted', color='red')
+        plt.xlabel('Depth (x) [g/cm²]')
+        plt.ylabel('Particle Count')
+        plt.yscale('log')
+        plt.title('Gaisser-Hillas Particle Count vs Depth')
+        plt.legend()
+        plt.grid(True)
+        print(Xmax-shiftedXmax, X0)
+        # Save the figure
+        plt.savefig('gaisser_hillas_plot.png', dpi=300, bbox_inches='tight')'''
+
+
         #rn2=GH(x, X0, Xmax, Nmax, p3, p2, p1)
         #print(rn,rn2)
         #print(np.max(rn),np.max(rn2))
         #exit()
         #mask = ~((RN < 1) & (s > 1))
         mask = (rn >= 1)
-        print(x[mask][0])
-        x_values=x[mask]+Xfirst_offline[i]+Xnuclearcollision
+        x_values=x[mask]+Xfirstinteract[i]
         rn_values=rn[mask]
         X_builder.append(x_values)
         RN_builder.append(rn_values)
-    exit()
 
 
     #nRN = ak.to_numpy(ak.num(RN, axis=1))
