@@ -16,7 +16,7 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
         (Xmax - X) / gh_lam)
 
-def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract):
+def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract,output_file):
 
     X = X_builder.snapshot()
     RN = RN_builder.snapshot()
@@ -230,7 +230,8 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
     mask=(chi2>1) & (chi2==np.NaN) & (chi2<=0)
     print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
-    rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"    
+    rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
+    rootfile= output_file + rootfile
     print('Generating conex-like output in '+rootfile)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)

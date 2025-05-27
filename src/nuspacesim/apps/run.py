@@ -198,6 +198,7 @@ def run(
     plot = read_plot_config(registry, plotall, plotconfig, plot)
 
     output = output_filename(output)
+    print('hola', output)
     simulation = compute(
         config,
         verbose=True,
@@ -206,5 +207,5 @@ def run(
         write_stages=write_stages,
     )
 
-    if not no_result_file:
-        simulation.write(output, format="fits", overwrite=True)
+    #if not no_result_file:
+    #    simulation.write(output, format="fits", overwrite=True)

@@ -468,7 +468,7 @@ def compute(
         #    Xmax = 36. * np.log(Eshow/0.074)
         # HiRes Measurement:  R. U. Abbasi et al 2005 ApJ 622 910 : gives ~ 56 g/cm^2, Auger ~60 g/cm^2
         # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev gives in Egn 7 ~ 62 g/cm^2/decade
-        #   use a single 58 g/cm^2 per decade energy addition/subtraction,
+        #   use a single 58 g/cm^2 per decad e energy addition/subtraction,
         #   assume using only 100 PeV energy file for this to be correct
         XmaxOff = 58.0 * np.log10(EshowGeV[i] / 1.0e8)
         #Xmax = Xm + XmaxOff
@@ -530,7 +530,7 @@ def compute(
     conex_out(X_builder,RN_builder,idfinal[valid_evs],groundecef
                 ,beta_tr[valid_evs],energies[valid_evs],altDec[valid_evs]
                 ,azimuth[valid_evs],gpsarray[valid_energies][valid_evs]
-                ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],all_ghparams,Xfirstinteract)
+                ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],all_ghparams,Xfirstinteract,output_file)
     """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
