@@ -605,8 +605,9 @@ def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
     return groundecef,vcoord, beta, azimuth
 
 def starting_point(coord,vcoord):
-    a = 6378137.0  # semi-major axis
-    b = 6356752.314245  # semi-minor axis
+    earth_safety_margin=1
+    a = 6378137.0 + earth_safety_margin # semi-major axis
+    b = 6356752.314245 + earth_safety_margin # semi-minor axis
     a2 = a**2
     b2 = b**2
     c2=vcoord[:,0]**2/a2+vcoord[:,1]**2/a2+vcoord[:,2]**2/b2
@@ -630,7 +631,7 @@ def starting_point(coord,vcoord):
     # Handle cases with no sea-level intersection (D < 0)
     if np.any(~mask):
         # Adjust axes for 100 km height
-        h=100000
+        h=100000-earth_safety_margin
         a_alt = a + h  # 100 km in meters
         b_alt = b + h
         a2_alt = a_alt**2
@@ -664,7 +665,7 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
     int1=[[]]
     int2=[[]]
     code=[2,3,5,7]
-    
+    min_dist=np.zeros_like(r)
     for i in range(ntels):#telpos.shape[0]
         coordenu=eceftoenu(telposecef[i,:],coordecef)
         vcoordenu=eceftoenu_vector(telposecef[i,:],vcoordecef)
@@ -676,6 +677,8 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         mask1=(sign>=0)
         print(np.size(sign),'Start')
         print(mask1.sum(),'Inside Sphere')
+
+        # Print or store results
 
         inplane=np.full_like(a,False,dtype='bool')
         #CHECK INTERSECTION WITH "GROUND" PLANE
@@ -784,9 +787,13 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         intfactor2=((-b[inside]+np.sqrt(D[inside]))*(1/a[inside])*(1/2))[:,np.newaxis]
         int1=np.append(int1,coordenu[inside]+intfactor1*vcoordenu[inside])
         int2=np.append(int2,coordenu[inside]+intfactor2*vcoordenu[inside])
+        cross_product = np.cross(coordenu[inside], vcoordenu[inside])  # Shape: (n, 3) for n trajectories
+        min_distance = np.sqrt(np.sum(cross_product**2, axis=1))  # Norm of cross product
+    min_dist[inside]=min_distance
+
     int1=int1.reshape(-1,3)
     int2=int2.reshape(-1,3)
-    return identifier, int1,int2
+    return identifier, int1,int2, min_dist, r
 
 
 _polyrho = Polynomial(
@@ -849,7 +856,6 @@ def atmdensity_auger_spline(z):
     )
     return p
 #z=np.linspace(0, 30, 20)
-
 def slant_depth_integrand(z, theta_tr, rho=atmdensity_auger, earth_radius=(earth_radius_centerlat/1000)):
     """
     Integrand for computing slant_depth from input altitude z.
@@ -1282,6 +1288,7 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
  minshowerpct=1,step=0.5, diststep=10, telphi=telphi,teltheta=teltheta,telangle=telangle):
     r=Rcutoff(lgE)*radiusfactor
     code=[2,3,5,7]
+    pctinfov=np.zeros_like(id)
     eyevector=gen_eye_vectors(telphi,teltheta)
     for i in range(ntels):#telpos.shape[0]
         teli=(id%code[i]==0)
@@ -1332,7 +1339,7 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
         thetatelinf=teltheta[2*i]-telangle
 
         minpctinsidefov=np.full_like(distaccept,False,dtype='bool')
-
+        pctinfovinside=np.zeros(accepted.sum())
         for j in range(accepted.sum()):#accepted.sum()
             distintervals=np.arange(0,distaccept[j]+diststep,diststep)
             intervalscoords = decayenui[acceptedofi,:][j,:][np.newaxis, :] + venui[acceptedofi,:][j,:][np.newaxis, :] * distintervals[:, np.newaxis]            
@@ -1356,14 +1363,17 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
             gramsteps=calculate_grammage_end(energy[acceptedofi][j],step)
             stepsinfov=np.sum((gramsteps>enterfovgramm)&(gramsteps<exitfovgramm))
             minpctinsidefov[j]=(stepsinfov>=np.ceil(minshowerpct/step))
-
+            pctinfovinside[j]=stepsinfov*step
 
 
         print(inside.sum(), 'Decay inside sphere.')
         accepted[accepted]=minpctinsidefov
-        index = np.arange(len(id))[teli][inside][~accepted] #for outside
-        id[index]=id[index]/code[i]
 
+        indexout = np.arange(len(id))[teli][inside][~accepted] #for outside
+        indexout_fov = np.arange(len(id))[teli][inside][accepted] #for outside
+
+        id[indexout]=id[indexout]/code[i]
+        pctinfov[indexout_fov]=pctinfovinside[accepted]
         print(minpctinsidefov.sum(), f' develop at least {minshowerpct}% inside Field of View. Rest are rejected.')
         #ASSIGN NEW IDS, DO OUTSIDE DOWN SPHERE
 
@@ -1393,7 +1403,7 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
 
         distout=np.linalg.norm(decayenui[outside_down,:]-intpoint1[outside_down,:],axis=1)
         
-
+        pctinfovoutside=np.zeros(accepted.sum())
         for j in range(accepted.sum()):#accepted.sum()
 
             startgramm=slant_depth(altdeci[acceptedofi][j],altintpoint1[accepted][j],betai[acceptedofi][j])[0]
@@ -1422,15 +1432,17 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
             enterfovgramm=(cumgrammageintervals[shower][infov])[0]
             exitfovgramm=(cumgrammageintervals[shower][infov])[-1]
             stepsinfov=np.sum((gramsteps>enterfovgramm)&(gramsteps<exitfovgramm))
+            pctinfovoutside[j]=stepsinfov*step
             minpctinsidefov[j]=(stepsinfov>=np.ceil(minshowerpct/step))
-
         print(outside_down.sum(), ' Decay before entering sphere.')
         print(minpctinsidefov.sum(), f' have at least {minshowerpct}% inside Field of View. Rest are rejected.')
        
         accepted[accepted]=minpctinsidefov
 
         index = np.arange(len(id))[teli][outside_down][~accepted] #for outside
-        id[index]=id[index]/code[i]
-        print('TOTAL NUMBER OF EVENTS ACCEPTED: \n',(id%code[i]==0).sum())
+        indexout_fov = np.arange(len(id))[teli][outside_down][accepted] #for outside
 
-    return id
+        id[index]=id[index]/code[i]
+        pctinfov[indexout_fov]=pctinfovoutside[accepted]
+        print('TOTAL NUMBER OF EVENTS ACCEPTED: \n',(id%code[i]==0).sum())
+    return id, pctinfov

@@ -4,7 +4,7 @@ import awkward as ak
 from scipy.optimize import curve_fit
 #from .simulation.eas_optical.atmospheric_models import slant_depth
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
-from .augermc import ecef_to_utm, earth_radius_centerlat, slant_depth
+from .augermc import ecef_to_utm, earth_radius_centerlat, slant_depth, altitude_from_ecef
 import matplotlib.pyplot as plt
 
 #from .simulation.auger_sim import geomsim as asim
@@ -16,7 +16,7 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
         (Xmax - X) / gh_lam)
 
-def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract,output_file):
+def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract,output_file, min_dist,rcut, pctinfov, firstintecef):
 
     X = X_builder.snapshot()
     RN = RN_builder.snapshot()
@@ -77,6 +77,8 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
     groundecef = groundecef[mask2,:]"""
 
     n=np.size(Zfirst)
+
+    hfirstinteract= altitude_from_ecef(firstintecef)  # in meters
 
     zenith = 90 + np.degrees(beta)
     dEdXratio=0.0025935  #0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
@@ -231,7 +233,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
     print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
     rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
-    rootfile= output_file + rootfile
+    rootfile= rootfile
     print('Generating conex-like output in '+rootfile)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)
@@ -311,6 +313,10 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "Hadrons": 'var * float32'
         , "dMu": 'var * float32'
         , "EGround": ('f4', (3,))
+        , "mindist": np.dtype('f4')
+        , "rcut": np.dtype('f4')
+        , "pctinfov": np.dtype('f4')
+        , "height_firstinteract": np.dtype('f4')
     }
 
     f = uproot.recreate(rootfile)
@@ -388,6 +394,9 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "Hadrons": Xempty # Xempty
         , "dMu": Xempty  # Xempty
         , "EGround": Eg
-
+        , "mindist": min_dist
+        , "rcut": rcut
+        , "pctinfov": pctinfov
+        , "height_firstinteract": hfirstinteract
     })
     f.close()

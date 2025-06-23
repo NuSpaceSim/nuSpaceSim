@@ -382,8 +382,8 @@ def compute(
     #)
 
 
-    id,int1,int2=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
-    idfinal=decay_inside_fov(energies,groundecef,vecef,beta_tr,decayecef,altDec, id,int1,int2,ntels
+    id,int1,int2, min_distance,rcut=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
+    idfinal, pctinfov=decay_inside_fov(energies,groundecef,vecef,beta_tr,decayecef,altDec, id,int1,int2,ntels
                              ,diststep=200,radiusfactor=radiusfactor,minshowerpct=minshowerpct)
     valid_evs=(idfinal!=1)
 
@@ -429,6 +429,12 @@ def compute(
     #plt.xlabel('Slant depth (g/cm2)')
     #plt.savefig('Xnuclearcollisionhist.png')
     #print(np.mean(Xnuclearcollision),np.std(Xnuclearcollision))
+    Xfirst_fromcore=integrated_grammage_opt(groundecef,decayecef[valid_evs],delta)
+    dprelim=np.full_like(Xnuclearcollision, 600)
+    firstaproxecef=decayecef[valid_evs]+dprelim[:, np.newaxis]*vecef
+    approx_grammage=integrated_grammage_opt(decayecef[valid_evs],firstaproxecef,delta)
+    dfinal=dprelim*Xnuclearcollision/approx_grammage
+    firstintecef=decayecef[valid_evs]+dfinal[:, np.newaxis] * vecef #this is an approximation
     Xfirstinteract=Xfirst_offline+Xnuclearcollision
     xlimfactor=6
 
@@ -527,10 +533,11 @@ def compute(
         #store=sw,
         plot=to_plot,
     )'''
+
     conex_out(X_builder,RN_builder,idfinal[valid_evs],groundecef
                 ,beta_tr[valid_evs],energies[valid_evs],altDec[valid_evs]
                 ,azimuth[valid_evs],gpsarray[valid_energies][valid_evs]
-                ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],all_ghparams,Xfirstinteract,output_file)
+                ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],all_ghparams,Xfirstinteract,output_file, min_distance[valid_evs],rcut[valid_evs], pctinfov[valid_evs],firstintecef)
     """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
