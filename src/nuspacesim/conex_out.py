@@ -153,7 +153,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         Xmx[i]=X[i,max_pos]
         Nmx[i]=RN[i,max_pos]
 
-        if (chi2[i]>1) | (chi2[i]==np.NaN) | (chi2[i]<=0):
+        if (chi2[i]>1) | (chi2[i]==np.nan) | (chi2[i]<=0):
             print(ghparams[i,1],shiftedparams[i,1])
             print((len(X[i]) - 6))
             #print('Fit params',popt)
@@ -229,12 +229,12 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
     #plt.yscale('log')
 
     #plt.savefig('profilesvsslant.png')
-    mask=(chi2>1) & (chi2==np.NaN) & (chi2<=0)
+    mask=(chi2>1) & (chi2==np.nan) & (chi2<=0)
     print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
-    rootfile = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
-    rootfile= rootfile
-    print('Generating conex-like output in '+rootfile)
+    filename = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
+    directory= output_file
+    print('Generating conex-like output in '+directory+filename)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)
     zoneletter = np.array([ord(letter) for letter in zoneletter], dtype=np.uint8)
@@ -319,7 +319,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "height_firstinteract": np.dtype('f4')
     }
 
-    f = uproot.recreate(rootfile)
+    f = uproot.recreate(directory+filename)
 
     f.mktree("Header", branches_header, title="run header")
     f.mktree("Shower", branches_shower, title="shower info")

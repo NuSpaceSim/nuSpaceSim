@@ -4,7 +4,10 @@ from scipy.spatial.transform import Rotation as R
 from numpy.polynomial import Polynomial
 import scipy.integrate
 import pickle
-with open('/home/jorge/Documents/NuSpaceSim/MyNewNuSpaceSim/nuSpaceSim/src/nuspacesim/auger_atm_spline.pkl', 'rb') as f:
+import os
+current_dir=os.path.dirname(os.path.abspath(__file__))
+atm_spline_path=os.path.join(current_dir,'auger_atm_spline.pkl')
+with open(atm_spline_path, 'rb') as f:
     spline = pickle.load(f)
 telangle=np.radians(15.5) #Increase FoV to 31x31 to remove any edge effects
 exacttelangle=np.radians(15)
