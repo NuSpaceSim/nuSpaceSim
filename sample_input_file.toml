@@ -30,7 +30,7 @@ gain = "1.8 dB"
 
 [simulation]
 mode = "Diffuse"
-thrown_events = 40000
+thrown_events = 2000000
 max_cherenkov_angle = "3.0000000000000004 deg"
 max_azimuth_angle = "360.0 deg"
 angle_from_limb = "7.0 deg"

@@ -330,8 +330,8 @@ def compute(
     
     #PARAMETERS
     maxangle=np.radians(30)
-    radiusfactor=0.5
-    minshowerpct=50
+    radiusfactor=1
+    minshowerpct=35
     energy_threshold=16
     gpstime=1261872018  #Time at 1 Jan 2020 00:00:00 UTC
     ntels=1
@@ -366,16 +366,16 @@ def compute(
     gpsarray=np.arange(gpstime,gpstime+n)
     #full_root_out(n,maxangle,nuE,energies,energy_threshold,groundecef,vecef,decayecef,altDec,beta_tr,azimuth,gpsarray,tauExitProb)
 
-    valid_energies=(energies>energy_threshold)
-    energies=energies[valid_energies]
-    print(energies.size,' Valid events over 10^16 eV')
-    groundecef=groundecef[valid_energies]
-    vecef=vecef[valid_energies]
-    beta_tr=beta_tr[valid_energies]
-    showerEnergy=showerEnergy[valid_energies]
-    decayecef=decayecef[valid_energies]
-    altDec=altDec[valid_energies]
-    azimuth=azimuth[valid_energies]
+    valid_energies_and_altdec=(energies>energy_threshold)&(altDec<80)
+    energies=energies[valid_energies_and_altdec]
+    print(energies.size,' Valid events over 10^16 eV and decay altitude < 80 km')
+    groundecef=groundecef[valid_energies_and_altdec]
+    vecef=vecef[valid_energies_and_altdec]
+    beta_tr=beta_tr[valid_energies_and_altdec]
+    showerEnergy=showerEnergy[valid_energies_and_altdec]
+    decayecef=decayecef[valid_energies_and_altdec]
+    altDec=altDec[valid_energies_and_altdec]
+    azimuth=azimuth[valid_energies_and_altdec]
     #sw(
     #    ("init_lat", "init_lon"),
     #    (init_lat, init_long),
@@ -383,8 +383,42 @@ def compute(
 
 
     id,int1,int2, min_distance,rcut=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
-    idfinal, pctinfov=decay_inside_fov(energies,groundecef,vecef,beta_tr,decayecef,altDec, id,int1,int2,ntels
-                             ,diststep=200,radiusfactor=radiusfactor,minshowerpct=minshowerpct)
+    meancollisionlength=61.3
+    Xnuclearcollision = np.random.exponential(scale=meancollisionlength, size=len(id))
+    delta=5
+    dprelim=np.full_like(Xnuclearcollision, 600)
+    firstaproxecef=decayecef+dprelim[:, np.newaxis]*vecef
+    approx_grammage=integrated_grammage_opt(decayecef,firstaproxecef,delta)
+    dfinal = np.empty_like(dprelim)
+    mask = approx_grammage > 0
+    dfinal[mask] = np.maximum(
+        dprelim[mask] * Xnuclearcollision[mask] / approx_grammage[mask],
+        10
+    )
+    dfinal[~mask] = dprelim[~mask]  # Keep original value where mask is False
+
+    firstintecef=decayecef+dfinal[:, np.newaxis] * vecef #this is an approximation
+    altfirstint=altitude_from_ecef(firstintecef)
+    """
+    calculated_grammage=integrated_grammage(decayecef,firstintecef,delta)
+    print('eoeo')
+    delta=10
+    # Plot: 2D scatter — ideal would be a diagonal if all values matched
+    plt.figure(figsize=(7, 6))
+    plt.scatter(Xnuclearcollision, calculated_grammage, alpha=0.6, s=10)
+    plt.plot([Xnuclearcollision.min(), Xnuclearcollision.max()],
+            [Xnuclearcollision.min(), Xnuclearcollision.max()],
+            'r--', label='y = x')
+    plt.xlabel('Sampled X_nuclear (g/cm²)')
+    plt.ylabel('Calculated Grammage (g/cm²)')
+    plt.title('Sampled vs Calculated Grammage')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('grammagetest.png')
+    """
+    idfinal, pctinfov=decay_inside_fov(energies,groundecef,vecef,beta_tr,firstintecef,altfirstint/1000, id,int1,int2,ntels
+                             ,diststep=50,radiusfactor=radiusfactor,minshowerpct=minshowerpct)
     valid_evs=(idfinal!=1)
 
     dist2EarthCenter = np.sqrt(groundecef[valid_evs,0]**2 + groundecef[valid_evs,1]**2 + groundecef[valid_evs,2]**2)
@@ -397,12 +431,24 @@ def compute(
     groundecef=groundecef[valid_evs]
 
     startingecef=starting_point(groundecef,vecef)
-    delta=10
 
 
 
     Xfirst_offline=integrated_grammage_opt(startingecef,decayecef[valid_evs],delta)
-
+    Xfirst2=integrated_grammage_opt(decayecef[valid_evs],firstintecef[valid_evs],delta)
+    Xnuclearcollision=Xnuclearcollision[valid_evs]
+    plt.figure(figsize=(7, 6))
+    plt.scatter(Xnuclearcollision, Xfirst2, alpha=0.6, s=10)
+    plt.plot([Xnuclearcollision.min(), Xnuclearcollision.max()],
+            [Xnuclearcollision.min(), Xnuclearcollision.max()],
+            'r--', label='y = x')
+    plt.xlabel('Sampled X_nuclear (g/cm²)')
+    plt.ylabel('Calculated Grammage (g/cm²)')
+    plt.title('Sampled vs Calculated Grammage')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('grammagetest.png')
     with as_file(
         files("nuspacesim.data.CONEX_table")
         / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
@@ -422,19 +468,14 @@ def compute(
 
     #exponential distribution with mean 61.3 g/cm^2
     #https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
-    meancollisionlength=61.3
-    Xnuclearcollision = np.random.exponential(scale=meancollisionlength, size=remainingn)
+
     #plt.hist(Xnuclearcollision,bins=50)
     #plt.title('Nuclear interaction length histogram')
     #plt.xlabel('Slant depth (g/cm2)')
     #plt.savefig('Xnuclearcollisionhist.png')
     #print(np.mean(Xnuclearcollision),np.std(Xnuclearcollision))
     Xfirst_fromcore=integrated_grammage_opt(groundecef,decayecef[valid_evs],delta)
-    dprelim=np.full_like(Xnuclearcollision, 600)
-    firstaproxecef=decayecef[valid_evs]+dprelim[:, np.newaxis]*vecef
-    approx_grammage=integrated_grammage_opt(decayecef[valid_evs],firstaproxecef,delta)
-    dfinal=dprelim*Xnuclearcollision/approx_grammage
-    firstintecef=decayecef[valid_evs]+dfinal[:, np.newaxis] * vecef #this is an approximation
+
     Xfirstinteract=Xfirst_offline+Xnuclearcollision
     xlimfactor=6
 
@@ -536,8 +577,8 @@ def compute(
 
     conex_out(X_builder,RN_builder,idfinal[valid_evs],groundecef
                 ,beta_tr[valid_evs],energies[valid_evs],altDec[valid_evs]
-                ,azimuth[valid_evs],gpsarray[valid_energies][valid_evs]
-                ,nuE[valid_energies][valid_evs],tauExitProb[valid_energies][valid_evs],all_ghparams,Xfirstinteract,output_file, min_distance[valid_evs],rcut[valid_evs], pctinfov[valid_evs],firstintecef)
+                ,azimuth[valid_evs],gpsarray[valid_energies_and_altdec][valid_evs]
+                ,nuE[valid_energies_and_altdec][valid_evs],tauExitProb[valid_energies_and_altdec][valid_evs],all_ghparams,Xfirstinteract,output_file, min_distance[valid_evs],rcut[valid_evs], pctinfov[valid_evs],firstintecef[valid_evs])
     """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

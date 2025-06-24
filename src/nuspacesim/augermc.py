@@ -1174,7 +1174,7 @@ def integrated_grammage_opt(p_start, p_stop, delta_m):
     lengths = np.linalg.norm(dir_vec, axis=1)  # Shape (N,)
     nonzero = lengths > 1e-10
     dir_vec = np.where(nonzero[:, None], dir_vec / lengths[:, None], 0)  # Normalize, shape (N,3)
-    
+    steps=0
     # Initialize arrays
     depths = np.zeros(N)        # Grammage for each path
     distances = np.zeros(N)     # Distance traversed for each path
@@ -1200,8 +1200,9 @@ def integrated_grammage_opt(p_start, p_stop, delta_m):
         distances[active_indices] = active_distances
         
         # Determine which paths remain active
-        still_active = active_distances < active_lengths
-        
+        still_active = active_distances < (active_lengths)
+
+
         # Compute heights in kilometers
         height_p1 = altitude_from_ecef(p1) / 1000  # km
         height_p2 = altitude_from_ecef(p2) / 1000  # km
@@ -1288,7 +1289,7 @@ def decay(groundecef,vecef, lgE):
 
 
 def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,fullint2,ntels=telposecef.shape[0],radiusfactor=1.01,
- minshowerpct=1,step=0.5, diststep=10, telphi=telphi,teltheta=teltheta,telangle=telangle):
+ minshowerpct=1,step=0.5, diststep=50, telphi=telphi,teltheta=teltheta,telangle=telangle):
     r=Rcutoff(lgE)*radiusfactor
     code=[2,3,5,7]
     pctinfov=np.zeros_like(id)
