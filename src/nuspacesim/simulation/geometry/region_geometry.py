@@ -508,7 +508,7 @@ class RegionGeomToO:
 
     def thetas(self):
         """View angles for valid events in radians"""
-        return self.event_mask(self.sourceNadRad)
+        return np.zeros_like(self.beta_rad())
 
     def pathLens(self):
         """View angles for valid events."""
