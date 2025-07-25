@@ -385,7 +385,7 @@ def compute(
     id,int1,int2, min_distance,rcut=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
     meancollisionlength=61.3
     Xnuclearcollision = np.random.exponential(scale=meancollisionlength, size=len(id))
-    delta=5
+    delta=10
     dprelim=np.full_like(Xnuclearcollision, 600)
     firstaproxecef=decayecef+dprelim[:, np.newaxis]*vecef
     approx_grammage=integrated_grammage_opt(decayecef,firstaproxecef,delta)
@@ -393,7 +393,7 @@ def compute(
     mask = approx_grammage > 0
     dfinal[mask] = np.maximum(
         dprelim[mask] * Xnuclearcollision[mask] / approx_grammage[mask],
-        10
+        1
     )
     dfinal[~mask] = dprelim[~mask]  # Keep original value where mask is False
 
@@ -417,6 +417,9 @@ def compute(
     plt.tight_layout()
     plt.savefig('grammagetest.png')
     """
+    print('Calculating Shower Development cuts')
+
+
     idfinal, pctinfov=decay_inside_fov(energies,groundecef,vecef,beta_tr,firstintecef,altfirstint/1000, id,int1,int2,ntels
                              ,diststep=50,radiusfactor=radiusfactor,minshowerpct=minshowerpct)
     valid_evs=(idfinal!=1)
@@ -435,9 +438,9 @@ def compute(
 
 
     Xfirst_offline=integrated_grammage_opt(startingecef,decayecef[valid_evs],delta)
-    Xfirst2=integrated_grammage_opt(decayecef[valid_evs],firstintecef[valid_evs],delta)
+    #Xfirst2=integrated_grammage_opt(decayecef[valid_evs],firstintecef[valid_evs],delta)
     Xnuclearcollision=Xnuclearcollision[valid_evs]
-    plt.figure(figsize=(7, 6))
+    '''plt.figure(figsize=(7, 6))
     plt.scatter(Xnuclearcollision, Xfirst2, alpha=0.6, s=10)
     plt.plot([Xnuclearcollision.min(), Xnuclearcollision.max()],
             [Xnuclearcollision.min(), Xnuclearcollision.max()],
@@ -449,6 +452,7 @@ def compute(
     plt.grid(True)
     plt.tight_layout()
     plt.savefig('grammagetest.png')
+    '''
     with as_file(
         files("nuspacesim.data.CONEX_table")
         / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"

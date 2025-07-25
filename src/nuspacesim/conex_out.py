@@ -320,7 +320,9 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
     }
 
     f = uproot.recreate(directory+filename)
-
+    print(np.degrees(azim))
+    shifted_azimuth = (azim + np.pi) % (2*np.pi)
+    print(np.degrees(shifted_azimuth))
     f.mktree("Header", branches_header, title="run header")
     f.mktree("Shower", branches_shower, title="shower info")
     f["Header"].extend({
@@ -357,7 +359,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "lgnuE": NuEnergy
         , "ExitProb": tauExitProb
         , "zenith": zenith  # 90+np.degree(beta_rad)
-        , "azimuth": np.degrees(azim)
+        , "azimuth": np.degrees(shifted_azimuth)
         , "easting": easting
         , "northing": northing
         , "height": height
