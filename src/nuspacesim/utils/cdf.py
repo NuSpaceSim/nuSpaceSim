@@ -416,7 +416,11 @@ def grid_cdf_sampler(grid: NssGrid) -> Callable:
                 cdfs = interpn(
                     (grid["log_e_nu"], grid["beta_rad"]), grid.data, (li, bi)
                 )
-                ui = np.random.uniform(0.0, 1.0, size=bi.size) if u is None else ui
+                ui = (
+                    np.random.uniform(cdfs[:, 0], 1.0, size=bi.size)
+                    if u is None
+                    else ui
+                )
                 zi[...] = vec_1d_interp(cdfs, grid["e_tau_frac"], ui)
             return it.operands[3]
 
