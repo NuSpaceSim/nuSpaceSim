@@ -13,9 +13,10 @@ azimuth_span = "360.0 deg"
 nadir_span = "7.0 deg"
 azimuth_center = "0.0 deg"
 
-[detector.tilt]
-id = "below_limb"
-angle_below_limb = "7.0 deg"
+[detector.detector_pointing]
+id = "limb_pointing"
+nadir_point_wrt_limb = "-3.5 deg"
+azimuth_point = "0.0 deg"
 
 #[detector.pointing]
 #azimuth_center = "0.0 deg"
