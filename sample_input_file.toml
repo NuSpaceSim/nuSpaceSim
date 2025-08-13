@@ -1,24 +1,37 @@
 title = "NuSpaceSim"
 
 [detector]
-name = "Default Name"
+name = "Gen_ULDB"
 
 [detector.initial_position]
-altitude = "525.0 km"
-latitude = "0.0 deg"
-longitude = "0.0 deg"
+altitude = "33.0 km"
+latitude = "-44.6943 deg"
+longitude = "169.1417 deg"
+
+[detector.field_of_view]
+azimuth_span = "360.0 deg"
+nadir_span = "7.0 deg"
+azimuth_center = "0.0 deg"
+
+[detector.tilt]
+id = "below_limb"
+angle_below_limb = "7.0 deg"
+
+#[detector.pointing]
+#azimuth_center = "0.0 deg"
+#tilt = "-9.319097" # Detector center from detector horizontal
 
 [detector.sun_moon]
 sun_moon_cuts = true
-sun_alt_cut = "-18.0 deg"
+sun_alt_cut = "-23.819097 deg" # Sun elev. ang. w.r.t. detector horizontal
 moon_alt_cut = "0.0 deg"
 moon_min_phase_angle_cut = "150.0 deg"
 
 [detector.optical]
 enable = true
-telescope_effective_area = "2.5 m2"
+telescope_effective_area = "0.625 m2"
 quantum_efficiency = 0.2
-photo_electron_threshold = 10
+photo_electron_threshold = 25
 
 [detector.radio]
 enable = true
@@ -29,12 +42,16 @@ nantennas = 10
 gain = "1.8 dB"
 
 [simulation]
-mode = "Diffuse"
+mode = "Target"
 thrown_events = 100000
 max_cherenkov_angle = "3.0000000000000004 deg"
-max_azimuth_angle = "360.0 deg"
-angle_from_limb = "7.0 deg"
+#azimuth_span = "360.0 deg"
+#azimuth_center = "0.0 deg"
+#angle_from_limb = "7.0 deg"
 cherenkov_light_engine = "Default"
+
+[simulation.integ_method]
+id = "approximation"
 
 [simulation.ionosphere]
 enable = true
@@ -54,7 +71,7 @@ log_nu_energy = 8.0
 id = "no_cloud"
 
 [simulation.target]
-source_RA = "0.0 deg"
+source_RA = "150.0 deg"
 source_DEC = "0.0 deg"
 source_date = "2022-06-02T01:00:00"
 source_date_format = "isot"

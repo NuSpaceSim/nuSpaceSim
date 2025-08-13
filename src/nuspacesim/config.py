@@ -82,11 +82,10 @@ class Detector(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     class InitialPos(BaseModel):
-        model_config = ConfigDict(arbitrary_types_allowed=True)
         altitude: float = Quantity(525.0, u.km).value
         """ Altitude from sea-level (KM). """
         latitude: float = Quantity(0.0, u.rad).value
-        """ Right Ascencion (Radians). """
+        """ Earth latitude (Radians). """
         longitude: float = Quantity(0.0, u.rad).value
         """ Declination (Radians). """
 
@@ -107,6 +106,57 @@ class Detector(BaseModel):
         @field_serializer("latitude", "longitude")
         def serialize_rad(self, x: float) -> str:
             return str(Quantity(x, u.rad).to(u.deg))
+
+    class FieldOfView(BaseModel):
+        azimuth_span: float = Quantity(np.radians(360.0), u.rad).value
+        """ Span of the detector in azimuth (radians) """
+        nadir_span: float = Quantity(np.radians(7.0), u.rad).value
+        """ Span of the detector in nadir/zenith (radians) """
+
+        @field_validator("azimuth_span", "nadir_span", mode="before")
+        @classmethod
+        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.rad)
+
+        @field_serializer("azimuth_span", "nadir_span")
+        def serialize_rad(self, x: float) -> str:
+            return str(Quantity(x, u.rad).to(u.deg))
+
+    ################ Detector Pointing classes ################
+
+    class LimbPoint(BaseModel):
+        id: Literal["limb_pointing"] = "limb_pointing"
+        nadir_point_wrt_limb: float = Quantity(np.radians(-3.5), u.rad).value
+        """ Nadir angle of detector center w.r.t. to the Earth's limb. Default (Radians). """
+        azimuth_point: float = Quantity(np.radians(0.0), u.rad).value
+        """ Azimuthal angle of the center of the detector (E is 0 deg, N is 90 deg): Default = 0 """
+
+        @field_validator("nadir_point_wrt_limb", "azimuth_point", mode="before")
+        @classmethod
+        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.rad)
+
+        @field_serializer("nadir_point_wrt_limb", "azimuth_point")
+        def serialize_rad(self, x: float) -> str:
+            return str(Quantity(x, u.rad).to(u.deg))
+
+    class GenericPoint(BaseModel):
+        id: Literal["generic"] = "generic"
+        tilt_angle: float = Quantity(np.radians(0.0), u.rad).value
+        """ Detector tilt w.r.t. to the horizontal: Default = 0 """
+        azimuth_point: float = Quantity(np.radians(0.0), u.rad).value
+        """ Azimuthal angle of the center of the detector (E is 0 deg, N is 90 deg): Default = 0 """
+
+        @field_validator("tilt_angle", "azimuth_point", mode="before")
+        @classmethod
+        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.rad)
+
+        @field_serializer("tilt_angle", "azimuth_point")
+        def serialize_rad(self, x: float) -> str:
+            return str(Quantity(x, u.rad).to(u.deg))
+
+    ################ Sun & Moon classes ################
 
     class SunMoon(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -189,7 +239,13 @@ class Detector(BaseModel):
 
     name: str = "Default Name"
     initial_position: InitialPos = InitialPos()
-    """Initial conditions for detector"""
+    """Initial position for detector"""
+    field_of_view: FieldOfView = FieldOfView()
+    """Span of detector in azimuth and nadir/zenith"""
+    detector_pointing: Union[LimbPoint, GenericPoint] = Field(
+        default=LimbPoint(), discriminator="id"
+    )
+    """Direction in which the center of the detector is pointing (w.r.t. Earth's limb or the telescope's horizontal)"""
     sun_moon: Optional[SunMoon] = SunMoon()
     """[Target only] Detector sensitivity to effects of the sun and moon"""
     optical: Optional[Optical] = Optical()
@@ -205,6 +261,27 @@ class Simulation(BaseModel):
     """Model holding Simulation Parameters."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    ################ Integration Method classes ################
+
+    class MonteCarlo(BaseModel):
+        id: Literal["monte_carlo"] = "monte_carlo"
+
+    class Approximation(BaseModel):
+        id: Literal["approximation"] = "approximation"
+
+    class Cubature(BaseModel):
+        id: Literal["cubature"] = "cubature"
+        deg: int = 7
+        """ Degree of the polynomial fit """
+
+        @field_validator("deg", mode="before")
+        @classmethod
+        def valid_degree(cls, x: int) -> int:
+            if isinstance(x, int):
+                if x < 0 or x > 50:
+                    raise ValueError(f"Provided degree {x} is invalid.")
+                return x
 
     ################ Radio Ionosphere classes ################
 
@@ -283,6 +360,8 @@ class Simulation(BaseModel):
                     f"date {date} does not match valid month patterns (%m, %B, %b)"
                 )
 
+    ################ Target-of-Opportunity classes ################
+
     class TargetOfOpportunity(BaseModel):
         source_RA: float = 0.0
         """Right Ascension of the source"""
@@ -312,11 +391,17 @@ class Simulation(BaseModel):
     """ Number of thrown event trajectories. """
     max_cherenkov_angle: float = np.radians(3)
     """ Maximum Cherenkov Angle (Radians). """
-    max_azimuth_angle: float = np.radians(360)
-    """ Maximum Azimuthal Angle (Radians). """
-    angle_from_limb: float = np.radians(7)
-    """ Angle From Limb. Default (Radians). """
+    # azimuth_span: float = np.radians(360.0)
+    # """ Span in Azimuth (Radians). """
+    # azimuth_center: float = np.radians(0.0)
+    # """ Location of azimuth center (0 deg = East; 90 deg = North) """
+    # angle_from_limb: float = np.radians(7)
+    # """ Angle From Limb. Default (Radians). """
     cherenkov_light_engine: Literal["Default"] = "Default"  # , "CHASM" , "EASCherSim"
+    integ_method: Union[MonteCarlo, Approximation, Cubature] = Field(
+        default=MonteCarlo, discriminator="id"
+    )
+    """ The Method of Integration """
     ionosphere: Optional[Ionosphere] = Ionosphere()
     tau_shower: NuPyPropShower = NuPyPropShower()
     """ Tau Shower Generator. """
@@ -329,14 +414,12 @@ class Simulation(BaseModel):
     )
     target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
 
-    @field_validator(
-        "max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb", mode="before"
-    )
+    @field_validator("max_cherenkov_angle", "angle_from_limb", mode="before")
     @classmethod
     def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
         return parse_units(x, u.rad)
 
-    @field_serializer("max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb")
+    @field_serializer("max_cherenkov_angle", "angle_from_limb")
     def serialize_rad(self, x: float) -> str:
         return str(Quantity(x, u.rad).to(u.deg))
 
@@ -394,6 +477,15 @@ def config_from_fits(filename: str) -> NssConfig:
                 "longitude": d("initial_position latitude"),
             },
             "name": d("name"),
+            "field_of_view": {
+                "azimuth_span": d("detector azimuth_span"),
+                "nadir_span": d("detector nadir_span"),
+                # "azimuth_center": d("detector center azimuth"),
+            },
+            "tilt": {
+                "id": d("tilt_id"),
+                "angle_below_limb": d("angle_below_limb"),
+            },
             "optical": {
                 "photo_electron_threshold": d("optical photo_electron_threshold"),
                 "quantum_efficiency": d("optical quantum_efficiency"),
@@ -408,14 +500,15 @@ def config_from_fits(filename: str) -> NssConfig:
             },
         },
         "simulation": {
-            "angle_from_limb": s("angle_from_limb"),
+            # "angle_from_limb": s("angle_from_limb"),
             "cherenkov_light_engine": s("cherenkov_light_engine"),
             "cloud_model": {"id": s("cloud_model id")},
             "ionosphere": {
                 "total_electron_content": s("ionosphere total_electron_content"),
                 "total_electron_error": s("ionosphere total_electron_error"),
             },
-            "max_azimuth_angle": s("max_azimuth_angle"),
+            # "azimuth_span": s("azimuth_span"),
+            # "azimuth_center": s("azimuth_center"),
             "max_cherenkov_angle": s("max_cherenkov_angle"),
             "mode": s("mode"),
             "spectrum": {
@@ -428,6 +521,7 @@ def config_from_fits(filename: str) -> NssConfig:
                 "table_version": s("tau_shower table_version"),
             },
             "thrown_events": s("thrown_events"),
+            "integ_method": {"id": s("integ_method id")},
         },
         "title": h["Config title"],
     }

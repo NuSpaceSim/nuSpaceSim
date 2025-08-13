@@ -40,10 +40,10 @@ from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
 from .too import ToOEvent
 
-__all__ = ["RegionGeom", "RegionGeomToO"]
+__all__ = ["RegionGeomDiffuse", "RegionGeomTargetApprox", "RegionGeomTargetMonteCarlo"]
 
 
-class RegionGeom:
+class RegionGeomDiffuse:
     """Region Geometry of trajectories."""
 
     def __init__(self, config):
@@ -72,8 +72,12 @@ class RegionGeom:
 
         self.sinOfMaxThetaTrSubV = np.sin(config.simulation.max_cherenkov_angle)
 
-        self.maxPhiS = config.simulation.max_azimuth_angle * 0.5
-        self.minPhiS = config.simulation.max_azimuth_angle * -0.5
+        self.maxPhiS = (
+            config.simulation.azimuth_span * 0.5 + config.simulation.azimuth_center
+        )
+        self.minPhiS = (
+            config.simulation.azimuth_span * -0.5 + config.simulation.azimuth_center
+        )
 
         normThetaTrSubV = 2 / self.sinOfMaxThetaTrSubV**2
         normPhiTrSubV = np.reciprocal(2 * np.pi)
@@ -409,7 +413,7 @@ class RegionGeom:
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
 
-class RegionGeomToO:
+class RegionGeomTargetApprox:
     def __init__(self, config):
         self.config = config
         self.earth_radius: np.float64 = R_earth.to(u.km).value
@@ -600,6 +604,25 @@ class RegionGeomToO:
             store([col_name], [mcintfactor])
 
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
+
+
+class RegionGeomTargetMonteCarlo:
+    def __inti__(self, config):
+        self.config = config
+        self.earth_radius: np.float64 = R_earth.to(u.km).value
+        self.core_alt = (
+            self.earth_radius + self.config.detector.initial_position.altitude
+        )
+        self.detection_mode = self.config.simulation.mode
+        self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
+
+        self.detLat = config.detector.initial_position.latitude
+        self.detLong = config.detector.initial_position.longitude
+
+        self.sourceOBSTime = self.config.simulation.target.source_obst
+        self.too_source = ToOEvent(self.config)
+
+        self.alphaHorizon = 0.5 * np.pi - np.arccos(self.earth_radius / self.core_alt)
 
 
 def show_plot(sim_results, simclass, plot):
