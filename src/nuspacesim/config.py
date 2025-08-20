@@ -331,8 +331,8 @@ class Simulation(BaseModel):
             return "Greisen"
         return value
 
-    cherenkov_light_engine: Literal["nuspacesim", "Default"] = (
-        "nuspacesim"  # "CHASM", "EASCherSim"
+    cherenkov_light_engine: Literal["nuspacesim", "Default", "CHASM"] = (
+        "nuspacesim", "CHASM"#, "EASCherSim"
     )
     """cherenkov light engine model: Default = 'nuspacesim'"""
 
