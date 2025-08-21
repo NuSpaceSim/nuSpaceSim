@@ -32,11 +32,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from astropy import units as u
+from astropy.constants import R_earth
+from astropy.time import TimeDelta
 
 from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
+from .too import ToOEvent
 
-__all__ = ["RegionGeom"]
+__all__ = ["RegionGeom", "RegionGeomToO"]
 
 
 class RegionGeom:
@@ -44,20 +48,20 @@ class RegionGeom:
 
     def __init__(self, config):
         self.config = config
-
-        self.earth_rad_2 = self.config.constants.earth_radius**2
+        self.earth_radius: np.float64 = R_earth.to(u.km).value
+        self.earth_rad_2: np.float64 = self.earth_radius**2
 
         self.core_alt = (
-            self.config.constants.earth_radius + self.config.detector.altitude
+            self.earth_radius + self.config.detector.initial_position.altitude
         )
+        self.detection_mode = self.config.simulation.mode
+        self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
 
-        self.detLat = np.radians(config.detector.lat_start)
-        self.detLong = np.radians(config.detector.long_start)
+        self.detLat = config.detector.initial_position.latitude
+        self.detLong = config.detector.initial_position.longitude
 
-        alphaHorizon = np.pi / 2 - np.arccos(
-            self.config.constants.earth_radius / self.core_alt
-        )
-        alphaMin = alphaHorizon - config.simulation.ang_from_limb
+        alphaHorizon = np.pi / 2 - np.arccos(self.earth_radius / self.core_alt)
+        alphaMin = alphaHorizon - config.simulation.angle_from_limb
         minChordLen = 2 * np.sqrt(
             self.earth_rad_2 - (self.core_alt * np.sin(alphaMin)) ** 2
         )
@@ -66,10 +70,10 @@ class RegionGeom:
         self.minLOSpathLen = self.core_alt * np.cos(alphaMin) - minChordLen / 2
         self.maxLOSpathLen = np.sqrt(self.core_alt**2 - self.earth_rad_2)
 
-        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.theta_ch_max)
+        self.sinOfMaxThetaTrSubV = np.sin(config.simulation.max_cherenkov_angle)
 
-        self.maxPhiS = config.simulation.max_azimuth_angle / 2
-        self.minPhiS = -config.simulation.max_azimuth_angle / 2
+        self.maxPhiS = config.simulation.max_azimuth_angle * 0.5
+        self.minPhiS = config.simulation.max_azimuth_angle * -0.5
 
         normThetaTrSubV = 2 / self.sinOfMaxThetaTrSubV**2
         normPhiTrSubV = np.reciprocal(2 * np.pi)
@@ -154,12 +158,12 @@ class RegionGeom:
 
         rvsqrd = self.losPathLen * self.losPathLen
         costhetaS = (self.core_alt**2 + self.earth_rad_2 - rvsqrd) / (
-            2 * self.config.constants.earth_radius * self.core_alt
+            2 * self.earth_radius * self.core_alt
         )
         self.thetaS = np.arccos(costhetaS)
 
         self.costhetaNSubV = (self.core_alt**2 - self.earth_rad_2 - rvsqrd) / (
-            2 * self.config.constants.earth_radius * self.losPathLen
+            2 * self.earth_radius * self.losPathLen
         )
 
         thetaNSubV = np.arccos(self.costhetaNSubV)
@@ -289,11 +293,11 @@ class RegionGeom:
 
         yPath_v = dist_along_traj * np.sin(self.thetas()) * np.sin(
             self.phis()
-        ) + self.config.constants.earth_radius * np.cos(self.valid_elevAngVSubN())
+        ) + self.earth_radius * np.cos(self.valid_elevAngVSubN())
 
-        zPath_v = dist_along_traj * np.cos(
-            self.thetas()
-        ) + self.config.constants.earth_radius * np.sin(self.valid_elevAngVSubN())
+        zPath_v = dist_along_traj * np.cos(self.thetas()) + self.earth_radius * np.sin(
+            self.valid_elevAngVSubN()
+        )
 
         # Compute xyz-coordinates in the spot's ENU frame (accomplished by transforming from
         # the los ENU frame to the spot's ENU frame)
@@ -365,6 +369,7 @@ class RegionGeom:
         threshold,
         spec_norm,
         spec_weights_sum,
+        **kwargs,
     ):
         """Monte Carlo integral."""
 
@@ -385,8 +390,10 @@ class RegionGeom:
         mcintfactor[cossepangle < costheta] = 0
         mcintegralgeoonly = np.sum(mcintfactor) * mcnorm / numTrajs
 
-        # Multiply by tau exit probability
-        mcintfactor *= tauexitprob
+        Bshr = 0.826
+
+        # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
+        mcintfactor *= Bshr * tauexitprob
 
         # Weighting by energy spectrum if other than monoenergetic spectrum
         mcintfactor /= spec_norm
@@ -402,8 +409,203 @@ class RegionGeom:
         return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
 
 
-def show_plot(sim, plot):
+class RegionGeomToO:
+    def __init__(self, config):
+        self.config = config
+        self.earth_radius: np.float64 = R_earth.to(u.km).value
+        self.earth_rad_2: np.float64 = self.earth_radius**2
+
+        self.core_alt = (
+            self.earth_radius + self.config.detector.initial_position.altitude
+        )
+        self.detection_mode = self.config.simulation.mode
+        self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
+
+        self.detLat = config.detector.initial_position.latitude
+        self.detLong = config.detector.initial_position.longitude
+
+        self.sourceOBSTime = self.config.simulation.target.source_obst
+        self.too_source = ToOEvent(self.config)
+
+        self.alphaHorizon = 0.5 * np.pi - np.arccos(self.earth_radius / self.core_alt)
+
+    @decorators.nss_result_plot(geom_beta_tr_hist)
+    @decorators.nss_result_store("beta_rad", "theta_rad", "path_len", "times")
+    def __call__(self, numtrajs, *args, **kwargs):
+        """Throw numtrajs events and return valid betas."""
+        self.throw(numtrajs)
+        return self.beta_rad(), self.thetas(), self.pathLens(), self.val_times()
+
+    def throw(self, times=None) -> None:
+        """Throw N events with 1 * u random numbers for the Target detection mode"""
+
+        # Calculate the local nadir angle of the source
+        self.times = self.generate_times(times)
+        local_coords = self.too_source.localcoords(self.times)
+        self.sourceNadRad = 0.5 * np.pi + local_coords.alt.rad
+
+        self.alt_deg = local_coords.alt.deg
+        self.az_deg = local_coords.az.deg
+
+        # Define a cut if the source is below the horizon
+        self.horizon_mask = self.sourceNadRad < self.alphaHorizon
+
+        # Calculate the earth emergence angle from the nadir angle
+        self.sourcebeta = self.get_beta_angle(self.sourceNadRad[self.horizon_mask])
+
+        # Define a cut if the source is below the horizon
+        self.volume_mask = self.sourcebeta < np.min(
+            [
+                np.radians(42),
+                self.get_beta_angle(
+                    self.alphaHorizon - self.config.simulation.angle_from_limb
+                ),
+            ]
+        )
+
+        # Calculate the pathlength through the atmosphere
+        self.losPathLen = self.get_path_length(
+            self.sourcebeta[self.volume_mask], self.event_mask(self.sourceNadRad)
+        )
+
+    def generate_times(self, times) -> np.ndarray:
+        """
+        Function to generate times within the simulation time period
+        """
+        if isinstance(times, int):
+            times = np.arange(times) / times
+
+        if times is None:
+            raise RuntimeError(
+                "Provide a number of trajectories, or a 2D set of uniform random "
+                "numbers in [0, 1]"
+            )
+
+        times *= self.sourceOBSTime  # in s
+        times = TimeDelta(times, format="sec")
+        times = self.too_source.eventtime + times
+        return times
+
+    def get_beta_angle(self, nadir_angle):
+        return np.arccos(((self.core_alt) / self.earth_radius) * np.sin(nadir_angle))
+
+    def get_path_length(self, beta, nadir_angle):
+        return self.core_alt * np.cos(nadir_angle + beta) / np.cos(beta)
+
+    def event_mask(self, x):
+        return x[self.horizon_mask][self.volume_mask]
+
+    def val_times(self):
+        return self.event_mask(self.times)
+
+    def betas(self):
+        """Earth-emergence angles for valid events in degrees."""
+        return np.rad2deg(self.beta_rad())
+
+    def beta_rad(self):
+        """Radian Earth-emergence angles for valid events."""
+        return self.sourcebeta[self.volume_mask]
+
+    def thetas(self):
+        """View angles for valid events in radians"""
+        return np.zeros_like(self.beta_rad())
+
+    def pathLens(self):
+        """View angles for valid events."""
+        return self.losPathLen
+
+    def find_lat_long_along_traj(self, dist_along_traj):
+        """Will have to work out the geometry for this."""
+        return self.detLat * np.ones_like(dist_along_traj), self.detLong * np.ones_like(
+            dist_along_traj
+        )
+
+    def np_save(self, mcintfactor, numEvPass):
+        np.savez(
+            str(self.config.simulation.spectrum.log_nu_tau_energy) + "output.npz",
+            t=(self.times - self.too_source.eventtime)[self.event_mask].to_value("hr"),
+            tf=(self.times - self.too_source.eventtime).to_value("hr"),
+            nad=self.sourceNadRad[self.event_mask],
+            nadf=self.sourceNadRad,
+            mcint=mcintfactor,
+            npass=numEvPass,
+            betas=self.too_betas(),
+        )
+
+    def mcintegral(
+        self,
+        triggers,
+        costhetaChEff,
+        tauexitprob,
+        threshold,
+        spec_norm,
+        spec_weights_sum,
+        **kwargs,
+    ):
+        lenDec = kwargs["lenDec"]
+        method = kwargs["method"]
+        if "store" in kwargs.keys():
+            store = kwargs["store"]
+        else:
+            store = None
+
+        if method not in ["Optical", "Radio"]:
+            raise ValueError("method must be Optical or Radio")
+
+        # calculate the Cherenkov angle
+        thetaChEff = np.arccos(costhetaChEff)
+        tanthetaChEff = np.tan(thetaChEff)
+
+        mcintfactor_umsk = self.pathLens() - lenDec
+        # mcintfactor_umsk = self.pathLens() # For testing purposes only
+
+        mcintfactor = np.where(mcintfactor_umsk > 0.0, mcintfactor_umsk, 0.0)
+
+        mcintfactor *= (self.pathLens() - lenDec) * tanthetaChEff**2
+        # mcintfactor *= self.pathLens() * tanthetaChEff**2 # For testing purposes only
+
+        # Geometry Factors
+
+        mcintfactor *= np.pi
+
+        mcintegralgeoonly = np.sum(mcintfactor) / len(self.times)
+
+        Bshr = 0.826
+
+        # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
+
+        mcintfactor *= Bshr * tauexitprob
+
+        # Weighting by energy spectrum if other than monoenergetic spectrum
+        mcintfactor /= spec_norm
+        mcintfactor /= spec_weights_sum
+
+        # PE threshold
+        mcintfactor[triggers < threshold] = 0
+
+        # Define a cut based on sun and moon position
+        if self.sun_moon_cut and method == "Optical":
+            sun_moon_cut_mask = self.too_source.sun_moon_cut(self.val_times())
+            mcintfactor[~sun_moon_cut_mask] = 0
+
+            # self.test_plot_sunmooncut(self.too_source.sun_moon_cut)
+
+        mcintegral = np.sum(mcintfactor) / len(self.times)
+        mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / len(self.times))
+
+        numEvPass = np.count_nonzero(mcintfactor)
+
+        if store is not None:
+            col_name = "tmcintopt" if method == "Optical" else "tmcintrad"
+            store([col_name], [mcintfactor])
+
+        return mcintegral, mcintegralgeoonly, numEvPass, mcintegraluncert
+
+
+def show_plot(sim_results, simclass, plot):
     plotfs = tuple([geom_beta_tr_hist])
     inputs = tuple([0])
     outputs = ("beta_rad", "theta_rad", "path_len")
-    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)
+    decorators.nss_result_plot_from_file(
+        sim_results, simclass, inputs, outputs, plotfs, plot
+    )

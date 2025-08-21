@@ -12,7 +12,7 @@ variables determined by the physics modules.
 Configuration File
 ******************
 
-Simulation configuration is governed by an XML file.
+Simulation configuration is governed by a TOML file.
 
 Results File
 ************

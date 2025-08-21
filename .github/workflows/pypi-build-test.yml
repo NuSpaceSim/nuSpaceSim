@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: [38, 39, 310, 311]
+        python: [39, 310, 311, 312, 313]
         arch: [x86, arm]
         include:
           - os: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
         platforms: all
 
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.15.0
+      uses: pypa/cibuildwheel@v2.22.0
       env:
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
         CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
@@ -70,8 +70,8 @@ jobs:
         CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: nuspacesim-gh-pypi-artifact
+        name: nuspacesim-gh-pypi-artifact-${{ matrix.os }}-${{ matrix.cibw_arch }}-cp${{ matrix.python }}-${{ github.run_id }}
         path: wheelhouse/*.whl
         retention-days: 1

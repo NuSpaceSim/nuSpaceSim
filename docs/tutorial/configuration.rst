@@ -7,14 +7,14 @@ Configuration File
 .. toctree::
    :hidden:
 
-Simulation configuration is governed by an XML file. The File structure is
+Simulation configuration is governed by a TOML file. The File structure is
 separated into 2 primary sections, the DetectorCharacteristics and the
-SimulationParameters. Both XML sections map 1-to-1 to the nuspacesim.config
+SimulationParameters. Both TOML sections map 1-to-1 to the nuspacesim.config
 dataclass objects of the same names.
 
 
 
-DetectorCharacteristics
+Detector
 ***********************
 
 This is a dataclass holding the Detector Characteristics for a given simulation.
@@ -34,7 +34,7 @@ The member attributes are as follows:
   * **det_gain**: Antenna gain in dB: Default = 1.8
 
 
-SimulationParameters
+Simulation
 ********************
 
 This is a dataclass holding the Detector Characteristics for a given simulation.

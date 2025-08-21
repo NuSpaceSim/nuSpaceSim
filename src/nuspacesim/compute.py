@@ -45,19 +45,26 @@ NuSpaceSim Simulation
    compute
 
 """
-import os
+
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import numpy as np
+from astropy.table import Table as AstropyTable
+from numpy.typing import ArrayLike
 from rich.console import Console
 
+from . import results_table
 from .conex_out import conex_out
 from .config import NssConfig
-from .results_table import ResultsTable
 from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
-from .simulation.geometry.region_geometry import RegionGeom
+from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
+
+# from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
 
@@ -67,17 +74,17 @@ __all__ = ["compute"]
 def compute(
     config: NssConfig,
     verbose: bool = False,
-    output_file: str = None,
+    output_file: str | None = None,
     to_plot: list = [],
     write_stages=False,
-) -> ResultsTable:
+) -> AstropyTable:
     r"""Simulate an upward going shower.
 
     The main proceedure for performaing a full simulation in nuspacesim.
     Given a valid NssConfig object, :func:`compute`, will perform the simulation as
     follows:
 
-    #. Initialize the ResultsTable object.
+    #. Initialize the AstropyTable object.
     #. Initialize the appropritate :ref:`simulation modules<simulation>`.
     #. Compute array of valid beta angle trajectories: beta_tr from :class:`RegionGeom`.
     #. Compute tau interaction attributes componentwise for each element of beta_tr.
@@ -96,7 +103,7 @@ def compute(
     #. Compute the Monte Carlo integral for the resulting shower geometries.
 
     At each stage of the simulation, array results are stored as contiguous columns,
-    and scalar results are stored as attributes, both in the :class:`ResultsTable`
+    and scalar results are stored as attributes, both in the :class:`AstropyTable`
     object.
 
 
@@ -115,13 +122,16 @@ def compute(
 
     Returns
     -------
-    ResultsTable
+    AstropyTable
         The Table of result values from each stage of the simulation.
     """
 
     console = Console(width=80, log_path=False)
 
-    FreqRange = (config.detector.low_freq, config.detector.high_freq)
+    freqRange = (
+        config.detector.radio.low_frequency,
+        config.detector.radio.high_frequency,
+    )
 
     def logv(*args):
         """optionally print descriptive messages."""
@@ -140,7 +150,7 @@ def compute(
         logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]: ", numEvPass)
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]: ", mcunc)
 
-    sim = ResultsTable(config)
+    sim = results_table.init(config)
     geom = RegionGeom(config)
     cloud = CloudTopHeight(config)
     spec = Spectra(config)
@@ -148,30 +158,54 @@ def compute(
     eas = EAS(config)
     eas_radio = EASRadio(config)
 
+    geom = (
+        RegionGeomToO(config)
+        if config.simulation.mode == "Target"
+        else RegionGeom(config)
+    )
+
     class StagedWriter:
         """Optionally write intermediate values to file"""
 
-        def __call__(self, *args, **kwargs):
-            sim(*args, **kwargs)
+        def __call__(
+            self,
+            col_names: Iterable[str],
+            columns: Iterable[ArrayLike],
+            *args,
+            **kwargs,
+        ):
+            sim.add_columns(columns, names=col_names, *args, **kwargs)
             if write_stages:
-                sim.write(output_file, overwrite=True)
+                sim.write(output_file, format="fits", overwrite=True)
 
-        def add_meta(self, *args, **kwargs):
-            sim.add_meta(*args, **kwargs)
+        def add_meta(self, name: str, value: Any, comment: str):
+            sim.meta[name] = (value, comment)
             if write_stages:
-                sim.write(output_file, overwrite=True)
+                sim.write(output_file, format="fits", overwrite=True)
 
     sw = StagedWriter()
 
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr = geom(config.simulation.N, store=sw, plot=to_plot)
-    logv(
-        f"\t[blue]Threw {config.simulation.N} neutrinos. {beta_tr.size} were valid.[/]"
+    beta_tr, thetaArr, pathLenArr, *_ = geom(
+        config.simulation.thrown_events, store=sw, plot=to_plot
     )
-    init_lat, init_long = geom.find_lat_long_along_traj(0)
-    sim(
+    thrown_color = "[blue]" if beta_tr.size else "[red]"
+    logv(
+        f"\t{thrown_color}Threw {config.simulation.thrown_events} neutrinos.\
+        {beta_tr.size} were valid.[/]"
+    )
+
+    # Avoid Exceptions and return a (valid) empty sim object
+    if beta_tr.size == 0:
+        console.log(
+            "\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]"
+        )
+        return sim
+
+    init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
+    sw(
         ("init_lat", "init_lon"),
         (init_lat, init_long),
     )
@@ -190,7 +224,8 @@ def compute(
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    if config.detector.method == "Optical" or config.detector.method == "Both":
+    # if config.detector.method == "Optical" or config.detector.method == "Both":
+    if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
         conex = config.simulation.conex_output
 
@@ -210,9 +245,12 @@ def compute(
             numPEs,
             costhetaChEff,
             tauExitProb,
-            config.detector.photo_electron_threshold,
+            config.detector.optical.photo_electron_threshold,
             mc_spec_norm,
             spec_weights_sum,
+            lenDec=lenDec,
+            method="Optical",
+            store=sw,
         )
 
         sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
@@ -224,29 +262,32 @@ def compute(
         if conex == "1":
             conex_out(sim, profilesOut)
 
-    if config.detector.method == "Radio" or config.detector.method == "Both":
+    if config.detector.radio.enable:
         logv("Computing [green] EAS Radio signal.[/]")
 
-        EFields = eas_radio(
+        eFields = eas_radio(
             beta_tr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw
         )
 
         snrs = calculate_snr(
-            EFields,
-            FreqRange,
-            config.detector.altitude,
-            config.detector.det_Nant,
-            config.detector.det_gain,
+            eFields,
+            freqRange,
+            config.detector.initial_position.altitude,
+            config.detector.radio.nantennas,
+            config.detector.radio.gain,
         )
 
         logv("Computing [green] Radio Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             snrs,
-            np.cos(config.simulation.theta_ch_max),
+            np.cos(config.simulation.max_cherenkov_angle),
             tauExitProb,
-            config.detector.det_SNR_thres,
+            config.detector.radio.snr_threshold,
             mc_spec_norm,
             spec_weights_sum,
+            lenDec=lenDec,
+            method="Radio",
+            store=sw,
         )
 
         sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")

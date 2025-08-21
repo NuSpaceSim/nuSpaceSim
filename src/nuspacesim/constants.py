@@ -31,7 +31,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-    Top level fundamental constants and the Fund_Constants class.
+Top level fundamental constants and the Fund_Constants class.
 """
 
 from __future__ import annotations

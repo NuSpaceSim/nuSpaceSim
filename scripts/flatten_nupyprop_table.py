@@ -1,6 +1,6 @@
 # The Clear BSD License
 #
-# Copyright (c) 2021 Alexander Reustle and the NuSpaceSim Team
+# Copyright (c) 2025 Alexander Reustle and the NuSpaceSim Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,49 +31,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""XML file utilities for configuration objects
+from nuspacesim.utils.grid import NssGrid, grid_concatenate
 
---------------------------------------
-NuSpaceSim Configuration XML Interface
---------------------------------------
-
-Configuration object can be serialized to an XML file, in whole or in part. These
-configuration files can be read back into nuspacesim with
-:func:`config_from_xml<nuspacesim.xml_config.config_from_xml>`. All XML config files
-are validated with an XSD Schema to by
-is_valid_xml ensure correctness.
-:func:`is_valid_xml<nuspacesim.xml_config.is_valid_xml>` ensure correctness.
-
-.. autosummary::
-   :toctree:
-   :nosignatures:
-
-   create_xml
-   config_from_xml
-   is_valid_xml
-   parseXML
-   parse_detector_chars
-   parse_simulation_params
-   config_xml_schema
-
-"""
-
-__all__ = [
-    "is_valid_xml",
-    "parse_config",
-    "parse_detector_chars",
-    "parse_simulation_params",
-    "parseXML",
-    "config_from_xml",
-    "create_xml",
-]
-
-from . import parse_config
-from .parse_config import (
-    config_from_xml,
-    create_xml,
-    is_valid_xml,
-    parse_detector_chars,
-    parse_simulation_params,
-    parseXML,
+pexit_v3 = NssGrid.read(
+    "src/nuspacesim/data/nupyprop_bdhm_tables/nu2tau_pexit.1.h5",
+    path="pexit_regen",
+    format="hdf5",
+)
+pexit_v3.write(
+    "src/nuspacesim/data/nupyprop_bdhm_tables/nu2tau_pexit.1.h5",
+    path="/",
+    overwrite=True,
+    format="hdf5",
 )

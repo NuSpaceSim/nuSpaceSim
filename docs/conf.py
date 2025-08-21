@@ -92,7 +92,6 @@ autosummary_mock_imports = [
     "click",
     "dask",
     "h5py",
-    "lxml",
     "matplotlib",
     "mpl_toolkits",
     "numpy",

@@ -48,7 +48,10 @@ except ImportError:
     from importlib_resources import as_file, files
 
 
-__all__ = ["Taus", "show_plot"]
+__all__ = ["Taus", "show_plot", "massTau", "mean_Tau_life"]
+
+massTau = 1.77686  # GeV/c^2
+mean_Tau_life = 2.903e-13  # seconds
 
 
 class Taus(object):
@@ -81,15 +84,15 @@ class Taus(object):
 
         # grid of pexit table
         with as_file(
-            files("nuspacesim.data.nupyprop_tables")
-            / f"nu2tau_pexit.{config.simulation.tau_table_version}.h5"
+            files(f"nuspacesim.data.{config.simulation.tau_shower.id}_tables")
+            / f"nu2tau_pexit.{config.simulation.tau_shower.table_version}.h5"
         ) as file:
             self.pexit_grid = NssGrid.read(file, path="/", format="hdf5")
 
         # grid of tau_cdf tables
         with as_file(
-            files("nuspacesim.data.nupyprop_tables")
-            / f"nu2tau_cdf.{config.simulation.tau_table_version}.h5"
+            files(f"nuspacesim.data.{config.simulation.tau_shower.id}_tables")
+            / f"nu2tau_cdf.{config.simulation.tau_shower.table_version}.h5"
         ) as file:
             self.tau_cdf_grid = NssGrid.read(file, format="hdf5")
 
@@ -172,16 +175,16 @@ class Taus(object):
         tauEnergy = self.tau_energy(betas, log_e_nu)
 
         # in units of 100 PeV
-        showerEnergy = self.config.simulation.e_shower_frac * tauEnergy / 1e8
+        showerEnergy = self.config.simulation.tau_shower.etau_frac * tauEnergy / 1e8
 
-        tauLorentz = tauEnergy / self.config.constants.massTau
+        tauLorentz = tauEnergy / massTau
         tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz**2))
 
         return tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb
 
 
-def show_plot(sim, plot):
+def show_plot(sim, sim_class, plot):
     inputs = ("beta_rad", "log_e_nu")
     outputs = ("tauBeta", "tauLorentz", "tauEnergy", "showerEnergy", "tauExitProb")
     plotfs = (taus_density_beta, taus_histogram, taus_pexit, taus_overview)
-    decorators.nss_result_plot_from_file(sim, inputs, outputs, plotfs, plot)
+    decorators.nss_result_plot_from_file(sim, sim_class, inputs, outputs, plotfs, plot)
