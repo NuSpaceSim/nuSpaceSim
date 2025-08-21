@@ -1,6 +1,8 @@
 import awkward as ak
 import numpy as np
 import uproot
+import datetime
+
 from scipy.optimize import curve_fit
 
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
@@ -9,7 +11,7 @@ from .simulation.eas_optical.shower_properties import (
 )
 
 
-def conex_out(data, profiles):
+def conex_out(data, profiles, output_file):
     def GH(X, X0, Xmax, Nmax, p3, p2, p1):
         return (
             Nmax
@@ -56,6 +58,9 @@ def conex_out(data, profiles):
     azim = 360 * np.random.rand(n)  # Random azimuth
     zenith = 90 + np.degrees(beta)
     dEdXratio = 0.0025935  # 0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
+    #now = now if now else f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+    #return f"nuspacesim_run_{now}.fits"
+    print(output_file)
     rootfile = "nss_to_conex.root"
     print("Generating conex-like output in " + rootfile)
     #print("Number of masked events ", nmasked)

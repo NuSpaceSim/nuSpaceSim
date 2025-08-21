@@ -259,8 +259,8 @@ def compute(
         sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
-        if conex == "1":
-            conex_out(sim, profilesOut)
+        if conex:
+            conex_out(sim, profilesOut, output_file)
 
     if config.detector.radio.enable:
         logv("Computing [green] EAS Radio signal.[/]")
