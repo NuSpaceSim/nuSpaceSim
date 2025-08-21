@@ -1,11 +1,13 @@
+import datetime
+
 import awkward as ak
 import numpy as np
 import uproot
-import datetime
-
 from scipy.optimize import curve_fit
 
-from .simulation.eas_optical.shower_properties import path_length_tau_atm
+from .simulation.eas_optical.shower_properties import (
+    path_length_tau_atm,
+)
 from .simulation.eas_optical.shower_properties import (
     slant_depth_trig_approx as slant_depth,
 )
@@ -50,22 +52,22 @@ def conex_out(data, profiles, output_file):
             mask2[i] = False
     nmasked = np.sum(~mask2) + np.sum(~mask)"""
 
-    #beta = beta[mask2]
-    #Zfirst = Zfirst[mask2]
+    # beta = beta[mask2]
+    # Zfirst = Zfirst[mask2]
     n = np.size(Zfirst)
-    #TauEnergy = TauEnergy[mask2]
-    #Xfirst = Xfirst[mask2]
+    # TauEnergy = TauEnergy[mask2]
+    # Xfirst = Xfirst[mask2]
     azim = 360 * np.random.rand(n)  # Random azimuth
     zenith = 90 + np.degrees(beta)
     dEdXratio = 0.0025935  # 0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
     rootfile = output_file.replace(".fits", ".root")
     print("Generating conex-like output in " + rootfile)
-    #print("Number of masked events ", nmasked)
+    # print("Number of masked events ", nmasked)
     print("Number of valid events ", n)
 
-    #X = X[mask2]
-    #Z = Z[mask2]
-    #RN = RN[mask2]
+    # X = X[mask2]
+    # Z = Z[mask2]
+    # RN = RN[mask2]
 
     # Useful variables to fill the conex File
     PID = np.array([100], dtype="i4")  # Proton type for Conex
@@ -129,7 +131,7 @@ def conex_out(data, profiles, output_file):
         g3 = popt[3]
         g2 = popt[4]
         g1 = popt[5]
-        if chi2[i]>0.1:
+        if chi2[i] > 0.1:
             print(
                 f"Warning: chi2 for event {i} is too high ({chi2[i]:.3f}). "
                 "This may indicate a poor fit."

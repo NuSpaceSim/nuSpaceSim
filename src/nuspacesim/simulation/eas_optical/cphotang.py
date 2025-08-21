@@ -525,7 +525,7 @@ class CphotAng:
         return photsum
 
     def valid_arrays(
-        self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA, Eshow, Conex
+        self, zsave, delgram, gramsum, gramz, ZonZ, ThetPrpA, Eshow, conex
     ):
         """
         Return data arrays with invalid values removed
@@ -624,7 +624,7 @@ class CphotAng:
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
 
-    def run(self, betaE, alt, Eshow100PeV, lat, long, Conex, profilesIn, cloudf=None):
+    def run(self, betaE, alt, Eshow100PeV, lat, long, conex, profilesIn, cloudf=None):
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
@@ -641,9 +641,9 @@ class CphotAng:
         #
 
         zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum = self.valid_arrays(
-            *self.slant_depth(alt, sinThetView), Eshow, Conex
+            *self.slant_depth(alt, sinThetView), Eshow, conex
         )
-        if Conex == "1":
+        if conex:
             profilesIn = ak.concatenate([profilesIn, [gramsum], [zs], [RN]], axis=0)
 
         # Cloud top height
@@ -707,7 +707,7 @@ class CphotAng:
         return photonDen, Cang, profilesIn
 
     def __call__(
-        self, betaE, alt, Eshow100PeV, init_lat, init_long, Conex, cloudf=None
+        self, betaE, alt, Eshow100PeV, init_lat, init_long, conex, cloudf=None
     ):
         """
         Iterate over the list of events and return the result as pair of
@@ -731,6 +731,6 @@ class CphotAng:
         )
         with ProgressBar():
             Dphots, Cang, profilesOut = zip(
-                *b.map(lambda x: self.run(*x, Conex, profilesIn, cloudf)).compute()
+                *b.map(lambda x: self.run(*x, conex, profilesIn, cloudf)).compute()
             )
         return np.asarray(Dphots), np.array(Cang), profilesOut

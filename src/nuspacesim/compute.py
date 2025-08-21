@@ -228,7 +228,6 @@ def compute(
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
         conex = config.simulation.conex_output
-
         numPEs, costhetaChEff, profilesOut = eas(
             beta_tr,
             altDec,

@@ -355,7 +355,6 @@ class Simulation(BaseModel):
     )
     conex_output: bool = False
 
-
     target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
 
     @field_validator(
@@ -464,8 +463,7 @@ def config_from_fits(filename: str) -> NssConfig:
                 "table_version": s("tau_shower table_version"),
             },
             "thrown_events": s("thrown_events"),
-            "conex_output": s("conex_output")
-
+            "conex_output": s("conex_output"),
         },
         "title": h["Config title"],
     }

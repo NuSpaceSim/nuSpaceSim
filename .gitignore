@@ -195,3 +195,4 @@ cython_debug/
 nss_to_conex.root
 nssenv
 *.png
+*.root
