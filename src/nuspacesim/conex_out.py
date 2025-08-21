@@ -58,10 +58,7 @@ def conex_out(data, profiles, output_file):
     azim = 360 * np.random.rand(n)  # Random azimuth
     zenith = 90 + np.degrees(beta)
     dEdXratio = 0.0025935  # 0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
-    #now = now if now else f"{datetime.datetime.now():%Y%m%d%H%M%S}"
-    #return f"nuspacesim_run_{now}.fits"
-    print(output_file)
-    rootfile = "nss_to_conex.root"
+    rootfile = output_file.replace(".fits", ".root")
     print("Generating conex-like output in " + rootfile)
     #print("Number of masked events ", nmasked)
     print("Number of valid events ", n)
@@ -132,7 +129,11 @@ def conex_out(data, profiles, output_file):
         g3 = popt[3]
         g2 = popt[4]
         g1 = popt[5]
-
+        if chi2[i]>0.1:
+            print(
+                f"Warning: chi2 for event {i} is too high ({chi2[i]:.3f}). "
+                "This may indicate a poor fit."
+            )
         # Undo the variable change. For p1, p2, p3 this involves shifting the parabola coefficients.
         X0[i] = popt[0] + x0
         Xmax[i] = popt[1] + x0
