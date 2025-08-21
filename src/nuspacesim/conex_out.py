@@ -69,12 +69,12 @@ def conex_out(data, profiles):
     PID = np.array([100], dtype="i4")  # Proton type for Conex
     zmin = np.array([90], dtype="i4")
     zmax = np.array([132], dtype="i4")
-    nan4 = np.array([np.NaN], dtype="f4")
-    nan8 = np.array([np.NaN], dtype="f8")
+    nan4 = np.array([np.nan], dtype="f4")
+    nan8 = np.array([np.nan], dtype="f8")
     int4 = np.array([-1], dtype="i4")
     intn = np.full(n, -1, dtype="i4")
-    nan4n = np.full(n, np.NaN, dtype="f4")
-    nan8n = np.full(n, np.NaN, dtype="f8")
+    nan4n = np.full(n, np.nan, dtype="f4")
+    nan8n = np.full(n, np.nan, dtype="f8")
     Xempty = ak.zeros_like(X)
     OutputVersion = np.array([2.51], dtype="f4")
     b = [np.full(31, nan8)]
