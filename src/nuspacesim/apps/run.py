@@ -60,6 +60,12 @@ from .utils import parse_cloud_options, parse_spectra_options, read_plot_config
     "-o", "--output", type=click.Path(exists=False), default=None, help="Output file."
 )
 @click.option(
+    "-c",
+    "--conex_output",
+    is_flag=True,
+    help="Write output as a .root file with conex-like format.",
+)
+@click.option(
     "-p",
     "--plot",
     type=click.Choice(list(registry), case_sensitive=False),
@@ -139,6 +145,7 @@ def run(
     plot: list,
     plotconfig: str,
     plotall: bool,
+    conex_output: bool,
     write_stages: bool,
     monospectrum: float,
     powerspectrum: click.Tuple,
@@ -186,6 +193,9 @@ def run(
     config.simulation.thrown_events = int(
         config.simulation.thrown_events if count == 0.0 else count
     )
+    # Conex-like Output
+    if conex_output:
+        config.simulation.conex_output = conex_output
 
     overwrite_spectrum = parse_spectra_options(monospectrum, powerspectrum)
     if overwrite_spectrum:
