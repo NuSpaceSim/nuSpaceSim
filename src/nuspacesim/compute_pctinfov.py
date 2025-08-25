@@ -366,9 +366,9 @@ def compute(
     gpsarray=np.arange(gpstime,gpstime+n)
     #full_root_out(n,maxangle,nuE,energies,energy_threshold,groundecef,vecef,decayecef,altDec,beta_tr,azimuth,gpsarray,tauExitProb)
 
-    valid_energies_and_altdec=(energies>energy_threshold)&(altDec<50)
+    valid_energies_and_altdec=(energies>energy_threshold)&(altDec<80)
     energies=energies[valid_energies_and_altdec]
-    print(energies.size,' Valid events over 10^16 eV and decay altitude < 50 km')
+    print(energies.size,' Valid events over 10^16 eV and decay altitude < 80 km')
     groundecef=groundecef[valid_energies_and_altdec]
     vecef=vecef[valid_energies_and_altdec]
     beta_tr=beta_tr[valid_energies_and_altdec]
@@ -382,20 +382,77 @@ def compute(
     #)
 
 
-    id,_,_, min_distance,rcut=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
+    id,int1,int2, min_distance,rcut=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
     meancollisionlength=61.3
     Xnuclearcollision = np.random.exponential(scale=meancollisionlength, size=len(id))
-    
-    valid_evs=(id!=1)
+    delta=10
+    dprelim=np.full_like(Xnuclearcollision, 600)
+    firstaproxecef=decayecef+dprelim[:, np.newaxis]*vecef
+    approx_grammage=integrated_grammage_opt(decayecef,firstaproxecef,delta)
+    dfinal = np.empty_like(dprelim)
+    mask = approx_grammage > 0
+    dfinal[mask] = np.maximum(
+        dprelim[mask] * Xnuclearcollision[mask] / approx_grammage[mask],
+        1
+    )
+    dfinal[~mask] = dprelim[~mask]  # Keep original value where mask is False
+
+    firstintecef=decayecef+dfinal[:, np.newaxis] * vecef #this is an approximation
+    altfirstint=altitude_from_ecef(firstintecef)
+    """
+    calculated_grammage=integrated_grammage(decayecef,firstintecef,delta)
+    print('eoeo')
+    delta=10
+    # Plot: 2D scatter — ideal would be a diagonal if all values matched
+    plt.figure(figsize=(7, 6))
+    plt.scatter(Xnuclearcollision, calculated_grammage, alpha=0.6, s=10)
+    plt.plot([Xnuclearcollision.min(), Xnuclearcollision.max()],
+            [Xnuclearcollision.min(), Xnuclearcollision.max()],
+            'r--', label='y = x')
+    plt.xlabel('Sampled X_nuclear (g/cm²)')
+    plt.ylabel('Calculated Grammage (g/cm²)')
+    plt.title('Sampled vs Calculated Grammage')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('grammagetest.png')
+    """
+    print('Calculating Shower Development cuts')
 
 
-    startingecef=starting_point(groundecef[valid_evs],vecef[valid_evs])
-    delta=50
+    idfinal, pctinfov=decay_inside_fov(energies,groundecef,vecef,beta_tr,firstintecef,altfirstint/1000, id,int1,int2,ntels
+                             ,diststep=50,radiusfactor=radiusfactor,minshowerpct=minshowerpct)
+    valid_evs=(idfinal!=1)
+
+    dist2EarthCenter = np.sqrt(groundecef[valid_evs,0]**2 + groundecef[valid_evs,1]**2 + groundecef[valid_evs,2]**2)
+    init_lat = np.arcsin(groundecef[valid_evs,2] / dist2EarthCenter)
+    init_long = np.arctan2(groundecef[valid_evs,1], groundecef[valid_evs,0])
+
+
+    vecef=vecef[valid_evs]
+
+    groundecef=groundecef[valid_evs]
+
+    startingecef=starting_point(groundecef,vecef)
+
+
 
     Xfirst_offline=integrated_grammage_opt(startingecef,decayecef[valid_evs],delta)
-    Xfirstinteract=Xfirst_offline+Xnuclearcollision[valid_evs]
-
-
+    #Xfirst2=integrated_grammage_opt(decayecef[valid_evs],firstintecef[valid_evs],delta)
+    Xnuclearcollision=Xnuclearcollision[valid_evs]
+    '''plt.figure(figsize=(7, 6))
+    plt.scatter(Xnuclearcollision, Xfirst2, alpha=0.6, s=10)
+    plt.plot([Xnuclearcollision.min(), Xnuclearcollision.max()],
+            [Xnuclearcollision.min(), Xnuclearcollision.max()],
+            'r--', label='y = x')
+    plt.xlabel('Sampled X_nuclear (g/cm²)')
+    plt.ylabel('Calculated Grammage (g/cm²)')
+    plt.title('Sampled vs Calculated Grammage')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('grammagetest.png')
+    '''
     with as_file(
         files("nuspacesim.data.CONEX_table")
         / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
@@ -411,37 +468,50 @@ def compute(
     remainingn=np.sum(valid_evs)
     X_builder = ak.ArrayBuilder()
     RN_builder = ak.ArrayBuilder()
+    all_ghparams = np.zeros((remainingn, 6))
 
-    idx = np.random.randint(low=0, high=CONEX_table.shape[0],size=remainingn)
-    Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx].T
-    shiftedXm=Xm-X0
-    XmaxOff = 58.0 * np.log10(EshowGeV / 1.0e8)
-    Nmax100 = 6.99e7
-    NmaxE = 0.045 * (1.0 + 0.0217 * np.log(EshowGeV / 1.0e5)) * EshowGeV / 0.074
-    Nmax = Nm * NmaxE / Nmax100
-    #Xmax = Xm + XmaxOff
-    shiftedXmax = shiftedXm + XmaxOff
-    xmaxecef=calculate_endpoint(decayecef[valid_evs], vecef[valid_evs], shiftedXmax)
-    idxmax=xmax_inside_fov(energies[valid_evs],groundecef[valid_evs],xmaxecef, id[valid_evs],ntels=1
-                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01)
-    id[id!=1]=idxmax
+    #exponential distribution with mean 61.3 g/cm^2
+    #https://pdg.lbl.gov/2024/AtomicNuclearProperties/HTML/air_dry_1_atm.html
 
-    finalvalid=(id!=1)
-    finalmask=(idxmax!=1)
-    xlimfactor=5
-    all_ghparams = np.zeros((np.sum(finalvalid), 6))
-    for i in range(np.sum(finalvalid)):
-        Nmaxi=Nmax[finalmask][i]
-        X0i=X0[finalmask][i]
-        shiftedX0i=0
-        shiftedXmaxi=shiftedXmax[finalmask][i]
-        shiftedp3i=p3[finalmask][i]
-        shiftedp2i=p2[finalmask][i]+2*p3[finalmask][i]*X0i
-        shiftedp1i=p1[finalmask][i]+p2[finalmask][i]*X0i+p3[finalmask][i]*X0i**2
-        x=np.arange(0,xlimfactor*shiftedXmaxi,10)
+    #plt.hist(Xnuclearcollision,bins=50)
+    #plt.title('Nuclear interaction length histogram')
+    #plt.xlabel('Slant depth (g/cm2)')
+    #plt.savefig('Xnuclearcollisionhist.png')
+    #print(np.mean(Xnuclearcollision),np.std(Xnuclearcollision))
+    Xfirst_fromcore=integrated_grammage_opt(groundecef,decayecef[valid_evs],delta)
+
+    Xfirstinteract=Xfirst_offline+Xnuclearcollision
+    xlimfactor=6
+
+    for i in range(remainingn):
+        idx = np.random.randint(low=0, high=CONEX_table.shape[0])
+        Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
+        shiftedX0=0
+        shiftedXm=Xm-X0
+        shiftedp3=p3
+        shiftedp2=p2+2*p3*X0
+        shiftedp1=p1+p2*X0+p3*X0**2
+        x=np.arange(0,xlimfactor*Xm,10)
+        """
+        t = np.zeros_like(X)
+        t = X/ (36.66)
+        Zair = (7.4)
+        ecrit = (0.710 / (Zair + 0.96))
+        greisen_beta = np.log(np.float64(EshowGeV) / np.float64(ecrit))
+        s = np.zeros_like(X)
+        s = (3) * t / (t + (2) * greisen_beta)
+
+        # Greisen  or  Gaisser-Hillas  Longitudinal Paramaterization
+        rn, mask, X0, Xmax, Nmax, p3, p2, p1 = particle_count(
+            mask=mask, t=t, s=s, greisen_beta=greisen_beta, gramsum=X, Eshow=EshowGeV
+        )
+
+        """
 
         # JFK : put in form from Tom Gaisser's book, pg: 238 - 239
-
+        Nmax100 = 6.99e7
+        NmaxE = 0.045 * (1.0 + 0.0217 * np.log(EshowGeV[i] / 1.0e5)) * EshowGeV[i] / 0.074
+        Nmax = Nm * NmaxE / Nmax100
 
         # the following from Gaisser leads to ~80 g/cm^2/decade elongation rate
         # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev
@@ -451,33 +521,68 @@ def compute(
         # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev gives in Egn 7 ~ 62 g/cm^2/decade
         #   use a single 58 g/cm^2 per decad e energy addition/subtraction,
         #   assume using only 100 PeV energy file for this to be correct
-        #XmaxOff = 58.0 * np.log10(EshowGeV[i] / 1.0e8)
+        XmaxOff = 58.0 * np.log10(EshowGeV[i] / 1.0e8)
         #Xmax = Xm + XmaxOff
-        #shiftedXmax = shiftedXm + XmaxOff
+        shiftedXmax = shiftedXm + XmaxOff
         #gh_lam = p1 + p2 * x + p3 * x * x
-        shiftedgh_lam = shiftedp1i + shiftedp2i * x + shiftedp3i * x * x   
+        shiftedgh_lam = shiftedp1 + shiftedp2 * x + shiftedp3 * x * x   
         #gh_lam[gh_lam > 100.0] = 100.0
         #gh_lam[gh_lam < 1.0e-5] = 1.0e-5
 
         #return particle_count, mask, X0, Xmax, Nmax, p3, p2, p1
-        shiftedghparams=np.array([shiftedX0i, shiftedXmaxi, Nmaxi, shiftedp3i, shiftedp2i, shiftedp1i])
+        shiftedghparams=np.array([shiftedX0, shiftedXmax, Nmax, shiftedp3, shiftedp2, shiftedp1])
         all_ghparams[i] = shiftedghparams
         #from .conex_out import GH
         #rn1 = gaisser_hillas_particle_count_exp_form(x, X0, Xmax, Nmax, gh_lam)
-        rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0i, shiftedXmaxi, Nmaxi, shiftedgh_lam)
+        rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
+        '''
+        plt.figure(figsize=(8, 6))
+        plt.plot(x, rn1, label='Original ', color='blue')
+        plt.plot(x, rn2, label='Shifted', color='red')
+        plt.xlabel('Depth (x) [g/cm²]')
+        plt.ylabel('Particle Count')
+        plt.yscale('log')
+        plt.title('Gaisser-Hillas Particle Count vs Depth')
+        plt.legend()
+        plt.grid(True)
+        print(Xmax-shiftedXmax, X0)
+        # Save the figure
+        plt.savefig('gaisser_hillas_plot.png', dpi=300, bbox_inches='tight')'''
 
+
+        #rn2=GH(x, X0, Xmax, Nmax, p3, p2, p1)
+        #print(rn,rn2)
+        #print(np.max(rn),np.max(rn2))
+        #exit()
+        #mask = ~((RN < 1) & (s > 1))
         mask = (rn >= 1)
-        x_values=x[mask]+Xfirstinteract[finalmask][i]
+        x_values=x[mask]+Xfirstinteract[i]
         rn_values=rn[mask]
         X_builder.append(x_values)
         RN_builder.append(rn_values)
 
 
-    conex_out(X_builder,RN_builder,id[finalvalid],groundecef[finalvalid]
-                ,beta_tr[finalvalid],energies[finalvalid],altDec[finalvalid]
-                ,azimuth[finalvalid],gpsarray[valid_energies_and_altdec][finalvalid]
-                ,nuE[valid_energies_and_altdec][finalvalid],tauExitProb[valid_energies_and_altdec][finalvalid]
-                ,all_ghparams,Xfirstinteract[finalmask],output_file, min_distance[finalvalid],rcut[finalvalid],xmaxecef[finalmask] )
+    #nRN = ak.to_numpy(ak.num(RN, axis=1))
+
+    #print(nRN)
+    logv("Computing [green] EAS Optical Cherenkov light.[/]")
+    #Conex=config.simulation.conex_output
+    '''numPEs, costhetaChEff, profilesOut, ghparams = eas(
+        beta_tr[valid_evs],
+        altDec[valid_evs],
+        showerEnergy[valid_evs],
+        init_lat,
+        init_long,
+        Conex,
+        cloudf=cloud,
+        #store=sw,
+        plot=to_plot,
+    )'''
+
+    conex_out(X_builder,RN_builder,idfinal[valid_evs],groundecef
+                ,beta_tr[valid_evs],energies[valid_evs],altDec[valid_evs]
+                ,azimuth[valid_evs],gpsarray[valid_energies_and_altdec][valid_evs]
+                ,nuE[valid_energies_and_altdec][valid_evs],tauExitProb[valid_energies_and_altdec][valid_evs],all_ghparams,Xfirstinteract,output_file, min_distance[valid_evs],rcut[valid_evs], pctinfov[valid_evs],firstintecef[valid_evs])
     """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

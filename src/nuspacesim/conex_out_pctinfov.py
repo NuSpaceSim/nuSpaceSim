@@ -16,7 +16,7 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
         (Xmax - X) / gh_lam)
 
-def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract,output_file, min_dist,rcut, xmaxecef):
+def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract,output_file, min_dist,rcut, pctinfov, firstintecef):
 
     X = X_builder.snapshot()
     RN = RN_builder.snapshot()
@@ -78,6 +78,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
 
     n=np.size(Zfirst)
 
+    hfirstinteract= altitude_from_ecef(firstintecef)  # in meters
 
     zenith = 90 + np.degrees(beta)
     dEdXratio=0.0025935  #0.0025935 when comparing with Conex. This paper says 0.00219, but for general cosmic ray, not electrons only. https://doi.org/10.1016/S0927-6505(00)00101-8 in GeV /
@@ -226,22 +227,14 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
             print(i)
     #plt.grid()
     #plt.yscale('log')
-    def get_filename(output_file):
-        if output_file.startswith("nuspacesim_run"):
-            filename = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
-    # strip .fits if present
-        if output_file.endswith(".fits"):
-            output_file = output_file[:-5]  # remove last 5 chars
-        if not output_file.endswith(".root"):
-            output_file = output_file + ".root"
-        
-        return output_file
+
     #plt.savefig('profilesvsslant.png')
     mask=(chi2>1) & (chi2==np.nan) & (chi2<=0)
     print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
-    filename= get_filename(output_file)
-    print('Generating conex-like output in ', filename)
+    filename = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
+    directory= output_file
+    print('Generating conex-like output in '+directory+filename)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)
     zoneletter = np.array([ord(letter) for letter in zoneletter], dtype=np.uint8)
@@ -322,13 +315,14 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "EGround": ('f4', (3,))
         , "mindist": np.dtype('f4')
         , "rcut": np.dtype('f4')
-        , "xmaxecef0": np.dtype('f4')
-        , "xmaxecef1": np.dtype('f4')
-        , "xmaxecef2": np.dtype('f4')
+        , "pctinfov": np.dtype('f4')
+        , "height_firstinteract": np.dtype('f4')
     }
 
-    f = uproot.recreate(filename)
+    f = uproot.recreate(directory+filename)
+    print(np.degrees(azim))
     shifted_azimuth = (azim + np.pi) % (2*np.pi)
+    print(np.degrees(shifted_azimuth))
     f.mktree("Header", branches_header, title="run header")
     f.mktree("Shower", branches_shower, title="shower info")
     f["Header"].extend({
@@ -404,8 +398,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "EGround": Eg
         , "mindist": min_dist
         , "rcut": rcut
-        , "xmaxecef0": xmaxecef[:,0]
-        , "xmaxecef1": xmaxecef[:,1]
-        , "xmaxecef2": xmaxecef[:,2]
+        , "pctinfov": pctinfov
+        , "height_firstinteract": hfirstinteract
     })
     f.close()

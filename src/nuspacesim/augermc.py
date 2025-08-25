@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 from numpy.polynomial import Polynomial
+from scipy.integrate import quad
+from scipy.optimize import root_scalar
 import scipy.integrate
 import pickle
 import os
@@ -634,7 +636,7 @@ def starting_point(coord,vcoord):
     # Handle cases with no sea-level intersection (D < 0)
     if np.any(~mask):
         # Adjust axes for 100 km height
-        h=100000-earth_safety_margin
+        h=99995-earth_safety_margin
         a_alt = a + h  # 100 km in meters
         b_alt = b + h
         a2_alt = a_alt**2
@@ -781,7 +783,7 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         identifier[index]=identifier[index]*code[i]
         mask1[mask1]=~inback2
         print(inback2.sum(),'Back Plane2. End. Leftover: ',mask1.sum())
-        print(f'Total Inside FoV for telescope {i} = ',np.count_nonzero(identifier%code[i]==0))
+        print(f'Total crossing FoV for telescope {i} = ',np.count_nonzero(identifier%code[i]==0))
 
 
 
@@ -806,6 +808,34 @@ _polyrho = Polynomial(
     domain=[0.0, 100.0],
 )
 # fmt: on
+heights_auger = np.array([
+    0, 1000, 2000, 3000, 4000, 5000, 6000,
+    7000, 8000, 9000, 10000, 11000, 12000, 13000,
+    14000, 15000, 16000, 17000, 18000, 19000, 20000,
+    21000, 22000, 23000, 24000, 25000, 26000, 27000,
+    28000, 29000, 30000, 100000
+], dtype=float)
+
+# densities (in g/cm^3) from XML
+densities_auger = np.array([
+    1.23e-03, 1.11e-03, 1.01e-03, 9.09e-04, 8.19e-04, 7.36e-04, 6.60e-04,
+    5.90e-04, 5.25e-04, 4.66e-04, 4.13e-04, 3.64e-04, 3.11e-04, 2.66e-04,
+    2.27e-04, 1.94e-04, 1.65e-04, 1.41e-04, 1.21e-04, 1.03e-04, 8.80e-05,
+    7.49e-05, 6.37e-05, 5.43e-05, 4.63e-05, 3.95e-05, 3.37e-05, 2.88e-05,
+    2.46e-05, 2.10e-05, 1.80e-05, 1.00e-09
+], dtype=float)
+
+
+def atmdensity_interpolation(height_km):
+    """
+    Interpolates atmospheric density at given height(s) in km.
+    Works for scalars or numpy arrays.
+    Returns density in g/cm^3.
+    """
+    h_m = np.asarray(height_km) * 1000.0  # convert km -> m
+    log_dens = np.log(densities_auger)
+    log_interp = np.interp(h_m, heights_auger, log_dens)
+    return np.exp(log_interp)
 def atmdensity(z):
     """
     Density (g/cm^3) parameterized from altitude (z) values
@@ -1174,7 +1204,6 @@ def integrated_grammage_opt(p_start, p_stop, delta_m):
     lengths = np.linalg.norm(dir_vec, axis=1)  # Shape (N,)
     nonzero = lengths > 1e-10
     dir_vec = np.where(nonzero[:, None], dir_vec / lengths[:, None], 0)  # Normalize, shape (N,3)
-    steps=0
     # Initialize arrays
     depths = np.zeros(N)        # Grammage for each path
     distances = np.zeros(N)     # Distance traversed for each path
@@ -1226,12 +1255,17 @@ def integrated_grammage_opt(p_start, p_stop, delta_m):
         # valid &= np.abs(cos_local_theta) > 1e-6
         
         # Calculate grammage at endpoints
-        depth_p1 = calculate_vertical_grammage_spline(height_p1,spline)  #CHECK THIS, BE CAREFUL
-        depth_p2 = calculate_vertical_grammage_spline(height_p2,spline)
-        depth1=calculate_vertical_grammage(height_p1)
-        depth2=calculate_vertical_grammage(height_p2)
+        #depth_p1 = calculate_vertical_grammage_spline(height_p1,spline)  #CHECK THIS, BE CAREFUL
+        #depth_p2 = calculate_vertical_grammage_spline(height_p2,spline)
+        depth_p1=calculate_vertical_grammage(height_p1)
+        depth_p2=calculate_vertical_grammage(height_p2)
+        dens=atmdensity_interpolation((height_p1+height_p2)*0.5)
+        #dens_p2=atmdensity_interpolation(height_p2)
+
         # Compute grammage contribution for this segment
-        contribution = (depth_p1 - depth_p2) / cos_local_theta
+        #contribution = (depth_p1 - depth_p2) / cos_local_theta
+        contribution=delta_now*100*dens #g/cm^2
+        
         contribution = np.where(valid, contribution, 0)
         
         # Accumulate contributions
@@ -1258,6 +1292,10 @@ def altitude_along_path_length(s, beta_tr, Re=earth_radius_centerlat, xp=np): #i
     return xp.sqrt(s**2 + 2.0 * s * Re * xp.sin(beta_tr) + Re**2) - Re
 
 def altitude_from_ecef(coordsecef):
+    coordsecef = np.asarray(coordsecef)
+    original_ndim = coordsecef.ndim
+    coordsecef = np.atleast_2d(coordsecef)
+
     a = 6378137.0  # Semi-major axis in meters
     b = 6356752.314245  # Semi-minor axis in meters
     mag = np.linalg.norm(coordsecef, axis=1)
@@ -1265,8 +1303,12 @@ def altitude_from_ecef(coordsecef):
     A = (direction[:, 0]**2 + direction[:, 1]**2) / a**2 + direction[:, 2]**2 / b**2
     t = 1 / np.sqrt(A)  
     seaprojectiondecayecef = t[:, np.newaxis] * direction
+    altitudes = np.linalg.norm(coordsecef - seaprojectiondecayecef, axis=1)
 
-    return np.linalg.norm(coordsecef-seaprojectiondecayecef, axis=1)
+    if original_ndim == 1:
+        return altitudes[0]
+
+    return altitudes
 
 def decay(groundecef,vecef, lgE):
     #get decay altitude
@@ -1450,3 +1492,103 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
         pctinfov[indexout_fov]=pctinfovoutside[accepted]
         print('TOTAL NUMBER OF EVENTS ACCEPTED: \n',(id%code[i]==0).sum())
     return id, pctinfov
+
+#def xmax_ecef(decayecef,xmax):
+
+def calculate_endpoint(start_pos, direction, grammage):
+    """
+    Calculate the end point in ECEF after travelling a given grammage along the direction.
+    start_pos: np.ndarray, shape (3,) or (N,3), ECEF position in meters
+    direction: np.ndarray, shape (3,) or (N,3), direction vector (will be normalized)
+    grammage: float or np.ndarray shape (N,), grammage in g/cm²
+    Returns end_pos: np.ndarray, shape (3,) or (N,3)
+    """
+    start_pos = np.atleast_2d(start_pos)
+    direction = np.atleast_2d(direction)
+    grammage = np.atleast_1d(grammage)
+    if grammage.shape[0] == 1:
+        grammage = np.repeat(grammage, start_pos.shape[0])
+    
+    N = start_pos.shape[0]
+    assert direction.shape[0] == N and grammage.shape[0] == N
+    
+    dir_norm = np.linalg.norm(direction, axis=1, keepdims=True)
+    unit_dir = direction / dir_norm
+    
+    density_scale = 1e6  # g/cm³ to g/m³
+    grammage_scale = 1e4  # g/cm² to g/m²
+    
+    end_points = np.full((N, 3), np.nan)  # fill with NaN by default
+
+    for i in range(N):
+        P = start_pos[i]
+        D = unit_dir[i]
+        target = grammage[i] * grammage_scale
+        
+        def density_at_t(t):
+            pos = P + t * D
+            height_m = altitude_from_ecef(pos)
+            height_m = np.maximum(height_m, 0.0)  # avoid negative heights
+            height_km = height_m / 1000.0
+            rho_g_cm3 = atmdensity_interpolation(height_km)
+            return rho_g_cm3 * density_scale
+        
+        def cumul_integral(s):
+            if s <= 0:
+                return 0.0
+            integ, _ = quad(density_at_t, 0, s, epsabs=1e-2, epsrel=1e-3)
+            return integ
+        
+        # Find upper bound for s
+        upper = 1000.0  # start with 1 km
+        max_upper = 1e7  # 10,000 km max
+        while cumul_integral(upper) < target and upper < max_upper:
+            upper *= 2
+        if upper < max_upper:  # solution exists
+            sol = root_scalar(lambda s: cumul_integral(s) - target,
+                              bracket=[0, upper], xtol=0.1)  # 0.1 m tolerance
+            s_found = sol.root
+            end_points[i] = P + s_found * D
+        else:
+            # no solution found, leave as NaN and mask[i]=False
+            pass
+    
+    if N == 1:
+        return end_points[0]
+    return end_points
+
+def xmax_inside_fov(lgE,groundecef,xmaxecef, id,ntels=1
+                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01):
+    code=[2,3,5,7]
+    eyevector=gen_eye_vectors(telphi,teltheta)
+
+    for i in range(ntels):#telpos.shape[0]
+        telextraangle=telangle+extraangle
+        thetatelsup=teltheta[2*i]+telextraangle
+        thetatelinf=teltheta[2*i]-telextraangle
+        teli=(id%code[i]==0)
+        energy=lgE[teli]
+        xmaxecefi=xmaxecef[teli]
+        groundecefi=groundecef[teli]
+
+        xmaxenui=eceftoenu(telposecef[i,:],xmaxecefi)
+
+
+        r=Rcutoff(energy)*radiusfactor
+        fovdist=r*(1+distfactor)
+        dgroundxmax=np.linalg.norm(xmaxecefi-groundecefi,axis=1)
+        dtelxmax=np.linalg.norm(xmaxecefi-telposecef[i],axis=1)
+        xmaxnorm=xmaxenui/np.linalg.norm(xmaxenui,axis=1,keepdims=True)
+        cosdphi=np.dot(xmaxnorm[:,0:2],eyevector[i,0:2])   #azimuth angle difference with center of telescope
+        theta=np.arccos(np.sqrt(xmaxnorm[:,0]**2+xmaxnorm[:,1]**2))*np.sign(xmaxnorm[:,2]) #elevation angle of intersection vector 
+        infov = ((cosdphi >= np.cos(exacttelangle*5 + telangle)) &
+                 (theta <= thetatelsup) &
+                 (theta >= thetatelinf) &
+                 (dtelxmax <= fovdist))        
+        nanmask = np.any(np.isnan(xmaxecefi), axis=1)
+        infov = infov & ~nanmask
+        index = np.arange(len(id))[teli][~infov] #for outside
+        print(f'Total with Xmax inside FoV for telescope {i}:', infov.sum())
+        id[index]=id[index]/code[i]
+
+    return id
