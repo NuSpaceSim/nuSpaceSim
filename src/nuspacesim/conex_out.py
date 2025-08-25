@@ -241,6 +241,8 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
     print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
     filename= get_filename(output_file)
+    filename=f"nss_n{n}_lgE{int(nuEmax[0])}.root"
+    directory=output_file
     print('Generating conex-like output in ', filename)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)
@@ -327,7 +329,7 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "xmaxecef2": np.dtype('f4')
     }
 
-    f = uproot.recreate(filename)
+    f = uproot.recreate(directory+filename)
     shifted_azimuth = (azim + np.pi) % (2*np.pi)
     f.mktree("Header", branches_header, title="run header")
     f.mktree("Shower", branches_shower, title="shower info")
