@@ -50,11 +50,25 @@ class UserShower:
     '''This is the implementation of the GH shower element'''
     X: np.ndarray
     Nch: np.ndarray
+    X_start: float
     element_type: str = field(init=False, default='shower', repr=False)
 
     def create(self) -> MakeUserShower:
         '''This method returns an instantiated user shower '''
-        return MakeUserShower(self.X, self.Nch)
+        return MakeUserShower(self.X, self.Nch, self.X_start)
+    
+@dataclass
+class GreisenShower:
+    '''This is the implementation of the Greisen shower element
+    '''
+    Egev: float
+    X_start: float
+    element_type: str = field(init=False, default='shower', repr=False)
+
+    def create(self) -> MakeGreisenShower:
+        '''This method returns an instantiated Greisen shower element.
+        '''
+        return MakeGreisenShower(self.Egev, self.X_start)
 
 @dataclass
 class CountersParamsContainer:

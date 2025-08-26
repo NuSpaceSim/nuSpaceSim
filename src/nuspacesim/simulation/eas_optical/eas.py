@@ -38,7 +38,7 @@ from astropy.constants import R_earth, c
 from ...config import NssConfig
 from ...utils import decorators
 from ..taus.taus import mean_Tau_life
-from .cphotang import CphotAng
+from .cphotang import CphotAng, ChasmCphotAng
 from .local_plots import eas_optical_density, eas_optical_histogram
 
 __all__ = ["EAS", "show_plot"]
@@ -53,10 +53,17 @@ class EAS:
 
     def __init__(self, config: NssConfig):
         self.config = config
-        self.CphotAng = CphotAng(
-            self.config.detector.initial_position.altitude,
-            self.config.simulation.eas_long_profile,
-        )
+        print(config.simulation.cherenkov_light_engine)
+        if config.simulation.cherenkov_light_engine == 'CHASM':
+            self.CphotAng = ChasmCphotAng(
+                self.config.detector.initial_position.altitude,
+                self.config.simulation.eas_long_profile,
+            )
+        else:
+            self.CphotAng = CphotAng(
+                self.config.detector.initial_position.altitude,
+                self.config.simulation.eas_long_profile,
+            )
 
     @decorators.nss_result_store("altDec", "lenDec")
     def altDec(self, beta, tauBeta, tauLorentz, u=None, *args, **kwargs):

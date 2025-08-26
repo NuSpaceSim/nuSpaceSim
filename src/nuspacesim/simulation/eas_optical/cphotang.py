@@ -46,6 +46,7 @@ import dask.bag as db
 import numpy as np
 from dask.diagnostics.progress import ProgressBar
 from numpy.polynomial import Polynomial
+# from scipy.spatial.transform import Rotation as R
 
 from .detector_geometry import distance_to_detector
 from .shower_properties import (
@@ -53,6 +54,8 @@ from .shower_properties import (
     particle_count_fluctuated_gaisser_hillas,
     particle_count_parameterized_gaisser_hillas,
 )
+from .user_inputs import *
+from .simulation import *
 
 # Wrapped in try-catch block as a hack to enable sphinx documentation to be generated
 # on ReadTheDocs without pre-compiling.
@@ -254,6 +257,8 @@ class CphotAng:
         self.zmax = self.orbit_height
         self.zMaxZ = self.dtype(65.0)
         self.RadE = self.dtype(6378.14)
+
+        self.longitudinal_profile_func = longitudinal_profile_func
 
         # Longitudinal Profile Funciton selection
         if longitudinal_profile_func == "Greisen":
@@ -703,7 +708,6 @@ class CphotAng:
         photonDen *= altitude_scaling
 
         Cang = np.degrees(AveCangI + CangsigI)
-
         return photonDen, Cang, profilesIn
 
     def __call__(
@@ -734,3 +738,115 @@ class CphotAng:
                 *b.map(lambda x: self.run(*x, conex, profilesIn, cloudf)).compute()
             )
         return np.asarray(Dphots), np.array(Cang), profilesOut
+
+def get_conex_table() -> np.ndarray:
+    with as_file(
+        files("nuspacesim.data.CONEX_table")
+        / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
+    ) as file:
+        CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
+        return CONEX_table
+
+def get_chasm_ckv(Eshow, zenith, azimuth, decay_alt_meters, det_alt_meters, minl, maxl, showertype: str):
+    
+    sim = ShowerSimulation()
+
+    # add axis
+    sim.add(UpwardAxis(zenith, azimuth,N_POINTS=500))
+
+    #get X_start at altitude
+    axis = sim.ingredients['axis']
+    decay_r = axis.h_to_axis_R_LOC(decay_alt_meters, zenith)
+    X_start = np.interp(decay_r, axis.r,axis.X)
+
+    # print(f'\nzenith: {np.degrees(zenith)} degrees\n')
+    # print(f'decay alt: {decay_alt_meters} m\n')
+    # print(f'decay r: {decay_r} m\n')
+    # print(f'start X: {X_start} g/cm^2')
+
+    # add shower
+    if showertype == 'Greisen':
+        sim.add(GreisenShower(Eshow, X_start))
+    elif showertype == 'Gaisser-Hillas Fluctuated':
+        conex_table = get_conex_table()
+        mask = np.full_like(axis.X, True, dtype=bool)
+        Nch, mask = particle_count_fluctuated_gaisser_hillas(conex_table,
+                                                          axis.X,
+                                                          Eshow,
+                                                          mask)
+        sim.add(UserShower(axis.X[mask], Nch, X_start))
+    else:
+        raise("not yet implemented")
+
+    
+    # add telescopes
+    n_side = 20
+    grid_width = 100000.
+    x = np.linspace(-grid_width, grid_width, n_side)
+    y = np.linspace(-grid_width, grid_width, n_side)
+    xx, yy = np.meshgrid(x,y)
+
+    r = axis.h_to_axis_R_LOC(det_alt_meters, zenith)
+
+    zz = np.full_like(xx, r) #convert altitude to m
+
+    vecs = np.vstack((xx.flatten(),yy.flatten(),zz.flatten())).T
+
+    theta_rot_axis = np.array([0,1,0])
+    theta_rotation = R.from_rotvec(theta_rot_axis * zenith)
+
+    z_rot_axis = np.array([0,0,1])
+    z_rotation = R.from_rotvec(z_rot_axis * np.pi/2)
+
+    vecs = z_rotation.apply(vecs)
+    tel_vecs = theta_rotation.apply(vecs)
+
+    # tel_vecs = np.array([[1625418.79100441, 0., 330703.49641416]])
+
+    sim.add(SphericalCounters(tel_vecs, np.sqrt(1/np.pi)))
+
+    # add wavelength interval
+    sim.add(Yield(minl,maxl, N_bins=5))
+
+    # run CHASM
+    sig = sim.run(mesh=False, att=True)
+    return sig
+
+class ChasmCphotAng(CphotAng):
+    """First attempt to rewrite this class.
+    """
+
+    def run(self, betaE, alt, Eshow100PeV, lat, long, conex, profilesIn, cloudf=None) -> ShowerSignal:
+        Eshow = self.dtype(Eshow100PeV * 1e8)  # GeV
+        altitude_meters = self.detector_altitude * 1.e3
+        decay_meters = alt * 1.e3
+        zenith = np.pi/2 - betaE
+        azimuth = 0 # for now
+        sig = get_chasm_ckv(Eshow, zenith, azimuth, decay_meters, altitude_meters, self.wave1.min(), self.wave1.max(), self.longitudinal_profile_func)
+
+        # get cloud mask
+        zs = sig.source_points[:,2]
+        # # Cloud top height
+        # cloud_top_height = cloudf(lat, long) if cloudf else -np.inf
+        # cloud_mask = zs < cloud_top_height
+
+        # get the same stuff that was previously returned from CHASM signal
+        gramsum = sig.axis.X
+        RN = sig.charged_particles
+        # sig.photons[cloud_mask] = 0.
+
+        # Sum over wavelengths
+        allphotons = sig.photons.sum(axis=1)
+        Cherenkov_angles = np.abs(sig.axis.zenith - np.arccos(sig.cos_theta.sum(axis = 1)))
+
+        photonDen = allphotons.sum(axis=-1).mean()
+        Cang = np.degrees(np.average(Cherenkov_angles, weights=allphotons))
+
+        # photonDen = sig.photons.sum(axis = -1).sum()
+        # Cang = np.abs(sig.axis.zenith - np.arccos(sig.cos_theta)).mean()
+
+        # add to conex and return the equivalent stuff
+        if conex:
+            profilesIn = ak.concatenate([profilesIn, [gramsum], [zs], [RN]], axis=0)
+        print(Cang)
+        return photonDen, Cang, profilesIn

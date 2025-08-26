@@ -41,10 +41,6 @@ class Shower(ABC):
     #     '''X0 property setter'''
     #     self._X0 = X0
 
-    @property
-    def tmax(self) -> float:
-        return self.X_max / self.X0
-
     def stage(self, X, X0=36.62):
         '''returns stage as a function of shower depth'''
         return (X-self.X_max)/X0
@@ -121,7 +117,7 @@ class MakeGHShower(Shower):
 class MakeUserShower(Shower):
     '''This is the implementation where a shower profile given by the user'''
 
-    def __init__(self,X: np.ndarray, Nch: np.ndarray):
+    def __init__(self,X: np.ndarray, Nch: np.ndarray, X_start: float = 0.):
         if X.size != Nch.size:
             raise ValueError('Input arrays are not the same size')
         self.input_X = X
@@ -129,6 +125,7 @@ class MakeUserShower(Shower):
         self.X_max = X[np.argmax(Nch)]
         self.N_max = np.rint( Nch.max() )
         self.X0 = X.min()
+        self.X_start = X_start
 
     def __repr__(self):
         return "UserShower(X_max={:.2f} g/cm^2, N_max={:.2f} particles, X0={:.2f} g/cm^2)".format(
@@ -168,4 +165,62 @@ class MakeUserShower(Shower):
         Returns:
             N: the shower size
         """
-        return np.interp(X, self.input_X, self.input_Nch, left = 0., right = 0.)
+        return np.interp(X - self.X_start, self.input_X, self.input_Nch, left = 0., right = 0.)
+    
+class MakeGreisenShower(Shower):
+    '''This is the implementation of a shower for the Greisen parameterization.
+    '''
+
+    def __init__(self, Egev: float, X_start: float, Zair: float = 7.4) -> None:
+        self.Egev = Egev
+        self.X_start = X_start
+        self.Zair = Zair
+        self.ecrit = 0.710 / (Zair + 0.96)
+        self.beta = np.log(self.Egev / self.ecrit)
+
+    @property
+    def beta(self):
+        '''beta getter'''
+        return self._beta
+
+    @beta.setter
+    def beta(self, beta):
+        '''beta property setter'''
+        if beta <= 0.:
+            raise ValueError("beta must be positive")
+        self._beta = beta
+
+    @property
+    def alpha(self) -> float:
+        '''Greisen alpha
+        '''
+        return 0.31 / np.sqrt(self.beta)
+    
+    @property
+    def N_max(self) -> float:
+        '''Nmax override
+        '''
+        return (.31/np.sqrt(self.beta))*np.exp(self.beta)
+    
+    @property
+    def X_max(self) -> float:
+        '''Xmax override
+        '''
+        return self.beta * self.X0
+
+    def profile(self, X: np.ndarray):
+        """Return the size of the shower at a slant-depth X
+
+        Parameters:
+            X: the slant depth at which to calculate the shower size [g/cm2]
+
+        Returns:
+            N: the shower size
+        """
+        t = (X - self.X_start) / self.X0
+        t[t<0] = 0
+        s = 3. * t / (t + 2. * self.beta)
+        s[s==0] = 1.e-5
+        Nch = self.alpha * np.exp( t * (1. - 1.5 * np.log(s)))
+        Nch[Nch < 0.] = 0.
+        return Nch
