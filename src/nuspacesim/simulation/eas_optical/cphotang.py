@@ -648,6 +648,7 @@ class CphotAng:
         zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum = self.valid_arrays(
             *self.slant_depth(alt, sinThetView), Eshow, conex
         )
+        print(zs)
         if conex:
             profilesIn = ak.concatenate([profilesIn, [gramsum], [zs], [RN]], axis=0)
 
@@ -780,7 +781,7 @@ def get_chasm_ckv(Eshow, zenith, azimuth, decay_alt_meters, det_alt_meters, minl
 
     
     # add telescopes
-    n_side = 20
+    n_side = 10
     grid_width = 100000.
     x = np.linspace(-grid_width, grid_width, n_side)
     y = np.linspace(-grid_width, grid_width, n_side)
@@ -809,7 +810,7 @@ def get_chasm_ckv(Eshow, zenith, azimuth, decay_alt_meters, det_alt_meters, minl
     sim.add(Yield(minl,maxl, N_bins=5))
 
     # run CHASM
-    sig = sim.run(mesh=False, att=True)
+    sig = sim.run(mesh=False, att=False)
     return sig
 
 class ChasmCphotAng(CphotAng):
@@ -825,7 +826,7 @@ class ChasmCphotAng(CphotAng):
         sig = get_chasm_ckv(Eshow, zenith, azimuth, decay_meters, altitude_meters, self.wave1.min(), self.wave1.max(), self.longitudinal_profile_func)
 
         # get cloud mask
-        zs = sig.source_points[:,2]
+        zs = sig.axis.altitude  * 1.e-3 #km
         # # Cloud top height
         # cloud_top_height = cloudf(lat, long) if cloudf else -np.inf
         # cloud_mask = zs < cloud_top_height
@@ -848,5 +849,5 @@ class ChasmCphotAng(CphotAng):
         # add to conex and return the equivalent stuff
         if conex:
             profilesIn = ak.concatenate([profilesIn, [gramsum], [zs], [RN]], axis=0)
-        print(Cang)
+        # print(Cang)
         return photonDen, Cang, profilesIn

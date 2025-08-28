@@ -118,10 +118,10 @@ def conex_out(data, profiles, output_file):
         init[0] = -0.30943336 * init[1]
         init[2] = y[max_pos]
         init[3:] = [1e-7, 4e-4, 44]
-
+        
         popt, pcov = curve_fit(GH, x, y, p0=init, maxfev=1000000)
         yfit = GH(x, *popt)
-
+        # print('here')
         # Calculate chi**2
         for j in range((yfit).size):
             chi2[i] += (y[j] - yfit[j]) ** 2 / (y[j])

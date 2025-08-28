@@ -16,7 +16,7 @@ class AxisParamContainer:
     ground_level: float = 0.
     curved: bool = True
     element_type: str = field(init=False, default='axis', repr=False)
-    maximum_altitude: float = 84852
+    maximum_altitude: float = 20000
     N_POINTS: int = 1000
     N_IN_RING: int = 3
     MIN_CHARGED_PARTICLES: float = 1.e-4 #number of charged particles for a step to be considered in cherenkov calcs as a fraction of Nmax
