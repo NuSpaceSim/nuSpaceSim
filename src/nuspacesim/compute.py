@@ -228,7 +228,7 @@ def compute(
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
         conex = config.simulation.conex_output
-        numPEs, costhetaChEff, profilesOut = eas(
+        numPEs, costhetaChEff, profilesOut, chersigs = eas(
             beta_tr,
             altDec,
             showerEnergy,
@@ -238,7 +238,6 @@ def compute(
             cloudf=cloud,
             plot=to_plot,
         )
-
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
             numPEs,
@@ -259,7 +258,7 @@ def compute(
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
         if conex:
-            conex_out(sim, profilesOut, output_file)
+            conex_out(sim, profilesOut, chersigs, output_file)
 
     if config.detector.radio.enable:
         logv("Computing [green] EAS Radio signal.[/]")

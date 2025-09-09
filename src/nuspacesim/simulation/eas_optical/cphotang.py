@@ -629,7 +629,7 @@ class CphotAng:
         CherArea = self.pi * np.power(CherArea, 2, dtype=self.dtype)
         return CherArea
 
-    def run(self, betaE, alt, Eshow100PeV, lat, long, conex, profilesIn, cloudf=None):
+    def run(self, betaE, alt, Eshow100PeV, lat, long, conex, profilesIn, chersigs, cloudf=None):
         """Main body of simulation code."""
 
         # Should we just skip these with a mask in valid_arrays?
@@ -648,7 +648,7 @@ class CphotAng:
         zs, delgram, ZonZ, ThetPrpA, AirN, s, RN, e2hill, gramsum = self.valid_arrays(
             *self.slant_depth(alt, sinThetView), Eshow, conex
         )
-        print(zs)
+
         if conex:
             profilesIn = ak.concatenate([profilesIn, [gramsum], [zs], [RN]], axis=0)
 
@@ -709,7 +709,7 @@ class CphotAng:
         photonDen *= altitude_scaling
 
         Cang = np.degrees(AveCangI + CangsigI)
-        return photonDen, Cang, profilesIn
+        return photonDen, Cang, profilesIn, chersigs
 
     def __call__(
         self, betaE, alt, Eshow100PeV, init_lat, init_long, conex, cloudf=None
@@ -729,16 +729,20 @@ class CphotAng:
             return np.empty([]), np.empty([])
 
         profilesIn = ak.Array([])
+        chersigsin = ak.Array([])
+
         #######################
         b = db.from_sequence(
             zip(betaE, alt, Eshow100PeV, init_lat, init_long),
             partition_size=100,
         )
+
         with ProgressBar():
-            Dphots, Cang, profilesOut = zip(
-                *b.map(lambda x: self.run(*x, conex, profilesIn, cloudf)).compute()
+            Dphots, Cang, profilesOut, chersigsout = zip(
+                *b.map(lambda x: self.run(*x, conex, profilesIn, chersigsin, cloudf)).compute()
             )
-        return np.asarray(Dphots), np.array(Cang), profilesOut
+
+        return np.asarray(Dphots), np.array(Cang), profilesOut, chersigsout
 
 def get_conex_table() -> np.ndarray:
     with as_file(
@@ -781,7 +785,7 @@ def get_chasm_ckv(Eshow, zenith, azimuth, decay_alt_meters, det_alt_meters, minl
 
     
     # add telescopes
-    n_side = 10
+    n_side = 5
     grid_width = 100000.
     x = np.linspace(-grid_width, grid_width, n_side)
     y = np.linspace(-grid_width, grid_width, n_side)
@@ -817,7 +821,7 @@ class ChasmCphotAng(CphotAng):
     """First attempt to rewrite this class.
     """
 
-    def run(self, betaE, alt, Eshow100PeV, lat, long, conex, profilesIn, cloudf=None) -> ShowerSignal:
+    def run(self, betaE, alt, Eshow100PeV, lat, long, conex, profilesIn, chersigs, cloudf=None) -> ShowerSignal:
         Eshow = self.dtype(Eshow100PeV * 1e8)  # GeV
         altitude_meters = self.detector_altitude * 1.e3
         decay_meters = alt * 1.e3
@@ -849,5 +853,11 @@ class ChasmCphotAng(CphotAng):
         # add to conex and return the equivalent stuff
         if conex:
             profilesIn = ak.concatenate([profilesIn, [gramsum], [zs], [RN]], axis=0)
+            chersigs = ak.concatenate([chersigs, [sig.counters.vectors],
+                                                 [sig.source_points],
+                                                 [sig.wavelengths],
+                                                 [sig.photons],
+                                                 [sig.times],
+                                                 [sig.cos_theta[:,0,:]]])
         # print(Cang)
-        return photonDen, Cang, profilesIn
+        return photonDen, Cang, profilesIn, chersigs

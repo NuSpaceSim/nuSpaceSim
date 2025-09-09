@@ -12,8 +12,7 @@ from .simulation.eas_optical.shower_properties import (
     slant_depth_trig_approx as slant_depth,
 )
 
-
-def conex_out(data, profiles, output_file):
+def conex_out(data, profiles, chersigs, output_file):
     def GH(X, X0, Xmax, Nmax, p3, p2, p1):
         return (
             Nmax
@@ -119,9 +118,14 @@ def conex_out(data, profiles, output_file):
         init[2] = y[max_pos]
         init[3:] = [1e-7, 4e-4, 44]
         
+        #Some CHASM profiles are masked out, with too few entries in profile arrays, making the fit fail
+        if len(x) <= len(init):
+            chi2[i], X0[i], Xmax[i], Nmax[i], p3[i], p2[i], p1[i], Xmx[i], Nmx[i], chi2[i] = (np.nan for j in range(10))
+            continue
+
         popt, pcov = curve_fit(GH, x, y, p0=init, maxfev=1000000)
         yfit = GH(x, *popt)
-        # print('here')
+        
         # Calculate chi**2
         for j in range((yfit).size):
             chi2[i] += (y[j] - yfit[j]) ** 2 / (y[j])
@@ -217,6 +221,8 @@ def conex_out(data, profiles, output_file):
 
     f.mktree("Header", branches_header, title="run header")
     f.mktree("Shower", branches_shower, title="shower info")
+    
+
     f["Header"].extend(
         {
             "Seed1": int4,
@@ -285,4 +291,42 @@ def conex_out(data, profiles, output_file):
             "EGround": Eg,
         }
     )
+
+    #write Cherenkov info to same root file
+    if not len(chersigs) == 0:
+
+        #loop through showers
+        for i,sig in enumerate(chersigs):
+            
+            #get shower info from awkward arrays
+            counter_pos = ak.values_astype(sig, np.float32)[0]
+            source_pos = ak.values_astype(sig, np.float32)[1]
+            wavelengths = ak.values_astype(sig, np.float32)[2]
+            photons = ak.values_astype(sig, np.float32)[3]
+            times = ak.values_astype(sig, np.float32)[4]
+            cos_theta = ak.values_astype(sig, np.float32)[5]
+
+            #write simulation configuration
+            shower_label = f"shower_{i}_Cherenkov"
+            f[f"{shower_label}/axis"] = {"x": source_pos[:,0],
+                                     "y": source_pos[:,1],
+                                     "z": source_pos[:,2],}
+            f[f"{shower_label}/wavelengths"] = {"wavelengths": wavelengths}
+            f[f"{shower_label}/detector_positions"] = {"x": counter_pos[0],
+                                                   "y": counter_pos[1],
+                                                   "z": counter_pos[2]}
+
+            #write Cherenkov signal arrays
+            
+            n_counters, n_wavelengths, n_axis_samples = np.shape(photons)
+
+            for j in range(n_counters):
+                signal_dict = {}
+                for k in range(n_wavelengths):
+                    signal_dict[f"photons_wl_{wavelengths[k]:.0f}nm"] = photons[j,k]
+                signal_dict[f"times"] = times[j]
+                signal_dict[f"cos_theta"] = cos_theta[j]
+
+                f[f"{shower_label}/detector_{j}_Cherenkov_signal"] = signal_dict
+            
     f.close()
