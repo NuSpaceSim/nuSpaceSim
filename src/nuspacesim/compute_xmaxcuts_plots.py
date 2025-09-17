@@ -323,303 +323,124 @@ def compute(
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
-    maxE = np.array(9 + np.max(log_e_nu))
-    nuE = np.array(9 + log_e_nu)
-    n = config.simulation.thrown_events
-    print('N=', n)
+    maxE=np.array(9+np.max(log_e_nu))
+    nuE=np.array(9+log_e_nu)
+    n=config.simulation.thrown_events
+    print('N=',n)
+    
+    #PARAMETERS
+    maxangle=np.radians(30)
+    radiusfactor=1
+    minshowerpct=35
+    energy_threshold=16
+    gpstime=1261872018  #Time at 1 Jan 2020 00:00:00 UTC
+    ntels=1
+    #PARAMETERS
 
-    # PARAMETERS
-    maxangle = np.radians(30)
-    radiusfactor = 1
-    minshowerpct = 35
-    energy_threshold = 16
-    gpstime = 1261872018  # Time at 1 Jan 2020 00:00:00 UTC
-    ntels = 1
-    # PARAMETERS
-
-    radius = roundcalcradius(maxE, radiusfactor)
-    groundecef, vecef, beta_tr, azimuth = gen_points(n, radius, maxang=maxangle)
+    radius=roundcalcradius(maxE,radiusfactor)
+    groundecef, vecef,beta_tr, azimuth=gen_points(n,radius,maxang=maxangle)
+    #groundenu=eceftoenu(centerecef,groundecef)
     if beta_tr.size == 0:
-        console.log("\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]")
+        console.log(
+            "\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]"
+        )
         return sim
 
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
         beta_tr, log_e_nu, store=sw, plot=to_plot
     )
-    energies = np.log10(tauEnergy) + 9
+    energies=np.log10(tauEnergy)+9
 
     logv("Computing [green] Decay Altitudes.[/]")
-    decayecef, altDec = decay(groundecef, vecef, energies)
-    gpsarray = np.arange(gpstime, gpstime + n)
-
-    # Initialize full trackers
-    cumulative_indices = np.arange(n)
-    id_full = np.full(n, 1, dtype=int)
-
-    # originals: full copies
-    originals = dict(
-        nuE=nuE.copy(),
-        energies=energies.copy(),
-        groundecef=groundecef.copy(),
-        vecef=vecef.copy(),
-        beta_tr=beta_tr.copy(),
-        showerEnergy=showerEnergy.copy(),
-        decayecef=decayecef.copy(),
-        altDec=altDec.copy(),
-        azimuth=azimuth.copy(),
-        gpsarray=gpsarray.copy(),
-        tauExitProb=tauExitProb.copy(),
-    )
-
-    # variables: working copies (initially full)
-    variables = {
-        k: v.copy() for k, v in originals.items()
-    }
-
-    # Helper to apply cut
-    def apply_cut(variables, mask):
-        return {k: v[mask] for k, v in variables.items()}
-
-    print('Calculating Shower Development cuts')
-
-    # Cut 1: energy threshold + altitude
-    maxalt=40
-    cut1 = (variables["energies"] > energy_threshold) & (variables["altDec"] < maxalt)
-    cumulative_indices = cumulative_indices[cut1]
-    variables = apply_cut(variables, cut1)
-    print(variables["energies"].size, f' Valid events over 10^16 eV and decay altitude < {maxalt} km')
-
-    # Compute Xnuclearcollision
-    meancollisionlength = 61.3
-    Xnuclearcollision = np.random.exponential(scale=meancollisionlength, size=len(variables["energies"]))
-    variables['Xnuclearcollision'] = Xnuclearcollision
-    delta=10
 
 
-    # Cut 2: trajectory inside telescope sphere
-    id_temp, int1, int2, min_distance, rcut = trajectory_inside_tel_sphere(
-        variables["energies"], variables["groundecef"], variables["vecef"], ntels, radiusfactor=radiusfactor
-    )
-    variables["min_distance"]=min_distance
-
-    id_full[cumulative_indices] = id_temp
-    cut2 = id_temp != 1
-    cumulative_indices = cumulative_indices[cut2]
-    variables = apply_cut(variables, cut2)
 
 
-    # Post-cut2 computations
-    #dist2EarthCenter = np.sqrt(variables['groundecef'][:, 0]**2 + variables['groundecef'][:, 1]**2 + variables['groundecef'][:, 2]**2)
-    #init_lat = np.arcsin(variables['groundecef'][:, 2] / dist2EarthCenter)
-    #init_lon = np.arctan2(variables['groundecef'][:, 1], variables['groundecef'][:, 0])
 
-    startingecef = starting_point(variables['groundecef'], variables['vecef'])
-    variables['startingecef'] = startingecef
 
-    Xfirst_offline = integrated_grammage_opt(variables['startingecef'], variables['decayecef'], delta)
-    variables['Xfirst_offline'] = Xfirst_offline
+    decayecef,altDec=decay(groundecef,vecef, energies)
+    #Make .root file of ALL events. Add all simulation parameters
+    
+    #Mask events with energies below 10^16 eV
+    gpsarray=np.arange(gpstime,gpstime+n)
+    #full_root_out(n,maxangle,nuE,energies,energy_threshold,groundecef,vecef,decayecef,altDec,beta_tr,azimuth,gpsarray,tauExitProb)
 
-    Xfirst_fromcore = integrated_grammage_opt(variables['groundecef'], variables['decayecef'], delta)
-    variables['Xfirst_fromcore'] = Xfirst_fromcore
+    valid_energies_and_altdec=(energies>energy_threshold)&(altDec<40)
+    energies=energies[valid_energies_and_altdec]
+    print(energies.size,' Valid events over 10^16 eV and decay altitude < 50 km')
+    groundecef=groundecef[valid_energies_and_altdec]
+    vecef=vecef[valid_energies_and_altdec]
+    beta_tr=beta_tr[valid_energies_and_altdec]
+    showerEnergy=showerEnergy[valid_energies_and_altdec]
+    decayecef=decayecef[valid_energies_and_altdec]
+    altDec=altDec[valid_energies_and_altdec]
+    azimuth=azimuth[valid_energies_and_altdec]
+    #sw(
+    #    ("init_lat", "init_lon"),
+    #    (init_lat, init_long),
+    #)
 
-    Xfirstinteract = variables['Xfirst_offline'] + variables['Xnuclearcollision']
-    variables['Xfirstinteract'] = Xfirstinteract
 
-    xlimfactor = 5
-    xstartecef_current = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision'])
-    xstartecef_atleast60 = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision']+200)
+    id,fullint1,fullint2, min_distance,rcut=trajectory_inside_tel_sphere(energies,groundecef,vecef,ntels,radiusfactor=radiusfactor)
+    meancollisionlength=61.3
+    Xnuclearcollision = np.random.exponential(scale=meancollisionlength, size=len(id))
+    
+    valid_evs=(id!=1)
 
-    _, pctinfov = decay_inside_fov(
-        originals["energies"],
-        originals["groundecef"],
-        originals["vecef"],
-        originals["beta_tr"],
-        xstartecef_current,
-        originals["altDec"]/1000,  # Assuming altDec needs conversion to km as in original loop
-        id_full.copy(),
-        int1,  # Assuming fullint1 is int1 from trajectory_inside_tel_sphere
-        int2,  # Assuming fullint2 is int2 from trajectory_inside_tel_sphere
-        ntels=1,
-        radiusfactor=1.01,
-        minshowerpct=5,
-        step=0.25,
-        diststep=50,
-        telphi=telphi,
-        teltheta=teltheta,
-        telangle=telangle
-    )
-    variables["pctinfov"]= pctinfov[cumulative_indices]
 
-    # Cut 3: start inside atmosphere
-    start_in_atm = ~np.isnan(xstartecef_atleast60).any(axis=1)
-    rejected_local_atm = ~start_in_atm
-    if np.any(rejected_local_atm):
-        rejected_global_atm = cumulative_indices[rejected_local_atm]
-        id_full[rejected_global_atm] = 1
-    cumulative_indices = cumulative_indices[start_in_atm]
-    variables = apply_cut(variables, start_in_atm)
-    variables['xstartecef'] = xstartecef_current[start_in_atm]
-    print(np.sum(rejected_local_atm), ' Start shower outside atmosphere')
-    # Post-cut3 (atm)
-    showerEnergy = variables['showerEnergy']
-    EshowGeV = (showerEnergy * 1e8)  # GeV
-    variables['EshowGeV'] = EshowGeV
+    startingecef=starting_point(groundecef[valid_evs],vecef[valid_evs])
+    delta=50
+
+    Xfirst_offline=integrated_grammage_opt(startingecef,decayecef[valid_evs],delta)
+    Xfirstinteract=Xfirst_offline+Xnuclearcollision[valid_evs]
+
 
     with as_file(
-        files("nuspacesim.data.CONEX_table") / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
+        files("nuspacesim.data.CONEX_table")
+        / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
     ) as file:
         CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
-
+        particle_count = (
+            lambda *args, **kwargs: particle_count_fluctuated_gaisser_hillas(
+                CONEX_table, *args, **kwargs
+            )
+        )
+    showerEnergy = showerEnergy[valid_evs]
+    EshowGeV = (showerEnergy * 1e8)  # GeV
+    remainingn=np.sum(valid_evs)
     X_builder = ak.ArrayBuilder()
     RN_builder = ak.ArrayBuilder()
 
-    remainingn = len(variables['xstartecef'])
-    ending_ecef = ending_point(variables['xstartecef'], variables['vecef'])
-    available_grammage = integrated_grammage_opt(variables['xstartecef'], ending_ecef, delta)
-    xmaxecef = np.full((remainingn, 3), 0.0)
-    n_e_array = np.zeros(remainingn)
-    all_ghparams = np.zeros((remainingn, 6))
-    xmax_outside_atm_counter = 0
-    xmax_outside_atm_and_trigg = 0
-    finalmask = np.zeros(remainingn, dtype=bool)
-    print('Start loop')
+    idx = np.random.randint(low=0, high=CONEX_table.shape[0],size=remainingn)
+    Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx].T
+    shiftedXm=Xm-X0
+    XmaxOff = 58.0 * np.log10(EshowGeV / 1.0e8)
+    Nmax100 = 6.99e7
+    NmaxE = 0.045 * (1.0 + 0.0217 * np.log(EshowGeV / 1.0e5)) * EshowGeV / 0.074
+    Nmax = Nm * NmaxE / Nmax100
+    #Xmax = Xm + XmaxOff
+    shiftedXmax = shiftedXm + XmaxOff
+    xmaxecef=calculate_endpoint(decayecef[valid_evs], vecef[valid_evs], shiftedXmax)
 
-    for i in range(remainingn):
-        idx = np.random.randint(low=0, high=CONEX_table.shape[0])
-        Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
-        shiftedX0 = 0
-        shiftedXm = Xm - X0
-        shiftedp3 = p3
-        shiftedp2 = p2 + 2 * p3 * X0
-        shiftedp1 = p1 + p2 * X0 + p3 * X0 ** 2
+    array=np.array([0,1,5,np.nan])
+    print(array<3)
+    print(array>3)
+    exit()
 
-        Nmax100 = 6.99e7
-        NmaxE = 0.045 * (1.0 + 0.0217 * np.log(variables['EshowGeV'][i] / 1.0e5)) * variables['EshowGeV'][i] / 0.074
-        Nmax = Nm * NmaxE / Nmax100
 
-        XmaxOff = 58.0 * np.log10(variables['EshowGeV'][i] / 1.0e8)
-        shiftedXmax = shiftedXm + XmaxOff
 
-        maxgramm = min(xlimfactor * shiftedXmax, available_grammage[i])
-        x = np.arange(0, maxgramm, 10)
+    xstart=calculate_endpoint(decayecef[valid_evs], vecef[valid_evs], Xnuclearcollision[valid_evs])
+    xend=calculate_endpoint(decayecef[valid_evs], vecef[valid_evs], shiftedXmax*2+Xnuclearcollision[valid_evs])
 
-        shiftedgh_lam = shiftedp1 + shiftedp2 * x + shiftedp3 * x * x
-        shiftedghparams = np.array([shiftedX0, shiftedXmax, Nmax, shiftedp3, shiftedp2, shiftedp1])
-        all_ghparams[i] = shiftedghparams
 
-        rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
-
-        code, n_e_per_m2 = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n_e=4e0)
-        global_i = cumulative_indices[i]
-        #id_full[global_i] = code   
-
-        if available_grammage[i] < shiftedXmax:
-            xmax_outside_atm_counter += 1
-            if code != 1:
-                xmax_outside_atm_and_trigg += 1
-                print('ATTENTION Xmax outside atmosphere', available_grammage[i], shiftedXmax)
-                print(code, n_e_per_m2)
-
-        if i % 1000 == 0:
-            print(f"Done {i}/{remainingn} ({remainingn - i} left)")
-        #if code == 1:
-        #    continue
-
-        xmaxecef[i, :] = calculate_endpoint(variables['xstartecef'][i], variables['vecef'][i], shiftedXmax)
-        n_e_array[i] = n_e_per_m2
-        finalmask[i] = True
-        mask = (rn > 0)#(rn >= 1)
-        if np.sum(mask)==0:
-            print(f"⚠️ Problem at i={i}")
-            print("X[i] =", x)
-            print("RN[i] =", rn)
-            print("type(X[i]) =", type(x))
-            print("len(X[i]) =", len(x) if hasattr(x, "__len__") else "scalar")
-            print("max_pos =", max_pos)
-        x_values = x[mask] + variables['Xfirstinteract'][i]
-        rn_values = rn[mask]
-        X_builder.append(x_values)
-        RN_builder.append(rn_values)
-
-    print(np.sum(id_full != 1), ' Events with shower development in view of detector')
-    print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
-    print(xmax_outside_atm_and_trigg, ' Events with Xmax outside atmosphere that still triggered')
-    print("Any n_e_per_m2 NaN?", np.any(np.isnan(n_e_array)),np.sum(np.isnan(n_e_array)))
-    logv("Computing [green] EAS Optical Cherenkov light.[/]")
-
-    final_local = np.flatnonzero(finalmask)
-    final_global = cumulative_indices[final_local]
-
-    #Cut calculation (not applied) for s=0, 1 or 2 inside FoV
-    xend=calculate_endpoint_grammarray(variables['xstartecef'][final_local],variables["vecef"][final_local], shiftedXmax*2)
-    gramm02inside=xmax_inside_fov_grams(variables["energies"][final_local],variables["groundecef"][final_local],xmaxecef[final_local, :], variables['xstartecef'][final_local],xend,id_full[final_global],ntels=1
+    idxmax=xmax_inside_fov(energies[valid_evs],groundecef[valid_evs],xmaxecef,id[valid_evs],ntels=1
                              ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01)
 
-    xmaxdistLL=np.linalg.norm(xmaxecef[final_local, :]-telposecef[0],axis=1)
+    #id[id!=1]=idxmax
+    finalvalid=(id!=1)
+    finalmask=(idxmax!=1)
 
-    # Adapted xmax_inside_fov call
-    xmaxinside = xmax_inside_fov(
-        variables["energies"][final_local],
-        variables["groundecef"][final_local],
-        xmaxecef[final_local,:],
-        id_full[final_global],
-        ntels=1,
-        distfactor=0.1,
-        extraangle=np.radians(2),
-        radiusfactor=1.01
-    )
-
-    print('Maximum Alt Decay:', np.max(variables['altDec'][final_local]))
-    conex_out(
-        X_builder, RN_builder,
-        id_full[final_global],
-        originals["groundecef"][final_global],
-        originals["beta_tr"][final_global],
-        originals["energies"][final_global],
-        originals["altDec"][final_global],
-        originals["azimuth"][final_global],
-        originals["gpsarray"][final_global],
-        originals["nuE"][final_global],
-        originals["tauExitProb"][final_global],
-        all_ghparams[final_local, :],
-        variables['Xfirstinteract'][final_local],
-        output_file,
-        xmaxecef[final_local, :],
-        variables['xstartecef'][final_local],
-        n_e_array[final_local],
-        variables["pctinfov"][final_local],
-        xmaxdistLL,
-        variables["min_distance"][final_local],
-        xmaxinside[final_local],
-        gramm02inside[final_local]
-        
-    )
-    """
-    # Full root out with full originals and final id (rejects=1, passers !=1)
-    full_root_out(
-        n, maxangle, originals["nuE"], originals["energies"], energy_threshold,
-        originals["groundecef"], originals["vecef"], originals["decayecef"],
-        originals["altDec"], originals["beta_tr"], originals["azimuth"],
-        originals["gpsarray"], originals["tauExitProb"],
-        id_full
-    )
-    """
-
-
-    """numPEs, costhetaChEff, profilesOut, ghparams = eas(
-        beta_tr[valid_evs],
-        altDec[valid_evs],
-        showerEnergy[valid_evs],
-        init_lat,
-        init_long,
-        Conex,
-        cloudf=cloud,
-        #store=sw,
-        plot=to_plot,
-    )
-
-    
     plt.figure(figsize=(12, 12),dpi=300)
     size=40e3
 
@@ -646,10 +467,221 @@ def compute(
 
     # Save the plot
     plt.tight_layout()
-    plt.savefig(f'allxmax_hist2d_energydep.png')
-    """
+    plt.savefig(f'allxmax_hist2d_og.png')
+    idbehindxmax=xmax_inside_fov_behindahead(energies[valid_evs],groundecef[valid_evs],xmaxecef, vecef[valid_evs],id[valid_evs],ntels=1
+                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01,margindist = 10000)
+    
+
+    #id[id!=1]=idbehindxmax
+    finalvalid=(id!=1)
+    finalmask=(idbehindxmax!=1)
+
+    plt.figure(figsize=(12, 12),dpi=300)
+    size=40e3
+
+    x_bins = np.linspace(0-size,0+size, 60)
+    y_bins = np.linspace(0-size,0+size, 60)
+    xmaxenu= eceftoenu(telposecef[0, :], xmaxecef)
+
+    # Create 2D histogram
+    hist, xedges, yedges, im = plt.hist2d(xmaxenu[finalmask,0], xmaxenu[finalmask,1], bins=[x_bins, y_bins], cmap='viridis', cmin=1)
+
+    # Add colorbar
+    plt.colorbar(im, label='Number of Events')# Add colorbar
+    plt.plot(0,0,color='red',marker='v',markersize=7,zorder=10)
+    #plt.plot(centerarray_respLL[0],centerarray_respLL[1],color='black',marker='x',markersize=5)
+    #plt.plot(cornereastenu, cornernorthenu, color='red', linewidth=0.5, label="UTM Zone 19H")
+    # Set labels and title
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
+    plt.title(f'scatter plot of all cores (n={len(xmaxecef[finalmask,0])})')
+    #plt.plot(LLangx_vals, LLangy_vals, 'r--', linewidth=0.5, label=f'LL line of sight')
+
+    plt.legend()
+    plt.gca().set_aspect('equal')
+
+    # Save the plot
+    plt.tight_layout()
+    plt.savefig(f'allxmax_hist2d_behind.png')
+
+    idinsidexmax=xmax_inside_fov_oneinside(energies[valid_evs],groundecef[valid_evs],xmaxecef, vecef[valid_evs],id[valid_evs],ntels=1
+                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01,margindist = 10000)
+
+    #id[id!=1]=idinsidexmax
+    finalvalid=(id!=1)
+    finalmask=(idinsidexmax!=1)
+
+    plt.figure(figsize=(12, 12),dpi=300)
+    size=40e3
+
+    x_bins = np.linspace(0-size,0+size, 60)
+    y_bins = np.linspace(0-size,0+size, 60)
+    xmaxenu= eceftoenu(telposecef[0, :], xmaxecef)
+
+    # Create 2D histogram
+    hist, xedges, yedges, im = plt.hist2d(xmaxenu[finalmask,0], xmaxenu[finalmask,1], bins=[x_bins, y_bins], cmap='viridis', cmin=1)
+
+    # Add colorbar
+    plt.colorbar(im, label='Number of Events')# Add colorbar
+    plt.plot(0,0,color='red',marker='v',markersize=7,zorder=10)
+    #plt.plot(centerarray_respLL[0],centerarray_respLL[1],color='black',marker='x',markersize=5)
+    #plt.plot(cornereastenu, cornernorthenu, color='red', linewidth=0.5, label="UTM Zone 19H")
+    # Set labels and title
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
+    plt.title(f'scatter plot of all cores (n={len(xmaxecef[finalmask,0])})')
+    #plt.plot(LLangx_vals, LLangy_vals, 'r--', linewidth=0.5, label=f'LL line of sight')
+
+    plt.legend()
+    plt.gca().set_aspect('equal')
+
+    # Save the plot
+    plt.tight_layout()
+    plt.savefig(f'allxmax_hist2d_inside.png')
+
+    idgramsxmax=xmax_inside_fov_grams(energies[valid_evs],groundecef[valid_evs],xmaxecef, xstart,xend,id[valid_evs],ntels=1
+                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01)
+
+    id[id!=1]=idgramsxmax
+    finalvalid=(id!=1)
+    finalmask=(idgramsxmax!=1)
+
+    plt.figure(figsize=(12, 12),dpi=300)
+    size=40e3
+
+    x_bins = np.linspace(0-size,0+size, 60)
+    y_bins = np.linspace(0-size,0+size, 60)
+    xmaxenu= eceftoenu(telposecef[0, :], xmaxecef)
+
+    # Create 2D histogram
+    hist, xedges, yedges, im = plt.hist2d(xmaxenu[finalmask,0], xmaxenu[finalmask,1], bins=[x_bins, y_bins], cmap='viridis', cmin=1)
+
+    # Add colorbar
+    plt.colorbar(im, label='Number of Events')# Add colorbar
+    plt.plot(0,0,color='red',marker='v',markersize=7,zorder=10)
+    #plt.plot(centerarray_respLL[0],centerarray_respLL[1],color='black',marker='x',markersize=5)
+    #plt.plot(cornereastenu, cornernorthenu, color='red', linewidth=0.5, label="UTM Zone 19H")
+    # Set labels and title
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
+    plt.title(f'scatter plot of all cores (n={len(xmaxecef[finalmask,0])})')
+    #plt.plot(LLangx_vals, LLangy_vals, 'r--', linewidth=0.5, label=f'LL line of sight')
+
+    plt.legend()
+    plt.gca().set_aspect('equal')
+
+    # Save the plot
+    plt.tight_layout()
+    plt.savefig(f'allxmax_hist2d_grams.png')
 
 
+
+    idpctinfov,_=decay_inside_fov(energies,groundecef,vecef,beta_tr,decayecef,altDec,id,fullint1,fullint2,ntels=1,radiusfactor=1.01,
+ minshowerpct=5,step=0.3, diststep=50, telphi=telphi,teltheta=teltheta,telangle=telangle)
+
+    #id[id!=1]=idpctinfov
+    #idtemp=id[id!=1]
+
+    finalvalid=(id!=1)
+    finalmask=(idpctinfov[valid_evs]!=1)
+
+    plt.figure(figsize=(12, 12),dpi=300)
+    size=40e3
+
+    x_bins = np.linspace(0-size,0+size, 60)
+    y_bins = np.linspace(0-size,0+size, 60)
+    xmaxenu= eceftoenu(telposecef[0, :], xmaxecef)
+
+    # Create 2D histogram
+    hist, xedges, yedges, im = plt.hist2d(xmaxenu[finalmask,0], xmaxenu[finalmask,1], bins=[x_bins, y_bins], cmap='viridis', cmin=1)
+
+    # Add colorbar
+    plt.colorbar(im, label='Number of Events')# Add colorbar
+    plt.plot(0,0,color='red',marker='v',markersize=7,zorder=10)
+    #plt.plot(centerarray_respLL[0],centerarray_respLL[1],color='black',marker='x',markersize=5)
+    #plt.plot(cornereastenu, cornernorthenu, color='red', linewidth=0.5, label="UTM Zone 19H")
+    # Set labels and title
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
+    plt.title(f'scatter plot of all cores (n={len(xmaxecef[finalmask,0])})')
+    #plt.plot(LLangx_vals, LLangy_vals, 'r--', linewidth=0.5, label=f'LL line of sight')
+
+    plt.legend()
+    plt.gca().set_aspect('equal')
+
+    # Save the plot
+    plt.tight_layout()
+    plt.savefig(f'allxmax_hist2d_pctinfov.png')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    idxmax=xmax_inside_fov(energies[valid_evs],groundecef[valid_evs],xmaxecef, id[valid_evs],ntels=1
+                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01)
+    id[id!=1]=idxmax
+
+    finalvalid=(id!=1)
+    finalmask=(idxmax!=1)
+    xlimfactor=5
+    all_ghparams = np.zeros((np.sum(finalvalid), 6))
+    for i in range(np.sum(finalvalid)):
+        Nmaxi=Nmax[finalmask][i]
+        X0i=X0[finalmask][i]
+        shiftedX0i=0
+        shiftedXmaxi=shiftedXmax[finalmask][i]
+        shiftedp3i=p3[finalmask][i]
+        shiftedp2i=p2[finalmask][i]+2*p3[finalmask][i]*X0i
+        shiftedp1i=p1[finalmask][i]+p2[finalmask][i]*X0i+p3[finalmask][i]*X0i**2
+        x=np.arange(0,xlimfactor*shiftedXmaxi,10)
+
+        # JFK : put in form from Tom Gaisser's book, pg: 238 - 239
+
+
+        # the following from Gaisser leads to ~80 g/cm^2/decade elongation rate
+        # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev
+        #  gives in Egn 3 ~ 85 g/cm^2/decade is for EM showers
+        #    Xmax = 36. * np.log(Eshow/0.074)
+        # HiRes Measurement:  R. U. Abbasi et al 2005 ApJ 622 910 : gives ~ 56 g/cm^2, Auger ~60 g/cm^2
+        # DOI:10.1103/RevModPhys.83.907, Letessier-Selvon & Stanev gives in Egn 7 ~ 62 g/cm^2/decade
+        #   use a single 58 g/cm^2 per decad e energy addition/subtraction,
+        #   assume using only 100 PeV energy file for this to be correct
+        #XmaxOff = 58.0 * np.log10(EshowGeV[i] / 1.0e8)
+        #Xmax = Xm + XmaxOff
+        #shiftedXmax = shiftedXm + XmaxOff
+        #gh_lam = p1 + p2 * x + p3 * x * x
+        shiftedgh_lam = shiftedp1i + shiftedp2i * x + shiftedp3i * x * x   
+        #gh_lam[gh_lam > 100.0] = 100.0
+        #gh_lam[gh_lam < 1.0e-5] = 1.0e-5
+
+        #return particle_count, mask, X0, Xmax, Nmax, p3, p2, p1
+        shiftedghparams=np.array([shiftedX0i, shiftedXmaxi, Nmaxi, shiftedp3i, shiftedp2i, shiftedp1i])
+        all_ghparams[i] = shiftedghparams
+        #from .conex_out import GH
+        #rn1 = gaisser_hillas_particle_count_exp_form(x, X0, Xmax, Nmax, gh_lam)
+        rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0i, shiftedXmaxi, Nmaxi, shiftedgh_lam)
+
+        mask = (rn >= 1)
+        x_values=x[mask]+Xfirstinteract[finalmask][i]
+        rn_values=rn[mask]
+        X_builder.append(x_values)
+        RN_builder.append(rn_values)
+
+
+    conex_out(X_builder,RN_builder,id[finalvalid],groundecef[finalvalid]
+                ,beta_tr[finalvalid],energies[finalvalid],altDec[finalvalid]
+                ,azimuth[finalvalid],gpsarray[valid_energies_and_altdec][finalvalid]
+                ,nuE[valid_energies_and_altdec][finalvalid],tauExitProb[valid_energies_and_altdec][finalvalid]
+                ,all_ghparams,Xfirstinteract[finalmask],output_file, min_distance[finalvalid],rcut[finalvalid],xmaxecef[finalmask] )
     """
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

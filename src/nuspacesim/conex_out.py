@@ -15,8 +15,13 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
 
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
         (Xmax - X) / gh_lam)
-
-def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsarray,NuEnergy,tauExitProb, ghparams, Xfirstinteract,output_file, min_dist,rcut, xmaxecef):
+        
+def conex_out(X_builder,RN_builder,id,groundecef
+                ,beta,TauEnergy,Zfirst,azim,gpsarray
+                ,NuEnergy,tauExitProb, ghparams
+                , Xfirstinteract,output_file
+                , xmaxecef,xstartecef,n_tel_array
+                ,pctinfov,xmaxdistLL,mindist,xmaxinside,gramm02inside):
 
     X = X_builder.snapshot()
     RN = RN_builder.snapshot()
@@ -142,13 +147,23 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
             chi2[i] += (RN[i][j] - yfitorig[j]) ** 2 / (RN[i][j])
 
 
-        chi2[i] =chi2[i] / (len(X[i]) - 6) 
+        chi2[i] =chi2[i] / max((len(X[i]) - 6),1)
         X0[i]=shiftedparams[i,0]
         Xmax[i]=shiftedparams[i,1]
         Nmax[i]=shiftedparams[i,2]
         p3[i]=shiftedparams[i,3]
         p2[i]=shiftedparams[i,4]
         p1[i]=shiftedparams[i,5]
+        try:
+            Xmx[i] = X[i][max_pos]
+            Nmx[i] = RN[i][max_pos]
+        except Exception as e:
+            print(f"⚠️ Problem at i={i}")
+            print("X[i] =", X[i])
+            print("type(X[i]) =", type(X[i]))
+            print("len(X[i]) =", len(X[i]) if hasattr(X[i], "__len__") else "scalar")
+            print("max_pos =", max_pos)
+            raise
         Xmx[i]=X[i,max_pos]
         Nmx[i]=RN[i,max_pos]
 
@@ -226,23 +241,25 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
             print(i)
     #plt.grid()
     #plt.yscale('log')
+    print(output_file)
     def get_filename(output_file):
-        if output_file.startswith("nuspacesim_run"):
-            filename = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
+        #if output_file.startswith("nuspacesim_run"):
+        #    filename = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
     # strip .fits if present
         if output_file.endswith(".fits"):
-            output_file = output_file[:-5]  # remove last 5 chars
-        if not output_file.endswith(".root"):
-            output_file = output_file + ".root"
+            output_file = ""#output_file[:-5]  # remove last 5 chars
+        #if not output_file.endswith(".root"):
+        #    output_file = output_file + ".root"
         
         return output_file
     #plt.savefig('profilesvsslant.png')
     mask=(chi2>1) & (chi2==np.nan) & (chi2<=0)
     print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
-    filename= get_filename(output_file)
+    output_file= get_filename(output_file)
     filename=f"nss_n{n}_lgE{int(nuEmax[0])}.root"
     directory=output_file
+    print(directory,filename,directory+filename)
     print('Generating conex-like output in ', filename)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)
@@ -322,13 +339,21 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "Hadrons": 'var * float32'
         , "dMu": 'var * float32'
         , "EGround": ('f4', (3,))
-        , "mindist": np.dtype('f4')
-        , "rcut": np.dtype('f4')
+        #, "mindist": np.dtype('f4')
+        #, "rcut": np.dtype('f4')
         , "xmaxecef0": np.dtype('f4')
         , "xmaxecef1": np.dtype('f4')
         , "xmaxecef2": np.dtype('f4')
+        , "xstartecef0": np.dtype('f4')
+        , "xstartecef1": np.dtype('f4')
+        , "xstartecef2": np.dtype('f4')
+        , "n_tel": np.dtype('f4')
+        , "pctinfov": np.dtype('f4')
+        , "xmaxdistLL": np.dtype('f4')
+        , "mindist": np.dtype('f4')
+        , "xmaxinside": np.dtype('f4')
+        , "gramm02inside": np.dtype('f4')
     }
-
     f = uproot.recreate(directory+filename)
     shifted_azimuth = (azim + np.pi) % (2*np.pi)
     f.mktree("Header", branches_header, title="run header")
@@ -404,10 +429,19 @@ def conex_out(X_builder,RN_builder,id,groundecef,beta,TauEnergy,Zfirst,azim,gpsa
         , "Hadrons": Xempty # Xempty
         , "dMu": Xempty  # Xempty
         , "EGround": Eg
-        , "mindist": min_dist
-        , "rcut": rcut
+        #, "mindist": min_dist
+        #, "rcut": rcut
         , "xmaxecef0": xmaxecef[:,0]
         , "xmaxecef1": xmaxecef[:,1]
         , "xmaxecef2": xmaxecef[:,2]
+        , "xstartecef0": xstartecef[:,0]
+        , "xstartecef1": xstartecef[:,1]
+        , "xstartecef2": xstartecef[:,2]
+        , "n_tel": n_tel_array
+        , "pctinfov": pctinfov
+        , "xmaxdistLL": xmaxdistLL
+        , "mindist": mindist
+        , "xmaxinside": xmaxinside
+        , "gramm02inside": gramm02inside
     })
     f.close()

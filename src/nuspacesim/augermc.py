@@ -2,8 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 from numpy.polynomial import Polynomial
-from scipy.integrate import quad
+from scipy.integrate import quad, cumulative_trapezoid
 from scipy.optimize import root_scalar
+from scipy.interpolate import interp1d
 import scipy.integrate
 import pickle
 import os
@@ -214,7 +215,7 @@ LLecef=latlongtoECEF(LLlat,LLlong,LLheight)
 LMecef=latlongtoECEF(LMlat,LMlong,LMheight)
 LAecef=latlongtoECEF(LAlat,LAlong,LAheight)
 COecef=latlongtoECEF(COlat,COlong,COheight)
-#centerecef=latlongtoECEF(mean_lat,mean_long,h)
+centerecef=latlongtoECEF(mean_lat,mean_long,h)
 telposecef=np.array([LLecef,LMecef,LAecef,COecef])
 telheight=[LLheight,LMheight,LAheight,COheight]
 tellat=[LLlat,LMlat,LAlat,COlat]
@@ -536,7 +537,7 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
 #Take random point in hemisphere (surface). Returns points in the ground and vectors pointing up
 def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
     #33% more because we remove 1/4 bcs of FoV. 10% more to make sure we reach the intended n with maxang
-    ninit=int((1+1/3)*2*n/np.sin(maxang)) #
+    ninit=int((1+1/3)*1.5*n/np.sin(maxang)) #
     xr=np.random.normal(size=(ninit))
     yr=np.random.normal(size=(ninit))
     zr=np.random.normal(size=(ninit))
@@ -550,7 +551,7 @@ def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
     yv=np.random.normal(size=(ninit))
     zv=np.random.normal(size=(ninit))
     norm=1/np.sqrt((xv**2+yv**2+zv**2))
-    print('Empezar ',ninit)
+    print('Start ',ninit)
     x2=xv*r*norm
     y2=yv*r*norm
     z2=zv*r*norm
@@ -565,7 +566,7 @@ def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
     inearth2=WGS84ellipse_scaledh(coord2ecef)
     #round earth gives ~0.3% more events from horizontal showers at 10**19 eV
     maskfov=~((inearth1<1)&(inearth2<1))  #invalid trajectory since its not crossing the field of view
-    print('En FoV ', maskfov.sum())
+    print('In FoV ', maskfov.sum())
     coordecef=coord1ecef[maskfov]
     vcoordecef=(coord2ecef[maskfov]-coordecef)/ np.linalg.norm((coord2ecef[maskfov]-coordecef), axis=1, keepdims=True)
 
@@ -606,7 +607,7 @@ def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
     sign = np.sign(np.sum(cross_prod* normal,axis=1))
     azimuth = np.where(sign >= 0, theta, 2*np.pi - theta)
     beta=np.pi/2-np.arccos(dotprod)
-    print('Cortan Tierra, ',beta.size)
+    print('Cut the Earth, ',beta.size)
     return groundecef,vcoord, beta, azimuth
 
 def starting_point(coord,vcoord):
@@ -655,6 +656,34 @@ def starting_point(coord,vcoord):
         startingecef[~mask] = coord[~mask] + t_alt[:, np.newaxis] * vcoord[~mask]
 
     return startingecef
+
+def ending_point(coord,vcoord):
+    atmheight=99995
+    a = 6378137.0 + atmheight # semi-major axis
+    b = 6356752.314245 + atmheight # semi-minor axis
+    a2 = a**2
+    b2 = b**2
+    c2=vcoord[:,0]**2/a2+vcoord[:,1]**2/a2+vcoord[:,2]**2/b2
+    c1=2*(vcoord[:,0]*coord[:,0]/a2+vcoord[:,1]*coord[:,1]/a2+vcoord[:,2]*coord[:,2]/b2)
+    c0=coord[:,0]**2/a2+coord[:,1]**2/a2+coord[:,2]**2/b2-1
+    D=c1**2-4*c2*c0
+
+
+    #always take bigger t because traj is upward -> starting point is lower and moves in correct direction
+    # Initialize output array
+    ending_ecef = np.zeros_like(coord)
+    t = np.zeros(coord.shape[0])
+
+    # Mask for cases with valid sea-level intersection (D >= 0)
+    mask = D >= 0
+        # For sea-level intersection, use larger t (upward trajectory)
+    t[mask] = (-c1[mask] + np.sqrt(c1[mask]**2 - 4 * c2[mask] * c0[mask])) / (2 * c2[mask])
+    ending_ecef[mask] = coord[mask] + t[mask, np.newaxis] * vcoord[mask]
+    if np.any(~mask):
+        print('ERROR, trajectory does not exit atmosphere')
+        exit()
+
+    return ending_ecef
 def gen_eye_vectors(telphi, teltheta):  #Vector that points to the center of FoV of the telescope (~15deg elevation, center of azimuth)
     LLvector=[np.cos(teltheta[0])*np.cos(telphi[0]),np.cos(teltheta[0])*np.sin(telphi[0]),np.sin(teltheta[0])]
     LMvector=[np.cos(teltheta[2])*np.cos(telphi[2]),np.cos(teltheta[2])*np.sin(telphi[2]),np.sin(teltheta[2])]
@@ -1339,7 +1368,7 @@ def decay_inside_fov(lgE,groundecef,vecef,beta,decayecef,altdec, id,fullint1,ful
     for i in range(ntels):#telpos.shape[0]
         teli=(id%code[i]==0)
         energy=lgE[teli]
-        decayecefi=decayecef[teli]
+        decayecefi=decayecef#[teli]
         vecefi=vecef[teli]
         betai=beta[teli]
         altdeci=altdec[teli]
@@ -1557,6 +1586,134 @@ def calculate_endpoint(start_pos, direction, grammage):
         return end_points[0]
     return end_points
 
+def calculate_endpoint_grammarray(start_pos, direction, grammage):
+    """
+    Calculate the end point in ECEF after travelling a given grammage along the direction.
+    start_pos: np.ndarray, shape (3,) or (N,3), ECEF position in meters
+    direction: np.ndarray, shape (3,) or (N,3), direction vector (will be normalized)
+    grammage: float or np.ndarray shape (M,) or (N,), grammage in g/cm²
+    Returns end_pos: np.ndarray, shape (3,) or (N,3) or (M,3)
+    """
+    start_pos = np.atleast_2d(start_pos)
+    direction = np.atleast_2d(direction)
+    grammage = np.atleast_1d(grammage)
+    if grammage.shape[0] == 1:
+        grammage = np.repeat(grammage, start_pos.shape[0])
+    
+    N = start_pos.shape[0]
+    assert direction.shape[0] == N
+    
+    dir_norm = np.linalg.norm(direction, axis=1, keepdims=True)
+    unit_dir = direction / dir_norm
+    
+    density_scale = 1e6  # g/cm³ to g/m³
+    grammage_scale = 1e4  # g/cm² to g/m²
+    
+    # Special case: single path (N=1), multiple grammages (M>1)
+    if N == 1 and grammage.shape[0] > 1:
+        M = grammage.shape[0]
+        P = start_pos[0]
+        D = unit_dir[0]
+        grammage = grammage.flatten()  # Ensure (M,)
+        
+        def density_at_t(t):
+            pos = P + t * D
+            height_m = altitude_from_ecef(pos)
+            height_m = np.maximum(height_m, 0.0)
+            height_km = height_m / 1000.0
+            rho_g_cm3 = atmdensity_interpolation(height_km)
+            return rho_g_cm3 * density_scale
+        
+        max_target = np.max(grammage) * grammage_scale
+        
+        cumul_integral = lambda s: quad(density_at_t, 0, s, epsabs=1e-1, epsrel=1e-2)[0] if s > 0 else 0.0
+        # Find upper bound for s
+        upper = 1000.0  # start with 1 km
+        max_upper = 1e7  # 10,000 km max
+        current_cumul = cumul_integral(upper)
+        
+        while upper < max_upper and current_cumul < max_target:
+            prev_cumul = current_cumul
+            upper *= 2
+            if upper > max_upper:
+                upper = max_upper
+            current_cumul = cumul_integral(upper)
+            increment = current_cumul - prev_cumul
+            if increment < 1e-3:
+                upper /= 2
+                current_cumul = prev_cumul
+                break
+        
+        # Dense grid for integration and interpolation
+        num_points = 10000  # Adjust for accuracy vs. speed
+        s_grid = np.linspace(0, upper, num_points)
+        
+        # Vectorized density computation
+        pos_grid = P[None, :] + s_grid[:, None] * D[None, :]  # (num_points, 3)
+        height_m = altitude_from_ecef(pos_grid)
+        height_m = np.maximum(height_m, 0.0)
+        height_km = height_m / 1000.0
+        rho_g_cm3 = atmdensity_interpolation(height_km)
+        rho_g_m3 = rho_g_cm3 * density_scale
+        
+        # Cumulative integral (g/m²)
+        cumul_g_m2 = cumulative_trapezoid(rho_g_m3, s_grid, initial=0)
+        
+        # Interpolator: s as function of cumulative grammage (g/m²)
+        interp_s = interp1d(cumul_g_m2, s_grid, kind='linear', bounds_error=False, fill_value=(0, np.nan))
+        
+        # Compute s for each target
+        targets = grammage * grammage_scale
+        s_found = interp_s(targets)
+        
+        # Compute end points
+        end_points = P[None, :] + s_found[:, None] * D[None, :]
+        
+        if M == 1:
+            return end_points[0]
+        return end_points
+    
+    # Original case: loop over N (multiple paths, each with own grammage)
+    else:
+        assert grammage.shape[0] == N
+        end_points = np.full((N, 3), np.nan)
+        
+        for i in range(N):
+            P = start_pos[i]
+            D = unit_dir[i]
+            target = grammage[i] * grammage_scale
+            
+            def density_at_t(t):
+                pos = P + t * D
+                height_m = altitude_from_ecef(pos)
+                height_m = np.maximum(height_m, 0.0)
+                height_km = height_m / 1000.0
+                rho_g_cm3 = atmdensity_interpolation(height_km)
+                return rho_g_cm3 * density_scale
+            
+            def cumul_integral(s):
+                if s <= 0:
+                    return 0.0
+                integ, _ = quad(density_at_t, 0, s, epsabs=1e-2, epsrel=1e-3)
+                return integ
+            
+            # Find upper bound for s
+            upper = 1000.0
+            max_upper = 1e7
+            while cumul_integral(upper) < target and upper < max_upper:
+                upper *= 2
+            if upper < max_upper:
+                sol = root_scalar(lambda s: cumul_integral(s) - target,
+                                  bracket=[0, upper], xtol=0.1)
+                s_found = sol.root
+                end_points[i] = P + s_found * D
+        
+        if N == 1:
+            return end_points[0]
+        return end_points
+
+
+
 def xmax_inside_fov(lgE,groundecef,xmaxecef, id,ntels=1
                              ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01):
     code=[2,3,5,7]
@@ -1592,3 +1749,237 @@ def xmax_inside_fov(lgE,groundecef,xmaxecef, id,ntels=1
         id[index]=id[index]/code[i]
 
     return id
+
+def xmax_inside_fov_behindahead(lgE, groundecef, xmaxecef, vecef, id, ntels=1,
+                    distfactor=0.1, extraangle=np.radians(2), radiusfactor=1.01,margindist = 10000):
+    code = [2, 3, 5, 7]
+    eyevector = gen_eye_vectors(telphi, teltheta)
+
+    def check_in_fov(xmaxenu, xmaxecef, i, energy, fovdist, thetatelinf, thetatelsup):
+        """Return in-azimuth, in-elevation, in-radius for a given ENU vector"""
+        dtelxmax = np.linalg.norm(xmaxecef - telposecef[i], axis=1)
+        xmaxnorm = xmaxenu / np.linalg.norm(xmaxenu, axis=1, keepdims=True)
+
+        cosdphi = np.dot(xmaxnorm[:, 0:2], eyevector[i, 0:2])  
+        theta = np.arccos(np.sqrt(xmaxnorm[:, 0]**2 + xmaxnorm[:, 1]**2)) * np.sign(xmaxnorm[:, 2])
+
+        inazim = (cosdphi >= np.cos(exacttelangle*5 + telangle))
+        inelev = (theta <= thetatelsup) & (theta >= thetatelinf)
+        inradius = (dtelxmax <= fovdist)
+
+        return inazim, inelev, inradius
+
+    for i in range(ntels):  # telpos.shape[0]
+        telextraangle = telangle + extraangle
+        thetatelsup = teltheta[2*i] + telextraangle
+        thetatelinf = teltheta[2*i] - telextraangle
+        teli = (id % code[i] == 0)
+        energy = lgE[teli]
+        vecefi = vecef[teli]
+        xmaxecefi = xmaxecef[teli]
+        groundecefi = groundecef[teli]
+
+        # ahead/behind positions
+        
+        xmaxahead = xmaxecefi + vecefi * margindist
+        xmaxbehind = xmaxecefi - vecefi * margindist
+
+        # convert to ENU
+        xmaxenui      = eceftoenu(telposecef[i, :], xmaxecefi)
+        xmaxaheadenu  = eceftoenu(telposecef[i, :], xmaxahead)
+        xmaxbehindenu = eceftoenu(telposecef[i, :], xmaxbehind)
+
+        r = Rcutoff(energy) * radiusfactor
+        fovdist = r * (1 + distfactor)
+
+        # evaluate all three cases
+        inazim1, inelev1, inradius1 = check_in_fov(xmaxenui, xmaxecefi, i, energy, fovdist, thetatelinf, thetatelsup)
+        inazim2, inelev2, inradius2 = check_in_fov(xmaxaheadenu, xmaxahead, i, energy, fovdist, thetatelinf, thetatelsup)
+        inazim3, inelev3, inradius3 = check_in_fov(xmaxbehindenu, xmaxbehind, i, energy, fovdist, thetatelinf, thetatelsup)
+
+        # combine with OR (any true is enough)
+        inazim   = inazim1   | inazim2   | inazim3
+        inelev   = inelev1   | inelev2   | inelev3
+        inradius = inradius1 | inradius2 | inradius3
+        infov = inazim & inelev & inradius
+
+        # exclude NaNs
+        nanmask = np.any(np.isnan(xmaxecefi), axis=1)
+        infov = infov & ~nanmask
+
+        index = np.arange(len(id))[teli][~infov]  # outside
+        print(f'Total with Xmax inside FoV for telescope {i}:', infov.sum())
+        id[index] = id[index] / code[i]
+
+    return id
+
+def xmax_inside_fov_oneinside(lgE, groundecef, xmaxecef, vecef, id, ntels=1,
+                    distfactor=0.1, extraangle=np.radians(2), radiusfactor=1.01,margindist = 10000):
+    code = [2, 3, 5, 7]
+    eyevector = gen_eye_vectors(telphi, teltheta)
+
+    for i in range(ntels):
+        telextraangle = telangle + extraangle
+        thetatelsup   = teltheta[2*i] + telextraangle
+        thetatelinf   = teltheta[2*i] - telextraangle
+        teli          = (id % code[i] == 0)
+
+        energy        = lgE[teli]
+        vecefi        = vecef[teli]
+        xmaxecefi     = xmaxecef[teli]
+        groundecefi   = groundecef[teli]
+
+        # ahead/behind positions
+        xmax_all = np.stack([
+            xmaxecefi,
+            xmaxecefi + vecefi * margindist,
+            xmaxecefi - vecefi * margindist
+        ], axis=0)   # shape (3, N, 3)
+
+        # convert to ENU for all 3
+        xmaxenu_all = np.array([eceftoenu(telposecef[i, :], x) for x in xmax_all])
+
+        r       = Rcutoff(energy) * radiusfactor
+        fovdist = r * (1 + distfactor)
+
+        # compute normalized directions
+        xmaxnorm = xmaxenu_all / np.linalg.norm(xmaxenu_all, axis=2, keepdims=True)
+
+        cosdphi = np.einsum("ijk,k->ij", xmaxnorm[:, :, 0:2], eyevector[i, 0:2])
+        theta   = np.arccos(np.sqrt(xmaxnorm[:, :, 0]**2 + xmaxnorm[:, :, 1]**2)) * np.sign(xmaxnorm[:, :, 2])
+
+        dtelxmax = np.linalg.norm(xmax_all - telposecef[i], axis=2)
+
+        inazim   = cosdphi >= np.cos(exacttelangle*5 + telangle)
+        inelev   = (theta <= thetatelsup) & (theta >= thetatelinf)
+        inradius = dtelxmax <= fovdist
+
+        # OR across the 3 cases (axis=0)
+        infov = (inazim & inelev & inradius).any(axis=0)
+
+        # exclude NaNs
+        nanmask = np.any(np.isnan(xmaxecefi), axis=1)
+        infov   = infov & ~nanmask
+
+        index = np.arange(len(id))[teli][~infov]
+        print(f'Total with Xmax inside FoV for telescope {i}:', infov.sum())
+        id[index] = id[index] / code[i]
+
+    return id
+
+def xmax_inside_fov_grams(lgE, groundecef, xmaxecef, xstart,xend, id, ntels=1,
+                    distfactor=0.1, extraangle=np.radians(2), radiusfactor=1.01):
+    code = [2, 3, 5, 7]
+    eyevector = gen_eye_vectors(telphi, teltheta)
+
+    for i in range(ntels):
+        telextraangle = telangle + extraangle
+        thetatelsup   = teltheta[2*i] + telextraangle
+        thetatelinf   = teltheta[2*i] - telextraangle
+        teli          = (id % code[i] == 0)
+
+        energy        = lgE[teli]
+        xmaxecefi     = xmaxecef[teli]
+
+        xmax_all = [
+            xmaxecefi,
+            xend,
+            xstart
+        ]
+
+        r       = Rcutoff(energy) * radiusfactor
+        fovdist = r * (1 + distfactor)
+
+        # initialize OR accumulators (lenient logic)
+        inazim_total   = np.zeros(len(xmaxecefi), dtype=bool)
+        inelev_total   = np.zeros(len(xmaxecefi), dtype=bool)
+        inradius_total = np.zeros(len(xmaxecefi), dtype=bool)
+
+        for xmax in xmax_all:
+            xmaxenu  = eceftoenu(telposecef[i, :], xmax)
+            dtelxmax = np.linalg.norm(xmax - telposecef[i], axis=1)
+            xmaxnorm = xmaxenu / np.linalg.norm(xmaxenu, axis=1, keepdims=True)
+
+            cosdphi = np.dot(xmaxnorm[:, 0:2], eyevector[i, 0:2])
+            theta   = np.arccos(np.sqrt(xmaxnorm[:, 0]**2 + xmaxnorm[:, 1]**2)) * np.sign(xmaxnorm[:, 2])
+
+            inazim   = cosdphi >= np.cos(exacttelangle*5 + telangle)
+            inelev   = (theta <= thetatelsup) & (theta >= thetatelinf)
+            inradius = dtelxmax <= fovdist
+
+            inazim_total   |= inazim
+            inelev_total   |= inelev
+            inradius_total |= inradius
+
+        infov = inazim_total & inelev_total & inradius_total
+
+        nanmask = np.any(np.isnan(xmaxecefi), axis=1)
+        infov   = infov & ~nanmask
+
+        index = np.arange(len(id))[teli][~infov]
+        print(f'Total with Xmax inside FoV for telescope {i}:', infov.sum())
+        id[index] = id[index] / code[i]
+
+    return id
+
+
+
+def energy_at_tel(xstartecef, vecef, x, rn, min_n_e=1e1,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
+    code=[2,3,5,7]
+    codeout=1
+    n_e_per_m2=0
+    eyevector=gen_eye_vectors(telphi,teltheta)
+
+    for i in range(ntels):#telpos.shape[0]
+
+        xstartenu=eceftoenu(telposecef[i,:],xstartecef)
+        coordsecef=calculate_endpoint_grammarray(xstartecef, vecef, x)
+        coordsecef=np.atleast_2d(coordsecef)
+        coordsenu=eceftoenu(telposecef[i,:],coordsecef)
+        centerenu=eceftoenu(telposecef[i,:],centerecef)
+
+        telextraangle=telangle+extraangle
+        thetatelsup=teltheta[2*i]+telextraangle
+        thetatelinf=teltheta[2*i]-telextraangle
+        nan_mask = np.isnan(coordsecef)
+        coordsnorm=coordsenu/np.linalg.norm(coordsenu,axis=1,keepdims=True)
+        cosdphi=np.dot(coordsnorm[:,0:2],eyevector[i,0:2])   #azimuth angle difference with center of telescope
+        theta=np.arccos(np.sqrt(coordsnorm[:,0]**2+coordsnorm[:,1]**2))*np.sign(coordsnorm[:,2]) #elevation angle of intersection vector 
+        infov = ((cosdphi >= np.cos(exacttelangle*5 + telextraangle)) &
+                 (theta <= thetatelsup) &
+                 (theta >= thetatelinf))
+
+        if infov.sum()==0:
+            continue
+        
+        disttel=np.linalg.norm(coordsecef[infov]-telposecef[i],axis=1)
+
+        n_e_per_m2=max(n_e_per_m2,10*np.sum(rn[infov]/disttel**2)/4/np.pi)
+        #print(disttel,rn[infov],n_e_per_m2)
+        if n_e_per_m2>=min_n_e:
+            codeout=codeout*code[i]
+
+    return codeout, n_e_per_m2
+
+
+def summarize_mask(mask):
+    runs = []
+    current_val = mask[0]
+    count = 1
+    for val in mask[1:]:
+        if val == current_val:
+            count += 1
+        else:
+            runs.append((count, current_val))
+            current_val = val
+            count = 1
+    runs.append((count, current_val))
+    return ", ".join(f"{n} × {v}" for n, v in runs)
+
+def count_true_segments(mask):
+    """Return how many contiguous True segments there are in a boolean array."""
+    if mask.size == 0:
+        return 0
+    # Find transitions: False→True
+    transitions = (mask[1:] & ~mask[:-1])
+    return transitions.sum() + (mask[0] == True)

@@ -384,11 +384,10 @@ def compute(
     print('Calculating Shower Development cuts')
 
     # Cut 1: energy threshold + altitude
-    maxalt=40
-    cut1 = (variables["energies"] > energy_threshold) & (variables["altDec"] < maxalt)
+    cut1 = (variables["energies"] > energy_threshold) & (variables["altDec"] < 25)
     cumulative_indices = cumulative_indices[cut1]
     variables = apply_cut(variables, cut1)
-    print(variables["energies"].size, f' Valid events over 10^16 eV and decay altitude < {maxalt} km')
+    print(variables["energies"].size, ' Valid events over 10^16 eV and decay altitude < 40 km')
 
     # Compute Xnuclearcollision
     meancollisionlength = 61.3
@@ -401,13 +400,10 @@ def compute(
     id_temp, int1, int2, min_distance, rcut = trajectory_inside_tel_sphere(
         variables["energies"], variables["groundecef"], variables["vecef"], ntels, radiusfactor=radiusfactor
     )
-    variables["min_distance"]=min_distance
-
     id_full[cumulative_indices] = id_temp
     cut2 = id_temp != 1
     cumulative_indices = cumulative_indices[cut2]
     variables = apply_cut(variables, cut2)
-
 
     # Post-cut2 computations
     #dist2EarthCenter = np.sqrt(variables['groundecef'][:, 0]**2 + variables['groundecef'][:, 1]**2 + variables['groundecef'][:, 2]**2)
@@ -428,31 +424,9 @@ def compute(
 
     xlimfactor = 5
     xstartecef_current = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision'])
-    xstartecef_atleast60 = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision']+200)
-
-    _, pctinfov = decay_inside_fov(
-        originals["energies"],
-        originals["groundecef"],
-        originals["vecef"],
-        originals["beta_tr"],
-        xstartecef_current,
-        originals["altDec"]/1000,  # Assuming altDec needs conversion to km as in original loop
-        id_full.copy(),
-        int1,  # Assuming fullint1 is int1 from trajectory_inside_tel_sphere
-        int2,  # Assuming fullint2 is int2 from trajectory_inside_tel_sphere
-        ntels=1,
-        radiusfactor=1.01,
-        minshowerpct=5,
-        step=0.25,
-        diststep=50,
-        telphi=telphi,
-        teltheta=teltheta,
-        telangle=telangle
-    )
-    variables["pctinfov"]= pctinfov[cumulative_indices]
 
     # Cut 3: start inside atmosphere
-    start_in_atm = ~np.isnan(xstartecef_atleast60).any(axis=1)
+    start_in_atm = ~np.isnan(xstartecef_current).any(axis=1)
     rejected_local_atm = ~start_in_atm
     if np.any(rejected_local_atm):
         rejected_global_atm = cumulative_indices[rejected_local_atm]
@@ -460,7 +434,7 @@ def compute(
     cumulative_indices = cumulative_indices[start_in_atm]
     variables = apply_cut(variables, start_in_atm)
     variables['xstartecef'] = xstartecef_current[start_in_atm]
-    print(np.sum(rejected_local_atm), ' Start shower outside atmosphere')
+    print(np.sum(rejected_local_atm), ' Start shower outside')
     # Post-cut3 (atm)
     showerEnergy = variables['showerEnergy']
     EshowGeV = (showerEnergy * 1e8)  # GeV
@@ -510,9 +484,9 @@ def compute(
 
         rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
 
-        code, n_e_per_m2 = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n_e=4e0)
+        code, n_e_per_m2 = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n=4e0)
         global_i = cumulative_indices[i]
-        #id_full[global_i] = code   
+        id_full[global_i] = code
 
         if available_grammage[i] < shiftedXmax:
             xmax_outside_atm_counter += 1
@@ -523,20 +497,13 @@ def compute(
 
         if i % 1000 == 0:
             print(f"Done {i}/{remainingn} ({remainingn - i} left)")
-        #if code == 1:
-        #    continue
+        if code == 1:
+            continue
 
         xmaxecef[i, :] = calculate_endpoint(variables['xstartecef'][i], variables['vecef'][i], shiftedXmax)
         n_e_array[i] = n_e_per_m2
         finalmask[i] = True
-        mask = (rn > 0)#(rn >= 1)
-        if np.sum(mask)==0:
-            print(f"⚠️ Problem at i={i}")
-            print("X[i] =", x)
-            print("RN[i] =", rn)
-            print("type(X[i]) =", type(x))
-            print("len(X[i]) =", len(x) if hasattr(x, "__len__") else "scalar")
-            print("max_pos =", max_pos)
+        mask = (rn >= 1)
         x_values = x[mask] + variables['Xfirstinteract'][i]
         rn_values = rn[mask]
         X_builder.append(x_values)
@@ -550,26 +517,6 @@ def compute(
 
     final_local = np.flatnonzero(finalmask)
     final_global = cumulative_indices[final_local]
-
-    #Cut calculation (not applied) for s=0, 1 or 2 inside FoV
-    xend=calculate_endpoint_grammarray(variables['xstartecef'][final_local],variables["vecef"][final_local], shiftedXmax*2)
-    gramm02inside=xmax_inside_fov_grams(variables["energies"][final_local],variables["groundecef"][final_local],xmaxecef[final_local, :], variables['xstartecef'][final_local],xend,id_full[final_global],ntels=1
-                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01)
-
-    xmaxdistLL=np.linalg.norm(xmaxecef[final_local, :]-telposecef[0],axis=1)
-
-    # Adapted xmax_inside_fov call
-    xmaxinside = xmax_inside_fov(
-        variables["energies"][final_local],
-        variables["groundecef"][final_local],
-        xmaxecef[final_local,:],
-        id_full[final_global],
-        ntels=1,
-        distfactor=0.1,
-        extraangle=np.radians(2),
-        radiusfactor=1.01
-    )
-
     print('Maximum Alt Decay:', np.max(variables['altDec'][final_local]))
     conex_out(
         X_builder, RN_builder,
@@ -587,13 +534,7 @@ def compute(
         output_file,
         xmaxecef[final_local, :],
         variables['xstartecef'][final_local],
-        n_e_array[final_local],
-        variables["pctinfov"][final_local],
-        xmaxdistLL,
-        variables["min_distance"][final_local],
-        xmaxinside[final_local],
-        gramm02inside[final_local]
-        
+        n_e_array[final_local]
     )
     """
     # Full root out with full originals and final id (rejects=1, passers !=1)
