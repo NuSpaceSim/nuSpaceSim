@@ -814,7 +814,7 @@ def get_chasm_ckv(Eshow, zenith, azimuth, decay_alt_meters, det_alt_meters, minl
     sim.add(Yield(minl,maxl, N_bins=5))
 
     # run CHASM
-    sig = sim.run(mesh=False, att=False)
+    sig = sim.run(mesh=False, att=True)
     return sig
 
 class ChasmCphotAng(CphotAng):
