@@ -312,9 +312,9 @@ def conex_out(data, profiles, chersigs, output_file):
                                      "y": source_pos[:,1],
                                      "z": source_pos[:,2],}
             f[f"{shower_label}/wavelengths"] = {"wavelengths": wavelengths}
-            f[f"{shower_label}/detector_positions"] = {"x": counter_pos[0],
-                                                   "y": counter_pos[1],
-                                                   "z": counter_pos[2]}
+            f[f"{shower_label}/detector_positions"] = {"x": counter_pos[:,0],
+                                                   "y": counter_pos[:,1],
+                                                   "z": counter_pos[:,2]}
 
             #write Cherenkov signal arrays
             
