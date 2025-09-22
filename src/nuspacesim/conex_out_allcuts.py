@@ -21,7 +21,7 @@ def conex_out(X_builder,RN_builder,id,groundecef
                 ,NuEnergy,tauExitProb, ghparams
                 , Xfirstinteract,output_file
                 , xmaxecef,xstartecef,n_tel_array
-                ):
+                ,pctinfov,xmaxdistLL,mindist,xmaxinside,gramm02inside):
 
     X = X_builder.snapshot()
     RN = RN_builder.snapshot()
@@ -241,6 +241,7 @@ def conex_out(X_builder,RN_builder,id,groundecef
             print(i)
     #plt.grid()
     #plt.yscale('log')
+    print(output_file)
     def get_filename(output_file):
         #if output_file.startswith("nuspacesim_run"):
         #    filename = f"nss_n{n}_lgE{int(nuEmax[0])}.root"
@@ -253,12 +254,12 @@ def conex_out(X_builder,RN_builder,id,groundecef
         return output_file
     #plt.savefig('profilesvsslant.png')
     mask=(chi2>1) & (chi2==np.nan) & (chi2<=0)
-    #print('bad chi2 ',chi2[mask])
+    print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
     output_file= get_filename(output_file)
     filename=f"nss_n{n}_lgE{int(nuEmax[0])}.root"
     directory=output_file
-    #print(directory,filename,directory+filename)
+    print(directory,filename,directory+filename)
     print('Generating conex-like output in ', filename)
     #print('Number of masked events Xfirst ', xfirsthigh,'Profile incomplete ',nmasked-xfirsthigh,' total= ',nmasked)
     print('Number of valid events ', n)
@@ -347,6 +348,11 @@ def conex_out(X_builder,RN_builder,id,groundecef
         , "xstartecef1": np.dtype('f4')
         , "xstartecef2": np.dtype('f4')
         , "n_tel": np.dtype('f4')
+        , "pctinfov": np.dtype('f4')
+        , "xmaxdistLL": np.dtype('f4')
+        , "mindist": np.dtype('f4')
+        , "xmaxinside": np.dtype('f4')
+        , "gramm02inside": np.dtype('f4')
     }
     f = uproot.recreate(directory+filename)
     shifted_azimuth = (azim + np.pi) % (2*np.pi)
@@ -432,5 +438,10 @@ def conex_out(X_builder,RN_builder,id,groundecef
         , "xstartecef1": xstartecef[:,1]
         , "xstartecef2": xstartecef[:,2]
         , "n_tel": n_tel_array
+        , "pctinfov": pctinfov
+        , "xmaxdistLL": xmaxdistLL
+        , "mindist": mindist
+        , "xmaxinside": xmaxinside
+        , "gramm02inside": gramm02inside
     })
     f.close()

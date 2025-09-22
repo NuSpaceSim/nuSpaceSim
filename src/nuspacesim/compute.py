@@ -384,7 +384,7 @@ def compute(
     print('Calculating Shower Development cuts')
 
     # Cut 1: energy threshold + altitude
-    maxalt=40
+    maxalt=35
     cut1 = (variables["energies"] > energy_threshold) & (variables["altDec"] < maxalt)
     cumulative_indices = cumulative_indices[cut1]
     variables = apply_cut(variables, cut1)
@@ -401,13 +401,10 @@ def compute(
     id_temp, int1, int2, min_distance, rcut = trajectory_inside_tel_sphere(
         variables["energies"], variables["groundecef"], variables["vecef"], ntels, radiusfactor=radiusfactor
     )
-    variables["min_distance"]=min_distance
-
     id_full[cumulative_indices] = id_temp
     cut2 = id_temp != 1
     cumulative_indices = cumulative_indices[cut2]
     variables = apply_cut(variables, cut2)
-
 
     # Post-cut2 computations
     #dist2EarthCenter = np.sqrt(variables['groundecef'][:, 0]**2 + variables['groundecef'][:, 1]**2 + variables['groundecef'][:, 2]**2)
@@ -428,31 +425,10 @@ def compute(
 
     xlimfactor = 5
     xstartecef_current = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision'])
-    xstartecef_atleast60 = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision']+200)
-
-    _, pctinfov = decay_inside_fov(
-        originals["energies"],
-        originals["groundecef"],
-        originals["vecef"],
-        originals["beta_tr"],
-        xstartecef_current,
-        originals["altDec"]/1000,  # Assuming altDec needs conversion to km as in original loop
-        id_full.copy(),
-        int1,  # Assuming fullint1 is int1 from trajectory_inside_tel_sphere
-        int2,  # Assuming fullint2 is int2 from trajectory_inside_tel_sphere
-        ntels=1,
-        radiusfactor=1.01,
-        minshowerpct=5,
-        step=0.25,
-        diststep=50,
-        telphi=telphi,
-        teltheta=teltheta,
-        telangle=telangle
-    )
-    variables["pctinfov"]= pctinfov[cumulative_indices]
+    xstartecef_atleast100 = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision']+100)
 
     # Cut 3: start inside atmosphere
-    start_in_atm = ~np.isnan(xstartecef_atleast60).any(axis=1)
+    start_in_atm = ~np.isnan(xstartecef_atleast100).any(axis=1)
     rejected_local_atm = ~start_in_atm
     if np.any(rejected_local_atm):
         rejected_global_atm = cumulative_indices[rejected_local_atm]
@@ -483,6 +459,7 @@ def compute(
     xmax_outside_atm_counter = 0
     xmax_outside_atm_and_trigg = 0
     finalmask = np.zeros(remainingn, dtype=bool)
+    min_n=10
     print('Start loop')
 
     for i in range(remainingn):
@@ -510,9 +487,9 @@ def compute(
 
         rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
 
-        code, n_e_per_m2 = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n_e=4e0)
+        code, n_e_per_m2 = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n)
         global_i = cumulative_indices[i]
-        #id_full[global_i] = code   
+        id_full[global_i] = code
 
         if available_grammage[i] < shiftedXmax:
             xmax_outside_atm_counter += 1
@@ -523,53 +500,25 @@ def compute(
 
         if i % 1000 == 0:
             print(f"Done {i}/{remainingn} ({remainingn - i} left)")
-        #if code == 1:
-        #    continue
+        if code == 1:
+            continue
 
         xmaxecef[i, :] = calculate_endpoint(variables['xstartecef'][i], variables['vecef'][i], shiftedXmax)
         n_e_array[i] = n_e_per_m2
         finalmask[i] = True
-        mask = (rn > 0)#(rn >= 1)
-        if np.sum(mask)==0:
-            print(f"⚠️ Problem at i={i}")
-            print("X[i] =", x)
-            print("RN[i] =", rn)
-            print("type(X[i]) =", type(x))
-            print("len(X[i]) =", len(x) if hasattr(x, "__len__") else "scalar")
-            print("max_pos =", max_pos)
+        mask = (rn > 0)
         x_values = x[mask] + variables['Xfirstinteract'][i]
         rn_values = rn[mask]
         X_builder.append(x_values)
         RN_builder.append(rn_values)
 
-    print(np.sum(id_full != 1), ' Events with shower development in view of detector')
-    print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
-    print(xmax_outside_atm_and_trigg, ' Events with Xmax outside atmosphere that still triggered')
+    print(np.sum(id_full != 1), ' Events with enough shower development in view of detector')
+    #print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
+    #print(xmax_outside_atm_and_trigg, ' Events with Xmax outside atmosphere that still triggered')
     print("Any n_e_per_m2 NaN?", np.any(np.isnan(n_e_array)),np.sum(np.isnan(n_e_array)))
-    logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
     final_local = np.flatnonzero(finalmask)
     final_global = cumulative_indices[final_local]
-
-    #Cut calculation (not applied) for s=0, 1 or 2 inside FoV
-    xend=calculate_endpoint_grammarray(variables['xstartecef'][final_local],variables["vecef"][final_local], shiftedXmax*2)
-    gramm02inside=xmax_inside_fov_grams(variables["energies"][final_local],variables["groundecef"][final_local],xmaxecef[final_local, :], variables['xstartecef'][final_local],xend,id_full[final_global],ntels=1
-                             ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01)
-
-    xmaxdistLL=np.linalg.norm(xmaxecef[final_local, :]-telposecef[0],axis=1)
-
-    # Adapted xmax_inside_fov call
-    xmaxinside = xmax_inside_fov(
-        variables["energies"][final_local],
-        variables["groundecef"][final_local],
-        xmaxecef[final_local,:],
-        id_full[final_global],
-        ntels=1,
-        distfactor=0.1,
-        extraangle=np.radians(2),
-        radiusfactor=1.01
-    )
-
     print('Maximum Alt Decay:', np.max(variables['altDec'][final_local]))
     conex_out(
         X_builder, RN_builder,
@@ -587,13 +536,7 @@ def compute(
         output_file,
         xmaxecef[final_local, :],
         variables['xstartecef'][final_local],
-        n_e_array[final_local],
-        variables["pctinfov"][final_local],
-        xmaxdistLL,
-        variables["min_distance"][final_local],
-        xmaxinside[final_local],
-        gramm02inside[final_local]
-        
+        n_e_array[final_local]
     )
     """
     # Full root out with full originals and final id (rejects=1, passers !=1)

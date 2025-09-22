@@ -1924,7 +1924,7 @@ def xmax_inside_fov_grams(lgE, groundecef, xmaxecef, xstart,xend, id, ntels=1,
 
 
 
-def energy_at_tel(xstartecef, vecef, x, rn, min_n_e=1e1,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
+def energy_at_tel(xstartecef, vecef, x, rn, min_n_e,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
     code=[2,3,5,7]
     codeout=1
     n_e_per_m2=0
