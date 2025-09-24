@@ -291,9 +291,8 @@ def conex_out(data, profiles, chersigs, output_file):
             "EGround": Eg,
         }
     )
-
     #write Cherenkov info to same root file
-    if not len(chersigs) == 0:
+    if not len(chersigs[0]) == 0:
 
         #loop through showers
         for i,sig in enumerate(chersigs):
@@ -321,12 +320,13 @@ def conex_out(data, profiles, chersigs, output_file):
             n_counters, n_wavelengths, n_axis_samples = np.shape(photons)
 
             for j in range(n_counters):
-                signal_dict = {}
                 for k in range(n_wavelengths):
-                    signal_dict[f"photons_wl_{wavelengths[k]:.0f}nm"] = photons[j,k]
-                signal_dict[f"times"] = times[j]
-                signal_dict[f"cos_theta"] = cos_theta[j]
+                    signal_dict = {}
+                    sizemask = photons[j,k] < 1.e-3
+                    signal_dict[f"photons_wl_{wavelengths[k]:.0f}nm"] = photons[j,k][sizemask]
+                    signal_dict[f"times"] = times[j][sizemask]
+                    signal_dict[f"cos_theta"] = cos_theta[j][sizemask]
 
-                f[f"{shower_label}/detector_{j}_Cherenkov_signal"] = signal_dict
+                    f[f"{shower_label}/detector_{j}_Cherenkov_signal/wl_{wavelengths[k]:.0f}nm"] = signal_dict
             
     f.close()
