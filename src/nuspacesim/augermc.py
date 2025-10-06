@@ -115,6 +115,10 @@ LLlat,LLlong, LLheight=utm_to_geodetic(LL[0], LL[1], 19, 'H', LL[2])
 LLang=np.radians(330-360)
 LLphi = LLang+np.radians([15.01, 44.89, 75.00, 104.97, 134.99, 164.92]) #angle for perfect planes 15.045
 LLelev = np.radians([15.65, 15.92, 15.90, 16.07, 15.95, 15.82])
+
+#LLphi = LLang+np.radians([75.00, 104.97]) #angle for perfect planes 15.045
+#LLelev = np.radians([ 15.90, 16.07])
+
 LLphitot=[np.min(LLphi)-telangle,np.max(LLphi)+telangle]
 LLthetatot=[np.min(LLelev)-telangle,np.max(LLelev)+telangle]
 
@@ -148,6 +152,7 @@ COthetatot=[np.min(COelev)-telangle,np.max(COelev)+telangle]
 #Central phi and elevation
 telphi=[np.mean(LLphitot),np.mean(LLphitot)-LLphitot[0],np.mean(LMphitot),np.mean(LMphitot)-LMphitot[0],np.mean(LAphitot),np.mean(LAphitot)-LAphitot[0],np.mean(COphitot),np.mean(COphitot)-COphitot[0]]
 teltheta=[np.mean(LLthetatot),np.mean(LLthetatot)-LLthetatot[0],np.mean(LMthetatot),np.mean(LMthetatot)-LMthetatot[0],np.mean(LAthetatot),np.mean(LAthetatot)-LAthetatot[0],np.mean(COthetatot),np.mean(COthetatot)-COthetatot[0]]
+print(np.degrees(telphi),np.degrees(teltheta))
 # Extract easting and northing values
 easting_values = [LL[0], LM[0], LA[0], CO[0]]
 northing_values = [LL[1], LM[1], LA[1], CO[1]]
@@ -726,8 +731,9 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         y0=coordi[:,1]+alpha*vcoordi[:,1]
         c_ground=np.column_stack((x0,y0))
         dist=np.linalg.norm(c_ground,axis=1)
-        dotprod=np.dot(c_ground,eyevector[i,0:2])
-        inplane=(dist<=r[mask1]) & (dotprod>=0)
+        cgroundnorm=c_ground/dist[:,np.newaxis]
+        cosground=np.dot(cgroundnorm,eyevector[i,0:2])
+        inplane=(dist<=r[mask1]) & (cosground>=np.cos(exacttelangle*(len(LLphi)-1)+telangle))
         index = np.arange(len(a))[mask1][inplane]
         identifier[index]=identifier[index]*code[i]
         mask1[mask1]=~inplane # UNCHECK
@@ -750,7 +756,7 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         intvec1=(coordenu[mask1]+u1*vcoordenu[mask1])/r[mask1,np.newaxis]
         cosdphi1=np.dot(intvec1[:,0:2],eyevector[i,0:2])/np.linalg.norm(intvec1[:,0:2],axis=1)/np.linalg.norm(eyevector[i,0:2])   #azimuth angle difference with center of telescope
         theta1=np.arccos(np.sqrt(intvec1[:,0]**2+intvec1[:,1]**2))*np.sign(intvec1[:,2]) #elevation angle of intersection vector 
-        insphere1=(cosdphi1>=np.cos(exacttelangle*5+telangle)) &  (theta1<=thetatelsup) &  (theta1>=thetatelinf)   #exactangle*5+telangle bcs the extra 0.5 deg only for the last telescope (want to increase fov by 0.5, not 0.5*6)
+        insphere1=(cosdphi1>=np.cos(exacttelangle*(len(LLphi)-1)+telangle)) &  (theta1<=thetatelsup) &  (theta1>=thetatelinf)   #exactangle*5+telangle bcs the extra 0.5 deg only for the last telescope (want to increase fov by 0.5, not 0.5*6)
 
         index = np.arange(len(a))[mask1][insphere1]
         identifier[index]=identifier[index]*code[i]
@@ -762,7 +768,7 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         intvec2=(coordenu[mask1]+u2*vcoordenu[mask1])/r[mask1,np.newaxis]
         cosdphi2=np.dot(intvec2[:,0:2],eyevector[i,0:2])/np.linalg.norm(intvec2[:,0:2],axis=1)/np.linalg.norm(eyevector[i,0:2])   #azimuth angle difference with center of telescope
         theta2=np.arccos(np.sqrt(intvec2[:,0]**2+intvec2[:,1]**2))*np.sign(intvec2[:,2]) #elevation angle of intersection vector
-        insphere2=(cosdphi2>=np.cos(exacttelangle*5+telangle)) &  (theta2<=thetatelsup) &  (theta2>=thetatelinf)
+        insphere2=(cosdphi2>=np.cos(exacttelangle*(len(LLphi)-1)+telangle)) &  (theta2<=thetatelsup) &  (theta2>=thetatelinf)
         index = np.arange(len(a))[mask1][insphere2]
         identifier[index]=identifier[index]*code[i]
 
@@ -813,6 +819,45 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         mask1[mask1]=~inback2
         print(inback2.sum(),'Back Plane2. End. Leftover: ',mask1.sum())
         print(f'Total crossing FoV for telescope {i} = ',np.count_nonzero(identifier%code[i]==0))
+
+        """
+        phi_rotationplot = R.from_rotvec(rotaxis/np.linalg.norm(rotaxis) * (phiangle2-np.pi))
+        v_intersec2plot=phi_rotationplot.apply(v_intersec2)
+        phi_rotationplot = R.from_rotvec(rotaxis/np.linalg.norm(rotaxis) * (phiangle1))
+        v_intersec1plot=phi_rotationplot.apply(v_intersec1)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.set_aspect("equal")
+        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:15j]
+        x = np.cos(u)*np.sin(v)
+        y = np.sin(u)*np.sin(v)
+        z = np.cos(v)
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+        ax.view_init(azim=-120, elev=40)       
+
+        ax.plot_wireframe(x, y, z, color="r",linewidth=1, alpha=0.5)
+        valid=(sign>0)
+        rvalues=r[valid][:,np.newaxis]
+        v_intnorm=c_ground/rvalues
+        ax.scatter(v_intnorm[inplane][:,0],v_intnorm[inplane][:,1],np.zeros_like(inplane)[inplane],color='cyan',alpha=0.7,s=0.1,zorder=5,label='Ground Plane')
+        ax.scatter(intvec2[insphere2][:,0],intvec2[insphere2][:,1],intvec2[insphere2][:,2],color='yellow',alpha=0.7,s=0.1,label='Sphere2')
+        ax.scatter(intvec1[insphere1][:,0],intvec1[insphere1][:,1],intvec1[insphere1][:,2],color='green',alpha=0.7,s=0.1,label='Sphere1')
+        
+        rvaluesback1=rvalues[~inplane][~insphere1][~insphere2]
+        v_intersec1_norm=v_intersec1plot/rvaluesback1
+        rvaluesback2=rvaluesback1[~inback1]
+        v_intersec2_norm=v_intersec2plot/rvaluesback2
+
+        ax.scatter(v_intersec1_norm[inback1][:,0],v_intersec1_norm[inback1][:,1],v_intersec1_norm[inback1][:,2],color='magenta',alpha=0.7,s=0.1,label='Back Plane')
+        ax.scatter(v_intersec2_norm[inback2][:,0],v_intersec2_norm[inback2][:,1],v_intersec2_norm[inback2][:,2],color='magenta',alpha=0.7,s=0.1)
+
+        ax.legend(markerscale=15., loc='upper right')
+        plt.savefig('intersec3d.png',dpi=300)"""
 
 
 
@@ -1924,10 +1969,26 @@ def xmax_inside_fov_grams(lgE, groundecef, xmaxecef, xstart,xend, id, ntels=1,
 
 
 
-def energy_at_tel(xstartecef, vecef, x, rn, min_n_e,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
+def energy_at_tel(xstartecef, vecef, x, rn, min_e,xmax,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
+    def alpha(s):
+        c1 = 47.9511   # MeV g^-1 cm^2
+        c2 = 0.971315
+        c3 = 9.23001
+        c4 = 2.29587   # MeV g^-1 cm^2
+        c5 = 0.285196  # MeV g^-1 cm^2
+        """
+        Computes alpha(s) = c1 / (c2 + s)^c3 + c4 + c5 * s
+        """
+        return c1 / (c2 + s)**c3 + c4 + c5 * s
+    def showerage(x):
+        s=3*x/(x+2*xmax)
+        return s
+    dedx=alpha(showerage(x))*rn
+
     code=[2,3,5,7]
     codeout=1
-    n_e_per_m2=0
+    e_per_m2=0
+    #n_e_per_m2=0
     eyevector=gen_eye_vectors(telphi,teltheta)
 
     for i in range(ntels):#telpos.shape[0]
@@ -1954,12 +2015,13 @@ def energy_at_tel(xstartecef, vecef, x, rn, min_n_e,ntels=1,telphi=telphi,telthe
         
         disttel=np.linalg.norm(coordsecef[infov]-telposecef[i],axis=1)
 
-        n_e_per_m2=max(n_e_per_m2,10*np.sum(rn[infov]/disttel**2)/4/np.pi)
+        e_per_m2=max(e_per_m2,10*np.sum(dedx[infov]/disttel**2)/4/np.pi)
+        #n_e_per_m2=max(n_e_per_m2,10*np.sum(rn[infov]/disttel**2)/4/np.pi)
         #print(disttel,rn[infov],n_e_per_m2)
-        if n_e_per_m2>=min_n_e:
+        if e_per_m2>=min_e:
             codeout=codeout*code[i]
 
-    return codeout, n_e_per_m2
+    return codeout, e_per_m2, dedx
 
 
 def summarize_mask(mask):

@@ -449,6 +449,7 @@ def compute(
 
     X_builder = ak.ArrayBuilder()
     RN_builder = ak.ArrayBuilder()
+    dEdX_builder = ak.ArrayBuilder()
 
     remainingn = len(variables['xstartecef'])
     ending_ecef = ending_point(variables['xstartecef'], variables['vecef'])
@@ -487,7 +488,7 @@ def compute(
 
         rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
 
-        code, n_e_per_m2 = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n)
+        code, n_e_per_m2, dedx = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n,shiftedXmax)
         global_i = cumulative_indices[i]
         id_full[global_i] = code
 
@@ -509,8 +510,10 @@ def compute(
         mask = (rn > 0)
         x_values = x[mask] + variables['Xfirstinteract'][i]
         rn_values = rn[mask]
+        dedx_values = dedx[mask]
         X_builder.append(x_values)
         RN_builder.append(rn_values)
+        dEdX_builder.append(dedx_values)
 
     print(np.sum(id_full != 1), ' Events with enough shower development in view of detector')
     #print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
@@ -521,7 +524,7 @@ def compute(
     final_global = cumulative_indices[final_local]
     print('Maximum Alt Decay:', np.max(variables['altDec'][final_local]))
     conex_out(
-        X_builder, RN_builder,
+        X_builder, RN_builder, dEdX_builder,
         id_full[final_global],
         originals["groundecef"][final_global],
         originals["beta_tr"][final_global],

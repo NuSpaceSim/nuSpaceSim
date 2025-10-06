@@ -16,7 +16,9 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
     return Nmax * ((X - X0) / (Xmax - X0)) ** ((Xmax - X0) / gh_lam) * np.exp(
         (Xmax - X) / gh_lam)
         
-def conex_out(X_builder,RN_builder,id,groundecef
+
+
+def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
                 ,beta,TauEnergy,Zfirst,azim,gpsarray
                 ,NuEnergy,tauExitProb, ghparams
                 , Xfirstinteract,output_file
@@ -25,6 +27,7 @@ def conex_out(X_builder,RN_builder,id,groundecef
 
     X = X_builder.snapshot()
     RN = RN_builder.snapshot()
+    dEdX = dEdX_builder.snapshot()
     n=np.size(Zfirst)
     #D = ak.ArrayBuilder()
     #Xfirst=[]
@@ -416,7 +419,7 @@ def conex_out(X_builder,RN_builder,id,groundecef
         , "N": RN
         , "H": Zempty * 1000  # in meters
         , "D": Zempty * 1000
-        , "dEdX": RN * dEdXratio
+        , "dEdX": dEdX
         , "Mu": Xempty  # Xempty
         , "Gamma": Xempty  # Xempty
         , "Electrons": RN
