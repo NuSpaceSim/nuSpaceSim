@@ -1137,7 +1137,7 @@ def calculate_vertical_grammage_interp(z, density_func=atmdensity_interpolation,
 
     return X_interp
 
-
+"""
 data_loaded = np.load("depth_spline_data.npz")
 t = data_loaded["t"]
 m = data_loaded["c"]
@@ -1149,6 +1149,7 @@ t = data_loaded["t"]
 m = data_loaded["c"]
 k = int(data_loaded["k"])
 #height_spline = BSpline(t, m, k, extrapolate=True)
+"""
 
 data_loaded = np.load("depth_spline_1414atm.npz")
 t = data_loaded["t"]
