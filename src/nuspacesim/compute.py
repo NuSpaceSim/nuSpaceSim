@@ -70,6 +70,8 @@ from .simulation.taus.taus import Taus
 from .augermc import *
 from .conex_out import conex_out
 from .full_root_out import full_root_out
+#from .testingfuncs import *
+
 from .testrcut import *
 import matplotlib.pyplot as plt
 from .simulation.eas_optical.shower_properties import slant_depth_trig_approx, particle_count_fluctuated_gaisser_hillas, gaisser_hillas_particle_count_exp_form
@@ -336,7 +338,6 @@ def compute(
     gpstime = 1261872018  # Time at 1 Jan 2020 00:00:00 UTC
     ntels = 1
     # PARAMETERS
-
     radius = roundcalcradius(maxE, radiusfactor)
     groundecef, vecef, beta_tr, azimuth = gen_points(n, radius, maxang=maxangle)
     if beta_tr.size == 0:
@@ -384,7 +385,7 @@ def compute(
     print('Calculating Shower Development cuts')
 
     # Cut 1: energy threshold + altitude
-    maxalt=35
+    maxalt=30
     cut1 = (variables["energies"] > energy_threshold) & (variables["altDec"] < maxalt)
     cumulative_indices = cumulative_indices[cut1]
     variables = apply_cut(variables, cut1)
@@ -411,59 +412,74 @@ def compute(
     #init_lat = np.arcsin(variables['groundecef'][:, 2] / dist2EarthCenter)
     #init_lon = np.arctan2(variables['groundecef'][:, 1], variables['groundecef'][:, 0])
 
-    startingecef = starting_point(variables['groundecef'], variables['vecef'])
+    #Cut 2.1: remove showers with no intersection at 1415m (virtually no Earth travelled)
+    startatm=1414
+
+    startingecef, mask_start = starting_point(variables['groundecef'], variables['vecef'],startatm)
     variables['startingecef'] = startingecef
+
+    cut2_1=mask_start
+    cumulative_indices = cumulative_indices[cut2_1]
+    variables = apply_cut(variables, cut2_1)
 
     Xfirst_offline = integrated_grammage_opt(variables['startingecef'], variables['decayecef'], delta)
     variables['Xfirst_offline'] = Xfirst_offline
 
-    Xfirst_fromcore = integrated_grammage_opt(variables['groundecef'], variables['decayecef'], delta)
-    variables['Xfirst_fromcore'] = Xfirst_fromcore
-
     Xfirstinteract = variables['Xfirst_offline'] + variables['Xnuclearcollision']
     variables['Xfirstinteract'] = Xfirstinteract
 
+    remainingn = len(variables['Xfirst_offline'])
     xlimfactor = 5
-    xstartecef_current = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision'])
-    xstartecef_atleast100 = calculate_endpoint_grammarray(variables['decayecef'], variables['vecef'], variables['Xnuclearcollision']+100)
-
-    # Cut 3: start inside atmosphere
-    start_in_atm = ~np.isnan(xstartecef_atleast100).any(axis=1)
-    rejected_local_atm = ~start_in_atm
-    if np.any(rejected_local_atm):
-        rejected_global_atm = cumulative_indices[rejected_local_atm]
-        id_full[rejected_global_atm] = 1
-    cumulative_indices = cumulative_indices[start_in_atm]
-    variables = apply_cut(variables, start_in_atm)
-    variables['xstartecef'] = xstartecef_current[start_in_atm]
-    print(np.sum(rejected_local_atm), ' Start shower outside atmosphere')
-    # Post-cut3 (atm)
-    showerEnergy = variables['showerEnergy']
-    EshowGeV = (showerEnergy * 1e8)  # GeV
-    variables['EshowGeV'] = EshowGeV
-
-    with as_file(
-        files("nuspacesim.data.CONEX_table") / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
-    ) as file:
-        CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
-
-    X_builder = ak.ArrayBuilder()
-    RN_builder = ak.ArrayBuilder()
-    dEdX_builder = ak.ArrayBuilder()
-
-    remainingn = len(variables['xstartecef'])
-    ending_ecef = ending_point(variables['xstartecef'], variables['vecef'])
-    available_grammage = integrated_grammage_opt(variables['xstartecef'], ending_ecef, delta)
+    deltaX=10
+    startoutcounter=0
     xmaxecef = np.full((remainingn, 3), 0.0)
     n_e_array = np.zeros(remainingn)
     all_ghparams = np.zeros((remainingn, 6))
     xmax_outside_atm_counter = 0
     xmax_outside_atm_and_trigg = 0
     finalmask = np.zeros(remainingn, dtype=bool)
-    min_n=10
+    min_e=0
+    variables['xstartecef']=np.zeros((remainingn,3))
+    xfinal=np.zeros(remainingn)
+    height_compare1=np.zeros(remainingn)
+    height_compare2=np.zeros(remainingn)
+    dist_compare1=np.zeros(remainingn)
+    dist_compare2=np.zeros(remainingn)
+
+    X_builder = ak.ArrayBuilder()
+    RN_builder = ak.ArrayBuilder()
+    dEdX_builder = ak.ArrayBuilder()
+
     print('Start loop')
 
     for i in range(remainingn):
+        height,slant,dist=auger_atm_table(      variables['startingecef'][i,:],
+                                                variables['vecef'][i,:],
+                                                variables['groundecef'][i,:], 
+                                                deltaX,                      # [g/cm^2] slant-depth step (pass positive)
+                                                depth_spline,             # X(h_km) -> depth [g/cm^2]
+                                                height_spline,             # h_km(X) -> height [km]
+                                                altitude_from_ecef,          # alt_m(ECEF) -> meters
+                                                startatm,   )
+        start_slant=Xfirstinteract[i]
+        if start_slant+100>slant[-1]:
+            startoutcounter+=1
+            #print('Skip event, start slant outside atmosphere',start_slant,slant[-1])
+            continue
+        start_dist=np.interp(start_slant,slant,dist)
+        variables['xstartecef'][i,:]=variables['groundecef'][i,:]+start_dist*variables['vecef'][i,:]
+
+        showerEnergy = variables['showerEnergy']
+        EshowGeV = (showerEnergy * 1e8)  # GeV
+        variables['EshowGeV'] = EshowGeV
+
+        with as_file(
+            files("nuspacesim.data.CONEX_table") / "dumpGH_conex_pi_E17_95deg_0km_eposlhc_1394249052_211.dat"
+        ) as file:
+            CONEX_table = np.loadtxt(file, usecols=(4, 5, 6, 7, 8, 9))
+
+        available_grammage = slant[-1]-Xfirstinteract[i]
+
         idx = np.random.randint(low=0, high=CONEX_table.shape[0])
         Nm, Xm, X0, p1, p2, p3 = CONEX_table[idx]
         shiftedX0 = 0
@@ -479,41 +495,60 @@ def compute(
         XmaxOff = 58.0 * np.log10(variables['EshowGeV'][i] / 1.0e8)
         shiftedXmax = shiftedXm + XmaxOff
 
-        maxgramm = min(xlimfactor * shiftedXmax, available_grammage[i])
-        x = np.arange(0, maxgramm, 10)
-
+        maxgramm = min(xlimfactor * shiftedXmax, available_grammage)
+        x = np.arange(0, maxgramm, deltaX)
+        xfinal[i]=x[-1]
         shiftedgh_lam = shiftedp1 + shiftedp2 * x + shiftedp3 * x * x
         shiftedghparams = np.array([shiftedX0, shiftedXmax, Nmax, shiftedp3, shiftedp2, shiftedp1])
         all_ghparams[i] = shiftedghparams
-
+        distances_along_shower=np.interp(x+start_slant,slant,dist)
         rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
-
-        code, n_e_per_m2, dedx = energy_at_tel(variables['xstartecef'][i], variables['vecef'][i], x, rn, min_n,shiftedXmax)
+        code, n_e_per_m2, dedx = energy_at_tel(variables['groundecef'][i,:], variables['vecef'][i,:], x, rn, min_e,shiftedXmax,distances_along_shower)
+        """plt.figure(figsize=(12,10),dpi=200)
+        plt.plot(x,rn,label='No. of particles')
+        plt.plot(x,rn*0.0025935,label='dEdX constant')
+        plt.plot(x,dedx,label='dE/dX')
+        plt.yscale('log')
+        plt.legend()
+        plt.grid()
+        plt.savefig(f'dedx_over_rn_example_{i}.png')
+        exit()"""
         global_i = cumulative_indices[i]
         id_full[global_i] = code
 
-        if available_grammage[i] < shiftedXmax:
+        if available_grammage < shiftedXmax:
             xmax_outside_atm_counter += 1
             if code != 1:
                 xmax_outside_atm_and_trigg += 1
-                print('ATTENTION Xmax outside atmosphere', available_grammage[i], shiftedXmax)
-                print(code, n_e_per_m2)
+                #print('ATTENTION Xmax outside atmosphere', available_grammage, shiftedXmax)
+                #print(code, n_e_per_m2)
 
         if i % 1000 == 0:
             print(f"Done {i}/{remainingn} ({remainingn - i} left)")
         if code == 1:
             continue
-
-        xmaxecef[i, :] = calculate_endpoint(variables['xstartecef'][i], variables['vecef'][i], shiftedXmax)
+        disttoxmax=np.interp(shiftedXmax+start_slant,slant,dist)
+        xmaxecef[i, :] = variables['groundecef'][i, :] + disttoxmax * variables['vecef'][i, :]
         n_e_array[i] = n_e_per_m2
         finalmask[i] = True
         mask = (rn > 0)
-        x_values = x[mask] + variables['Xfirstinteract'][i]
+        x_values = x[mask] + start_slant
         rn_values = rn[mask]
         dedx_values = dedx[mask]
         X_builder.append(x_values)
         RN_builder.append(rn_values)
         dEdX_builder.append(dedx_values)
+
+
+        height_compare1[i]=np.interp((x_values[1]+x_values[0])/2,slant,height)
+        height_compare2[i]=np.interp(x_values[-1],slant,height)
+        dist_compare1[i]=np.interp((x_values[1]+x_values[0])/2,slant,dist)
+        dist_compare2[i]=np.interp(x_values[-1],slant,dist)
+
+    #print('Height 1 and 2', height_compare1[finalmask], height_compare2[finalmask])
+    #print('Dist 1 and 2', dist_compare1[finalmask], dist_compare2[finalmask])
+
+    print(startoutcounter, ' Start shower outside atmosphere')
 
     print(np.sum(id_full != 1), ' Events with enough shower development in view of detector')
     #print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
@@ -539,7 +574,11 @@ def compute(
         output_file,
         xmaxecef[final_local, :],
         variables['xstartecef'][final_local],
-        n_e_array[final_local]
+        n_e_array[final_local],
+        height_compare1[final_local],
+        height_compare2[final_local],
+        dist_compare1[final_local],
+        dist_compare2[final_local]
     )
     """
     # Full root out with full originals and final id (rejects=1, passers !=1)

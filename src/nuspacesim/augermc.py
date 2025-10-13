@@ -5,7 +5,10 @@ from numpy.polynomial import Polynomial
 from scipy.integrate import quad, cumulative_trapezoid
 from scipy.optimize import root_scalar
 from scipy.interpolate import interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline, BSpline
+
 import scipy.integrate
+
 import pickle
 import os
 current_dir=os.path.dirname(os.path.abspath(__file__))
@@ -615,8 +618,9 @@ def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
     print('Cut the Earth, ',beta.size)
     return groundecef,vcoord, beta, azimuth
 
-def starting_point(coord,vcoord):
-    earth_safety_margin=1
+def starting_point(coord,vcoord,startatm):
+    earth_safety_margin=startatm+1
+    #startheight=1410
     a = 6378137.0 + earth_safety_margin # semi-major axis
     b = 6356752.314245 + earth_safety_margin # semi-minor axis
     a2 = a**2
@@ -640,6 +644,7 @@ def starting_point(coord,vcoord):
         startingecef[mask] = coord[mask] + t[mask, np.newaxis] * vcoord[mask]
 
     # Handle cases with no sea-level intersection (D < 0)
+    print('Weird cases: ',np.sum(~mask))
     if np.any(~mask):
         # Adjust axes for 100 km height
         h=99995-earth_safety_margin
@@ -658,9 +663,10 @@ def starting_point(coord,vcoord):
         # Ensure valid intersection at 100 km
         # Use smaller t for first intersection point
         t_alt = (-c1_alt - np.sqrt(c1_alt**2 - 4 * c2_alt * c0_alt)) / (2 * c2_alt)
-        startingecef[~mask] = coord[~mask] + t_alt[:, np.newaxis] * vcoord[~mask]
+        #startingecef[~mask] = coord[~mask] + t_alt[:, np.newaxis] * vcoord[~mask]
+        #startingecef[~mask] = coord[~mask]*0
 
-    return startingecef
+    return startingecef, mask
 
 def ending_point(coord,vcoord):
     atmheight=99995
@@ -898,7 +904,24 @@ densities_auger = np.array([
     7.49e-05, 6.37e-05, 5.43e-05, 4.63e-05, 3.95e-05, 3.37e-05, 2.88e-05,
     2.46e-05, 2.10e-05, 1.80e-05, 1.00e-09
 ], dtype=float)
+"""
+heights_auger = np.array([
+   1414, 2000, 3000, 4000, 5000, 6000,
+    7000, 8000, 9000, 10000, 11000, 12000, 13000,
+    14000, 15000, 16000, 17000, 18000, 19000, 20000,
+    21000, 22000, 23000, 24000, 25000, 26000, 27000,
+    28000, 29000, 30000, 100000
+], dtype=float)
 
+# densities (in g/cm^3) from XML
+densities_auger = np.array([
+     1.067e-03, 1.01e-03, 9.09e-04, 8.19e-04, 7.36e-04, 6.60e-04,
+    5.90e-04, 5.25e-04, 4.66e-04, 4.13e-04, 3.64e-04, 3.11e-04, 2.66e-04,
+    2.27e-04, 1.94e-04, 1.65e-04, 1.41e-04, 1.21e-04, 1.03e-04, 8.80e-05,
+    7.49e-05, 6.37e-05, 5.43e-05, 4.63e-05, 3.95e-05, 3.37e-05, 2.88e-05,
+    2.46e-05, 2.10e-05, 1.80e-05, 1.00e-09
+], dtype=float)
+"""
 
 def atmdensity_interpolation(height_km):
     """
@@ -910,6 +933,8 @@ def atmdensity_interpolation(height_km):
     log_dens = np.log(densities_auger)
     log_interp = np.interp(h_m, heights_auger, log_dens)
     return np.exp(log_interp)
+print('ATM DENSITY AT 1415 ',atmdensity_interpolation(1.415))
+
 def atmdensity(z):
     """
     Density (g/cm^3) parameterized from altitude (z) values
@@ -1071,6 +1096,77 @@ def calculate_vertical_grammage(z, poly=_poly_auger, A=0.00119549796648045665581
     if np.any(mask2):
         X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * 100))#+7e-7
     return X*1e5 # Convert to g/cm^2
+def calculate_vertical_grammage_interp(z, density_func=atmdensity_interpolation, zmax=100):
+    """
+    Calculate vertical grammage X(z) = ∫_z^zmax rho(z') dz'
+    using interpolated atmospheric density.
+
+    Parameters
+    ----------
+    z : float or np.ndarray
+        Altitude(s) in km.
+    density_func : callable
+        Function returning density in g/cm^3 given height in km.
+        Default = atmdensity_interpolation.
+    zmax : float
+        Maximum integration height (km), default 100 km.
+
+    Returns
+    -------
+    X : np.ndarray
+        Vertical grammage in g/cm^2.
+    """
+
+    # Ensure array input
+    z = np.atleast_1d(z)
+    z = np.clip(z, 0, zmax)
+
+    # Create fine grid from 0 to zmax (km)
+    z_grid = np.linspace(0, zmax, 10000)
+    rho_grid = density_func(z_grid)  # g/cm^3
+
+    # Convert km → cm for integration: 1 km = 1e5 cm
+    z_cm = z_grid * 1e5
+
+    # Compute cumulative integral of rho(z) dz using trapezoidal rule
+    # cumtrapz gives array with one fewer element → append 0 at start
+    X_from_top = scipy.integrate.cumulative_trapezoid(rho_grid[::-1], z_cm[::-1], initial=0)[::-1]
+
+    # Interpolate X(z) for input z values
+    X_interp = -np.interp(z, z_grid, X_from_top)
+
+    return X_interp
+
+
+data_loaded = np.load("depth_spline_data.npz")
+t = data_loaded["t"]
+m = data_loaded["c"]
+k = int(data_loaded["k"])
+#depth_spline = BSpline(t, m, k, extrapolate=True)
+
+data_loaded = np.load("height_spline_data.npz")
+t = data_loaded["t"]
+m = data_loaded["c"]
+k = int(data_loaded["k"])
+#height_spline = BSpline(t, m, k, extrapolate=True)
+
+data_loaded = np.load("depth_spline_1414atm.npz")
+t = data_loaded["t"]
+m = data_loaded["c"]
+k = int(data_loaded["k"])
+depth_spline = BSpline(t, m, k, extrapolate=True)
+
+data_loaded = np.load("height_spline_1414atm.npz")
+t = data_loaded["t"]
+m = data_loaded["c"]
+k = int(data_loaded["k"])
+height_spline = BSpline(t, m, k, extrapolate=True)
+
+
+heightest=np.arange(1.5,12,1)
+print(calculate_vertical_grammage_interp(heightest))
+print(depth_spline(heightest))
+
 def calculate_vertical_grammage_spline(z, spline, A=0.00119549796648045665581, k=0.139940733649007831296):
     """
     Calculate grammage X(z) analytically from density_fit, vectorized.
@@ -1103,6 +1199,7 @@ def calculate_vertical_grammage_spline(z, spline, A=0.00119549796648045665581, k
     if np.any(mask2):
         X[mask2] = (A / k) * (np.exp(-k * z[mask2]) - np.exp(-k * 100))#+7e-7
     return X*1e5 # Convert to g/cm^2
+
 def integrated_grammage_old(p_start, p_stop, delta):
     """
     Calculate integrated grammage along a path from p_start to p_stop.
@@ -1247,6 +1344,51 @@ def integrated_grammage(p_start, p_stop, delta_m):
     
     return depths
 
+
+def local_cosTheta(points_ecef, dir_vecs, a2=6378137.0**2, b2=6356752.314245**2):
+    """
+    Compute cos(theta) between direction vector and local UP normal for each point.
+
+    Works for:
+      - points_ecef: shape (3,) or (1,3) or (N,3)
+      - dir_vecs:    shape (3,) or (1,3) or (N,3)
+
+    Returns
+    -------
+    cos_theta : ndarray or float
+        Cosine of angle to UP for each point.
+    """
+
+    points_ecef = np.asarray(points_ecef, dtype=float)
+    dir_vecs = np.asarray(dir_vecs, dtype=float)
+
+    # Ensure 2D shape (N, 3)
+    if points_ecef.ndim == 1:
+        points_ecef = points_ecef[np.newaxis, :]
+    if dir_vecs.ndim == 1:
+        dir_vecs = dir_vecs[np.newaxis, :]
+
+    if points_ecef.shape != dir_vecs.shape:
+        raise ValueError("points_ecef and dir_vecs must have the same shape (N,3).")
+
+    # Compute local UP vector for each point
+    n_up = np.column_stack((
+        points_ecef[:, 0] / a2,
+        points_ecef[:, 1] / a2,
+        points_ecef[:, 2] / b2
+    ))
+    n_up /= np.linalg.norm(n_up, axis=1, keepdims=True)
+
+    # Normalize direction vectors
+    dir_unit = dir_vecs / np.linalg.norm(dir_vecs, axis=1, keepdims=True)
+
+    # Compute cos(theta) with -n_up (angle to UP)
+    cos_theta = np.einsum("ij,ij->i", dir_unit, -n_up)
+
+    # Return scalar if single input
+    return cos_theta[0] if cos_theta.size == 1 else cos_theta
+
+
 def integrated_grammage_opt(p_start, p_stop, delta_m):
     """
     Calculate integrated grammage along paths from p_start to p_stop for multiple points.
@@ -1282,7 +1424,8 @@ def integrated_grammage_opt(p_start, p_stop, delta_m):
     depths = np.zeros(N)        # Grammage for each path
     distances = np.zeros(N)     # Distance traversed for each path
     active_indices = np.arange(N)[nonzero]  # Indices of paths with nonzero length
-    
+
+             # angle to DOWN    
     # Loop until no active paths remain
     while len(active_indices) > 0:
         # Select data for active paths only
@@ -1320,9 +1463,10 @@ def integrated_grammage_opt(p_start, p_stop, delta_m):
             p1[:, 2] / b2
         ], axis=-1)
         normal = normal / np.linalg.norm(normal, axis=-1, keepdims=True)
-        
+
+
         # Compute cosine of local zenith angle
-        cos_local_theta = np.sum(active_dir_vec * normal, axis=-1)
+        cos_local_theta = local_cosTheta(p1, -active_dir_vec, a2=a2, b2=b2)
         
         # Optional: Prevent numerical issues (uncomment if needed)
         # cos_local_theta = np.clip(cos_local_theta, -1.0, 1.0)
@@ -1331,14 +1475,14 @@ def integrated_grammage_opt(p_start, p_stop, delta_m):
         # Calculate grammage at endpoints
         #depth_p1 = calculate_vertical_grammage_spline(height_p1,spline)  #CHECK THIS, BE CAREFUL
         #depth_p2 = calculate_vertical_grammage_spline(height_p2,spline)
-        depth_p1=calculate_vertical_grammage(height_p1)
-        depth_p2=calculate_vertical_grammage(height_p2)
-        dens=atmdensity_interpolation((height_p1+height_p2)*0.5)
+        depth_p1=depth_spline(height_p1)
+        depth_p2=depth_spline(height_p2)
+        #dens=atmdensity_interpolation((height_p1+height_p2)*0.5)
         #dens_p2=atmdensity_interpolation(height_p2)
 
         # Compute grammage contribution for this segment
-        #contribution = (depth_p1 - depth_p2) / cos_local_theta
-        contribution=delta_now*100*dens #g/cm^2
+        contribution = (depth_p1 - depth_p2) / cos_local_theta
+        #contribution=delta_now*100*dens #g/cm^2
         
         contribution = np.where(valid, contribution, 0)
         
@@ -1365,7 +1509,7 @@ def altitude_along_path_length(s, beta_tr, Re=earth_radius_centerlat, xp=np): #i
     """Derived by solving for z in path_length_tau_atm."""
     return xp.sqrt(s**2 + 2.0 * s * Re * xp.sin(beta_tr) + Re**2) - Re
 
-def altitude_from_ecef(coordsecef):
+def altitude_from_ecef_old(coordsecef):
     coordsecef = np.asarray(coordsecef)
     original_ndim = coordsecef.ndim
     coordsecef = np.atleast_2d(coordsecef)
@@ -1384,6 +1528,40 @@ def altitude_from_ecef(coordsecef):
 
     return altitudes
 
+def altitude_from_ecef(coordsecef):
+    coordsecef = np.asarray(coordsecef)
+    original_ndim = coordsecef.ndim
+    coordsecef = np.atleast_2d(coordsecef)
+
+    a = 6378137.0  # semi-major axis (m)
+    b = 6356752.314245  # semi-minor axis (m)
+    e2 = 1 - (b**2 / a**2)
+
+    x = coordsecef[:, 0]
+    y = coordsecef[:, 1]
+    z = coordsecef[:, 2]
+
+    # Longitude not needed, only latitude & height
+    r = np.sqrt(x**2 + y**2)
+
+    # Bowring's formula for initial latitude
+    E2 = a**2 - b**2
+    F = 54 * b**2 * z**2
+    G = r**2 + (1 - e2) * z**2 - e2 * E2
+    c = (e2**2 * F * r**2) / (G**3)
+    s = (1 + c + np.sqrt(c**2 + 2*c))**(1/3)
+    P = F / (3 * (s + 1/s + 1)**2 * G**2)
+    Q = np.sqrt(1 + 2 * e2**2 * P)
+    r0 = -(P * e2 * r) / (1 + Q) + np.sqrt(0.5 * a**2 * (1 + 1/Q) - P * (1 - e2) * z**2 / (Q * (1 + Q)) - 0.5 * P * r**2)
+    U = np.sqrt((r - e2 * r0)**2 + z**2)
+    V = np.sqrt((r - e2 * r0)**2 + (1 - e2) * z**2)
+    Z0 = (b**2 * z) / (a * V)
+    h = U * (1 - b**2 / (a * V))
+
+    if original_ndim == 1:
+        return h[0]
+    return h
+
 def decay(groundecef,vecef, lgE):
     #get decay altitude
     tauEnergy=10**(lgE-9)
@@ -1392,7 +1570,6 @@ def decay(groundecef,vecef, lgE):
     #lgE = np.log10(data["tauEnergy"]) + 9
     u = np.random.uniform(0, 1, len(groundecef[:,0]))
     tDec = (-1.0 * tauLorentz /inv_mean_Tau_life) * np.log(u)
-
     lenDec = tDec * tauBeta * c
 
     decayecef=groundecef+lenDec[:,np.newaxis]*vecef
@@ -1671,9 +1848,9 @@ def calculate_endpoint_grammarray(start_pos, direction, grammage):
         
         max_target = np.max(grammage) * grammage_scale
         
-        cumul_integral = lambda s: quad(density_at_t, 0, s, epsabs=1e-1, epsrel=1e-2)[0] if s > 0 else 0.0
+        cumul_integral = lambda s: quad(density_at_t, 0, s, epsabs=1e-2, epsrel=1e-3)[0] if s > 0 else 0.0
         # Find upper bound for s
-        upper = 1000.0  # start with 1 km
+        upper = 100.0  # start with 1 km
         max_upper = 1e7  # 10,000 km max
         current_cumul = cumul_integral(upper)
         
@@ -1690,7 +1867,7 @@ def calculate_endpoint_grammarray(start_pos, direction, grammage):
                 break
         
         # Dense grid for integration and interpolation
-        num_points = 10000  # Adjust for accuracy vs. speed
+        num_points = 100000  # Adjust for accuracy vs. speed
         s_grid = np.linspace(0, upper, num_points)
         
         # Vectorized density computation
@@ -1743,7 +1920,7 @@ def calculate_endpoint_grammarray(start_pos, direction, grammage):
                 return integ
             
             # Find upper bound for s
-            upper = 1000.0
+            upper = 100.0
             max_upper = 1e7
             while cumul_integral(upper) < target and upper < max_upper:
                 upper *= 2
@@ -1969,7 +2146,7 @@ def xmax_inside_fov_grams(lgE, groundecef, xmaxecef, xstart,xend, id, ntels=1,
 
 
 
-def energy_at_tel(xstartecef, vecef, x, rn, min_e,xmax,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
+def energy_at_tel(groundecef, vecef, x, rn, min_e,xmax,distances,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
     def alpha(s):
         c1 = 47.9511   # MeV g^-1 cm^2
         c2 = 0.971315
@@ -1979,7 +2156,7 @@ def energy_at_tel(xstartecef, vecef, x, rn, min_e,xmax,ntels=1,telphi=telphi,tel
         """
         Computes alpha(s) = c1 / (c2 + s)^c3 + c4 + c5 * s
         """
-        return c1 / (c2 + s)**c3 + c4 + c5 * s
+        return (c1 / (c2 + s)**c3 + c4 + c5 * s) * 0.001 #Change to GeV
     def showerage(x):
         s=3*x/(x+2*xmax)
         return s
@@ -1987,22 +2164,21 @@ def energy_at_tel(xstartecef, vecef, x, rn, min_e,xmax,ntels=1,telphi=telphi,tel
 
     code=[2,3,5,7]
     codeout=1
+    xstep=x[1]-x[0]
     e_per_m2=0
     #n_e_per_m2=0
     eyevector=gen_eye_vectors(telphi,teltheta)
 
     for i in range(ntels):#telpos.shape[0]
 
-        xstartenu=eceftoenu(telposecef[i,:],xstartecef)
-        coordsecef=calculate_endpoint_grammarray(xstartecef, vecef, x)
-        coordsecef=np.atleast_2d(coordsecef)
-        coordsenu=eceftoenu(telposecef[i,:],coordsecef)
-        centerenu=eceftoenu(telposecef[i,:],centerecef)
+        coreenu=eceftoenu(telposecef[i,:],groundecef)
+        venu=eceftoenu_vector(telposecef[i,:],vecef)
+        coordsenu=coreenu+venu*distances[:,np.newaxis]
 
         telextraangle=telangle+extraangle
         thetatelsup=teltheta[2*i]+telextraangle
         thetatelinf=teltheta[2*i]-telextraangle
-        nan_mask = np.isnan(coordsecef)
+        nan_mask = np.isnan(coordsenu)
         coordsnorm=coordsenu/np.linalg.norm(coordsenu,axis=1,keepdims=True)
         cosdphi=np.dot(coordsnorm[:,0:2],eyevector[i,0:2])   #azimuth angle difference with center of telescope
         theta=np.arccos(np.sqrt(coordsnorm[:,0]**2+coordsnorm[:,1]**2))*np.sign(coordsnorm[:,2]) #elevation angle of intersection vector 
@@ -2013,9 +2189,9 @@ def energy_at_tel(xstartecef, vecef, x, rn, min_e,xmax,ntels=1,telphi=telphi,tel
         if infov.sum()==0:
             continue
         
-        disttel=np.linalg.norm(coordsecef[infov]-telposecef[i],axis=1)
+        disttel=np.linalg.norm(coordsenu[infov],axis=1)
 
-        e_per_m2=max(e_per_m2,10*np.sum(dedx[infov]/disttel**2)/4/np.pi)
+        e_per_m2=max(e_per_m2,xstep*np.sum(dedx[infov]/disttel**2)/4/np.pi)
         #n_e_per_m2=max(n_e_per_m2,10*np.sum(rn[infov]/disttel**2)/4/np.pi)
         #print(disttel,rn[infov],n_e_per_m2)
         if e_per_m2>=min_e:
@@ -2045,3 +2221,134 @@ def count_true_segments(mask):
     # Find transitions: False→True
     transitions = (mask[1:] & ~mask[:-1])
     return transitions.sum() + (mask[0] == True)
+
+
+
+def intersection_with_ellipsoid(height_m, core, direction):
+    """
+    Intersect the line p(t) = core + t*dir with the WGS-84 ellipsoidal shell
+    at altitude `height_m` above the ellipsoid.
+    Returns a list with 0, 1, or 2 points (each shape (3,)).
+    """
+    a = 6378137.0
+    b = 6356752.314245
+
+    a_h = a + float(height_m)
+    b_h = b + float(height_m)
+
+    d = np.array(direction, dtype=float)
+    nd = np.linalg.norm(d)
+    if nd == 0:
+        return []
+    d /= nd
+    p0 = np.array(core, dtype=float)
+
+    A = (d[0]**2 + d[1]**2) / (a_h**2) + (d[2]**2) / (b_h**2)
+    B = 2.0 * ((p0[0]*d[0] + p0[1]*d[1]) / (a_h**2) + (p0[2]*d[2]) / (b_h**2))
+    C = (p0[0]**2 + p0[1]**2) / (a_h**2) + (p0[2]**2) / (b_h**2) - 1.0
+
+    disc = B*B - 4*A*C
+    if disc < 0:
+        return []
+
+    sqrt_disc = np.sqrt(max(0.0, disc))
+    t1 = (-B - sqrt_disc) / (2*A)
+    t2 = (-B + sqrt_disc) / (2*A)
+
+    #p1 = p0 + t1*d
+    p2 = p0 + t2*d
+    return p2
+
+
+def auger_atm_table(
+    startingecef, ecef_dir, core,
+    deltaX,                      # [g/cm^2] slant-depth step (pass positive)
+    depth_of_height,             # X(h_km) -> depth [g/cm^2]
+    height_of_depth,             # h_km(X) -> height [km]
+    altitude_from_ecef,          # alt_m(ECEF) -> meters
+    startatm,         # [m] start of atmosphere (for sanity checks)
+    upward=True,
+    minVerticalDepth=0.00101949,        # [g/cm^2]
+    maxVerticalDepth=1032.88,     # [g/cm^2]
+):
+    """
+    Upward-focused replication of the C++ inclined atmosphere loop.
+    - Local DOWN angle: cosTheta = -d̂·n̂_up.
+    - deltaX is positive; verticalDeltaX = deltaX * cosTheta (so depth decreases when cosTheta<0).
+    - lastPoint is the forward intersection with the 99.999 km shell: p = core + t*dir, choose min t>0.
+    - At each step, select the shell intersection with the smallest t strictly greater than current t.
+    - verticalHeight = atmHeightVsDepth.Y(tmpDepth) (meters), slantDepth = log(tmpSlantDepth).
+    """
+
+    a2 = (6378137.0)**2
+    b2 = (6356752.314245)**2
+
+    startingecef = np.asarray(startingecef, dtype=float)
+    dir_unit     = np.asarray(ecef_dir, dtype=float)
+    core         = np.asarray(core, dtype=float)
+
+    # --- Choose lastPoint at 99.999 km: smallest positive t from core ---
+    H_LAST_M = 99999.0
+    lastPoint = intersection_with_ellipsoid(H_LAST_M, core, dir_unit)
+
+
+    # Initial state
+    iPoint = startingecef.copy()
+    cosTheta = local_cosTheta(iPoint,dir_unit)
+
+    verticalDeltaX=0
+    tmpHeight_m = float(altitude_from_ecef(iPoint))                  # meters
+    tmpDepth    = float(depth_of_height(tmpHeight_m/1000.0))         # g/cm^2
+
+    X0 = float(depth_of_height(startatm/1000.0))
+    # For upward: cosTheta<0 and (tmpDepth-X0)<0 -> positive
+    tmpSlantDepth = cosTheta*(tmpDepth - X0) if upward else tmpDepth
+    verticalHeight = []
+    slantDepth     = []
+    distanceToImpact = []
+    # First entry (C++)
+    verticalHeight.append(1000.0 * float(height_of_depth(tmpDepth)))  # meters
+    slantDepth.append(tmpSlantDepth)
+    distanceToImpact.append(0.0 - np.linalg.norm(startingecef - core))
+
+
+
+    while True:
+        cosTheta = local_cosTheta(iPoint,dir_unit)
+        verticalDeltaX = deltaX * cosTheta
+        tmpDepth += verticalDeltaX
+
+        # Stop if outside vertical-depth bounds
+        if (tmpDepth >= maxVerticalDepth) or (tmpDepth <= minVerticalDepth):
+            tmpHeight_m = altitude_from_ecef(lastPoint)
+            verticalDeltaX=depth_of_height(tmpHeight_m/1000.0)-(tmpDepth-verticalDeltaX)
+            tmpSlantDepth += verticalDeltaX/cosTheta
+
+            verticalHeight.append(tmpHeight_m)
+            slantDepth.append(tmpSlantDepth)
+            distanceToImpact.append(np.linalg.norm(lastPoint - core))
+            break
+
+        # Advance one slant step
+        tmpSlantDepth += deltaX
+
+        # Invert X -> h (C++: tmpHeight = atmHeightVsDepth.Y(tmpDepth))
+        tmpHeight_m = 1000.0 * float(height_of_depth(tmpDepth))
+
+        # Intersections with this shell
+        nextpoint = intersection_with_ellipsoid(tmpHeight_m, core, dir_unit)
+
+        # Store results
+        verticalHeight.append(tmpHeight_m)
+        slantDepth.append(tmpSlantDepth)
+        distanceToImpact.append(
+            np.linalg.norm(nextpoint - startingecef) - np.linalg.norm(core - startingecef)
+        )
+
+        # Advance point and parameter
+        iPoint = nextpoint
+    return (
+        np.asarray(verticalHeight, dtype=float),
+        np.asarray(slantDepth, dtype=float),
+        np.asarray(distanceToImpact, dtype=float),
+    )

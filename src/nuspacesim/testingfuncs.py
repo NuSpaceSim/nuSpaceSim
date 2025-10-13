@@ -1,7 +1,9 @@
 from .augermc import *
+
+
 a=6378137  #earth major axis WGS84
 b=6356752.314245 #minor axis
-h=1416
+h=1416.2
 def find_trajectory_point_ecef_analytical(latcore,loncore,heightcore, az, beta, target_height):
     ecef_core = latlongtoECEF(latcore, loncore, heightcore)
 
@@ -44,11 +46,13 @@ def find_trajectory_point_ecef_analytical(latcore,loncore,heightcore, az, beta, 
     targetecef=np.column_stack((x, y, z))
     return targetecef, s
 
-beta=np.radians(10)
-azim=np.radians(50.773521-180)
+beta=np.radians(5)
+azim=np.radians(10.025630-180)
 target_height=1
-atmstart,dist=find_trajectory_point_ecef_analytical(LLlat,LLlong,h,azim,beta,target_height)
-ecef_core = latlongtoECEF(LLlat, LLlong, h)
+#atmstart,dist=find_trajectory_point_ecef_analytical(LLlat,LLlong,h,azim,beta,target_height)
+ecef_core = latlongtoECEF(LLlat,LLlong,h)
+startatm=1414
+
 #print(np.shape(ecef_core))
 x0=ecef_core[:,0]
 y0=ecef_core[:,1]
@@ -56,20 +60,216 @@ z0=ecef_core[:,2]
 
 enu_dir=[np.cos(azim)*np.cos(beta),np.sin(azim)*np.cos(beta),np.sin(beta)]
 ecef_dir=enutoecef_vector(ecef_core,enu_dir, lat=LLlat,lon=LLlong)
-startingecef=starting_point(ecef_core,ecef_dir)
-disttravelled=np.linalg.norm(ecef_core-startingecef,axis=1)
-print(disttravelled,'starting_point Distance from start to core')
-print(dist,'New Distance from atmstart to core')
+startingecef,_=starting_point(ecef_core,ecef_dir,startatm)
+slants=np.arange(0,26000,10)
+xstep=1 #g/cm2
+midpoints=np.zeros((len(slants),3))
+midpoints[0,:]=startingecef
+heights=np.zeros(len(slants))
+heights[0]=altitude_from_ecef(startingecef)
+xtravelled=0
+
+for i in range(len(slants)-1):
+    steppos=midpoints[i,:]
+    stepheight=heights[i]
+    while xtravelled<slants[i+1]:
+        xtravelled=xtravelled+xstep
+        stepdensity=atmdensity_interpolation(stepheight/1000) #g/cm3
+        stepdist=xstep/stepdensity/1e2 #in m
+        steppos=steppos+ecef_dir*stepdist
+        #print(steppos,'new pos')
+        stepheight=altitude_from_ecef(steppos)
+    midpoints[i+1,:]=steppos
+    heights[i+1]=stepheight
+
+midpointsfast=calculate_endpoint_grammarray(startingecef,ecef_dir,slants)
+heightsfast=altitude_from_ecef(midpointsfast)
+dists=np.linalg.norm(midpoints-ecef_core,axis=1)
+#disttravelled=np.linalg.norm(ecef_core-startingecef,axis=1)
+#print(disttravelled,'starting_point Distance from start to core')
+all=np.vstack([slants,heightsfast,dists]).T
+i=0
+print('DATA',all[i:i+10,:])
+data = np.loadtxt("sampling_90.5.txt", comments="#")
+
+heightoffline = data[:, 1]   # 2nd column (height [m])
+densityoffline = data[:, 2]  # 3rd column (density [g/cm^3])
+
+
+# WGS84 constants
+WGS84_A = 6378137.0        # semi-major axis (m)
+WGS84_B = 6356752.3142     # semi-minor axis (m)
+A2 = WGS84_A ** 2
+B2 = WGS84_B ** 2
+
+def intersection_with_ellipsoid(height_m, core, direction):
+    """
+    Intersect the line p(t) = core + t*dir with the WGS-84 ellipsoidal shell
+    at altitude `height_m` above the ellipsoid.
+    Returns a list with 0, 1, or 2 points (each shape (3,)).
+    """
+    a = 6378137.0
+    b = 6356752.314245
+
+    a_h = a + float(height_m)
+    b_h = b + float(height_m)
+
+    d = np.array(direction, dtype=float)
+    nd = np.linalg.norm(d)
+    if nd == 0:
+        return []
+    d /= nd
+    p0 = np.array(core, dtype=float)
+
+    A = (d[0]**2 + d[1]**2) / (a_h**2) + (d[2]**2) / (b_h**2)
+    B = 2.0 * ((p0[0]*d[0] + p0[1]*d[1]) / (a_h**2) + (p0[2]*d[2]) / (b_h**2))
+    C = (p0[0]**2 + p0[1]**2) / (a_h**2) + (p0[2]**2) / (b_h**2) - 1.0
+
+    disc = B*B - 4*A*C
+    if disc < 0:
+        return []
+
+    sqrt_disc = np.sqrt(max(0.0, disc))
+    t1 = (-B - sqrt_disc) / (2*A)
+    t2 = (-B + sqrt_disc) / (2*A)
+
+    #p1 = p0 + t1*d
+    p2 = p0 + t2*d
+    return p2
+
+
+def auger_atm_table(
+    startingecef, ecef_dir, core,
+    deltaX,                      # [g/cm^2] slant-depth step (pass positive)
+    depth_of_height,             # X(h_km) -> depth [g/cm^2]
+    height_of_depth,             # h_km(X) -> height [km]
+    altitude_from_ecef,          # alt_m(ECEF) -> meters
+    startatm,         # [m] start of atmosphere (for sanity checks)
+    upward=True,
+    minVerticalDepth=0.00101949,        # [g/cm^2]
+    maxVerticalDepth=1032.88,     # [g/cm^2]
+):
+    """
+    Upward-focused replication of the C++ inclined atmosphere loop.
+    - Local DOWN angle: cosTheta = -d̂·n̂_up.
+    - deltaX is positive; verticalDeltaX = deltaX * cosTheta (so depth decreases when cosTheta<0).
+    - lastPoint is the forward intersection with the 99.999 km shell: p = core + t*dir, choose min t>0.
+    - At each step, select the shell intersection with the smallest t strictly greater than current t.
+    - verticalHeight = atmHeightVsDepth.Y(tmpDepth) (meters), slantDepth = log(tmpSlantDepth).
+    """
+
+    a2 = (6378137.0)**2
+    b2 = (6356752.314245)**2
+
+    startingecef = np.asarray(startingecef, dtype=float)
+    dir_unit     = np.asarray(ecef_dir, dtype=float)
+    core         = np.asarray(core, dtype=float)
+
+    # --- Choose lastPoint at 99.999 km: smallest positive t from core ---
+    H_LAST_M = 99999.0
+    lastPoint = intersection_with_ellipsoid(H_LAST_M, core, dir_unit)
+
+
+    # Initial state
+    iPoint = startingecef.copy()
+    cosTheta = local_cosTheta(iPoint,dir_unit)
+
+    verticalDeltaX=0
+    tmpHeight_m = float(altitude_from_ecef(iPoint))                  # meters
+    tmpDepth    = float(depth_of_height(tmpHeight_m/1000.0))         # g/cm^2
+
+    X0 = float(depth_of_height(startatm/1000.0))
+    # For upward: cosTheta<0 and (tmpDepth-X0)<0 -> positive
+    tmpSlantDepth = cosTheta*(tmpDepth - X0) if upward else tmpDepth
+    verticalHeight = []
+    slantDepth     = []
+    distanceToImpact = []
+    # First entry (C++)
+    verticalHeight.append(1000.0 * float(height_of_depth(tmpDepth)))  # meters
+    slantDepth.append(tmpSlantDepth)
+    distanceToImpact.append(0.0 - np.linalg.norm(startingecef - core))
 
 
 
-#print(dist, 'Distance from atmstart to core')
-delta=100
-Xfirst_offline=integrated_grammage_opt(atmstart,ecef_core,delta)
-print(Xfirst_offline,'Grammage from core to target height')
+    while True:
+        cosTheta = local_cosTheta(iPoint,dir_unit)
+        verticalDeltaX = deltaX * cosTheta
+        tmpDepth += verticalDeltaX
 
-from scipy.integrate import quad
-from scipy.optimize import root_scalar
+        # Stop if outside vertical-depth bounds
+        if (tmpDepth >= maxVerticalDepth) or (tmpDepth <= minVerticalDepth):
+            tmpHeight_m = altitude_from_ecef(lastPoint)
+            verticalDeltaX=depth_of_height(tmpHeight_m/1000.0)-(tmpDepth-verticalDeltaX)
+            tmpSlantDepth += verticalDeltaX/cosTheta
+
+            verticalHeight.append(tmpHeight_m)
+            slantDepth.append(tmpSlantDepth)
+            distanceToImpact.append(np.linalg.norm(lastPoint - core))
+            break
+
+        # Advance one slant step
+        tmpSlantDepth += deltaX
+
+        # Invert X -> h (C++: tmpHeight = atmHeightVsDepth.Y(tmpDepth))
+        tmpHeight_m = 1000.0 * float(height_of_depth(tmpDepth))
+
+        # Intersections with this shell
+        nextpoint = intersection_with_ellipsoid(tmpHeight_m, core, dir_unit)
+
+        # Store results
+        verticalHeight.append(tmpHeight_m)
+        slantDepth.append(tmpSlantDepth)
+        distanceToImpact.append(
+            np.linalg.norm(nextpoint - startingecef) - np.linalg.norm(core - startingecef)
+        )
+
+        # Advance point and parameter
+        iPoint = nextpoint
+    return (
+        np.asarray(verticalHeight, dtype=float),
+        np.asarray(slantDepth, dtype=float),
+        np.asarray(distanceToImpact, dtype=float),
+    )
+
+testdist=20000
+grammage=integrated_grammage_opt(ecef_core,ecef_core+testdist*ecef_dir,10)
+print(grammage)
+endpos=calculate_endpoint_grammarray(ecef_core,ecef_dir,grammage)
+print(np.linalg.norm(endpos-(ecef_core+testdist*ecef_dir),axis=1))
+#starttest=ecef_core+testdist*ecef_dir
+
+vertheights, slants, dists = auger_atm_table(
+    startingecef[0], ecef_dir[0], ecef_core[0], 10,
+    depth_spline,height_spline, altitude_from_ecef,startatm
+)
+all=np.vstack([slants,vertheights,dists]).T
+print('DATA',all[500:510])
+print(ecef_core,ecef_dir)
+
+exit()
+# Plot
+plt.figure()
+plt.plot(heightoffline,densityoffline, label='Offline Data', color='blue')
+plt.plot(heightoffline,atmdensity_interpolation(heightoffline/1000), label='Atm interp', color='red', linestyle='--')
+plt.ylabel("Density [g/cm³]")
+plt.xlabel("Height [m]")
+plt.yscale('log')
+plt.title("Density vs Height")
+plt.grid(True)
+plt.legend()
+plt.savefig('atmdensity.png')
+
+diff=densityoffline-atmdensity_interpolation(heightoffline/1000)
+reldiff=diff/densityoffline
+plt.figure()
+plt.plot(heightoffline,reldiff*100, label='Difference', color='green')
+plt.ylabel("Relative Density Difference %")
+plt.xlabel("Height [m]")
+plt.savefig('atmdiff.png')
+
+
+
+print(ecef_core[0],ecef_dir[0])
 
 
 def calculate_endpoint(start_pos, direction, grammage):
@@ -135,11 +335,11 @@ def calculate_endpoint(start_pos, direction, grammage):
         return end_points[0]
     return end_points
 
-xmaxpos=calculate_endpoint(ecef_core,ecef_dir,Xfirst_offline)
-hxmax=altitude_from_ecef(xmaxpos)
-print(hxmax,'Height at X')
-pos2=calculate_endpoint(xmaxpos,ecef_dir,24)
-print(altitude_from_ecef(pos2),'Height after 24 g/cm2 more')
+#xmaxpos=calculate_endpoint(ecef_core,ecef_dir,Xfirst_offline)
+#hxmax=altitude_from_ecef(xmaxpos)
+#print(hxmax,'Height at X')
+#pos2=calculate_endpoint(xmaxpos,ecef_dir,24)
+#print(altitude_from_ecef(pos2),'Height after 24 g/cm2 more')
 def xmax_inside_fov(lgE,groundecef,xmaxecef, id,ntels=1
                              ,distfactor=0.1,extraangle=np.radians(2),radiusfactor=1.01):
     code=[2,3,5,7]
@@ -171,3 +371,4 @@ def xmax_inside_fov(lgE,groundecef,xmaxecef, id,ntels=1
         id[index]=id[index]/code[i]
 
     return id, dgroundxmax, dtelxmax
+""""""

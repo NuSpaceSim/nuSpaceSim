@@ -194,4 +194,3 @@ cython_debug/
 #.idea/
 *.root
 *.png
-*.npz

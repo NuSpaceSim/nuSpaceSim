@@ -22,7 +22,8 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
                 ,beta,TauEnergy,Zfirst,azim,gpsarray
                 ,NuEnergy,tauExitProb, ghparams
                 , Xfirstinteract,output_file
-                , xmaxecef,xstartecef,n_tel_array
+                , xmaxecef,xstartecef,n_tel_array,
+                heightcompare1, heightcompare2, distcompare1, distcompare2
                 ):
 
     X = X_builder.snapshot()
@@ -130,7 +131,6 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
     shiftedparams=ghparams.copy()
     plt.figure(figsize=(14, 10), dpi=200)
 
-
     for i in range(n):   #WITH XFIRST    
         #RN[i]=RN[i][~nan_mask]   #Why is this happening? Check later
         #X[i]=X[i][~nan_mask]
@@ -138,7 +138,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
         y=np.array(RN[i])
         #D0=path_length_tau_atm(h/1000, beta[i], Re=earth_radius_centerlat) 
         #D.append(path_length_tau_atm(Z[i], beta[i],Re=earth_radius_centerlat)-D0)  #Build distance array from core (surface of Earth at h=1416m)
-
+    
         shiftedparams[i,0]=ghparams[i,0]+Xfirstinteract[i] 
         shiftedparams[i,1]=ghparams[i,1]+Xfirstinteract[i]
         shiftedparams[i,4]=ghparams[i,4]-2*ghparams[i,3]*Xfirstinteract[i]
@@ -350,6 +350,10 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
         , "xstartecef1": np.dtype('f4')
         , "xstartecef2": np.dtype('f4')
         , "n_tel": np.dtype('f4')
+        , "heightcompare1": np.dtype('f4')
+        , "heightcompare2": np.dtype('f4')
+        , "distcompare1": np.dtype('f4')
+        , "distcompare2": np.dtype('f4')
     }
     f = uproot.recreate(directory+filename)
     shifted_azimuth = (azim + np.pi) % (2*np.pi)
@@ -435,5 +439,9 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
         , "xstartecef1": xstartecef[:,1]
         , "xstartecef2": xstartecef[:,2]
         , "n_tel": n_tel_array
+        , "heightcompare1": heightcompare1
+        , "heightcompare2": heightcompare2
+        , "distcompare1": distcompare1
+        , "distcompare2": distcompare2
     })
     f.close()
