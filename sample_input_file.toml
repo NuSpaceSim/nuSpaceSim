@@ -50,7 +50,7 @@ table_version = "3"
 
 [simulation.spectrum]
 id = "monospectrum"
-log_nu_energy = 9
+log_nu_energy = 10
 
 [simulation.cloud_model]
 id = "no_cloud"

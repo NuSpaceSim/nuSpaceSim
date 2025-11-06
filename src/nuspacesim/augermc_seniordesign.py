@@ -6,6 +6,7 @@ from scipy.integrate import quad, cumulative_trapezoid
 from scipy.optimize import root_scalar
 from scipy.interpolate import interp1d
 from scipy.interpolate import InterpolatedUnivariateSpline, BSpline
+
 import scipy.integrate
 
 import pickle
@@ -115,11 +116,11 @@ def utm_to_geodetic(easting, northing, zone, band, height=None):
 LL = np.array([459208.3, 6071871.5, 1416.2])
 LLlat,LLlong, LLheight=utm_to_geodetic(LL[0], LL[1], 19, 'H', LL[2])
 LLang=np.radians(330-360)
-LLphi = LLang+np.radians([15.01, 44.89, 75.00, 104.97, 134.99, 164.92]) #angle for perfect planes 15.045
-LLelev = np.radians([15.65, 15.92, 15.90, 16.07, 15.95, 15.82])
+LLphi = LLang+np.radians([15., 45, 75.00, 105, 135, 165]) #angle for perfect planes 15.045
+LLelev = np.radians([16, 16, 16, 16, 16, 16])
 
-#LLphi = LLang+np.radians([75.00, 104.97]) #angle for perfect planes 15.045
-#LLelev = np.radians([ 15.90, 16.07])
+LLphi = LLang+np.radians([ 45, 75.00, 105,135]) #angle for perfect planes 15.045
+LLelev = np.radians([16,16,16, 16])
 
 LLphitot=[np.min(LLphi)-telangle,np.max(LLphi)+telangle]
 LLthetatot=[np.min(LLelev)-telangle,np.max(LLelev)+telangle]
@@ -154,16 +155,22 @@ COthetatot=[np.min(COelev)-telangle,np.max(COelev)+telangle]
 #Central phi and elevation
 telphi=[np.mean(LLphitot),np.mean(LLphitot)-LLphitot[0],np.mean(LMphitot),np.mean(LMphitot)-LMphitot[0],np.mean(LAphitot),np.mean(LAphitot)-LAphitot[0],np.mean(COphitot),np.mean(COphitot)-COphitot[0]]
 teltheta=[np.mean(LLthetatot),np.mean(LLthetatot)-LLthetatot[0],np.mean(LMthetatot),np.mean(LMthetatot)-LMthetatot[0],np.mean(LAthetatot),np.mean(LAthetatot)-LAthetatot[0],np.mean(COthetatot),np.mean(COthetatot)-COthetatot[0]]
-print(np.degrees(telphi),np.degrees(teltheta))
 # Extract easting and northing values
 easting_values = [LL[0], LM[0], LA[0], CO[0]]
 northing_values = [LL[1], LM[1], LA[1], CO[1]]
+height_values = [LL[2], LM[2], LA[2], CO[2]]
 
 # Calculate the mean easting and northing
 mean_easting = np.mean(easting_values)   # 0471049.725
 mean_northing = np.mean(northing_values) # 6103660.025
+mean_height = np.mean(height_values)     # 1455.4
 mean_lat=np.mean([LLlat,LMlat,LAlat,COlat])#-35.209444890061114
 mean_long=np.mean([LLlong,LMlong,LAlong,COlong])#-69.31811672662049
+centerarrayutm = np.array([mean_easting, mean_northing, mean_height])
+
+LLresparray=np.array([LL[0], LL[1], LL[2]])-centerarrayutm
+
+#centerarray_respLL= centerarrayutm -  np.array([LL[0], LL[1], LL[2]])
 # In Lat Long this is 35.209657 S 69.318078W
 telang=[LLang,LMang,LAang,COang]
 h=1416
@@ -474,8 +481,8 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
     rEnergy=Rcutoff(E)*extraradius
 
     #LL
-    xLLcirc=rEnergy*np.cos(ang+LLang)+LLenu[0]
-    yLLcirc=rEnergy*np.sin(ang+LLang)+LLenu[1]
+    xLLcirc=rEnergy*np.cos(ang+LLang)+LLenu[0][0]
+    yLLcirc=rEnergy*np.sin(ang+LLang)+LLenu[0][1]
     xLLline = np.linspace(xLLcirc[-1], xLLcirc[0], num_ang)
     yLLline = np.linspace(yLLcirc[-1], yLLcirc[0], num_ang)
     xLL=np.concatenate((xLLcirc,xLLline))
@@ -484,8 +491,8 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
         plt.plot(xLL,yLL,color='red')
 
     # LM
-    xLMcirc=rEnergy*np.cos(ang+LMang)+LMenu[0]
-    yLMcirc=rEnergy*np.sin(ang+LMang)+LMenu[1]
+    xLMcirc=rEnergy*np.cos(ang+LMang)+LMenu[0][0]
+    yLMcirc=rEnergy*np.sin(ang+LMang)+LMenu[0][1]
     xLMline = np.linspace(xLMcirc[-1], xLMcirc[0], num_ang)
     yLMline = np.linspace(yLMcirc[-1], yLMcirc[0], num_ang)
     xLM=np.concatenate((xLMcirc,xLMline))
@@ -494,8 +501,8 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
         plt.plot(xLM,yLM,color='purple')
 
     # LA
-    xLAcirc=rEnergy*np.cos(ang+LAang)+LAenu[0]
-    yLAcirc=rEnergy*np.sin(ang+LAang)+LAenu[1]
+    xLAcirc=rEnergy*np.cos(ang+LAang)+LAenu[0][0]
+    yLAcirc=rEnergy*np.sin(ang+LAang)+LAenu[0][1]
     xLAline = np.linspace(xLAcirc[-1], xLAcirc[0], num_ang)
     yLAline = np.linspace(yLAcirc[-1], yLAcirc[0], num_ang)
     xLA=np.concatenate((xLAcirc,xLAline))
@@ -504,8 +511,8 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
         plt.plot(xLA,yLA,color='yellow')
 
     # CO
-    xCOcirc=rEnergy*np.cos(ang+COang)+COenu[0]
-    yCOcirc=rEnergy*np.sin(ang+COang)+COenu[1]
+    xCOcirc=rEnergy*np.cos(ang+COang)+COenu[0][0]
+    yCOcirc=rEnergy*np.sin(ang+COang)+COenu[0][1]
     xCOline = np.linspace(xCOcirc[-1], xCOcirc[0], num_ang)
     yCOline = np.linspace(yCOcirc[-1], yCOcirc[0], num_ang)
     xCO=np.concatenate((xCOcirc,xCOline))
@@ -538,8 +545,69 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
         plt.plot(np.max(d_stack)*np.cos(angtot),np.max(d_stack)*np.sin(angtot),color='black',linewidth=2.5,label='Sphere to throw')
         plt.gca().set_aspect('equal')
  
-        plt.show()
+        #plt.show()
     return np.max(d_stack)
+
+def plot_colormaps_all_trigg(coords, label, nbins=20, size=40e3, log=False):
+    """
+    Generate two 2D histograms of core positions:
+    1) All events
+    2) Triggered events
+    
+    Parameters
+    ----------
+    coords : ndarray of shape (n, 3)
+        Array containing xcorecentered, ycorecentered, zcorecentered.
+    label : str
+        Label used for plot titles and output filenames.
+    nbins : int, optional (default=40)
+        Number of bins on each axis for the histogram.
+    size : float, optional (default=40e3)
+        Half-size of the axis range around LL in meters.
+    log : bool, optional (default=False)
+        If True, use logarithmic color scale.
+    """
+    from matplotlib.colors import LogNorm
+
+    xcorecentered = coords[:, 0]
+    ycorecentered = coords[:, 1]
+
+    # Define bin edges
+    x_bins = np.linspace(0 - size, 0 + size, nbins)
+    y_bins = np.linspace(0 - size, 0 + size, nbins)
+    m = np.tan(LLang)
+    LLangx_vals = np.linspace(-50000, 50000, 100)+LLresparray[0]
+    LLangy_vals = m * (LLangx_vals+LLresparray[0])+LLresparray[1]
+
+    norm = LogNorm() if log else None
+
+    plt.figure(figsize=(12, 12))
+
+    hist, xedges, yedges, im = plt.hist2d(
+        xcorecentered, ycorecentered,
+        bins=[x_bins, y_bins], cmap='viridis', cmin=1, norm=norm
+    )
+
+    plt.colorbar(im, label='Number of Events')
+    # --- Extra plot elements ---
+    plt.plot(LLresparray[0], LLresparray[1], color='red', marker='v', markersize=7, zorder=10, label="LL")
+    plt.plot(0, 0, color='black', marker='x', markersize=5, label="Center Array")
+    plt.plot(LLangx_vals, LLangy_vals, 'r--', linewidth=0.5, label='LL line of sight')
+
+    # Labels and styling
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
+    plt.title(f'{label} position colormap of all events (n={len(xcorecentered)})')
+    plt.legend()
+    plt.gca().set_aspect('equal')
+
+    # Optional extra calculation
+    calcradius(19, int(1e5),plotfig=True)
+
+    plt.tight_layout()
+    plt.savefig(f'{label}_all_colormap{"_log" if (log and norm is not None) else ""}.png')
+    plt.close()
+
 
 #Take random point in hemisphere (surface). Returns points in the ground and vectors pointing up
 def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
@@ -578,8 +646,13 @@ def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
     vcoordecef=(coord2ecef[maskfov]-coordecef)/ np.linalg.norm((coord2ecef[maskfov]-coordecef), axis=1, keepdims=True)
 
     groundecef, vcoordecefground, beta, azimuth= ground_xy(coordecef,vcoordecef)
-
     mask=(beta<=maxang)&(beta>=minang)  #CUIDADO CON ESTO
+
+    ground=groundecef[mask,:][0:n,:]
+    groundtoplot=eceftoenu(centerelevatedecef,ground,mean_lat,mean_long)
+    plot_colormaps_all_trigg(groundtoplot, 'Core', nbins=40, size=60e3, log=True)
+
+
     return groundecef[mask,:][0:n,:], vcoordecefground[mask,:][0:n,:],beta[mask][0:n],azimuth[mask][0:n]#coordg[mask,:][0:n,:], vcoordg[mask,:][0:n,:]
 
 def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
@@ -741,7 +814,7 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         inplane=(dist<=r[mask1]) & (cosground>=np.cos(exacttelangle*(len(LLphi)-1)+telangle))
         index = np.arange(len(a))[mask1][inplane]
         identifier[index]=identifier[index]*code[i]
-        mask1[mask1]=~inplane # UNCHECK
+        #mask1[mask1]=~inplane # UNCHECK
         print(inplane.sum(),'Inside Plane, remaining: ',mask1.sum())
 
         """Plots ground
@@ -765,11 +838,11 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
 
         index = np.arange(len(a))[mask1][insphere1]
         identifier[index]=identifier[index]*code[i]
-        mask1[mask1]=~insphere1 # UNCHECK
+        #mask1[mask1]=~insphere1 # UNCHECK
         print(insphere1.sum(),'Sphere1, remaining: ',mask1.sum())
 
         #Intersection of second point (if first one wasn't inside) (this is the highest point)
-        u2=((-b[mask1]+sqrtD[~insphere1])*(1/a[mask1])*(1/2))[:,np.newaxis]
+        u2=((-b[mask1]+sqrtD)*(1/a[mask1])*(1/2))[:,np.newaxis]
         intvec2=(coordenu[mask1]+u2*vcoordenu[mask1])/r[mask1,np.newaxis]
         cosdphi2=np.dot(intvec2[:,0:2],eyevector[i,0:2])/np.linalg.norm(intvec2[:,0:2],axis=1)/np.linalg.norm(eyevector[i,0:2])   #azimuth angle difference with center of telescope
         theta2=np.arccos(np.sqrt(intvec2[:,0]**2+intvec2[:,1]**2))*np.sign(intvec2[:,2]) #elevation angle of intersection vector
@@ -777,7 +850,7 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         index = np.arange(len(a))[mask1][insphere2]
         identifier[index]=identifier[index]*code[i]
 
-        mask1[mask1]=~insphere2 # UNCHECK
+        #mask1[mask1]=~insphere2 # UNCHECK
         print(insphere2.sum(),'Sphere2, remaining: ',mask1.sum())
         
 
@@ -800,7 +873,7 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         index = np.arange(len(a))[mask1][inback1]
         identifier[index]=identifier[index]*code[i]
 
-        mask1[mask1]=~inback1
+        #mask1[mask1]=~inback1
         print(inback1.sum(),'Back Plane1, remaining: ',mask1.sum())
         #CHECK INTERSECTION WITH BACKSIDE PLANE 2
         
@@ -821,11 +894,11 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         inback2=(dist<=r[mask1]) & (dotprod>=np.cos(telangle))
         index = np.arange(len(a))[mask1][inback2]
         identifier[index]=identifier[index]*code[i]
-        mask1[mask1]=~inback2
+        #mask1[mask1]=~inback2
         print(inback2.sum(),'Back Plane2. End. Leftover: ',mask1.sum())
         print(f'Total crossing FoV for telescope {i} = ',np.count_nonzero(identifier%code[i]==0))
 
-        """
+        
         phi_rotationplot = R.from_rotvec(rotaxis/np.linalg.norm(rotaxis) * (phiangle2-np.pi))
         v_intersec2plot=phi_rotationplot.apply(v_intersec2)
         phi_rotationplot = R.from_rotvec(rotaxis/np.linalg.norm(rotaxis) * (phiangle1))
@@ -853,18 +926,18 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         ax.scatter(intvec2[insphere2][:,0],intvec2[insphere2][:,1],intvec2[insphere2][:,2],color='yellow',alpha=0.7,s=0.1,label='Sphere2')
         ax.scatter(intvec1[insphere1][:,0],intvec1[insphere1][:,1],intvec1[insphere1][:,2],color='green',alpha=0.7,s=0.1,label='Sphere1')
         
-        rvaluesback1=rvalues[~inplane][~insphere1][~insphere2]
+        rvaluesback1=rvalues#[~inplane][~insphere1][~insphere2]
         v_intersec1_norm=v_intersec1plot/rvaluesback1
-        rvaluesback2=rvaluesback1[~inback1]
+        rvaluesback2=rvaluesback1#[~inback1]
         v_intersec2_norm=v_intersec2plot/rvaluesback2
 
         ax.scatter(v_intersec1_norm[inback1][:,0],v_intersec1_norm[inback1][:,1],v_intersec1_norm[inback1][:,2],color='magenta',alpha=0.7,s=0.1,label='Back Plane')
         ax.scatter(v_intersec2_norm[inback2][:,0],v_intersec2_norm[inback2][:,1],v_intersec2_norm[inback2][:,2],color='magenta',alpha=0.7,s=0.1)
 
         ax.legend(markerscale=15., loc='upper right')
-        plt.savefig('intersec3d.png',dpi=300)"""
+        plt.savefig('intersec3d.png',dpi=300)#"""
 
-
+        exit()
 
         inside=(identifier%code[i]==0)
         intfactor1=((-b[inside]-np.sqrt(D[inside]))*(1/a[inside])*(1/2))[:,np.newaxis]
@@ -932,7 +1005,6 @@ def atmdensity_interpolation(height_km):
     log_dens = np.log(densities_auger)
     log_interp = np.interp(h_m, heights_auger, log_dens)
     return np.exp(log_interp)
-print('ATM DENSITY AT 1415 ',atmdensity_interpolation(1.415))
 
 def atmdensity(z):
     """

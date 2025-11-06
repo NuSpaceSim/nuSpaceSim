@@ -128,6 +128,8 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
 
     Xmx = np.empty(n, dtype='f4')
     Nmx = np.empty(n, dtype='f4')
+    dEdXmx = np.empty(n, dtype='f4')
+
     shiftedparams=ghparams.copy()
     plt.figure(figsize=(14, 10), dpi=200)
 
@@ -169,7 +171,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
             raise
         Xmx[i]=X[i,max_pos]
         Nmx[i]=RN[i,max_pos]
-
+        dEdXmx[i]=dEdX[i,max_pos]
         if (chi2[i]>1) | (chi2[i]==np.nan) | (chi2[i]<=0):
             print(ghparams[i,1],shiftedparams[i,1])
             print((len(X[i]) - 6))
@@ -417,7 +419,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
         , "Xmx": Xmx
         , "Nmx": Nmx
         , "XmxdEdX": Xmx
-        , "dEdXmx": Nmx * dEdXratio
+        , "dEdXmx": dEdXmx
         , "cpuTime": nan4n
         , "X": X
         , "N": RN

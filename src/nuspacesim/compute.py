@@ -68,11 +68,13 @@ from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
 from .augermc import *
+#from .augermc_seniordesign import *
+
 from .conex_out import conex_out
 from .full_root_out import full_root_out
 #from .testingfuncs import *
 
-from .testrcut import *
+#from .testrcut import *
 import matplotlib.pyplot as plt
 from .simulation.eas_optical.shower_properties import slant_depth_trig_approx, particle_count_fluctuated_gaisser_hillas, gaisser_hillas_particle_count_exp_form
 try:
@@ -333,7 +335,6 @@ def compute(
     # PARAMETERS
     maxangle = np.radians(30)
     radiusfactor = 1
-    minshowerpct = 35
     energy_threshold = 16
     gpstime = 1261872018  # Time at 1 Jan 2020 00:00:00 UTC
     ntels = 1
@@ -385,7 +386,7 @@ def compute(
     print('Calculating Shower Development cuts')
 
     # Cut 1: energy threshold + altitude
-    maxalt=30
+    maxalt=35
     cut1 = (variables["energies"] > energy_threshold) & (variables["altDec"] < maxalt)
     cumulative_indices = cumulative_indices[cut1]
     variables = apply_cut(variables, cut1)
@@ -438,7 +439,7 @@ def compute(
     xmax_outside_atm_counter = 0
     xmax_outside_atm_and_trigg = 0
     finalmask = np.zeros(remainingn, dtype=bool)
-    min_e=0
+    min_e=0.05
     variables['xstartecef']=np.zeros((remainingn,3))
     xfinal=np.zeros(remainingn)
     height_compare1=np.zeros(remainingn)
@@ -449,6 +450,58 @@ def compute(
     X_builder = ak.ArrayBuilder()
     RN_builder = ak.ArrayBuilder()
     dEdX_builder = ak.ArrayBuilder()
+    def generate_hists():
+
+        # Variable histograms
+        variableshists = {
+            'lgE': {'data': originals["energies"], 'label': 'Log Energy (lgE)', 'xlabel': 'lgE'},
+            'zenith': {'data': np.degrees(originals["beta_tr"]), 'label': 'Zenith Angle (degrees)', 'xlabel': 'Zenith (degrees)'},
+            'azimuth': {'data': np.degrees(originals["azimuth"]), 'label': 'Azimuth Angle (degrees)', 'xlabel': 'Azimuth (degrees)'},
+
+        }
+
+        for var_name, var_info in variableshists.items():
+            plt.figure(figsize=(8, 10))
+            data_range = (np.min(var_info['data']), np.max(var_info['data']))
+            if var_name=='lgE':
+                data_range=(16,19)
+            bins = np.linspace(data_range[0], data_range[1], 51)
+            ax1 = plt.subplot(2, 1, 1)
+            n_all = len(var_info['data'])
+            mean_all = np.mean(var_info['data'])
+            min_all = np.min(var_info['data'])
+            max_all = np.max(var_info['data'])
+            plt.hist(var_info['data'], bins=bins, color='blue', alpha=0.7, density=True, label=(
+                f'All Events\nMean: {mean_all:.2f}\nMin: {min_all:.2f}\nMax: {max_all:.2f}'
+            ))
+            plt.ylabel('Number of Events')
+            plt.title(f'Histogram of {var_info["label"]} (Simulation start Events, n={n_all})')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            plt.subplot(2, 1, 2, sharex=ax1)
+            triggered_data = var_info['data'][cumulative_indices]
+            n_triggered = len(triggered_data)
+            if n_triggered > 0:
+                mean_triggered = np.mean(triggered_data)
+                min_triggered = np.min(triggered_data)
+                max_triggered = np.max(triggered_data)
+                plt.hist(triggered_data, bins=bins, color='green', alpha=0.7, density=True, label=(
+                    f'Passing Geometry events\nMean: {mean_triggered:.2f}\nMin: {min_triggered:.2f}\nMax: {max_triggered:.2f}'
+                ))
+            else:
+                plt.text(0.5, 0.5, 'No Triggered Events', horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes, fontsize=12)
+            plt.xlabel(var_info['xlabel'])
+            plt.ylabel('Number of Events')
+            plt.title(f'Histogram of {var_info["label"]} (Passing Geometry Events, n={n_triggered})')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.savefig(f'{var_name}_hist.png')
+            plt.close()
+    #generate_hists()
+    ##exit()
+
+
 
     print('Start loop')
 
@@ -550,7 +603,7 @@ def compute(
 
     print(startoutcounter, ' Start shower outside atmosphere')
 
-    print(np.sum(id_full != 1), ' Events with enough shower development in view of detector')
+    print(np.sum(finalmask), ' Events with enough shower development in view of detector')
     #print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
     #print(xmax_outside_atm_and_trigg, ' Events with Xmax outside atmosphere that still triggered')
     print("Any n_e_per_m2 NaN?", np.any(np.isnan(n_e_array)),np.sum(np.isnan(n_e_array)))
