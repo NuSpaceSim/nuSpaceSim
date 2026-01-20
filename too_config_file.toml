@@ -1,0 +1,59 @@
+title = "NuSpaceSim"
+
+[detector]
+name = "SP2"
+
+[detector.initial_position]
+altitude = "33.0 km"
+latitude = "-44.6943 deg"
+longitude = "169.1417 deg"
+
+[detector.sun_moon]
+sun_moon_cuts = true
+sun_alt_cut = "-23.819097 deg"
+moon_alt_cut = "0.0 deg"
+moon_min_phase_angle_cut = "150.0 deg"
+
+[detector.optical]
+telescope_effective_area = "0.625 m2"
+quantum_efficiency = 0.2
+photo_electron_threshold = 25
+
+[detector.radio]
+low_frequency = "30.0 MHz"
+high_frequency = "300.0 MHz"
+snr_threshold = 5.0
+nantennas = 10
+gain = "1.8 dB"
+
+[simulation]
+mode = "Target"
+method = "Approximation"
+thrown_events = 1000000
+max_cherenkov_angle = "6.0000000000000004 deg"
+max_azimuth_angle = "360.0 deg"
+angle_from_limb = "6.4 deg"
+cherenkov_light_engine = "Default"
+
+[simulation.ionosphere]
+total_electron_content = 10.0
+total_electron_error = 0.1
+
+[simulation.tau_shower]
+id = "nupyprop"
+etau_frac = 0.5
+table_version = "2"
+
+[simulation.spectrum]
+id = "monospectrum"
+log_nu_energy = 9.0
+
+[simulation.cloud_model]
+id = "no_cloud"
+
+[simulation.target]
+source_RA = "150.0 deg"
+source_DEC = "0.0 deg"
+source_date = "2023-04-01T01:00:00"
+source_date_format = "isot"
+source_obst = 86400
