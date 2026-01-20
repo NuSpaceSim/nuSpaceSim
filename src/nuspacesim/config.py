@@ -82,10 +82,11 @@ class Detector(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     class InitialPos(BaseModel):
+        # model_config = ConfigDict(arbitrary_types_allowed=True)
         altitude: float = Quantity(525.0, u.km).value
         """ Altitude from sea-level (KM). """
         latitude: float = Quantity(0.0, u.rad).value
-        """ Earth latitude (Radians). """
+        """ Right Ascencion (Radians). """
         longitude: float = Quantity(0.0, u.rad).value
         """ Declination (Radians). """
 
@@ -143,7 +144,7 @@ class Detector(BaseModel):
     class GenericPoint(BaseModel):
         id: Literal["generic"] = "generic"
         tilt_angle: float = Quantity(np.radians(0.0), u.rad).value
-        """ Detector tilt w.r.t. to the horizontal: Default = 0 """
+        """ Detector tilt w.r.t. to the detector horizontal: Default = 0 """
         azimuth_point: float = Quantity(np.radians(0.0), u.rad).value
         """ Azimuthal angle of the center of the detector (E is 0 deg, N is 90 deg): Default = 0 """
 
@@ -427,7 +428,7 @@ class Simulation(BaseModel):
         return value
 
     integ_method: Union[MonteCarlo, Approximation, Cubature] = Field(
-        default=MonteCarlo, discriminator="id"
+        default=Approximation, discriminator="id"
     )
     """ The Method of Integration """
     ionosphere: Optional[Ionosphere] = Ionosphere()
@@ -514,7 +515,7 @@ def config_from_fits(filename: str) -> NssConfig:
             "field_of_view": {
                 "azimuth_span": d("detector azimuth_span"),
                 "nadir_span": d("detector nadir_span"),
-                # "azimuth_center": d("detector center azimuth"),
+                "azimuth_center": d("detector center azimuth"),
             },
             "tilt": {
                 "id": d("tilt_id"),
@@ -534,8 +535,7 @@ def config_from_fits(filename: str) -> NssConfig:
             },
         },
         "simulation": {
-            "angle_from_limb": s("angle_from_limb"),
-            "eas_long_profile": s("eas_long_profile"),
+            # "angle_from_limb": s("angle_from_limb"),
             "cherenkov_light_engine": s("cherenkov_light_engine"),
             "cloud_model": {"id": s("cloud_model id")},
             "ionosphere": {
