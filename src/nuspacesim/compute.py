@@ -56,6 +56,7 @@ from numpy.typing import ArrayLike
 from rich.console import Console
 
 from . import results_table
+from .conex_out import conex_out
 from .config import NssConfig
 from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
@@ -141,13 +142,13 @@ def compute(
         console.rule("[bold blue] NuSpaceSim")
 
     def mc_logv(mcint, mcintgeo, numEvPass, mcunc, method):
-        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]:", mcint)
+        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]: ", mcint)
         logv(
-            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
+            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]: ",
             mcintgeo,
         )
-        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
-        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
+        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]: ", numEvPass)
+        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]: ", mcunc)
 
     sim = results_table.init(config)
     geom = RegionGeom(config)
@@ -226,15 +227,15 @@ def compute(
     # if config.detector.method == "Optical" or config.detector.method == "Both":
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
-
-        numPEs, costhetaChEff = eas(
+        conex = config.simulation.conex_output
+        numPEs, costhetaChEff, profilesOut = eas(
             beta_tr,
             altDec,
             showerEnergy,
             init_lat,
             init_long,
+            conex,
             cloudf=cloud,
-            store=sw,
             plot=to_plot,
         )
 
@@ -257,6 +258,8 @@ def compute(
         sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
 
         mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
+        if conex:
+            conex_out(sim, profilesOut, output_file)
 
     if config.detector.radio.enable:
         logv("Computing [green] EAS Radio signal.[/]")
