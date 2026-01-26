@@ -117,10 +117,10 @@ LL = np.array([459208.3, 6071871.5, 1416.2])
 LLlat,LLlong, LLheight=utm_to_geodetic(LL[0], LL[1], 19, 'H', LL[2])
 LLang=np.radians(330-360)
 LLphi = LLang+np.radians([15., 45, 75.00, 105, 135, 165]) #angle for perfect planes 15.045
-LLelev = np.radians([16, 16, 16, 16, 16, 16])
+LLelev = np.radians([70, 70, 70, 70, 70, 70])
 
-LLphi = LLang+np.radians([ 45, 75.00, 105,135]) #angle for perfect planes 15.045
-LLelev = np.radians([16,16,16, 16])
+#LLphi = LLang+np.radians([ 45, 75.00, 105,135]) #angle for perfect planes 15.045
+#LLelev = np.radians([16,16,16, 16])
 
 LLphitot=[np.min(LLphi)-telangle,np.max(LLphi)+telangle]
 LLthetatot=[np.min(LLelev)-telangle,np.max(LLelev)+telangle]
@@ -916,13 +916,19 @@ def trajectory_inside_tel_sphere(lgE,coordecef,vcoordecef,ntels=telposecef.shape
         ax.set_ylabel('y')
         ax.set_zlabel('z')
 
-        ax.view_init(azim=-120, elev=40)       
+        ax.view_init(azim=-35, elev=40)       
 
         ax.plot_wireframe(x, y, z, color="r",linewidth=1, alpha=0.5)
         valid=(sign>0)
         rvalues=r[valid][:,np.newaxis]
         v_intnorm=c_ground/rvalues
-        ax.scatter(v_intnorm[inplane][:,0],v_intnorm[inplane][:,1],np.zeros_like(inplane)[inplane],color='cyan',alpha=0.7,s=0.1,zorder=5,label='Ground Plane')
+        rotangle=teltheta[2*i]-teltheta[2*i+1]
+        rotaxis = np.array([-eyevector[i,1],eyevector[i,0] , 0])
+        theta_rotation = R.from_rotvec(rotaxis/np.linalg.norm(rotaxis) * -rotangle)
+        v_plane=np.array([v_intnorm[:,0],v_intnorm[:,1],np.zeros_like(v_intnorm[:,0])]).T
+        v_planerot=theta_rotation.apply(v_plane)
+
+        ax.scatter(v_planerot[inplane][:,0],v_planerot[inplane][:,1],v_planerot[inplane][:,2],color='cyan',alpha=0.7,s=0.1,zorder=5,label='Ground Plane')
         ax.scatter(intvec2[insphere2][:,0],intvec2[insphere2][:,1],intvec2[insphere2][:,2],color='yellow',alpha=0.7,s=0.1,label='Sphere2')
         ax.scatter(intvec1[insphere1][:,0],intvec1[insphere1][:,1],intvec1[insphere1][:,2],color='green',alpha=0.7,s=0.1,label='Sphere1')
         

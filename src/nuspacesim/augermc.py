@@ -162,6 +162,9 @@ northing_values = [LL[1], LM[1], LA[1], CO[1]]
 # Calculate the mean easting and northing
 mean_easting = np.mean(easting_values)   # 0471049.725
 mean_northing = np.mean(northing_values) # 6103660.025
+z_values = [LL[2], LM[2], LA[2], CO[2]]
+mean_height = np.mean(z_values)
+
 mean_lat=np.mean([LLlat,LMlat,LAlat,COlat])#-35.209444890061114
 mean_long=np.mean([LLlong,LMlong,LAlong,COlong])#-69.31811672662049
 # In Lat Long this is 35.209657 S 69.318078W
@@ -2198,12 +2201,13 @@ def energy_at_tel(groundecef, vecef, x, rn, min_e,xmax,distances,ntels=1,telphi=
             continue
         
         disttel=np.linalg.norm(coordsenu[infov],axis=1)
-
+        e_per_m2_cond=max(0,xstep*np.sum(dedx[infov]/disttel**2)/4/np.pi)
         e_per_m2=max(e_per_m2,xstep*np.sum(dedx[infov]/disttel**2)/4/np.pi)
         #n_e_per_m2=max(n_e_per_m2,10*np.sum(rn[infov]/disttel**2)/4/np.pi)
         #print(disttel,rn[infov],n_e_per_m2)
-        if e_per_m2>=min_e:
+        if e_per_m2_cond>=min_e:
             codeout=codeout*code[i]
+            #print(code[i],e_per_m2_cond)
 
     return codeout, e_per_m2, dedx
 
@@ -2360,3 +2364,138 @@ def auger_atm_table(
         np.asarray(slantDepth, dtype=float),
         np.asarray(distanceToImpact, dtype=float),
     )
+
+
+
+def plot_trajectories(core,start,xmax,idx,ntoplot, label,lgE,zenith,e_at_tel):
+    centerarray = np.array([mean_easting, mean_northing, mean_height])
+    center = np.array([LL[0], LL[1], LL[2]])
+    centerarray_respLL = centerarray - center
+    xxmaxtrig=xmax[:,0]
+    yxmaxtrig=xmax[:,1]
+    
+    xcoretrig=core[:,0]
+    ycoretrig=core[:,1]
+    
+    xstartrig=start[:,0]
+    ystartrig=start[:,1]
+    
+    plt.figure(figsize=(12,12), dpi=300)
+
+    plt.plot(0,0,color='red',marker='v',markersize=7,zorder=10)
+    plt.plot(centerarray_respLL[0],centerarray_respLL[1],color='black',marker='x',markersize=5)
+
+    plt.scatter(xxmaxtrig[idx], yxmaxtrig[idx], color='orange', marker='x', s=5, label='Xmax position')
+    plt.scatter(xstartrig[idx], ystartrig[idx], color='green', marker='x', s=5, label='Shower start position')
+ 
+    plt.plot(np.vstack([xcoretrig[idx], xxmaxtrig[idx]]),
+             np.vstack([ycoretrig[idx], yxmaxtrig[idx]]),
+             color="blue", linestyle='--', linewidth=0.5, alpha=0.2)
+
+    plt.scatter(xcoretrig[idx], ycoretrig[idx], color='blue', marker='o', s=10, label='Core')
+    for i in idx:
+        plt.text(xcoretrig[i], ycoretrig[i] + 1000,
+                 f"{lgE[:][i]:.1f}, {zenith[:][i]:.1f}, {e_at_tel[:][i]:.3f}",
+                 ha='center', fontsize=6, zorder=10)
+
+    plt.legend()
+    plt.gca().set_aspect('equal')
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
+    plt.title(f'map of {label} triggering events around Los Leones, n={ntoplot}')
+
+    plt.savefig(f'triggers_core+xmax_n{ntoplot}_{label}.png')
+    plt.close()
+
+def plot_telescope_hist(events):
+    """
+    Plots a histogram of event counts for each telescope based on prime divisibility.
+    
+    Parameters:
+    events (array-like): Array of integer event IDs.
+    """
+    # Ensure input is a numpy array for easier element-wise operations
+    events = np.array(events)
+    
+    # Define the mapping of Telescopes to Primes
+    telescope_map = {
+        'LL': 2,
+        'LM': 3,
+        'LA': 5,
+        'CO': 7
+    }
+
+    # Calculate counts for each telescope
+    counts = {}
+    for name, prime in telescope_map.items():
+        # Count elements divisible by the prime
+        counts[name] = np.sum(events % prime == 0)
+
+    # Prepare data for plotting
+    names = list(counts.keys())
+    values = list(counts.values())
+
+    # Create the bar plot
+    plt.figure(figsize=(8, 6))
+    bars = plt.bar(names, values, color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'])
+
+    # Add labels and title
+    plt.xlabel('Telescope')
+    plt.ylabel('Number of Events')
+    plt.title('Event Counts per Telescope')
+
+    # Add text labels on top of the bars for clarity
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval, int(yval), 
+                 ha='center', va='bottom')
+
+    # Save the figure as requested
+    plt.savefig('telescope_distribution.png')
+    
+    # Optional: Close plot to free memory if running in a loop or script
+    plt.close()
+
+def plot_telescope_multiplicity(events):
+    """
+    Plots a histogram showing the distribution of events based on 
+    how many telescopes (primes) they are divisible by.
+    
+    Parameters:
+    events (array-like): Array of integer event IDs.
+    """
+    # Ensure input is a numpy array
+    events = np.array(events)
+    primes = [2, 3, 5, 7]
+    
+    # Calculate how many primes divide each event
+    # Create a boolean matrix of shape (n_events, n_primes) 
+    # where True means the event is divisible by the prime
+    # events[:, np.newaxis] creates a column vector to broadcast against primes
+    divisibility_matrix = (events[:, np.newaxis] % primes) == 0
+    
+    # Sum across the rows (axis=1) to get the count of matching telescopes for each event
+    multiplicities = divisibility_matrix.sum(axis=1)
+    
+    # Calculate frequency of each multiplicity (1, 2, 3, 4)
+    x_values = [1, 2, 3, 4]
+    y_values = [np.sum(multiplicities == x) for x in x_values]
+    
+    # Plotting
+    plt.figure(figsize=(8, 6))
+    bars = plt.bar(x_values, y_values, color='purple')
+    
+    plt.xlabel('Number of Matching Telescopes')
+    plt.ylabel('Number of Events')
+    plt.title('Event Distribution by Number of Triggered Telescopes')
+    plt.xticks(x_values)
+    
+    # Add value labels on top of bars
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2., height,
+                 f'{int(height)}',
+                 ha='center', va='bottom')
+    
+    plt.savefig('telescope_coincidence.png')
+    plt.close()

@@ -334,10 +334,10 @@ def compute(
 
     # PARAMETERS
     maxangle = np.radians(30)
-    radiusfactor = 1
+    radiusfactor = 2
     energy_threshold = 16
     gpstime = 1261872018  # Time at 1 Jan 2020 00:00:00 UTC
-    ntels = 1
+    ntels = 4
     # PARAMETERS
     radius = roundcalcradius(maxE, radiusfactor)
     groundecef, vecef, beta_tr, azimuth = gen_points(n, radius, maxang=maxangle)
@@ -401,7 +401,7 @@ def compute(
 
     # Cut 2: trajectory inside telescope sphere
     id_temp, int1, int2, min_distance, rcut = trajectory_inside_tel_sphere(
-        variables["energies"], variables["groundecef"], variables["vecef"], ntels, radiusfactor=radiusfactor
+       variables["energies"], variables["groundecef"], variables["vecef"], ntels, radiusfactor=radiusfactor
     )
     id_full[cumulative_indices] = id_temp
     cut2 = id_temp != 1
@@ -409,9 +409,9 @@ def compute(
     variables = apply_cut(variables, cut2)
 
     # Post-cut2 computations
-    #dist2EarthCenter = np.sqrt(variables['groundecef'][:, 0]**2 + variables['groundecef'][:, 1]**2 + variables['groundecef'][:, 2]**2)
-    #init_lat = np.arcsin(variables['groundecef'][:, 2] / dist2EarthCenter)
-    #init_lon = np.arctan2(variables['groundecef'][:, 1], variables['groundecef'][:, 0])
+    dist2EarthCenter = np.sqrt(variables['groundecef'][:, 0]**2 + variables['groundecef'][:, 1]**2 + variables['groundecef'][:, 2]**2)
+    init_lat = np.arcsin(variables['groundecef'][:, 2] / dist2EarthCenter)
+    init_lon = np.arctan2(variables['groundecef'][:, 1], variables['groundecef'][:, 0])
 
     #Cut 2.1: remove showers with no intersection at 1415m (virtually no Earth travelled)
     startatm=1414
@@ -450,57 +450,6 @@ def compute(
     X_builder = ak.ArrayBuilder()
     RN_builder = ak.ArrayBuilder()
     dEdX_builder = ak.ArrayBuilder()
-    def generate_hists():
-
-        # Variable histograms
-        variableshists = {
-            'lgE': {'data': originals["energies"], 'label': 'Log Energy (lgE)', 'xlabel': 'lgE'},
-            'zenith': {'data': np.degrees(originals["beta_tr"]), 'label': 'Zenith Angle (degrees)', 'xlabel': 'Zenith (degrees)'},
-            'azimuth': {'data': np.degrees(originals["azimuth"]), 'label': 'Azimuth Angle (degrees)', 'xlabel': 'Azimuth (degrees)'},
-
-        }
-
-        for var_name, var_info in variableshists.items():
-            plt.figure(figsize=(8, 10))
-            data_range = (np.min(var_info['data']), np.max(var_info['data']))
-            if var_name=='lgE':
-                data_range=(16,19)
-            bins = np.linspace(data_range[0], data_range[1], 51)
-            ax1 = plt.subplot(2, 1, 1)
-            n_all = len(var_info['data'])
-            mean_all = np.mean(var_info['data'])
-            min_all = np.min(var_info['data'])
-            max_all = np.max(var_info['data'])
-            plt.hist(var_info['data'], bins=bins, color='blue', alpha=0.7, density=True, label=(
-                f'All Events\nMean: {mean_all:.2f}\nMin: {min_all:.2f}\nMax: {max_all:.2f}'
-            ))
-            plt.ylabel('Number of Events')
-            plt.title(f'Histogram of {var_info["label"]} (Simulation start Events, n={n_all})')
-            plt.legend()
-            plt.grid(True, alpha=0.3)
-            plt.subplot(2, 1, 2, sharex=ax1)
-            triggered_data = var_info['data'][cumulative_indices]
-            n_triggered = len(triggered_data)
-            if n_triggered > 0:
-                mean_triggered = np.mean(triggered_data)
-                min_triggered = np.min(triggered_data)
-                max_triggered = np.max(triggered_data)
-                plt.hist(triggered_data, bins=bins, color='green', alpha=0.7, density=True, label=(
-                    f'Passing Geometry events\nMean: {mean_triggered:.2f}\nMin: {min_triggered:.2f}\nMax: {max_triggered:.2f}'
-                ))
-            else:
-                plt.text(0.5, 0.5, 'No Triggered Events', horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes, fontsize=12)
-            plt.xlabel(var_info['xlabel'])
-            plt.ylabel('Number of Events')
-            plt.title(f'Histogram of {var_info["label"]} (Passing Geometry Events, n={n_triggered})')
-            plt.legend()
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-            plt.savefig(f'{var_name}_hist.png')
-            plt.close()
-    #generate_hists()
-    ##exit()
-
 
 
     print('Start loop')
@@ -556,7 +505,7 @@ def compute(
         all_ghparams[i] = shiftedghparams
         distances_along_shower=np.interp(x+start_slant,slant,dist)
         rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
-        code, n_e_per_m2, dedx = energy_at_tel(variables['groundecef'][i,:], variables['vecef'][i,:], x, rn, min_e,shiftedXmax,distances_along_shower)
+        code, n_e_per_m2, dedx = energy_at_tel(variables['groundecef'][i,:], variables['vecef'][i,:], x, rn, min_e,shiftedXmax,distances_along_shower,ntels)
         """plt.figure(figsize=(12,10),dpi=200)
         plt.plot(x,rn,label='No. of particles')
         plt.plot(x,rn*0.0025935,label='dEdX constant')
@@ -567,6 +516,7 @@ def compute(
         plt.savefig(f'dedx_over_rn_example_{i}.png')
         exit()"""
         global_i = cumulative_indices[i]
+        #print(id_full[global_i], ' ID before', code, ' ID after')
         id_full[global_i] = code
 
         if available_grammage < shiftedXmax:
@@ -606,10 +556,151 @@ def compute(
     print(np.sum(finalmask), ' Events with enough shower development in view of detector')
     #print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
     #print(xmax_outside_atm_and_trigg, ' Events with Xmax outside atmosphere that still triggered')
-    print("Any n_e_per_m2 NaN?", np.any(np.isnan(n_e_array)),np.sum(np.isnan(n_e_array)))
 
     final_local = np.flatnonzero(finalmask)
     final_global = cumulative_indices[final_local]
+    print(id_full[final_global], 'FINAL IDs')
+    plot_telescope_hist(id_full[final_global])
+    plot_telescope_multiplicity(id_full[final_global])
+    #Re run GEOM cut to check if its a redundant cut after e_at_tel cut. Does it keep the zenith, azim distribution the same? 
+    # radiusfactor=1.5
+    # id_temp, int1, int2, min_distance, rcut = trajectory_inside_tel_sphere(
+    #     variables["energies"][final_local], variables["groundecef"][final_local], variables["vecef"][final_local], ntels, radiusfactor=radiusfactor)
+    # # = trajectory_inside_tel_sphere(
+    # #    variables["energies"], variables["groundecef"], variables["vecef"], ntels, radiusfactor=radiusfactor
+    # #)
+    # #id_full[cumulative_indices] = id_temp
+    # cut2 = id_temp != 1
+    # final_global_geom=final_global[cut2]
+    # #cumulative_indices_geomcut = cumulative_indices[cut2]
+    # def generate_hists():
+
+    #     # Variable histograms
+    #     variableshists = {
+    #         'lgE': {'data': originals["energies"], 'label': 'Log Energy (lgE)', 'xlabel': 'lgE'},
+    #         'zenith': {'data': np.degrees(originals["beta_tr"]), 'label': 'Zenith Angle (degrees)', 'xlabel': 'Zenith (degrees)'},
+    #         'azimuth': {'data': np.degrees(originals["azimuth"]), 'label': 'Azimuth Angle (degrees)', 'xlabel': 'Azimuth (degrees)'},
+
+    #     }
+
+    #     for var_name, var_info in variableshists.items():
+    #         plt.figure(figsize=(8, 10))
+    #         data_range = (np.min(var_info['data']), np.max(var_info['data']))
+    #         if var_name=='lgE':
+    #             data_range=(16,19)
+    #         bins = np.linspace(data_range[0], data_range[1], 51)
+    #         ax1 = plt.subplot(3, 1, 1)
+    #         n_all = len(var_info['data'])
+    #         mean_all = np.mean(var_info['data'])
+    #         min_all = np.min(var_info['data'])
+    #         max_all = np.max(var_info['data'])
+    #         plt.hist(var_info['data'], bins=bins, color='blue', alpha=0.7, label=(
+    #             f'All Events\nMean: {mean_all:.2f}\nMin: {min_all:.2f}\nMax: {max_all:.2f}'
+    #         ))
+    #         plt.ylabel('Number of Events')
+    #         plt.title(f'Histogram of {var_info["label"]} (Simulation start Events, n={n_all})')
+    #         plt.legend()
+    #         plt.grid(True, alpha=0.3)
+    #         plt.subplot(3, 1, 2, sharex=ax1)
+    #         triggered_data = var_info['data'][final_global]
+    #         n_triggered = len(triggered_data)
+    #         if n_triggered > 0:
+    #             mean_triggered = np.mean(triggered_data)
+    #             min_triggered = np.min(triggered_data)
+    #             max_triggered = np.max(triggered_data)
+    #             plt.hist(triggered_data, bins=bins, color='green', alpha=0.7, label=(
+    #                 f'e_at_tel >0.05 events\nMean: {mean_triggered:.2f}\nMin: {min_triggered:.2f}\nMax: {max_triggered:.2f}'
+    #             ))
+    #         else:
+    #             plt.text(0.5, 0.5, 'No Triggered Events', horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes, fontsize=12)
+    #         plt.xlabel(var_info['xlabel'])
+    #         plt.ylabel('Number of Events')
+    #         plt.title(f'Histogram of {var_info["label"]} (e_at_tel>0.05 Events, n={n_triggered})')
+    #         plt.legend()
+    #         plt.grid(True, alpha=0.3)
+
+
+    #         plt.subplot(3, 1, 3, sharex=ax1)
+    #         triggered_data = var_info['data'][final_global_geom]
+    #         n_triggered = len(triggered_data)
+    #         if n_triggered > 0:
+    #             mean_triggered = np.mean(triggered_data)
+    #             min_triggered = np.min(triggered_data)
+    #             max_triggered = np.max(triggered_data)
+    #             plt.hist(triggered_data, bins=bins, color='green', alpha=0.7, label=(
+    #                 f'Passing Geometry events\nMean: {mean_triggered:.2f}\nMin: {min_triggered:.2f}\nMax: {max_triggered:.2f}'
+    #             ))
+    #         else:
+    #             plt.text(0.5, 0.5, 'No Triggered Events', horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes, fontsize=12)
+    #         plt.xlabel(var_info['xlabel'])
+    #         plt.ylabel('Number of Events')
+    #         plt.title(f'Histogram of {var_info["label"]} (Passing Geometry Events, n={n_triggered})')
+    #         plt.legend()
+    #         plt.grid(True, alpha=0.3)
+
+
+    #         plt.tight_layout()
+    #         plt.savefig(f'{var_name}_hist.png')
+    #         plt.close()
+
+    #         plt.figure(figsize=(8, 10))
+
+
+    #         # --- Second: larger dataset (triggered) ---
+    #         triggered_data = var_info['data'][final_global]
+    #         n_triggered = len(triggered_data)
+    #         if n_triggered > 0:
+    #             mean_triggered = np.mean(triggered_data)
+    #             min_triggered = np.min(triggered_data)
+    #             max_triggered = np.max(triggered_data)
+    #             plt.hist(
+    #                 triggered_data, bins=bins, color='green', alpha=0.5,
+    #                 label=(f'e_at_tel > 0.05 events n={n_triggered}\nMean: {mean_triggered:.2f}\nMin: {min_triggered:.2f}\nMax: {max_triggered:.2f}')
+    #             )
+    #         else:
+    #             plt.text(0.5, 0.4, 'No Triggered Events', ha='center', va='center',
+    #                     transform=plt.gca().transAxes, fontsize=12)
+
+    #         geom_data = var_info['data'][final_global_geom]
+    #         n_geom = len(geom_data)
+    #         if n_geom > 0:
+    #             mean_geom = np.mean(geom_data)
+    #             min_geom = np.min(geom_data)
+    #             max_geom = np.max(geom_data)
+    #             plt.hist(
+    #                 geom_data, bins=bins, color='blue', alpha=0.5, 
+    #                 label=(f'Passing Geometry events n={n_geom} \nMean: {mean_geom:.2f}\nMin: {min_geom:.2f}\nMax: {max_geom:.2f}')
+    #             )
+    #         else:
+    #             plt.text(0.5, 0.5, 'No Geometry Events', ha='center', va='center',
+    #                     transform=plt.gca().transAxes, fontsize=12)
+
+
+    #         # --- Labels, legend, formatting ---
+    #         plt.xlabel(var_info['xlabel'])
+    #         plt.ylabel('Number of Events')
+    #         plt.title(f'Histogram of {var_info["label"]} (Overlayed)')
+    #         plt.legend()
+    #         plt.grid(True, alpha=0.3)
+    #         plt.tight_layout()
+    #         plt.savefig(f'{var_name}_overlapped_hist.png')
+    #         plt.close()
+
+    # #generate_hists()
+
+    # remaining_indices = np.arange(len(final_local))
+    # remaining_indices = remaining_indices[~cut2]
+    # print(len(remaining_indices), ' Events passing geometry cut')
+    # print(len(cut2))
+    # print(np.sum(cut2))
+    # print('E_at_tel of events not passing geom', n_e_array[final_local][~cut2])
+    # coreenu=eceftoenu(LLecef,originals["groundecef"][final_global],lat=LLlat,lon=LLlong)
+    # xstartenu=eceftoenu(LLecef,variables["xstartecef"][final_local],lat=LLlat,lon=LLlong)
+    # xmaxenu=eceftoenu(LLecef,xmaxecef[final_local],lat=LLlat,lon=LLlong)
+    # plot_trajectories(coreenu,xstartenu,xmaxenu,remaining_indices,50, "passing_e_tel_but_not_geom",originals["energies"][final_global],np.degrees(originals["beta_tr"][final_global]),n_e_array[final_local])
+
+
+
     print('Maximum Alt Decay:', np.max(variables['altDec'][final_local]))
     conex_out(
         X_builder, RN_builder, dEdX_builder,
