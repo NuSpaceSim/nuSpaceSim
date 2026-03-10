@@ -210,7 +210,9 @@ def compute(
         #        {config.simulation.integ_method.num_events_per_time_bin * config.simulation.num_time_bins}\
         #        neutrinos. {beta_tr.size} were valid.[/]"
         #    )
-        logv(f"\t{thrown_color}Threw some stuff.[/]")
+        logv(
+            f"\t{thrown_color}Threw {config.simulation.integ_method.num_events_per_time_bin} neutrinos per time bin.[/]"
+        )
 
     # elif isinstance(config.simulation.integ_method, Simulation.Cubature):
     #    logv(
