@@ -32,7 +32,7 @@ def nss_config_event():
 
 @pytest.fixture
 def region(nss_config_event):
-    region_geom = region_geometry.RegionGeomToO(nss_config_event)
+    region_geom = region_geometry.RegionGeomTarget(nss_config_event)
     return region_geom
 
 

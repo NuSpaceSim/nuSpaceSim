@@ -46,7 +46,7 @@ class ToOEvent:
             self.config.detector.sun_moon.moon_min_phase_angle_cut
         )
 
-        # Detector definitions
+        # Detector definitions -- will need to be updated for moving platforms
         self.detlat = self.config.detector.initial_position.latitude
         self.detlong = self.config.detector.initial_position.longitude
         self.detalt = self.config.detector.initial_position.altitude
@@ -68,14 +68,14 @@ class ToOEvent:
         )  # note make frame variable
 
         # Note: these are geodetic coordinates
-        self.detcords = astropy.coordinates.EarthLocation(
+        self.detcoords = astropy.coordinates.EarthLocation(
             lat=self.detlat * u.rad,
             lon=self.detlong * u.rad,
             height=self.detalt * 1000 * u.m,
         )
 
     def localcoords(self, time):
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
+        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcoords)
         return self.eventcoords.transform_to(detframe)
 
     def get_sun(self, time):

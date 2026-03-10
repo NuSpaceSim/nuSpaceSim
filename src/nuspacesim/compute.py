@@ -56,12 +56,15 @@ from numpy.typing import ArrayLike
 from rich.console import Console
 
 from . import results_table
-from .config import NssConfig
+from .config import NssConfig, Simulation
 from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
-from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
+from .simulation.geometry.region_geometry import (
+    RegionGeomMonteCarlo,
+    RegionGeomTargetApprox,
+)
 
 # from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
@@ -85,7 +88,7 @@ def compute(
 
     #. Initialize the AstropyTable object.
     #. Initialize the appropritate :ref:`simulation modules<simulation>`.
-    #. Compute array of valid beta angle trajectories: beta_tr from :class:`RegionGeom`.
+    #. Compute array of valid beta angle trajectories: beta_tr from :class:`RegionGeomDiffuse`.
     #. Compute tau interaction attributes componentwise for each element of beta_tr.
 
        #. tauBeta
@@ -150,7 +153,7 @@ def compute(
         logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
 
     sim = results_table.init(config)
-    geom = RegionGeom(config)
+    geom = RegionGeomMonteCarlo(config)
     cloud = CloudTopHeight(config)
     spec = Spectra(config)
     tau = Taus(config)
@@ -158,10 +161,16 @@ def compute(
     eas_radio = EASRadio(config)
 
     geom = (
-        RegionGeomToO(config)
-        if config.simulation.mode == "Target"
-        else RegionGeom(config)
+        RegionGeomTargetApprox(config)
+        if config.simulation.integ_method.id == "target_approx"
+        else RegionGeomMonteCarlo(config)
     )
+
+    # geom = (
+    #    RegionGeomTargetApprox(config)
+    #    if config.simulation.mode == "Target"
+    #    else RegionGeomMonteCarlo(config)
+    # )
 
     class StagedWriter:
         """Optionally write intermediate values to file"""
@@ -187,14 +196,36 @@ def compute(
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
     logv("Computing [green] Geometries.[/]")
-    beta_tr, thetaArr, pathLenArr, *_ = geom(
-        config.simulation.thrown_events, store=sw, plot=to_plot
-    )
+    # beta_tr, thetaArr, pathLenArr, times_arr = geom(
+    #    config.simulation.thrown_events, store=sw, plot=to_plot
+    # )
+
+    beta_tr, thetaArr, pathLenArr, times_arr = geom(store=sw, plot=to_plot)
+
     thrown_color = "[blue]" if beta_tr.size else "[red]"
-    logv(
-        f"\t{thrown_color}Threw {config.simulation.thrown_events} neutrinos.\
-        {beta_tr.size} were valid.[/]"
-    )
+    # if config.simulation.integ_method.id == "monte_carlo":
+    if isinstance(config.simulation.integ_method, Simulation.MonteCarlo):
+        #    logv(
+        #        f"\t{thrown_color}Threw\
+        #        {config.simulation.integ_method.num_events_per_time_bin * config.simulation.num_time_bins}\
+        #        neutrinos. {beta_tr.size} were valid.[/]"
+        #    )
+        logv(f"\t{thrown_color}Threw some stuff.[/]")
+
+    # elif isinstance(config.simulation.integ_method, Simulation.Cubature):
+    #    logv(
+    #        f"\t{thrown_color}Threw {config.simulation.integ_method.num_events_per_node} neutrinos\
+    #        per node. {beta_tr.size} were valid.[/]"
+    #    )
+    elif isinstance(config.simulation.integ_method, Simulation.TargetApprox):
+        logv(
+            f"\t{thrown_color}Threw {config.simulation.num_time_bins} time bins.\
+            {times_arr[0].size} were valid.[/]"
+        )
+    else:
+        RuntimeError(
+            f"Unrecognized Integration Method: {type(config.simulation.integ_method)}!"
+        )
 
     # Avoid Exceptions and return a (valid) empty sim object
     if beta_tr.size == 0:

@@ -86,9 +86,9 @@ class Detector(BaseModel):
         altitude: float = Quantity(525.0, u.km).value
         """ Altitude from sea-level (KM). """
         latitude: float = Quantity(0.0, u.rad).value
-        """ Right Ascencion (Radians). """
+        """ Earth Latitude (Radians). """
         longitude: float = Quantity(0.0, u.rad).value
-        """ Declination (Radians). """
+        """ Earth Longitude (Radians). """
 
         @field_validator("altitude", mode="before")
         @classmethod
@@ -108,52 +108,95 @@ class Detector(BaseModel):
         def serialize_rad(self, x: float) -> str:
             return str(Quantity(x, u.rad).to(u.deg))
 
+    ################ Detector Flight classes ################
+
+    class Flight(BaseModel):
+        duration: float = Quantity(86400, u.second).value
+        """ Flight duration (seconds). """
+        launch_date: str = "2022-06-02T01:00:00"
+        # """Date of observation"""
+        launch_date_format: str = "isot"
+        # """Observation date and time format"""
+
+        @field_validator("duration", mode="before")
+        @classmethod
+        def valid_timeday(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.second)
+
+        @field_serializer("duration")
+        def serialize_day(self, duration: float) -> str:
+            return str(Quantity(duration, u.second).to(u.d))
+
+    ################ Detector Field of View Classes ################
+
     class FieldOfView(BaseModel):
-        azimuth_span: float = Quantity(np.radians(360.0), u.rad).value
-        """ Span of the detector in azimuth (radians) """
         nadir_span: float = Quantity(np.radians(7.0), u.rad).value
         """ Span of the detector in nadir/zenith (radians) """
+        azimuth_span: float = Quantity(np.radians(360.0), u.rad).value
+        """ Span of the detector in azimuth (radians) """
 
-        @field_validator("azimuth_span", "nadir_span", mode="before")
+        @field_validator("nadir_span", "azimuth_span", mode="before")
         @classmethod
         def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
             return parse_units(x, u.rad)
 
-        @field_serializer("azimuth_span", "nadir_span")
+        @field_serializer("nadir_span", "azimuth_span")
         def serialize_rad(self, x: float) -> str:
             return str(Quantity(x, u.rad).to(u.deg))
 
     ################ Detector Pointing classes ################
 
     class LimbPoint(BaseModel):
-        id: Literal["limb_pointing"] = "limb_pointing"
-        nadir_point_wrt_limb: float = Quantity(np.radians(-3.5), u.rad).value
+        id: Literal["from_limb"] = "from_limb"
+        nadir_center_wrt_limb: float = Quantity(np.radians(-3.5), u.rad).value
         """ Nadir angle of detector center w.r.t. to the Earth's limb. Default (Radians). """
-        azimuth_point: float = Quantity(np.radians(0.0), u.rad).value
+        azimuth_center: float = Quantity(np.radians(0.0), u.rad).value
         """ Azimuthal angle of the center of the detector (E is 0 deg, N is 90 deg): Default = 0 """
 
-        @field_validator("nadir_point_wrt_limb", "azimuth_point", mode="before")
+        @field_validator("nadir_center_wrt_limb", "azimuth_center", mode="before")
         @classmethod
         def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
             return parse_units(x, u.rad)
 
-        @field_serializer("nadir_point_wrt_limb", "azimuth_point")
+        @field_serializer("nadir_center_wrt_limb", "azimuth_center")
         def serialize_rad(self, x: float) -> str:
             return str(Quantity(x, u.rad).to(u.deg))
 
-    class GenericPoint(BaseModel):
-        id: Literal["generic"] = "generic"
-        tilt_angle: float = Quantity(np.radians(0.0), u.rad).value
-        """ Detector tilt w.r.t. to the detector horizontal: Default = 0 """
-        azimuth_point: float = Quantity(np.radians(0.0), u.rad).value
-        """ Azimuthal angle of the center of the detector (E is 0 deg, N is 90 deg): Default = 0 """
+    class DetRefPoint(BaseModel):
+        id: Literal["detector_reference"] = "detector_reference"
+        tilt_angle_center_wrt_horiz: float = Quantity(np.radians(0.0), u.rad).value
+        """ Tilt angle of the center of the detector w.r.t. to the detector horizontal: Default = 0 """
+        azimuth_center_det_ref: float = Quantity(np.radians(0.0), u.rad).value
+        """ Azimuthal angle of the center of the detector w.r.t. to the detector horizontal (E is 0 deg, N is 90 deg): Default = 0 """
 
-        @field_validator("tilt_angle", "azimuth_point", mode="before")
+        @field_validator(
+            "tilt_angle_center_wrt_horiz", "azimuth_center_det_ref", mode="before"
+        )
         @classmethod
         def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
             return parse_units(x, u.rad)
 
-        @field_serializer("tilt_angle", "azimuth_point")
+        @field_serializer("tilt_angle_center_wrt_horiz", "azimuth_center_det_ref")
+        def serialize_rad(self, x: float) -> str:
+            return str(Quantity(x, u.rad).to(u.deg))
+
+    class SourceTracking(BaseModel):
+        id: Literal["source_tracking"] = "source_tracking"
+        tracked_source_RA: float = 0.0
+        """Right Ascension of the tracked source"""
+        tracked_source_DEC: float = 0.0
+        """Declination of the tracked source"""
+        obs_date_and_time: str = "2022-06-02T01:00:00"
+        """Date of observation"""
+        obs_date_and_time_format: str = "isot"
+        """Observation date and time format"""
+
+        @field_validator("tracked_source_RA", "tracked_source_DEC", mode="before")
+        @classmethod
+        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
+            return parse_units(x, u.rad)
+
+        @field_serializer("tracked_source_RA", "tracked_source_DEC")
         def serialize_rad(self, x: float) -> str:
             return str(Quantity(x, u.rad).to(u.deg))
 
@@ -181,6 +224,8 @@ class Detector(BaseModel):
         def serialize_rad(self, x: float) -> str:
             return str(Quantity(x, u.rad).to(u.deg))
 
+    ################ Optical classes ################
+
     class Optical(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
         enable: bool = True
@@ -199,6 +244,8 @@ class Detector(BaseModel):
         @field_serializer("telescope_effective_area")
         def serialize_aream2(self, x: float) -> str:
             return str(Quantity(x, u.m**2))
+
+    ################ Radio classes ################
 
     class Radio(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -243,10 +290,10 @@ class Detector(BaseModel):
     """Initial position for detector"""
     field_of_view: FieldOfView = FieldOfView()
     """Span of detector in azimuth and nadir/zenith"""
-    detector_pointing: Union[LimbPoint, GenericPoint] = Field(
+    pointing: Union[LimbPoint, DetRefPoint, SourceTracking] = Field(
         default=LimbPoint(), discriminator="id"
     )
-    """Direction in which the center of the detector is pointing (w.r.t. Earth's limb or the telescope's horizontal)"""
+    """Direction in which the center of the detector is pointing (w.r.t. Earth's limb or the telescope's horizontal or centered on a source)"""
     sun_moon: Optional[SunMoon] = SunMoon()
     """[Target only] Detector sensitivity to effects of the sun and moon"""
     optical: Optional[Optical] = Optical()
@@ -267,14 +314,22 @@ class Simulation(BaseModel):
 
     class MonteCarlo(BaseModel):
         id: Literal["monte_carlo"] = "monte_carlo"
+        num_events_per_time_bin: int = 100000
+        # num_time_bins: int = 1
+        """ Number of time bins (1 for instantaneous acceptance or time-integrated exposure calculations; actual number requested for time-differential or time-averaged calculations) """
 
-    class Approximation(BaseModel):
-        id: Literal["approximation"] = "approximation"
+    class TargetApprox(BaseModel):
+        id: Literal["target_approx"] = "target_approx"
+        # num_time_bins: int = 86400
+        """ Number of time bins (1 for acceptance-only or time-integrated (diffuse) sensitivity results; actual number requested for all other types of calculations) """
 
     class Cubature(BaseModel):
         id: Literal["cubature"] = "cubature"
         deg: int = 7
         """ Degree of the polynomial fit """
+        num_events_per_node: int = 1000
+        # num_time_bins: int = 86400
+        """ Number of time bins (1 for acceptance-only or time-integrated (diffuse) sensitivity results; actual number requested for all other types of calculations) """
 
         @field_validator("deg", mode="before")
         @classmethod
@@ -388,18 +443,16 @@ class Simulation(BaseModel):
 
     mode: Literal["Diffuse", "Target"] = "Diffuse"
     """ The Simulation Mode """
-    thrown_events: int = 1000
-    """ Number of thrown event trajectories. """
-    max_cherenkov_angle: float = np.radians(3)
+    # thrown_events: int = 1000
+    # """ Number of thrown event trajectories. """
+    num_time_bins: int = 1
+    """ Number of time bins (1 for instantaneous acceptance or time-integrated exposure calculations; actual number requested for time-differential or time-averaged calculations) """
+    max_cherenkov_angle: float = np.radians(3.0)
     """ Maximum Cherenkov Angle (Radians). """
-    # azimuth_span: float = np.radians(360.0)
-    # """ Span in Azimuth (Radians). """
-    # azimuth_center: float = np.radians(0.0)
-    # """ Location of azimuth center (0 deg = East; 90 deg = North) """
-    max_azimuth_angle: float = np.radians(360)
-    """ Maximum Azimuthal Angle (Radians). """
-    angle_from_limb: float = np.radians(7)
-    """ Angle From Limb. Default (Radians). """
+    # max_azimuth_angle: float = np.radians(360)
+    # """ Maximum Azimuthal Angle (Radians). """
+    # angle_from_limb: float = np.radians(7)
+    # """ Angle From Limb. Default (Radians). """
     eas_long_profile: Literal[
         "Greisen",
         "Gaisser-Hillas Parameterized",
@@ -427,8 +480,8 @@ class Simulation(BaseModel):
             return "nuspacesim"
         return value
 
-    integ_method: Union[MonteCarlo, Approximation, Cubature] = Field(
-        default=Approximation, discriminator="id"
+    integ_method: Union[MonteCarlo, TargetApprox, Cubature] = Field(
+        default=MonteCarlo(), discriminator="id"
     )
     """ The Method of Integration """
     ionosphere: Optional[Ionosphere] = Ionosphere()
@@ -443,12 +496,12 @@ class Simulation(BaseModel):
     )
     target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
 
-    @field_validator("max_cherenkov_angle", "angle_from_limb", mode="before")
+    @field_validator("max_cherenkov_angle", mode="before")
     @classmethod
     def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
         return parse_units(x, u.rad)
 
-    @field_serializer("max_cherenkov_angle", "angle_from_limb")
+    @field_serializer("max_cherenkov_angle")
     def serialize_rad(self, x: float) -> str:
         return str(Quantity(x, u.rad).to(u.deg))
 
@@ -509,17 +562,17 @@ def config_from_fits(filename: str) -> NssConfig:
             "initial_position": {
                 "altitude": d("initial_position altitude"),
                 "latitude": d("initial_position latitude"),
-                "longitude": d("initial_position latitude"),
+                "longitude": d("initial_position longitude"),
             },
             "name": d("name"),
             "field_of_view": {
-                "azimuth_span": d("detector azimuth_span"),
-                "nadir_span": d("detector nadir_span"),
-                "azimuth_center": d("detector center azimuth"),
+                "nadir_span": d("field_of_view nadir_span"),
+                "azimuth_span": d("field_of_view azimuth_span"),
             },
-            "tilt": {
-                "id": d("tilt_id"),
-                "angle_below_limb": d("angle_below_limb"),
+            "pointing": {
+                "id": d("pointing id"),
+                "nadir_center": d("pointing nadir_center"),
+                "azimuth_center": d("pointing azimuth_center"),
             },
             "optical": {
                 "photo_electron_threshold": d("optical photo_electron_threshold"),

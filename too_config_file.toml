@@ -8,6 +8,20 @@ altitude = "33.0 km"
 latitude = "-44.6943 deg"
 longitude = "169.1417 deg"
 
+[detector.flight]
+duration = "1 day"
+launch_date = "2023-04-01T01:00:00"
+launch_date_format = "isot"
+
+[detector.field_of_view]
+nadir_span = "7.0 deg"
+azimuth_span = "360.0 deg"
+
+[detector.pointing]
+id = "from_limb"
+nadir_center_wrt_limb = "-3.5 deg"
+azimuth_center = "0.0 deg"
+
 [detector.sun_moon]
 sun_moon_cuts = true
 sun_alt_cut = "-23.819097 deg"
@@ -28,21 +42,25 @@ gain = "1.8 dB"
 
 [simulation]
 mode = "Target"
-method = "Approximation"
-thrown_events = 1000000
+num_time_bins = 86400
 max_cherenkov_angle = "6.0000000000000004 deg"
-max_azimuth_angle = "360.0 deg"
-angle_from_limb = "6.4 deg"
+#max_azimuth_angle = "360.0 deg"
+#angle_from_limb = "6.4 deg"
+eas_long_profile = "Greisen"
 cherenkov_light_engine = "Default"
 
+[simulation.integ_method]
+id = "target_approx"
+
 [simulation.ionosphere]
+enable = true
 total_electron_content = 10.0
 total_electron_error = 0.1
 
 [simulation.tau_shower]
 id = "nupyprop"
 etau_frac = 0.5
-table_version = "2"
+table_version = "3"
 
 [simulation.spectrum]
 id = "monospectrum"
@@ -57,3 +75,4 @@ source_DEC = "0.0 deg"
 source_date = "2023-04-01T01:00:00"
 source_date_format = "isot"
 source_obst = 86400
+#num_time_bins = 86400
