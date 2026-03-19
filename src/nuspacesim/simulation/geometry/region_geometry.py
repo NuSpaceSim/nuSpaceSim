@@ -49,6 +49,7 @@ from .too import ToOEvent
 table_max_beta_e_deg = 42  # degrees
 table_max_beta_e = np.radians(table_max_beta_e_deg)
 table_eta_max = table_max_beta_e + np.pi / 2
+Bshr = 0.826
 
 __all__ = ["RegionGeomMonteCarlo", "RegionGeomTargetApprox"]
 
@@ -776,13 +777,18 @@ class RegionGeomMonteCarlo:
         mcnorm = self.mcnorm
 
         # Number of Trajectories
-        # numTrajs = len(self.betaTrSubN)
+        numTrajs = self.numTrajs
 
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0
-        mcintegralgeoonly = np.sum(mcintfactor, axis=1) * mcnorm / self.numTrajs
+        mcintegralgeoonly_time_binned = np.sum(mcintfactor, axis=1) * mcnorm / numTrajs
 
-        Bshr = 0.826
+        # Use Trapezoidal Rule to integrate over time bins
+        mcintegralgeoonly = (
+            np.sum(mcintegralgeoonly_time_binned)
+            - 0.5 * mcintegralgeoonly_time_binned[0]
+            - 0.5 * mcintegralgeoonly_time_binned[-1]
+        ) / self.num_time_bins
 
         # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
         mcintfactor *= Bshr * tauexitprob
@@ -793,12 +799,31 @@ class RegionGeomMonteCarlo:
 
         # PE threshold
         mcintfactor[triggers < threshold] = 0
-        mcintegral = np.sum(mcintfactor, axis=1) * mcnorm / self.numTrajs
+
+        mcintegral_time_binned = np.sum(mcintfactor, axis=1) * mcnorm / numTrajs
+
+        # Use Trapezoidal Rule to integrate over time bins
+        mcintegral = (
+            np.sum(mcintegral_time_binned)
+            - 0.5 * mcintegral_time_binned[0]
+            - 0.5 * mcintegral_time_binned[-1]
+        ) / self.num_time_bins
+
+        mcintegral_flattened = (
+            np.sum(mcintfactor, axis=0) - 0.5 * mcintfactor[0] - 0.5 * mcintfactor[-1]
+        ) / self.num_time_bins
+
         mcintegraluncert = (
-            np.sqrt(np.var(mcintfactor, axis=1, ddof=1) / self.numTrajs) * mcnorm
+            np.sqrt(np.var(mcintegral_flattened, axis=1, ddof=1) / numTrajs) * mcnorm
         )
 
-        numEvPass = np.count_nonzero(mcintfactor, axis=1)
+        # if np.size(mcintegral,axis=0) == 1:
+        #    mcintegraluncert = (
+        #        np.sqrt(np.var(mcintfactor, axis=1, ddof=1) / numTrajs) * mcnorm
+        #    )
+        # else:
+
+        numEvPass = np.count_nonzero(mcintfactor)
 
         # elif self.obs_type == "Target":
         # else:
@@ -1095,8 +1120,6 @@ class RegionGeomTargetApprox:
         mcintfactor *= np.pi
 
         mcintegralgeoonly = np.sum(mcintfactor) / len(self.times)
-
-        Bshr = 0.826
 
         # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
 
