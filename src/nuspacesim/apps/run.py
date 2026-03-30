@@ -52,7 +52,12 @@ from ..compute import compute
 from ..config import config_from_toml
 from ..results_table import output_filename
 from ..utils.plot_function_registry import registry
-from .utils import parse_cloud_options, parse_spectra_options, read_plot_config
+from .utils import (
+    parse_cloud_options,
+    parse_integ_method_options,
+    parse_spectra_options,
+    read_plot_config,
+)
 
 
 @click.command()
@@ -91,6 +96,28 @@ from .utils import parse_cloud_options, parse_spectra_options, read_plot_config
     help="Do not save the results to an output file.",
 )
 @click.option(
+    "--montecarlo",
+    type=float,
+    default=100,
+    help="Monte Carlo integration. User should specify the number of events thrown per time bin. "
+    "[Default]",
+)
+@click.option(
+    "--targetapprox",
+    is_flag=False,
+    default=None,
+    help="Semi-analytical calculation of point-source acceptance using simplified "
+    "approximations.",
+)
+@click.option(
+    "--cubature",
+    nargs=2,
+    type=click.Tuple([int, float]),
+    default=None,
+    help="Cubature integration over the surface of the Earth. User should specify the degree "
+    "(determines the number of nodes and the number of events per node.",
+)
+@click.option(
     "--monospectrum",
     type=float,
     default=None,
@@ -119,11 +146,11 @@ from .utils import parse_cloud_options, parse_spectra_options, read_plot_config
     "--pressuremapcloud",
     type=click.DateTime(["%m", "%B", "%b"]),
     default=None,
-    help="Pressure Map Cloud Model (built in and included with NuSpaceSim). This map is"
-    "an instance of a global cloud top pressure map sampled from a model of all days in"
-    "the given month over a 10-year time period from 2011 to 2020. Data provided by the"
-    "MERRA-2 dataset."
-    "User should provide a month name, abbreviation, or number.",
+    help="Pressure Map Cloud Model (built in and included with NuSpaceSim). This map is "
+    "an instance of a global cloud top pressure map sampled from a model of all days in "
+    "the given month over a 10-year time period from 2011 to 2020. Data provided by the "
+    "MERRA-2 dataset. "
+    "User should provide a month name, abbreviation, or number. ",
 )
 @click.argument(
     "config_file",
@@ -140,6 +167,9 @@ def run(
     plotconfig: str,
     plotall: bool,
     write_stages: bool,
+    montecarlo: float,
+    targetapprox: bool,
+    cubature: click.Tuple,
     monospectrum: float,
     powerspectrum: click.Tuple,
     nocloud: bool,
@@ -183,9 +213,19 @@ def run(
     # User Inputs
     config = config_from_toml(config_file)
 
-    config.simulation.thrown_events = int(
-        config.simulation.thrown_events if count == 0.0 else count
+    # config.simulation.thrown_events = int(
+    #    config.simulation.thrown_events if count == 0.0 else count
+    # )
+
+    config.simulation.num_time_bins = int(
+        config.simulation.num_time_bins if count == 0.0 else count
     )
+
+    overwrite_integ_method = parse_integ_method_options(
+        montecarlo, targetapprox, cubature
+    )
+    if overwrite_integ_method:
+        config.simulation.integ_method = overwrite_integ_method
 
     overwrite_spectrum = parse_spectra_options(monospectrum, powerspectrum)
     if overwrite_spectrum:

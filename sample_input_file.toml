@@ -8,13 +8,18 @@ altitude = "33.0 km"
 latitude = "-44.6943 deg"
 longitude = "169.1417 deg"
 
+[detector.flight]
+duration = "1 day"
+launch_date = "2023-04-01T01:00:00"
+launch_date_format = "isot"
+
 [detector.field_of_view]
 azimuth_span = "360.0 deg"
 nadir_span = "7.0 deg"
 azimuth_center = "0.0 deg"
 
 [detector.detector_pointing]
-id = "limb_pointing"
+id = "from_limb"
 nadir_point_wrt_limb = "-3.5 deg"
 azimuth_point = "0.0 deg"
 
@@ -43,8 +48,8 @@ nantennas = 10
 gain = "1.8 dB"
 
 [simulation]
-mode = "Target"
-thrown_events = 100000
+mode = "Diffuse"
+num_time_bins = 1
 max_cherenkov_angle = "3.0000000000000004 deg"
 #azimuth_span = "360.0 deg"
 #azimuth_center = "0.0 deg"
@@ -55,8 +60,8 @@ cherenkov_light_engine = "Default"
 #max_cherenkov_angle = "3.0000000000000004 deg"
 #max_azimuth_angle = "360.0 deg"
 #angle_from_limb = "7.0 deg"
-#eas_long_profile = "Greisen"
-#cherenkov_light_engine = "nuspacesim"
+eas_long_profile = "Greisen"
+cherenkov_light_engine = "nuspacesim"
 
 [simulation.integ_method]
 id = "approximation"

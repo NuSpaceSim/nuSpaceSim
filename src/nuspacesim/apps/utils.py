@@ -2,7 +2,28 @@ import configparser
 
 from ..config import Simulation
 
-__all__ = ["parse_spectra_options", "parse_cloud_options", "read_plot_config"]
+__all__ = [
+    "parse_integ_method_options",
+    "parse_spectra_options",
+    "parse_cloud_options",
+    "read_plot_config",
+]
+
+
+def parse_integ_method_options(montecarlo, targetapprox, cubature):
+    if sum([1 if x else 0 for x in (montecarlo, targetapprox, cubature)]) > 1:
+        raise RuntimeError(
+            "Only one of --montecarlo, --targetapprox or --cubature may be used."
+        )
+    if montecarlo:
+        return Simulation.MonteCarlo(num_events_per_time_bin=montecarlo)
+    if targetapprox:
+        return Simulation.TargetApprox()
+    if cubature:
+        return Simulation.Cubature(
+            deg=cubature[0],
+            num_events_per_node=cubature[1],
+        )
 
 
 def parse_spectra_options(monospectrum, powerspectrum):

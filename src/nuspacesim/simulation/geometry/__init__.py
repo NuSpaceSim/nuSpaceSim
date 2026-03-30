@@ -48,7 +48,7 @@ Geometry
 
 """
 
-__all__ = ["RegionGeom", "ToOEvent"]
+__all__ = ["RegionGeomMonteCarlo", "RegionGeomTargetApprox", "ToOEvent"]
 
-from .region_geometry import RegionGeom
+from .region_geometry import RegionGeomMonteCarlo, RegionGeomTargetApprox
 from .too import ToOEvent
