@@ -48,10 +48,13 @@
 
 import click
 
+from nuspacesim import version
+
 from . import create_config, run, show_plot
 
 
 @click.group()
+@click.version_option(version=version, prog_name="nuspacesim")
 def cli():
     pass
 

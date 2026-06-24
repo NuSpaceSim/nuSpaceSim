@@ -291,6 +291,8 @@ def test_default_simulation():
     assert a.max_azimuth_angle == np.radians(360.0)
     assert a.angle_from_limb == np.radians(7.0)
     assert a.eas_long_profile == "Greisen"
+    assert a.use_refactored_photon_sum is False
+    assert a.refactored_photon_sum_variant == "v2"
     assert a.cherenkov_light_engine == "nuspacesim"
     assert a.ionosphere is not None
     assert a.ionosphere.total_electron_content == 10.0
@@ -308,6 +310,8 @@ def test_default_simulation():
         "max_azimuth_angle": "360.0 deg",
         "angle_from_limb": "7.0 deg",
         "eas_long_profile": "Greisen",
+        "use_refactored_photon_sum": False,
+        "refactored_photon_sum_variant": "v2",
         "cherenkov_light_engine": "nuspacesim",
         "ionosphere": {
             "enable": True,
@@ -334,6 +338,8 @@ def test_custom_simulation():
         max_cherenkov_angle=3.5 * u.deg,
         max_azimuth_angle=270.0 * u.deg,
         angle_from_limb=10.0 * u.deg,
+        use_refactored_photon_sum=True,
+        refactored_photon_sum_variant="v3",
         ionosphere=Simulation.Ionosphere(total_electron_content=15.0),
         tau_shower=Simulation.NuPyPropShower(etau_frac=0.6),
         spectrum=Simulation.PowerSpectrum(index=2.5, lower_bound=7.0, upper_bound=11.0),
@@ -345,6 +351,8 @@ def test_custom_simulation():
     assert a.max_cherenkov_angle == np.radians(3.5)
     assert a.max_azimuth_angle == np.radians(270.0)
     assert a.angle_from_limb == np.radians(10.0)
+    assert a.use_refactored_photon_sum is True
+    assert a.refactored_photon_sum_variant == "v3"
     assert a.ionosphere is not None
     assert a.ionosphere.total_electron_content == 15.0
     assert a.tau_shower.etau_frac == 0.6
@@ -359,6 +367,18 @@ def test_custom_simulation():
 def test_invalid_cherenkov_angle():
     with pytest.raises(TypeError):
         Simulation(max_cherenkov_angle="invalid_angle")
+
+
+def test_invalid_use_refactored_photon_sum_type():
+    with pytest.raises(
+        ValidationError, match="use_refactored_photon_sum must be a boolean"
+    ):
+        Simulation(use_refactored_photon_sum="true")
+
+
+def test_invalid_refactored_photon_sum_variant():
+    with pytest.raises(ValidationError):
+        Simulation(refactored_photon_sum_variant="vx")
 
 
 def test_invalid_ionosphere_content():
