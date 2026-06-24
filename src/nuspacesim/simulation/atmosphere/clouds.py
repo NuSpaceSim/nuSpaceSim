@@ -48,7 +48,7 @@ from astropy.io import fits
 from ...config import NssConfig, Simulation
 
 # from ...types import cloud_types
-from ..eas_optical import atmospheric_models as atm
+from . import pressure as atm
 
 
 class CloudTopHeight:

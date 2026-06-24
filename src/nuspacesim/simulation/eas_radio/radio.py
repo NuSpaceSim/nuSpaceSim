@@ -2,6 +2,7 @@ import astropy.io.misc.hdf5 as hf
 import numpy as np
 from astropy.constants import R_earth
 from astropy.units import km
+from scipy.spatial import cKDTree
 
 from ...config import NssConfig
 from ...utils import decorators
@@ -135,7 +136,17 @@ class RadioEFieldParams(object):
         self.highFreq = int(freqRange[1])
         self.zeniths = np.array(f["zenith"])
         self.heights = np.array(f["height"])
-        self.ps = np.array(f["params"])
+        ps = np.array(f["params"])
+
+        # Pre-build cKDTree on (zenith, height) grid for O(N log K) nearest-neighbor
+        self.lookup_tree = cKDTree(np.column_stack([self.zeniths, self.heights]))
+
+        # Pre-filter to only keep freq bins in range and only needed param columns.
+        # fcenter is identical across all zenith/height, so one mask suffices.
+        freq_mask = np.logical_and(
+            ps[:, :, 0] >= self.lowFreq, ps[:, :, 0] <= self.highFreq
+        )
+        self.data = ps[:, freq_mask[0], 1:6].copy()  # (88, nrow, 5)
 
     def __call__(
         self, zenith: np.ndarray, viewAngle: np.ndarray, h: np.ndarray
@@ -156,29 +167,22 @@ class RadioEFieldParams(object):
         Efield: np.ndarray
             voltage at the detector for each shower
         """
+        j = self.lookup_tree.query(np.column_stack([zenith, h]))[1]
 
-        zenith_diffs = np.abs(np.subtract.outer(zenith, self.zeniths))
-        h_diffs = np.abs(np.subtract.outer(h, self.heights))
-        j = np.argmin(zenith_diffs + h_diffs, axis=1)
-
-        params = self.ps[j]
-
-        fcenter = params[:, :, 0]
-        cut = np.logical_and(fcenter >= self.lowFreq, fcenter <= self.highFreq)
-        nrow = np.sum(cut[0])
-        ncol = cut.shape[0]
-
-        E0 = params[:, :, 1][cut].reshape(ncol, nrow)
-        peak = params[:, :, 2][cut].reshape(ncol, nrow)
-        w = params[:, :, 3][cut].reshape(ncol, nrow)
-        E1 = params[:, :, 4][cut].reshape(ncol, nrow)
-        w2 = params[:, :, 5][cut].reshape(ncol, nrow)
+        # Directly index into pre-filtered, pre-sliced data: (N, nrow, 5)
+        batch = self.data[j]
+        E0 = batch[:, :, 0]
+        peak = batch[:, :, 1]
+        w = batch[:, :, 2]
+        E1 = batch[:, :, 3]
+        w2 = batch[:, :, 4]
+        del batch
 
         viewAngle = (peak.T + viewAngle).T
         Efield = (
             E0 * np.exp(-((viewAngle - peak) ** 2) / (2.0 * w * w))
             + np.abs(E1) * np.exp(-(viewAngle**2) / (2.0 * w2 * w2)) / 2.0
-        )  # this factor of 2 is to make up for how i made this fits in the first place
+        )
         return Efield
 
 

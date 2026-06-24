@@ -324,12 +324,27 @@ class Simulation(BaseModel):
     ] = "Greisen"
     """EAS Longitudinal Profile model: Default = 'Greisen'"""
 
+    use_refactored_photon_sum: bool = False
+    """Use Phase-B refactored photon-sum kernel in EAS optical simulation."""
+    refactored_photon_sum_variant: Literal["v1", "v2", "v3", "v4", "v6"] = "v2"
+    """Refactored photon-sum variant key (used when use_refactored_photon_sum=True)."""
+
     @field_validator("eas_long_profile", mode="before")
     @classmethod
     def validate_eas_long_profile(cls, value: str) -> str:
         if value == "Default":
             return "Greisen"
         return value
+
+    @field_validator("use_refactored_photon_sum", mode="before")
+    @classmethod
+    def validate_use_refactored_photon_sum(cls, value: bool) -> bool:
+        if isinstance(value, (bool, np.bool_)):
+            return bool(value)
+        raise ValueError(
+            "use_refactored_photon_sum must be a boolean; "
+            f"got {type(value).__name__}"
+        )
 
     cherenkov_light_engine: Literal["nuspacesim", "Default"] = (
         "nuspacesim"  # "CHASM", "EASCherSim"
