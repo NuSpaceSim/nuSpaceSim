@@ -2,8 +2,6 @@
 requires = ["setuptools>=65.0.0",
             "setuptools_scm[toml]>=3.4",
             "wheel>=0.41.0",
-            "pybind11>=2.8",
-            "numpy>1.17",
            ]
 build-backend = "setuptools.build_meta"
 
@@ -16,13 +14,6 @@ parentdir_prefix_version = 'nuspacesim-'
 [tool.cibuildwheel]
 test-requires = "pytest"
 test-command = "pytest {project}/test"
-
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2", "arm64"]
-
-[tool.cibuildwheel.linux]
-archs = ["x86_64"]
-
 [tool.black]
 line-length = 88
 skip-string-normalization = false
