@@ -42,6 +42,12 @@ enable = true
 total_electron_content = 10.0
 total_electron_error = 0.1
 
+[simulation.cherenkov_quadrature]
+n_nodes = 12
+n_slant_sub = 8
+n_energy_low = 3
+n_energy_high = 8
+
 [simulation.tau_shower]
 id = "nupyprop"
 etau_frac = 0.5

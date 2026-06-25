@@ -1427,6 +1427,10 @@ class CphotAng:
         photon_model=None,
         per_wavelength=False,
         client=None,
+        n_nodes=12,
+        n_slant_sub=8,
+        n_energy_low=3,
+        n_energy_high=8,
     ):
         """
         Iterate over the list of events and return the result as pair of
@@ -1459,6 +1463,11 @@ class CphotAng:
         with the earlier pipeline stages) and pass its client in here; the
         caller then owns teardown. When ``None`` (e.g. direct/standalone use)
         this method spins up and tears down its own ``LocalCluster``.
+
+        ``n_nodes``, ``n_slant_sub``, ``n_energy_low``, ``n_energy_high`` are the
+        Gauss-Legendre quadrature node counts forwarded to :meth:`run` (defaults
+        match ``run()``). The pipeline wires these from
+        ``config.simulation.cherenkov_quadrature``.
         """
 
         if (
@@ -1502,7 +1511,11 @@ class CphotAng:
                 lat,
                 lon,
                 cloudf=cloudf,
+                n_nodes=n_nodes,
+                n_slant_sub=n_slant_sub,
                 per_wavelength=per_wavelength,
+                n_energy_low=n_energy_low,
+                n_energy_high=n_energy_high,
                 photon_model=photon_model,
             )
             # d_batch is (N,) collapsed or (N, n_wl); make it (n_den, N).

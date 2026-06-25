@@ -37,7 +37,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Optional, Union
+from typing import Annotated, Literal, Optional, Union
 
 import numpy as np
 from astropy import units as u
@@ -45,12 +45,15 @@ from astropy.io import fits
 from astropy.units import Quantity
 from pydantic import (  # ValidationError,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
-    field_serializer,
+    PlainSerializer,
     field_validator,
     model_validator,
 )
+
+from .utils.misc import unflatten_dict
 
 try:
     import tomllib
@@ -76,6 +79,36 @@ def parse_units(value: Union[Quantity, float, str], unit: u.Unit) -> float:
         return Quantity(value, unit).value
 
 
+def _unit_float(unit: u.Unit, display: Optional[u.Unit] = None):
+    """Build an ``Annotated[float, ...]`` type carrying its physical unit once.
+
+    The returned type bundles a ``BeforeValidator`` that accepts a float, a
+    units-bearing string (``"525.0 km"``), or an astropy :class:`Quantity` and
+    coerces it to a bare float in ``unit``, plus a ``PlainSerializer`` that
+    re-attaches the unit (rendered in ``display``) on ``model_dump``. This is
+    the single source of truth for a quantity field -- declaring
+    ``altitude: Kilometers = 525.0`` replaces the prior trio of an explicit
+    default, a per-field ``field_validator``, and a per-field ``field_serializer``
+    that each repeated the unit.
+    """
+    disp = unit if display is None else display
+    return Annotated[
+        float,
+        BeforeValidator(lambda x: parse_units(x, unit)),
+        PlainSerializer(lambda v: str(Quantity(v, unit).to(disp)), return_type=str),
+    ]
+
+
+# Reusable quantity field types. The unit (and its display form) is named once
+# here; every field below references one of these instead of restating units in
+# a default + validator + serializer.
+Kilometers = _unit_float(u.km)
+Radians = _unit_float(u.rad, u.deg)  # stored as radians, displayed in degrees
+MegaHertz = _unit_float(u.MHz)
+Decibels = _unit_float(u.dB)
+SquareMeters = _unit_float(u.m**2)
+
+
 class Detector(BaseModel):
     r"""Dataclass holding Detector Characteristics."""
 
@@ -83,103 +116,47 @@ class Detector(BaseModel):
 
     class InitialPos(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
-        altitude: float = Quantity(525.0, u.km).value
+        altitude: Kilometers = 525.0
         """ Altitude from sea-level (KM). """
-        latitude: float = Quantity(0.0, u.rad).value
+        latitude: Radians = 0.0
         """ Right Ascencion (Radians). """
-        longitude: float = Quantity(0.0, u.rad).value
+        longitude: Radians = 0.0
         """ Declination (Radians). """
-
-        @field_validator("altitude", mode="before")
-        @classmethod
-        def valid_distkm(cls, x: Union[Quantity, float, str]) -> float:
-            return parse_units(x, u.km)
-
-        @field_validator("latitude", "longitude", mode="before")
-        @classmethod
-        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
-            return parse_units(x, u.rad)
-
-        @field_serializer("altitude")
-        def serialize_km(self, altitude: float) -> str:
-            return str(Quantity(altitude, u.km))
-
-        @field_serializer("latitude", "longitude")
-        def serialize_rad(self, x: float) -> str:
-            return str(Quantity(x, u.rad).to(u.deg))
 
     class SunMoon(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
         sun_moon_cuts: bool = True
         """ Apply cut for sun and moon: Default = True """
-        sun_alt_cut: float = Quantity(np.radians(-18.0), u.rad).value
+        sun_alt_cut: Radians = np.radians(-18.0)
         """ Sun altitude beyond which no observations are possible: Default = -18 deg """
-        moon_alt_cut: float = Quantity(np.radians(0.0), u.rad).value
+        moon_alt_cut: Radians = np.radians(0.0)
         """ Moon altitude beyond which no observations are possible: Default = 0 """
-        moon_min_phase_angle_cut: float = Quantity(np.radians(150.0), u.rad).value
+        moon_min_phase_angle_cut: Radians = np.radians(150.0)
         """ Moon phase angle below which, when moon is above moon_alt_cut no observations are possible: Default = 150 deg"""
-
-        @field_validator(
-            "sun_alt_cut", "moon_alt_cut", "moon_min_phase_angle_cut", mode="before"
-        )
-        @classmethod
-        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
-            return parse_units(x, u.rad)
-
-        @field_serializer("sun_alt_cut", "moon_alt_cut", "moon_min_phase_angle_cut")
-        def serialize_rad(self, x: float) -> str:
-            return str(Quantity(x, u.rad).to(u.deg))
 
     class Optical(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
         enable: bool = True
-        telescope_effective_area: float = 2.5  # Quantity(2.5, u.m**2)
+        telescope_effective_area: SquareMeters = 2.5
         """ Effective area of the detector telescope (sq.meters). """
         quantum_efficiency: float = 0.2
         """ Quantum Efficiency of the detector telescope. """
         photo_electron_threshold: float = 10
         """ Photo Electron Threshold, Number Photo electrons. """
 
-        @field_validator("telescope_effective_area", mode="before")
-        @classmethod
-        def valid_aream2(cls, x: Union[Quantity, float, str]) -> float:
-            return parse_units(x, u.m**2)
-
-        @field_serializer("telescope_effective_area")
-        def serialize_aream2(self, x: float) -> str:
-            return str(Quantity(x, u.m**2))
-
     class Radio(BaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
         enable: bool = True
-        low_frequency: float = Quantity(30.0, u.MHz).value
+        low_frequency: MegaHertz = 30.0
         """ Low end for radio band in MHz: Default = 30 """
-        high_frequency: float = Quantity(300.0, u.MHz).value
+        high_frequency: MegaHertz = 300.0
         """ High end of radio band in MHz: Default = 300 """
         snr_threshold: float = 5.0
         """ SNR threshold for radio triggering: Default = 5 """
         nantennas: int = 10
         """ Number of radio antennas: Default = 10 """
-        gain: float = Quantity(1.8, u.dB).value
+        gain: Decibels = 1.8
         """ Antenna gain in dB: Default = 1.8 """
-
-        @field_validator("low_frequency", "high_frequency", mode="before")
-        @classmethod
-        def valid_freqMHz(cls, x: Union[Quantity, float, str]) -> float:
-            return parse_units(x, u.MHz)
-
-        @field_validator("gain", mode="before")
-        @classmethod
-        def valid_powerdB(cls, x: Union[Quantity, float, str]) -> float:
-            return parse_units(x, u.dB)
-
-        @field_serializer("low_frequency", "high_frequency")
-        def serialize_freqMHz(self, x: float) -> str:
-            return str(Quantity(x, u.MHz))
-
-        @field_serializer("gain")
-        def serialize_dB(self, x: float) -> str:
-            return str(Quantity(x, u.dB))
 
         @model_validator(mode="after")
         def validate_high_frequency(self):
@@ -214,6 +191,27 @@ class Simulation(BaseModel):
         """Total Electron Content for ionospheric propagation. """
         total_electron_error: float = 0.1
         """Error for TEC reconstruction. """
+
+    ################ Optical Cherenkov quadrature classes ################
+
+    class CherenkovQuadrature(BaseModel):
+        """Gauss-Legendre node-count knobs for the vectorized CphotAng kernel.
+
+        These tune the accuracy/cost of the optical Cherenkov photon-density
+        quadrature in :meth:`CphotAng.run`. Every field is optional with a
+        default equal to ``run()``'s own default, so omitting the
+        ``[simulation.cherenkov_quadrature]`` table (as in any pre-existing
+        config file) reproduces the current behavior exactly.
+        """
+
+        n_nodes: int = 12
+        """GL nodes along the longitudinal (slant-depth) shower grid. Default 12."""
+        n_slant_sub: int = 8
+        """GL sub-quadrature nodes for the slant-depth & ozone column integrals. Default 8."""
+        n_energy_low: int = 3
+        """GL nodes on the low-energy panel [eCthres, 1 GeV]. Default 3."""
+        n_energy_high: int = 8
+        """GL nodes on the high-energy panel [1 GeV, Eshow]. Default 8."""
 
     ################ tau_shower classes ################
 
@@ -284,9 +282,10 @@ class Simulation(BaseModel):
                 )
 
     class TargetOfOpportunity(BaseModel):
-        source_RA: float = 0.0
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+        source_RA: Radians = 0.0
         """Right Ascension of the source"""
-        source_DEC: float = 0.0
+        source_DEC: Radians = 0.0
         """Declination of the source"""
         source_date: str = "2022-06-02T01:00:00"
         """Date of source observation"""
@@ -295,26 +294,17 @@ class Simulation(BaseModel):
         source_obst: float = 86400  # 24.0 * 60.0 * 60.0
         """Observation time (s). Default = 1 day"""
 
-        @field_validator("source_RA", "source_DEC", mode="before")
-        @classmethod
-        def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
-            return parse_units(x, u.rad)
-
-        @field_serializer("source_RA", "source_DEC")
-        def serialize_rad(self, x: float) -> str:
-            return str(Quantity(x, u.rad).to(u.deg))
-
     ################################################################################
 
     mode: Literal["Diffuse", "Target"] = "Diffuse"
     """ The Simulation Mode """
     thrown_events: int = 1000
     """ Number of thrown event trajectories. """
-    max_cherenkov_angle: float = np.radians(3)
+    max_cherenkov_angle: Radians = np.radians(3)
     """ Maximum Cherenkov Angle (Radians). """
-    max_azimuth_angle: float = np.radians(360)
+    max_azimuth_angle: Radians = np.radians(360)
     """ Maximum Azimuthal Angle (Radians). """
-    angle_from_limb: float = np.radians(7)
+    angle_from_limb: Radians = np.radians(7)
     """ Angle From Limb. Default (Radians). """
     eas_long_profile: Literal[
         "Greisen",
@@ -359,6 +349,8 @@ class Simulation(BaseModel):
         return value
 
     ionosphere: Optional[Ionosphere] = Ionosphere()
+    cherenkov_quadrature: CherenkovQuadrature = CherenkovQuadrature()
+    """Optical Cherenkov quadrature node-count knobs (optional; defaults match CphotAng)."""
     tau_shower: NuPyPropShower = NuPyPropShower()
     """ Tau Shower Generator. """
     spectrum: Union[MonoSpectrum, PowerSpectrum] = Field(
@@ -369,17 +361,6 @@ class Simulation(BaseModel):
         default=NoCloud(), discriminator="id"
     )
     target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
-
-    @field_validator(
-        "max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb", mode="before"
-    )
-    @classmethod
-    def valid_anglerad(cls, x: Union[Quantity, float, str]) -> float:
-        return parse_units(x, u.rad)
-
-    @field_serializer("max_cherenkov_angle", "max_azimuth_angle", "angle_from_limb")
-    def serialize_rad(self, x: float) -> str:
-        return str(Quantity(x, u.rad).to(u.deg))
 
 
 class NssConfig(BaseModel):
@@ -409,75 +390,23 @@ def create_toml(filename: str, c: NssConfig):
 
 
 def config_from_fits(filename: str) -> NssConfig:
+    """Reconstruct an :class:`NssConfig` from a results FITS header.
+
+    The generic inverse of the writer in ``results_table.init``, which dumps
+    ``config.model_dump()`` flattened under space-separated ``Config <path>``
+    HIERARCH keys. Here we collect every such key, strip the prefix, and
+    :func:`unflatten_dict` rebuilds the nested mapping that ``NssConfig``
+    validates. Because both directions derive purely from the model's own
+    structure, adding or renaming a field needs no change here -- unlike the
+    former hand-transcribed key list, which had to mirror the schema by hand
+    (and silently drifted, e.g. loading ``latitude`` into ``longitude``).
+    """
     hdul = fits.open(filename, mode="readonly")
     h = hdul[1].header
 
-    # header config (v)alue assocciated with partial key string.
-    def v(key: str):
-        fullkey = "Config " + key
-        if fullkey not in h:
-            raise KeyError(f"Missing required key '{fullkey}' in FITS header.")
-        return h[fullkey]
+    prefix = "Config "
+    flat = {key[len(prefix) :]: h[key] for key in h.keys() if key.startswith(prefix)}
+    if not flat:
+        raise KeyError(f"No '{prefix}...' configuration keys found in FITS header.")
 
-    # header (d)etector config value assocciated with partial key string.
-    def d(key: str):
-        try:
-            return v("detector " + key)
-        except KeyError as e:
-            raise KeyError(f"Detector configuration key error: {e}")
-
-    # header (s)etector config value assocciated with partial key string.
-    def s(key: str):
-        try:
-            return v("simulation " + key)
-        except KeyError as e:
-            raise KeyError(f"Simulation configuration key error: {e}")
-
-    c = {
-        "detector": {
-            "initial_position": {
-                "altitude": d("initial_position altitude"),
-                "latitude": d("initial_position latitude"),
-                "longitude": d("initial_position latitude"),
-            },
-            "name": d("name"),
-            "optical": {
-                "photo_electron_threshold": d("optical photo_electron_threshold"),
-                "quantum_efficiency": d("optical quantum_efficiency"),
-                "telescope_effective_area": d("optical telescope_effective_area"),
-            },
-            "radio": {
-                "gain": d("radio gain"),
-                "high_frequency": d("radio high_frequency"),
-                "low_frequency": d("radio low_frequency"),
-                "nantennas": d("radio nantennas"),
-                "snr_threshold": d("radio snr_threshold"),
-            },
-        },
-        "simulation": {
-            "angle_from_limb": s("angle_from_limb"),
-            "eas_long_profile": s("eas_long_profile"),
-            "cherenkov_light_engine": s("cherenkov_light_engine"),
-            "cloud_model": {"id": s("cloud_model id")},
-            "ionosphere": {
-                "total_electron_content": s("ionosphere total_electron_content"),
-                "total_electron_error": s("ionosphere total_electron_error"),
-            },
-            "max_azimuth_angle": s("max_azimuth_angle"),
-            "max_cherenkov_angle": s("max_cherenkov_angle"),
-            "mode": s("mode"),
-            "spectrum": {
-                "id": s("spectrum id"),
-                "log_nu_energy": s("spectrum log_nu_energy"),
-            },
-            "tau_shower": {
-                "etau_frac": s("tau_shower etau_frac"),
-                "id": s("tau_shower id"),
-                "table_version": s("tau_shower table_version"),
-            },
-            "thrown_events": s("thrown_events"),
-        },
-        "title": h["Config title"],
-    }
-
-    return NssConfig(**c)
+    return NssConfig(**unflatten_dict(flat, sep=" "))
