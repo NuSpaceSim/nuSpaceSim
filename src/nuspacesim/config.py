@@ -213,6 +213,33 @@ class Simulation(BaseModel):
         n_energy_high: int = 8
         """GL nodes on the high-energy panel [1 GeV, Eshow]. Default 8."""
 
+    ################ Streaming Monte-Carlo classes ################
+
+    class Streaming(BaseModel):
+        """Knobs for the streaming, distributed optical Monte-Carlo path.
+
+        Active only under ``nuspacesim run --stream`` (the default one-shot path
+        ignores these). Events are thrown in batches across the dask cluster;
+        the integral accumulates as an exact additive sketch and the run stops
+        when its relative uncertainty reaches ``rel_unc_target`` (or the thrown
+        count hits the ``count`` backstop, or ``max_walltime_s`` elapses). Only
+        ``reservoir_size`` representative events are written to disk. Every field
+        is optional with a default, so the table may be omitted entirely.
+        """
+
+        batch_size: int = 5000
+        """Trajectories thrown per streamed batch (the unit of parallel work)."""
+        reservoir_size: int = 10000
+        """k: representative events kept (weighted) and materialized to disk."""
+        rel_unc_target: float = 0.05
+        """Stop once the optical MC integral's relative uncertainty reaches this."""
+        min_thrown: int = 50000
+        """Warmup: do not honor ``rel_unc_target`` before this many thrown events."""
+        max_walltime_s: float = 0.0
+        """Wall-clock backstop in seconds; ``0`` (or negative) disables it."""
+        reservoir_weighting: Literal["contribution", "uniform"] = "contribution"
+        """Reservoir weight: ``|contribution|`` (importance) or ``uniform``."""
+
     ################ tau_shower classes ################
 
     class NuPyPropShower(BaseModel):
@@ -351,6 +378,8 @@ class Simulation(BaseModel):
     ionosphere: Optional[Ionosphere] = Ionosphere()
     cherenkov_quadrature: CherenkovQuadrature = CherenkovQuadrature()
     """Optical Cherenkov quadrature node-count knobs (optional; defaults match CphotAng)."""
+    streaming: Streaming = Streaming()
+    """Streaming distributed optical MC knobs (optional; used by ``run --stream``)."""
     tau_shower: NuPyPropShower = NuPyPropShower()
     """ Tau Shower Generator. """
     spectrum: Union[MonoSpectrum, PowerSpectrum] = Field(
