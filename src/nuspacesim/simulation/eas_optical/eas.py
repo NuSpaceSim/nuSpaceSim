@@ -92,6 +92,7 @@ class EAS:
         *args,
         cloudf=None,
         client=None,
+        serial=False,
         **kwargs,
     ):
         """
@@ -100,6 +101,13 @@ class EAS:
             ``client`` is an optional pre-built distributed client forwarded to
             :meth:`CphotAng.__call__`; see :class:`BackgroundCluster`. When ``None``
             CphotAng spins up its own LocalCluster.
+
+            ``serial`` selects the per-batch kernel :meth:`CphotAng.run` directly
+            instead of the dask-chunked :meth:`CphotAng.__call__`. The streaming
+            driver runs each event batch *as* a dask task, so the optical kernel
+            must execute serially inside the worker -- spinning up a nested
+            cluster there would be pathological. ``client`` is ignored when
+            ``serial`` is set.
         """
 
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
@@ -113,19 +121,38 @@ class EAS:
 
         # Run CphotAng on in-bounds events
         quad = self.config.simulation.cherenkov_quadrature
-        dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
-            beta[mask],
-            altDec[mask],
-            showerEnergy[mask],
-            init_lat[mask],
-            init_long[mask],
-            cloudf,
-            client=client,
-            n_nodes=quad.n_nodes,
-            n_slant_sub=quad.n_slant_sub,
-            n_energy_low=quad.n_energy_low,
-            n_energy_high=quad.n_energy_high,
-        )
+        if serial:
+            # Already inside a dask worker (streaming): drive the per-batch
+            # kernel directly, no nested cluster. run() does not guard an empty
+            # batch, so skip it when nothing is in bounds.
+            if np.any(mask):
+                dphots[mask], thetaCh100PeV[mask] = self.CphotAng.run(
+                    beta[mask],
+                    altDec[mask],
+                    showerEnergy[mask],
+                    init_lat[mask],
+                    init_long[mask],
+                    cloudf=cloudf,
+                    n_nodes=quad.n_nodes,
+                    n_slant_sub=quad.n_slant_sub,
+                    per_wavelength=False,
+                    n_energy_low=quad.n_energy_low,
+                    n_energy_high=quad.n_energy_high,
+                )
+        else:
+            dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
+                beta[mask],
+                altDec[mask],
+                showerEnergy[mask],
+                init_lat[mask],
+                init_long[mask],
+                cloudf,
+                client=client,
+                n_nodes=quad.n_nodes,
+                n_slant_sub=quad.n_slant_sub,
+                n_energy_low=quad.n_energy_low,
+                n_energy_high=quad.n_energy_high,
+            )
 
         numPEs = (
             dphots

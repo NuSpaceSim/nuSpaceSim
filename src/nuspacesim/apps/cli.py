@@ -50,7 +50,7 @@ import click
 
 from nuspacesim import version
 
-from . import create_config, run, show_plot
+from . import create_config, run, show_plot, stream
 
 
 @click.group()
@@ -60,5 +60,6 @@ def cli():
 
 
 cli.add_command(run.run)
+cli.add_command(stream.stream)
 cli.add_command(create_config.create_config)
 cli.add_command(show_plot.show_plot)
