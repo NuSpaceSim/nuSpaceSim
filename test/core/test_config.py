@@ -327,6 +327,14 @@ def test_default_simulation():
             "n_energy_low": 3,
             "n_energy_high": 8,
         },
+        "streaming": {
+            "batch_size": 5000,
+            "reservoir_size": 10000,
+            "rel_unc_target": 0.05,
+            "min_thrown": 50000,
+            "max_walltime_s": 0.0,
+            "reservoir_weighting": "contribution",
+        },
         "tau_shower": {"id": "nupyprop", "etau_frac": 0.5, "table_version": "3"},
         "spectrum": {"id": "monospectrum", "log_nu_energy": 8.0},
         "cloud_model": {"id": "no_cloud"},
@@ -427,6 +435,50 @@ def test_cherenkov_quadrature_backward_compatible():
     assert cfg.simulation.thrown_events == 42
     assert cfg.simulation.cherenkov_quadrature.n_nodes == 12
     assert cfg.simulation.cherenkov_quadrature.n_energy_high == 8
+
+
+def test_streaming_defaults():
+    s = Simulation().streaming
+    assert s.batch_size == 5000
+    assert s.reservoir_size == 10000
+    assert s.rel_unc_target == 0.05
+    assert s.min_thrown == 50000
+    assert s.max_walltime_s == 0.0
+    assert s.reservoir_weighting == "contribution"
+
+
+def test_streaming_custom_values():
+    sim = Simulation(
+        streaming=Simulation.Streaming(
+            batch_size=2000,
+            reservoir_size=500,
+            rel_unc_target=0.01,
+            min_thrown=10000,
+            max_walltime_s=120.0,
+            reservoir_weighting="uniform",
+        )
+    )
+    assert sim.streaming.batch_size == 2000
+    assert sim.streaming.reservoir_size == 500
+    assert sim.streaming.rel_unc_target == 0.01
+    assert sim.streaming.min_thrown == 10000
+    assert sim.streaming.max_walltime_s == 120.0
+    assert sim.streaming.reservoir_weighting == "uniform"
+
+
+def test_streaming_backward_compatible():
+    """A config file lacking the [simulation.streaming] table loads with defaults."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
+        tmp.write("[simulation]\nthrown_events = 42\n")
+        name = tmp.name
+    cfg = config_from_toml(name)
+    assert cfg.simulation.streaming.batch_size == 5000
+    assert cfg.simulation.streaming.reservoir_weighting == "contribution"
+
+
+def test_streaming_invalid_weighting():
+    with pytest.raises(ValidationError):
+        Simulation.Streaming(reservoir_weighting="bogus")
 
 
 def test_invalid_spectrum_type():

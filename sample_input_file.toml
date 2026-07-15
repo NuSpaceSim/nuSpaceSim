@@ -48,6 +48,14 @@ n_slant_sub = 8
 n_energy_low = 3
 n_energy_high = 8
 
+[simulation.streaming]
+batch_size = 5000
+reservoir_size = 10000
+rel_unc_target = 0.05
+min_thrown = 50000
+max_walltime_s = 0.0          # wall-clock backstop in seconds; 0 disables
+reservoir_weighting = "contribution"
+
 [simulation.tau_shower]
 id = "nupyprop"
 etau_frac = 0.5
