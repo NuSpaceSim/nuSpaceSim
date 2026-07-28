@@ -37,7 +37,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import numpy as np
 from astropy import units as u
@@ -110,12 +110,13 @@ class Detector(BaseModel):
 
     ################ Detector Flight classes ################
 
-    class Flight(BaseModel):
+    class Stationary(BaseModel):
+        id: Literal["stationary"] = "stationary"
         duration: float = Quantity(86400, u.second).value
         """ Flight duration (seconds). """
-        launch_date: str = "2022-06-02T01:00:00"
+        start_date: str = "2022-06-02T01:00:00"
         # """Date of observation"""
-        launch_date_format: str = "isot"
+        start_date_format: str = "isot"
         # """Observation date and time format"""
 
         @field_validator("duration", mode="before")
@@ -202,12 +203,16 @@ class Detector(BaseModel):
 
     ################ Sun & Moon classes ################
 
-    class SunMoon(BaseModel):
+    class NoSunMoonCuts(BaseModel):
+        id: Literal["no_sun_moon_cuts"] = "no_sun_moon_cuts"
+
+    class SunMoonCuts(BaseModel):
+        id: Literal["apply_sun_moon_cuts"] = "apply_sun_moon_cuts"
         model_config = ConfigDict(arbitrary_types_allowed=True)
-        sun_moon_cuts: bool = True
-        """ Apply cut for sun and moon: Default = True """
-        sun_alt_cut: float = Quantity(np.radians(-18.0), u.rad).value
-        """ Sun altitude beyond which no observations are possible: Default = -18 deg """
+        # sun_moon_cuts: bool = True
+        """ Apply cut for sun and moon: Default = False (default is baseline Diffuse calculation) """
+        sun_alt_cut: float = Quantity(np.radians(-40.5), u.rad).value
+        """ Sun altitude beyond which no observations are possible: Default = -40.5 deg (elevation angle of Earth's limb for detector flying at 525 km altitude) """
         moon_alt_cut: float = Quantity(np.radians(0.0), u.rad).value
         """ Moon altitude beyond which no observations are possible: Default = 0 """
         moon_min_phase_angle_cut: float = Quantity(np.radians(150.0), u.rad).value
@@ -288,14 +293,18 @@ class Detector(BaseModel):
     name: str = "Default Name"
     initial_position: InitialPos = InitialPos()
     """Initial position for detector"""
+    flight: Optional[Stationary] = Stationary()
+    """Flight information for detector"""
     field_of_view: FieldOfView = FieldOfView()
     """Span of detector in azimuth and nadir/zenith"""
     pointing: Union[LimbPoint, DetRefPoint, SourceTracking] = Field(
         default=LimbPoint(), discriminator="id"
     )
     """Direction in which the center of the detector is pointing (w.r.t. Earth's limb or the telescope's horizontal or centered on a source)"""
-    sun_moon: Optional[SunMoon] = SunMoon()
-    """[Target only] Detector sensitivity to effects of the sun and moon"""
+    sun_moon: Optional[Union[NoSunMoonCuts, SunMoonCuts]] = Field(
+        default=NoSunMoonCuts(), discriminator="id"
+    )
+    """Account for effects of the Sun and the Moon on detector acceptance"""
     optical: Optional[Optical] = Optical()
     """Characteristics of the optical detector"""
     radio: Optional[Radio] = Radio()
@@ -314,7 +323,7 @@ class Simulation(BaseModel):
 
     class MonteCarlo(BaseModel):
         id: Literal["monte_carlo"] = "monte_carlo"
-        num_events_per_time_bin: int = 100000
+        num_events_per_time_bin: int = 1000
         # num_time_bins: int = 1
         """ Number of time bins (1 for instantaneous acceptance or time-integrated exposure calculations; actual number requested for time-differential or time-averaged calculations) """
 
@@ -418,7 +427,11 @@ class Simulation(BaseModel):
 
     ################ Target-of-Opportunity classes ################
 
-    class TargetOfOpportunity(BaseModel):
+    class NoSource(BaseModel):
+        id: Literal["no_target"] = "no_target"
+
+    class SinglePointSource(BaseModel):
+        id: Literal["single_pt_source"] = "single_pt_source"
         source_RA: float = 0.0
         """Right Ascension of the source"""
         source_DEC: float = 0.0
@@ -429,6 +442,13 @@ class Simulation(BaseModel):
         """Date of the event and format"""
         source_obst: float = 86400  # 24.0 * 60.0 * 60.0
         """Observation time (s). Default = 1 day"""
+
+        # @model_validator(mode="before")
+        # @classmethod
+        # def valid_target_type(cls, data: Any) -> Any:
+        #    if isinstance(data, None):
+        #        return ""
+        #    return data
 
         @field_validator("source_RA", "source_DEC", mode="before")
         @classmethod
@@ -494,7 +514,28 @@ class Simulation(BaseModel):
     cloud_model: Union[NoCloud, MonoCloud, PressureMapCloud] = Field(
         default=NoCloud(), discriminator="id"
     )
-    target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
+    target: Optional[Union[NoSource, SinglePointSource]] = Field(
+        default=NoSource(), discriminator="id"
+    )
+
+    # target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
+    # target: Optional[Union[TargetOfOpportunity, str]] = "no targets"
+    # target: Optional[Union[TargetOfOpportunity, None]] = None
+
+    # @field_validator("target", mode="before")
+    # @classmethod
+    # def validate_target(cls, x: Any) -> Any:
+    #    if x is None:
+    #        return ""
+    #    return x
+
+    # @field_validator("target", mode="before")
+    # @classmethod
+    # def validate_target(cls, value: str) -> str:
+    #    if value == "Default":
+    #        return "no targets"
+    #    else:
+    #        return TargetOfOpportunity()
 
     @field_validator("max_cherenkov_angle", mode="before")
     @classmethod
@@ -565,6 +606,12 @@ def config_from_fits(filename: str) -> NssConfig:
                 "longitude": d("initial_position longitude"),
             },
             "name": d("name"),
+            "flight": {
+                "id": d("flight id"),
+                "duration": d("flight duration"),
+                "start_date": d("flight start_date"),
+                "start_date_format": d("flight start_date_format"),
+            },
             "field_of_view": {
                 "nadir_span": d("field_of_view nadir_span"),
                 "azimuth_span": d("field_of_view azimuth_span"),
@@ -608,7 +655,8 @@ def config_from_fits(filename: str) -> NssConfig:
                 "id": s("tau_shower id"),
                 "table_version": s("tau_shower table_version"),
             },
-            "thrown_events": s("thrown_events"),
+            # "thrown_events": s("thrown_events"),
+            "num_time_bins": s("num_time_bins"),
             "integ_method": {"id": s("integ_method id")},
         },
         "title": h["Config title"],

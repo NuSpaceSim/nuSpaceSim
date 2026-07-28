@@ -64,6 +64,12 @@ class RegionGeomMonteCarlo:
         self.num_events_per_time_bin = (
             self.config.simulation.integ_method.num_events_per_time_bin
         )
+        self.flight_start_date = self.config.detector.flight.start_date
+        self.flight_start_date_format = self.config.detector.flight.start_date_format
+
+        self.flight_start = astropy.time.Time(
+            self.flight_start_date, format=self.flight_start_date_format, scale="utc"
+        )
 
         self.earth_radius: np.float64 = R_earth.to(u.km).value
         self.earth_rad_2: np.float64 = self.earth_radius**2
@@ -75,7 +81,7 @@ class RegionGeomMonteCarlo:
 
         self.core_alt = self.earth_radius + self.det_height
 
-        self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
+        # self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
 
         self.alphaHorizon = np.pi / 2 - np.arccos(self.earth_radius / self.core_alt)
 
@@ -217,7 +223,11 @@ class RegionGeomMonteCarlo:
             pdfnorm = normThetaTrSubV * normPhiTrSubV * normPhiS * normThetaS
             self.mcnorm = self.earth_rad_2 / pdfnorm
 
+            self.OBSTime = self.config.detector.flight.duration
+
         elif self.obs_type == "Target":
+            self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
+
             eta_at_min = np.pi - np.arcsin(
                 (self.core_alt / self.earth_radius) * self.sin_of_acc_reg_alpha_min
             )
@@ -237,20 +247,22 @@ class RegionGeomMonteCarlo:
             pdfnorm = normPhiS * normThetaS
             self.mcnorm = self.earth_rad_2 / pdfnorm
 
-            self.sourceOBSTime = self.config.simulation.target.source_obst
+            self.OBSTime = self.config.simulation.target.source_obst
             self.too_source = ToOEvent(self.config)
 
         else:
             RuntimeError(f"Unrecognized Observation Type: {type(self.obs_type)}!")
 
     def throw(self, u=None):
-        self.times = self.generate_times(self.num_time_bins)
+        # self.times = self.generate_times(self.num_time_bins)
 
-        local_coords = self.too_source.localcoords(
-            self.times
-        )  # Will need updating for moving platforms
+        # local_coords = self.too_source.localcoords(
+        #    self.times
+        # )  # Will need updating for moving platforms
 
         """Throw N events with 4 * u random numbers"""
+
+        self.times = self.generate_times(self.num_time_bins)
 
         if self.obs_type == "Diffuse":
             if isinstance(u, int):
@@ -360,6 +372,12 @@ class RegionGeomMonteCarlo:
                 self.costhetaTrSubN >= 0, self.betaTrSubN < table_max_beta_e_deg
             )
         elif self.obs_type == "Target":
+            # self.times = self.generate_times(self.num_time_bins)
+
+            local_coords = self.too_source.localcoords(
+                self.times
+            )  # Will need updating for moving platforms
+
             if isinstance(u, int):
                 # fix to make closed in [0,1]
 
@@ -589,6 +607,7 @@ class RegionGeomMonteCarlo:
         """
         Function to generate times within the simulation time period
         """
+
         if isinstance(times, int):
             # times_arr = np.arange(times) / times
             times_arr_nb = np.arange(times) / times
@@ -599,19 +618,25 @@ class RegionGeomMonteCarlo:
         if times is None:
             raise RuntimeError("Provide a number of time bins")
 
-        times_arr *= self.sourceOBSTime  # in s
+        times_arr *= self.OBSTime  # in s
         times_arr = astropy.time.TimeDelta(times_arr, format="sec")
-        times_arr = self.too_source.eventtime + times_arr
-        return times_arr
 
-    def valid_times(self):
         if self.obs_type == "Diffuse":
-            val_times = self.times
+            times_arr = self.flight_start + times_arr
         elif self.obs_type == "Target":
-            val_times = self.times[self.src_is_observable_mask]
+            times_arr = self.too_source.eventtime + times_arr
         else:
             RuntimeError(f"Unrecognized Observation Type: {type(self.obs_type)}!")
-        return val_times
+        return times_arr
+
+    def val_times(self):
+        if self.obs_type == "Diffuse":
+            valid_times = self.times[self.event_mask]
+        elif self.obs_type == "Target":
+            valid_times = self.times[self.src_is_observable_mask]
+        else:
+            RuntimeError(f"Unrecognized Observation Type: {type(self.obs_type)}!")
+        return valid_times
 
         # return self.times[self.src_is_observable_mask]
 
@@ -736,11 +761,12 @@ class RegionGeomMonteCarlo:
 
     @decorators.nss_result_plot(geom_beta_tr_hist)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len", "times")
-    # def __call__(self, numtrajs, *args, **kwargs):
-    def __call__(self, *args, **kwargs):
+    def __call__(self, numtrajs, *args, **kwargs):
+        # def __call__(self, *args, **kwargs):
         """Throw numtrajs events and return valid betas."""
-        # self.throw(numtrajs)
-        self.throw(self.num_events_per_time_bin)
+        self.throw(numtrajs)
+        # self.throw(self.num_events_per_time_bin)
+        # print(self.beta_rad().size, self.thetas().size, self.pathLens().size, self.val_times().size, sep=" ")
         return self.beta_rad(), self.thetas(), self.pathLens(), self.val_times()
 
     def mcintegral(
@@ -781,14 +807,19 @@ class RegionGeomMonteCarlo:
 
         # Geometry Factors
         mcintfactor[cossepangle < costheta] = 0
-        mcintegralgeoonly_time_binned = np.sum(mcintfactor, axis=1) * mcnorm / numTrajs
+        if self.num_time_bins == 1:
+            mcintegralgeoonly = np.sum(mcintfactor) * mcnorm / numTrajs
+        else:
+            mcintegralgeoonly_time_binned = (
+                np.sum(mcintfactor, axis=1) * mcnorm / numTrajs
+            )
 
-        # Use Trapezoidal Rule to integrate over time bins
-        mcintegralgeoonly = (
-            np.sum(mcintegralgeoonly_time_binned)
-            - 0.5 * mcintegralgeoonly_time_binned[0]
-            - 0.5 * mcintegralgeoonly_time_binned[-1]
-        ) / self.num_time_bins
+            # Use Trapezoidal Rule to integrate over time bins
+            mcintegralgeoonly = (
+                np.sum(mcintegralgeoonly_time_binned)
+                - 0.5 * mcintegralgeoonly_time_binned[0]
+                - 0.5 * mcintegralgeoonly_time_binned[-1]
+            ) / self.num_time_bins
 
         # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
         mcintfactor *= Bshr * tauexitprob
@@ -799,23 +830,29 @@ class RegionGeomMonteCarlo:
 
         # PE threshold
         mcintfactor[triggers < threshold] = 0
+        if self.num_time_bins == 1:
+            mcintegral = np.sum(mcintfactor) * mcnorm / numTrajs
+            mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / numTrajs) * mcnorm
+        else:
+            mcintegral_time_binned = np.sum(mcintfactor, axis=1) * mcnorm / numTrajs
 
-        mcintegral_time_binned = np.sum(mcintfactor, axis=1) * mcnorm / numTrajs
+            # Use Trapezoidal Rule to integrate over time bins
+            mcintegral = (
+                np.sum(mcintegral_time_binned)
+                - 0.5 * mcintegral_time_binned[0]
+                - 0.5 * mcintegral_time_binned[-1]
+            ) / self.num_time_bins
 
-        # Use Trapezoidal Rule to integrate over time bins
-        mcintegral = (
-            np.sum(mcintegral_time_binned)
-            - 0.5 * mcintegral_time_binned[0]
-            - 0.5 * mcintegral_time_binned[-1]
-        ) / self.num_time_bins
+            mcintegral_flattened = (
+                np.sum(mcintfactor, axis=0)
+                - 0.5 * mcintfactor[0]
+                - 0.5 * mcintfactor[-1]
+            ) / self.num_time_bins
 
-        mcintegral_flattened = (
-            np.sum(mcintfactor, axis=0) - 0.5 * mcintfactor[0] - 0.5 * mcintfactor[-1]
-        ) / self.num_time_bins
-
-        mcintegraluncert = (
-            np.sqrt(np.var(mcintegral_flattened, axis=1, ddof=1) / numTrajs) * mcnorm
-        )
+            mcintegraluncert = (
+                np.sqrt(np.var(mcintegral_flattened, axis=1, ddof=1) / numTrajs)
+                * mcnorm
+            )
 
         # if np.size(mcintegral,axis=0) == 1:
         #    mcintegraluncert = (
@@ -970,11 +1007,11 @@ class RegionGeomTargetApprox:
 
     @decorators.nss_result_plot(geom_beta_tr_hist)
     @decorators.nss_result_store("beta_rad", "theta_rad", "path_len", "times")
-    # def __call__(self, numtrajs, *args, **kwargs):
-    def __call__(self, *args, **kwargs):
+    def __call__(self, num_time_bins, *args, **kwargs):
+        # def __call__(self, *args, **kwargs):
         """Throw numtrajs events and return valid betas."""
-        # self.throw(numtrajs)
-        self.throw(self.num_time_bins)
+        self.throw(num_time_bins)
+        # self.throw(self.num_time_bins)
         return self.beta_rad(), self.thetas(), self.pathLens(), self.val_times()
 
     def throw(self, times=None) -> None:

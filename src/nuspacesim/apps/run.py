@@ -47,6 +47,7 @@
 """
 
 import click
+import numpy as np
 
 from ..compute import compute
 from ..config import config_from_toml
@@ -54,8 +55,11 @@ from ..results_table import output_filename
 from ..utils.plot_function_registry import registry
 from .utils import (
     parse_cloud_options,
-    parse_integ_method_options,
+    parse_diffuse_integ_method_options,
+    parse_source_info,
     parse_spectra_options,
+    parse_sun_moon_cuts,
+    parse_target_integ_method_options,
     read_plot_config,
 )
 
@@ -96,16 +100,48 @@ from .utils import (
     help="Do not save the results to an output file.",
 )
 @click.option(
+    "--diffuse",
+    is_flag=True,
+    default=None,
+    help="Diffuse acceptance calculations (assuming isotropic neutrino fluxes).",
+)
+@click.option(
+    "--target",
+    is_flag=True,
+    default=False,
+    help="Point-source acceptance calculations (quasi-parallel neutrino trajectories).",
+)
+@click.option(
+    "--sunmooncuts",
+    is_flag=True,
+    default=False,
+    help="Apply cuts accounting for limited observing due to the Sun and the Moon",
+)
+@click.option(
+    "--sunmooncutparameters",
+    nargs=3,
+    type=click.Tuple([float, float, float]),
+    default=[np.radians(-40.5), np.radians(0.0), np.radians(150.0)],
+    help="Sun/Moon cut parameters. Sun elevation angle. Moon elevation angle. Moon phase angle.",
+)
+@click.option(
+    "--numtimebins",
+    type=float,
+    default=1,
+    help="Number of time bins. Choose 1 for instantaneous acceptance or "
+    "time-integrated exposure calculations. Input a number > 1 for "
+    "time-differential or time-averaged calculations.",
+)
+@click.option(
     "--montecarlo",
     type=float,
-    default=100,
-    help="Monte Carlo integration. User should specify the number of events thrown per time bin. "
-    "[Default]",
+    default=None,
+    help="Monte Carlo integration. User should specify the number of events thrown per time bin. ",
 )
 @click.option(
     "--targetapprox",
-    is_flag=False,
-    default=None,
+    is_flag=True,
+    default=False,
     help="Semi-analytical calculation of point-source acceptance using simplified "
     "approximations.",
 )
@@ -152,6 +188,13 @@ from .utils import (
     "MERRA-2 dataset. "
     "User should provide a month name, abbreviation, or number. ",
 )
+@click.option(
+    "--sourceinfo",
+    nargs=5,
+    type=click.Tuple([float, float, str, str, float]),
+    default=[np.radians(0.0), np.radians(0.0), "2022-06-02T01:00:00", "isot", 86400],
+    help="Source information. RA, Dec., observation date, date format, amount of observation time (s).",
+)
 @click.argument(
     "config_file",
     default=None,
@@ -167,6 +210,11 @@ def run(
     plotconfig: str,
     plotall: bool,
     write_stages: bool,
+    sunmooncuts: bool,
+    sunmooncutparameters: click.Tuple,
+    diffuse: bool,
+    target: bool,
+    numtimebins: float,
     montecarlo: float,
     targetapprox: bool,
     cubature: click.Tuple,
@@ -175,6 +223,7 @@ def run(
     nocloud: bool,
     monocloud: float,
     pressuremapcloud: click.DateTime,
+    sourceinfo: click.Tuple,
 ) -> None:
     """Perform the full nuspacesim simulation.
 
@@ -217,12 +266,19 @@ def run(
     #    config.simulation.thrown_events if count == 0.0 else count
     # )
 
+    if config.detector.sun_moon.id == "apply_sun_moon_cuts":
+        overwrite_sunmoon = parse_sun_moon_cuts(sunmooncutparameters)
+        if overwrite_sunmoon:
+            config.detector.sun_moon = overwrite_sunmoon
+
     config.simulation.num_time_bins = int(
         config.simulation.num_time_bins if count == 0.0 else count
     )
 
-    overwrite_integ_method = parse_integ_method_options(
-        montecarlo, targetapprox, cubature
+    overwrite_integ_method = (
+        parse_target_integ_method_options(montecarlo, targetapprox, cubature)
+        if config.simulation.mode == "Target"
+        else parse_diffuse_integ_method_options(montecarlo, targetapprox, cubature)
     )
     if overwrite_integ_method:
         config.simulation.integ_method = overwrite_integ_method
@@ -234,6 +290,11 @@ def run(
     overwrite_cloud = parse_cloud_options(nocloud, monocloud, pressuremapcloud)
     if overwrite_cloud:
         config.simulation.cloud_model = overwrite_cloud
+
+    if config.simulation.mode == "Target":
+        overwrite_source_info = parse_source_info(sourceinfo)
+        if overwrite_source_info:
+            config.simulation.target = overwrite_source_info
 
     plot = read_plot_config(registry, plotall, plotconfig, plot)
 

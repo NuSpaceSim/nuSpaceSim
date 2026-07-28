@@ -200,9 +200,9 @@ def compute(
     #    config.simulation.thrown_events, store=sw, plot=to_plot
     # )
 
-    beta_tr, thetaArr, pathLenArr, times_arr = geom(store=sw, plot=to_plot)
+    # beta_tr, thetaArr, pathLenArr, times_arr = geom(store=sw, plot=to_plot)
 
-    thrown_color = "[blue]" if beta_tr.size else "[red]"
+    # thrown_color = "[blue]" if beta_tr.size else "[red]"
     # if config.simulation.integ_method.id == "monte_carlo":
     if isinstance(config.simulation.integ_method, Simulation.MonteCarlo):
         #    logv(
@@ -210,10 +210,17 @@ def compute(
         #        {config.simulation.integ_method.num_events_per_time_bin * config.simulation.num_time_bins}\
         #        neutrinos. {beta_tr.size} were valid.[/]"
         #    )
+        num_events = (
+            config.simulation.integ_method.num_events_per_time_bin
+            * config.simulation.num_time_bins
+        )
+
+        beta_tr, thetaArr, pathLenArr, times_arr = geom(
+            num_events, store=sw, plot=to_plot
+        )
+        thrown_color = "[blue]" if beta_tr.size else "[red]"
         logv(
-            f"\t{thrown_color}Threw \
-            {config.simulation.integ_method.num_events_per_time_bin * config.simulation.num_time_bins} \
-            neutrinos. {beta_tr.size} were valid.[/]"
+            f"\t{thrown_color}Threw {num_events} neutrinos. {beta_tr.size} were valid.[/]"
         )
 
     # elif isinstance(config.simulation.integ_method, Simulation.Cubature):
@@ -222,6 +229,10 @@ def compute(
     #        per node. {beta_tr.size} were valid.[/]"
     #    )
     elif isinstance(config.simulation.integ_method, Simulation.TargetApprox):
+        beta_tr, thetaArr, pathLenArr, times_arr = geom(
+            config.simulation.num_time_bins, store=sw, plot=to_plot
+        )
+        thrown_color = "[blue]" if beta_tr.size else "[red]"
         logv(
             f"\t{thrown_color}Threw {config.simulation.num_time_bins} time bins.\
             {times_arr[0].size} were valid.[/]"
