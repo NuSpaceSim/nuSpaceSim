@@ -83,6 +83,13 @@ def test_us_std_atm_density_rejects_negative_R():
         us_std_atm_density(10.0, R=-1.0)
 
 
+def test_us_std_atm_density_single_implementation():
+    """atmospheric_models re-exports this module's density: one implementation."""
+    from nuspacesim.simulation.eas_optical import atmospheric_models
+
+    assert atmospheric_models.us_std_atm_density is us_std_atm_density
+
+
 # ---------------------------------------------------------------------------
 # 2. Geometric transformations
 # ---------------------------------------------------------------------------
