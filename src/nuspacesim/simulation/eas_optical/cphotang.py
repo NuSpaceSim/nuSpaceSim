@@ -66,20 +66,19 @@ from .atmospheric_models import (
     refractive_index,
 )
 from .hillas_batch_kernel import (
-    _cached_leggauss,
     hillas_scale_energy,
     make_hillas_photon_yield,
     secondary_track_fraction,
 )
 from .propagation import (
     Atmosphere,
-    dXl,
-    length_at_depth_approx,
+    gl_node_grid,
     lexpr,
+    node_geometry,
+    propagation_grid,
     shower_propagation_length,
-    slant_depth,
     viewing_angle,
-    zexpr,
+    visibility_window,
 )
 from .shower_properties import (
     greisen_particle_count,
@@ -621,137 +620,29 @@ class CphotAng:
     def _propagation_grid(
         self, alt, betaE, Eshow, gb, n_nodes, n_slant_sub, atm, R, cloud_top=None
     ):
-        """GL-in-slant-depth propagation grid along each shower axis.
+        """Shower-physics depths + delegation to :func:`propagation_grid`.
 
-        Three concerns, in order: the valid slant-depth window, the node grid
-        within it, and the geometry of those nodes. Because the grid spans
-        exactly the valid window, every node is physically valid by construction
-        -- no downstream masking. Returns ``L_max, X_top``, the slant depth to
-        each node ``X_nodes``, the per-node ``L_nodes, L_weights, z_nodes``, and
-        the altitude ``z_peak`` of the shower maximum (for the detector geometry).
-
-        ``cloud_top`` (``(N,)`` altitudes or ``None``) raises the window's lower
-        bound to where the shower clears the clouds (see :meth:`_valid_window`).
-
-        Shapes: ``alt, betaE, Eshow, gb`` are ``(N,)``. Returns ``L_max (N,)``,
-        ``X_top (N,)``, ``X_nodes (N, k)``, ``L_nodes (N, k)``,
-        ``L_weights (N, k)``, ``z_nodes (N, k)``, ``z_peak (N,)``.
+        The grid itself is pure path geometry and quadrature (see
+        ``propagation.propagation_grid``); the three shower-physics inputs it
+        needs are computed here so the propagation layer stays free of shower
+        models: the e2hill age-floor depth ``_X_LO_COEFF * gb``, the Greisen
+        death depth (particle count back to 1), and the shower-maximum depth
+        ``36.66 * gb``.
         """
-        L_start = lexpr(alt, betaE, R=R)
-        L_max = lexpr(float(self.z_shower_top), betaE, R=R)
-        X_lo, X_hi, X_top = self._valid_window(
-            L_start, L_max, betaE, gb, Eshow, n_slant_sub, atm, R, cloud_top
+        gb1 = np.atleast_1d(gb)
+        return propagation_grid(
+            alt,
+            betaE,
+            n_nodes,
+            n_slant_sub,
+            atm,
+            R,
+            self.z_shower_top,
+            X_lo_floor=_X_LO_COEFF * gb1,
+            X_death=slant_depth_of_greisen_particle_count(1.0, Eshow),
+            X_peak_depth=36.66 * gb1,
+            cloud_top=cloud_top,
         )
-        X_nodes, wX, X_peak = self._node_grid(X_lo, X_hi, gb, n_nodes)
-        L_nodes, L_weights, z_nodes, z_peak = self._node_geometry(
-            L_start, X_nodes, X_peak, wX, betaE, atm, R
-        )
-        return L_max, X_top, X_nodes, L_nodes, L_weights, z_nodes, z_peak
-
-    def _valid_window(
-        self, L_start, L_max, betaE, gb, Eshow, n_slant_sub, atm, R, cloud_top=None
-    ):
-        """Slant-depth window ``[X_lo, X_hi]`` over which every node is valid.
-
-        The endpoints are the shower's *visible* slant-depth extremes:
-
-        * ``X_lo = max(_X_LO_COEFF * gb, X_cloud)`` -- the lower of the two
-          obscurations of the shower head. ``_X_LO_COEFF * gb`` is the depth
-          where the shower age first clears the e2hill floor (below it the Hillas
-          angular parameterization is undefined); ``X_cloud`` is the slant depth
-          to the cloud top (light generated below the clouds is obscured). With
-          no clouds (``cloud_top is None``) only the age floor applies.
-        * ``X_hi = min(Xtarg, X_top)`` -- the Greisen-death depth (particle count
-          back to 1), capped at ``X_top``, the slant depth to the shower's
-          visible top ``z_shower_top = min(detector_altitude, zMaxZ)``. Light
-          generated above the detector is beamed behind it (lost); light above
-          ``zMaxZ`` is from air too rarified to radiate. For an orbital detector
-          the radiation cap binds; for a low detector (balloon) the detector
-          altitude truncates the visible tail.
-
-        Folding the cloud cutoff into ``X_lo`` (rather than zeroing sub-cloud
-        nodes after the fact) keeps every Gauss-Legendre node inside the visible
-        window, so none of the quadrature resolution is wasted below the clouds.
-
-        A degenerate shower (visible window of zero or negative width -- decay
-        above the visible top, or clouds above the death depth) has
-        ``X_hi`` clamped up to ``X_lo``, so it yields exactly zero without
-        masking. Also returns ``X_top`` (the to-detector column reference).
-
-        Shapes: ``L_start, L_max, betaE, gb, Eshow`` are ``(N,)``; ``cloud_top``
-        is ``(N,)`` altitudes or ``None``. Returns ``X_lo, X_hi, X_top`` each
-        ``(N,)``.
-        """
-        X_top = slant_depth(L_start, L_max, betaE, R=R, a=atm, n=n_slant_sub)
-        Xtarg = slant_depth_of_greisen_particle_count(1.0, Eshow)
-        X_lo = _X_LO_COEFF * np.atleast_1d(gb)
-        if cloud_top is not None:
-            # Depth from decay to where the shower rises above the cloud top.
-            # Clamp the cloud length to >= L_start so a decay already above the
-            # clouds contributes no extra lower bound (X_cloud = 0).
-            L_cloud = np.maximum(lexpr(cloud_top, betaE, R=R), L_start)
-            X_cloud = slant_depth(L_start, L_cloud, betaE, R=R, a=atm, n=n_slant_sub)
-            X_lo = np.maximum(X_lo, X_cloud)
-        X_hi = np.maximum(np.minimum(Xtarg, X_top), X_lo)
-        return X_lo, X_hi, X_top
-
-    def _node_grid(self, X_lo, X_hi, gb, n_nodes):
-        """GL nodes in slant depth across ``[X_lo, X_hi]``, split at shower max.
-
-        Slant depth is the shower's natural development variable (shower age is a
-        function of X), so the peaked Greisen yield is smooth in X and
-        Gauss-Legendre resolves it well -- markedly better than placing nodes in
-        path length. The split at the shower-maximum depth (Greisen peak, s = 1
-        at ``X_peak = 36.66 * gb``) puts half the nodes on the rising edge and
-        half on the falling edge, doubling node density where the shower radiates
-        and recovering accuracy at n=16. Returns the node depths ``X_nodes``,
-        their Gauss-Legendre weights ``wX`` in X, and the shower-maximum depth
-        ``X_peak`` (clamped into the window) for the detector geometry.
-
-        Shapes: ``X_lo, X_hi, gb`` are ``(N,)``; returns ``X_nodes (N, k)``,
-        ``wX (N, k)``, ``X_peak (N,)``. The k nodes are two stacked panels of
-        ``k//2`` (rising edge) and ``k - k//2`` (falling edge).
-        """
-        X_peak = np.clip(36.66 * np.atleast_1d(gb), X_lo, X_hi)
-        n1 = n_nodes // 2
-        ref_x1, ref_w1 = _cached_leggauss(n1)
-        ref_x2, ref_w2 = _cached_leggauss(n_nodes - n1)
-        h1 = 0.5 * (X_peak - X_lo)
-        h2 = 0.5 * (X_hi - X_peak)
-        Xn1 = (0.5 * (X_peak + X_lo))[:, None] + h1[:, None] * ref_x1
-        Xn2 = (0.5 * (X_hi + X_peak))[:, None] + h2[:, None] * ref_x2
-        X_nodes = np.concatenate([Xn1, Xn2], axis=1)  # (n_showers, n_nodes)
-        wX = np.concatenate([h1[:, None] * ref_w1, h2[:, None] * ref_w2], axis=1)
-        return X_nodes, wX, X_peak
-
-    def _node_geometry(self, L_start, X_nodes, X_peak, wX, betaE, atm, R):
-        """Map node depths to propagation length, altitude, and path weight.
-
-        Inverts slant depth for all node depths -- plus the shower-maximum depth
-        ``X_peak`` -- at once with :func:`length_at_depth_approx` (single global
-        Halley step per target for the near-ground-decay showers whose nodes stay
-        within one atmospheric layer, exact layer-walking fallback for the
-        kink-crossing minority). The to-node slant depth is ``X_nodes`` exactly
-        regardless, so L enters only the weak ``z_nodes``/``L_weights``
-        dependence -- far below the grid's quadrature floor. The path-length
-        quadrature weight follows from the change of variable
-        ``dL = dX / (dX/dL) = dX / dXl(L)``. Also returns the shower-maximum
-        altitude ``z_peak``.
-
-        Shapes: ``L_start, X_peak, betaE`` are ``(N,)``; ``X_nodes, wX`` are
-        ``(N, k)``. The inverse is solved for ``(N, k+1)`` targets at once (the k
-        nodes plus X_peak). Returns ``L_nodes (N, k)``, ``L_weights (N, k)``,
-        ``z_nodes (N, k)``, ``z_peak (N,)``.
-        """
-        targets = np.concatenate([X_nodes, X_peak[:, None]], axis=1)
-        L_all = length_at_depth_approx(
-            L_start, targets, betaE, float(self.z_shower_top), R=R, a=atm
-        )
-        L_nodes = L_all[:, :-1]
-        z_nodes = zexpr(L_nodes, betaE[:, None], R=R)
-        z_peak = zexpr(L_all[:, -1], betaE, R=R)
-        L_weights = wX / dXl(L_nodes, betaE[:, None], a=atm, R=R)
-        return L_nodes, L_weights, z_nodes, z_peak
 
     def _atmospheric_columns(self, X_nodes, X_top, L_nodes, L_max, betaE, R):
         """Slant depth (to node, to detector), ozone and aerosol columns per node.

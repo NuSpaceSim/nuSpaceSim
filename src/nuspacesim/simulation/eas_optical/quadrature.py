@@ -1,5 +1,7 @@
 """Gauss-Legendre quadrature helpers for log-energy integration."""
 
+from functools import lru_cache
+
 import numpy as np
 from scipy.special import roots_legendre
 
@@ -116,3 +118,14 @@ def gauss_legendre_logE_two_panel(E_min, E_max, delta, n1, n2):
     E2, w2 = gauss_legendre_logE_nodes_weights(E_split, E_max, n2)
 
     return np.concatenate([E1, E2]), np.concatenate([w1, w2])
+
+
+@lru_cache(maxsize=32)
+def cached_leggauss(n):
+    """Cached Gauss-Legendre reference nodes/weights on [-1,1].
+
+    The eigenvalue decomposition in ``np.polynomial.legendre.leggauss``
+    is expensive.  Since the nodes/weights on [-1,1] depend only on *n*,
+    caching avoids redundant recomputation across thousands of calls.
+    """
+    return np.polynomial.legendre.leggauss(int(n))
