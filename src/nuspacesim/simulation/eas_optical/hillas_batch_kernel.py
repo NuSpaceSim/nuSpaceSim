@@ -14,6 +14,7 @@ from functools import lru_cache
 
 import numpy as np
 
+from .hillas_kernel import hillas_w_mean
 from .hillas_params import HILLAS_HIGH_ENERGY, HILLAS_LOW_ENERGY
 
 
@@ -585,3 +586,158 @@ def delta_nphots_single_integral_NE16(
         out[i0:i1] += np.einsum("nk,nk->n", u_view, scale_view)
 
     return out
+
+
+def secondary_track_fraction(E0, eCthres, s):
+    r"""Integral track-length spectrum T(E) of Hillas (1982), eqn (8).
+
+    The fraction of charged-particle track length carried by particles with
+    kinetic energy above ``E`` (= ``eCthres``), at shower age ``s``::
+
+                  / 0.89*E0 - 1.2 \ s
+        T(E)  =  ( --------------  )   * (1 + 1e-4 * s * E) ** -2
+                  \    E0 + E     /
+
+    Defined (Hillas p. 1466) as the total track length of charged particles of
+    kinetic energy > E divided by the total vertical track-length component, so
+    ``N_e * T(E) * dx`` is the track length above E in a vertical slab ``dx``.
+    This is the Cherenkov-yield weight: electrons above the Cherenkov threshold,
+    weighted by the track they lay down. ``E0 = hillas_scale_energy(s)`` is the age-dependent
+    scale energy (MeV). All energies are kinetic, in MeV.
+
+    Reference: A. M. Hillas, "Angular and energy distributions of charged
+    particles in electron-photon cascades in air," J. Phys. G: Nucl. Phys. 8
+    (1982) 1461-1473, eqn (8).
+    """
+    v1 = ((0.89 * E0 - 1.2) / (E0 + eCthres)) ** s
+    # (1 + 1e-4*s*E)**-2 is just 1/c^2 -- a multiply + reciprocal, ~15x faster
+    # than the general `** -2` pow on the (n,k,n_E) grid (and dtype-preserving).
+    c = 1.0 + 1e-4 * s * eCthres
+    c *= c
+    return v1 / c
+
+
+def hillas_scale_energy(shape, s):
+    """Age-dependent scale energy E0(s) (MeV) of the track-length spectrum.
+
+    The ``E0`` appearing in :func:`tracklen` (Hillas 1982, eqn (8), p. 1466)::
+
+        E0(s) = 44 - 17*(s - 1.46)**2   if s >= 0.4
+              = 26                        if s <  0.4
+    """
+    E0 = np.full(shape, 26.0, dtype=np.float64)
+    E0[s >= 0.4] = 44.0 - 17.0 * (s[(s >= 0.4)] - 1.46) ** 2
+    return E0
+
+
+def make_hillas_photon_yield(n_energy_low=3, n_energy_high=8, dtype=np.float32):
+    """Default photon-yield model: Hillas (1982) theta-collapsed single integral.
+
+    Returns a callable ``model(inputs: PhotonYieldInputs) -> node_contribs`` of
+    shape ``(n_showers, n_nodes)`` -- the high-performance vectorized CPU kernel
+    used by :meth:`CphotAng.run` when no custom model is supplied. It evaluates,
+    per node, the energy integral ``int F(u_max(E,s)) * w_x(E,s) dE`` over a
+    two-panel Gauss-Legendre grid in ``y = ln(E/eCthres)`` split at the
+    low/high-energy regime boundary (see docs/HILLAS_SINGLE_INTEGRAL_KERNEL.md).
+
+    Parameters
+    ----------
+    n_energy_low : int, optional
+        GL nodes on the low-energy panel ``[eCthres, Eswitch=1 GeV]`` (default 3).
+    n_energy_high : int, optional
+        GL nodes on the high-energy panel ``[Eswitch, Eshow]`` (default 8). This
+        panel is the sole accuracy limiter of the energy integral.
+    dtype : numpy dtype, optional
+        Working precision for the energy-node region (default float32). The
+        energy quadrature is only ~0.3% accurate, so single precision (~1e-7)
+        is well within budget while roughly doubling transcendental throughput
+        and halving the ``(n, k, n_E)`` bandwidth -- the run() working-set peak.
+
+    Notes
+    -----
+    The returned closure is a plain function (no per-call object churn beyond a
+    single dataclass read), so the default path is bit-identical and equal in
+    cost to the former inlined kernel.
+    """
+
+    def hillas_photon_yield(inputs):
+        eCthres = inputs.eCthres
+        Eshow = inputs.Eshow
+        thetaC = inputs.thetaC
+        sig_per_node = inputs.sig_per_node
+        e2hill = inputs.e2hill
+        E0 = inputs.E0
+        s = inputs.s
+        n_nodes = inputs.n_nodes
+
+        n_showers = sig_per_node.shape[0]
+        # Radiating nodes carry sig > 0 (every in-window node, minus any zeroed
+        # by clouds or by a degenerate zero-weight grid).
+        radiating = sig_per_node > 0.0
+        if not np.any(radiating):
+            return np.zeros((n_showers, n_nodes))
+
+        # Per-(shower, node) energy-quadrature window. The integral over electron
+        # energy runs from the node's Cherenkov threshold eCthres(shower, node)
+        # up to a per-shower envelope above the primary energy. Both bounds are
+        # LOCAL (no batch-wide min/max reduction), so photonDen is a pure
+        # per-shower function -- independent of batch composition. Non-radiating
+        # rows get a dummy finite window; their sig == 0 zeros the contribution.
+        Ieang = np.floor(np.log10(Eshow)).astype(np.int64) + 1  # (n_showers,)
+        E_max_node = np.broadcast_to((10.0 ** (Ieang + 1))[:, None], eCthres.shape)
+        Emin = np.where(radiating, eCthres, 1.0)  # (n_showers, n_nodes)
+        Emax = np.where(radiating, E_max_node, 10.0)
+        P = n_showers * n_nodes
+
+        pre = precompute_kernel_NE16(
+            Emin.reshape(P),
+            Emax.reshape(P),
+            Eswitch=1e3,
+            nL=n_energy_low,
+            nH=n_energy_high,
+            dtype=dtype,
+        )
+        E_grid = pre["E_nodes"].reshape(n_showers, n_nodes, -1)  # f32 (n, k, n_E)
+        n_E = E_grid.shape[-1]
+
+        # mw_all uses raw e2hill; hillas_w_mean is total, and any non-radiating
+        # node (sig_all == 0) contributes exactly 0 (finite F(u) * 0).
+        sig_all = sig_per_node.astype(dtype)  # (n_showers, n_nodes)
+        thetaC = thetaC.astype(dtype)
+        mw_all = hillas_w_mean(E_grid, e2hill[:, :, None].astype(dtype))
+
+        # wx_all = max(-dT/dE, 0) for T = secondary_track_fraction(E0, E, s). Closed-form
+        # derivative avoids a second (n_showers, n_nodes, n_E) tracklen call:
+        #   -dT/dE = s * T * (1/(E0 + E) + 2e-4 / (1 + 1e-4*s*E))
+        # Built in place to avoid spinning up transient (n, k, n_E) arrays for
+        # each sub-expression (this block is the run() working-set peak).
+        E0_b = E0[:, :, None].astype(dtype)
+        s_b = s[:, :, None].astype(dtype)
+        T = secondary_track_fraction(E0_b, E_grid, s_b)  # (n_showers, n_nodes, n_E)
+        c = 1.0 + 1e-4 * s_b * E_grid  # 1 + 1e-4*s*E
+        np.reciprocal(c, out=c)
+        c *= 2e-4  # c := 2e-4 / (1 + 1e-4*s*E)
+        wx_all = E0_b + E_grid
+        np.reciprocal(wx_all, out=wx_all)  # wx_all := 1/(E0 + E)
+        wx_all += c  # 1/(E0+E) + 2e-4/(1+1e-4*s*E)
+        wx_all *= T
+        wx_all *= s_b
+        np.maximum(wx_all, 0.0, out=wx_all)
+        # T and c are dead now; free them so they don't sit resident
+        # (2x (n,k,n_E)) through the kernel call, the working-set peak.
+        del T, c
+
+        # Fold (n_showers, n_nodes) into a single batch axis -> one kernel call.
+        # Reshapes are views (C-contiguous); non-radiating nodes carry
+        # sig_all == 0, contributing exactly 0 (finite F(u) * 0). The per-row
+        # energy grid in `pre` is flattened in the same C-order, so rows align.
+        contrib_flat = delta_nphots_single_integral_NE16(
+            thetaC.reshape(P),
+            sig_all.reshape(P),
+            mw_all.reshape(P, n_E),
+            wx_all.reshape(P, n_E),
+            pre,
+        )
+        return contrib_flat.reshape(n_showers, n_nodes)
+
+    return hillas_photon_yield
