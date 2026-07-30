@@ -42,8 +42,11 @@ date: 2021 August 12
 
 import numpy as np
 
-from ... import constants as const
-from .propagation import lexpr
+# Re-exported for backward compatibility: the US Standard Atmosphere density
+# now has a single implementation in propagation (validated against the former
+# local copy to <2e-7 relative; the only differences were rounding of the
+# base-pressure table and a searchsorted wraparound for z < 0).
+from .propagation import lexpr, us_std_atm_density
 
 __all__ = [
     "us_std_atm_density",
@@ -150,38 +153,6 @@ _dfaOD55 = [_F32(AOD55[i] - AOD55[i + 1]) for i in range(29)]
 _dfaOD55.append(_F32(0))
 AEROSOL_SEGMENT_BOUNDS = np.arange(31.0)
 AEROSOL_EXTINCTION = np.asarray(np.array(_dfaOD55, dtype=_F32), dtype=np.float64)
-
-
-def us_std_atm_density(z, earth_radius=const.earth_radius):
-    H_b = np.array([0, 11, 20, 32, 47, 51, 71, 84.852])
-    Lm_b = np.array([-6.5, 0.0, 1.0, 2.8, 0.0, -2.8, -2.0, 0.0])
-    T_b = np.array([288.15, 216.65, 216.65, 228.65, 270.65, 270.65, 214.65, 186.946])
-    # fmt: off
-    P_b = 1.01325e5 * np.array(
-        [1.0, 2.233611e-1, 5.403295e-2, 8.5666784e-3, 1.0945601e-3, 6.6063531e-4,
-         3.9046834e-5, 3.68501e-6, ])
-    # fmt: on
-
-    Rstar = 8.31432e-3
-    M0 = 28.9644
-    gmr = 34.163195
-
-    z = np.asarray(z)
-
-    h = z * earth_radius / (z + earth_radius)
-    i = np.searchsorted(H_b, h, side="right") - 1
-
-    deltah = h - H_b[i]
-
-    temperature = T_b[i] + Lm_b[i] * deltah
-
-    mask = Lm_b[i] == 0
-    pressure = np.full(z.shape, P_b[i])
-    pressure[mask] *= np.exp(-gmr * deltah[mask] / T_b[i][mask])
-    pressure[~mask] *= (T_b[i][~mask] / temperature[~mask]) ** (gmr / Lm_b[i][~mask])
-
-    density = (pressure * M0) / (Rstar * 1e6 * temperature)  # kg/m^3
-    return 1e-3 * density  # g/cm^3
 
 
 def ozone_column(L_nodes, L_max, betaE, oz_zbnd, oz_seg_rate, R):
