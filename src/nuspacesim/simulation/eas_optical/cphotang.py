@@ -41,15 +41,10 @@ r"""Cherenkov photon density and angle determination class.
 
 """
 
-import os
-import warnings
 from dataclasses import dataclass
 
-import dask.array as da
 import numpy as np
-from dask.distributed import Client, LocalCluster, as_completed
 from numpy.polynomial import Polynomial
-from rich.progress import Progress
 
 # Re-exported for backward compatibility: the cluster helper is pure
 # infrastructure and now lives with the other cross-cutting utilities.
@@ -65,6 +60,7 @@ from .atmospheric_models import (
     ozone_rate,
     refractive_index,
 )
+from .dispatch import map_showers_distributed
 from .hillas_batch_kernel import (
     hillas_scale_energy,
     make_hillas_photon_yield,
@@ -194,42 +190,6 @@ def cherenkov_area(AveCangI, dist_to_max):
 # ---------------------------------------------------------------------------
 # Pure functions: atmospheric columns, field evaluation, transmission
 # ---------------------------------------------------------------------------
-
-
-# Dask block size (events/block) for __call__. Throughput is flat over a wide
-# plateau of ~16k-50k events/block and falls off sharply BELOW it: now that
-# run() costs ~0.012 ms/shower, the per-block fixed cost (dask task scheduling,
-# Atmosphere() setup, and the GIL-held Python orchestration inside run()) is the
-# binding constraint, so too-small blocks dominate (8k is ~24% slower than 16k,
-# 1k is ~4x slower). The plateau ceiling is memory bandwidth: the per-block
-# (n, n_nodes, n_wl) working set thrashes for very large blocks. Both bounds are
-# in EVENT COUNT and roughly machine-independent (overhead- and bandwidth-set),
-# unlike the old "blocks per core" assumption -- core count enters only as the
-# block-count target so all cores stay busy at large N. Measured on real
-# (grazing) showers, N=1e5 and 1e6, 10 cores; BLAS thread pinning is a non-factor
-# (the transmission gemm is too small to spawn threads).
-_CHUNK_MIN = 16_000
-_CHUNK_MAX = 24_000
-_CHUNK_BLOCKS_PER_CORE = 1
-
-
-def _auto_chunk_size(n_events):
-    """Parallelism-aware dask block size for :meth:`CphotAng.__call__`.
-
-    Targets ~``_CHUNK_BLOCKS_PER_CORE`` block(s) per usable core, clamped to the
-    empirically-flat optimal plateau ``[_CHUNK_MIN, _CHUNK_MAX]``. With one block
-    per core the clamp does the real work: small/medium N lands on ``_CHUNK_MIN``
-    (overhead-amortized, even if that leaves some cores idle -- the job is tiny
-    then), and large N lands on ``_CHUNK_MAX`` (many blocks, bandwidth-capped).
-    Uses the affinity-aware core count where available so it respects
-    cgroup/taskset limits.
-    """
-    try:
-        ncores = len(os.sched_getaffinity(0))  # honors affinity / cgroup pinning
-    except AttributeError:
-        ncores = os.cpu_count() or 4
-    chunk = -(-int(n_events) // (_CHUNK_BLOCKS_PER_CORE * max(ncores, 1)))  # ceil div
-    return int(min(max(chunk, _CHUNK_MIN), _CHUNK_MAX))
 
 
 class CphotAng:
@@ -445,7 +405,7 @@ class CphotAng:
         The two per-shower outputs are (N,); per-node working arrays are
         (N, k); the transient wavelength/energy tensors are (N, k, W) and
         (N, k, E) -- the working-set peak. Everything is float64 until the
-        photon-yield/kernel region, which runs float32 (see :meth:_photon_sum).
+        photon-yield/kernel region, which runs float32 (see :meth:_kernel_energy_integral).
 
         Parameters
         ----------
@@ -553,7 +513,7 @@ class CphotAng:
         # Phase 4: photon yield = local Cherenkov scaling x transmission. Clouds
         # need no masking here: the cloud top entered Phase 1 as the window's
         # lower bound, so no node sits below the clouds to begin with.
-        sig_per_node, wl_state = self._photon_yield(
+        sig_per_node, wl_state = self._transmitted_yield(
             thetaC, L_weights, RN, transmission, per_wavelength
         )
 
@@ -570,7 +530,7 @@ class CphotAng:
 
         # Phase 6: photon-density trunk -- the single-integral kernel, then final
         # assembly. altitude_scaling = f(betaE, alt) is the literal last multiply.
-        node_contribs, photsum = self._photon_sum(
+        node_contribs, photsum = self._kernel_energy_integral(
             eCthres,
             Eshow,
             thetaC,
@@ -582,7 +542,7 @@ class CphotAng:
             photon_model,
         )
         altitude_scaling = self._altitude_scaling(betaE, alt)
-        photonDen = self._photon_density(
+        photonDen = self._density_at_detector(
             photsum,
             node_contribs,
             wl_state,
@@ -706,7 +666,7 @@ class CphotAng:
             return T_sum, wl_trans
         return T_sum
 
-    def _photon_yield(self, thetaC, L_weights, RN, transmission, per_wavelength):
+    def _transmitted_yield(self, thetaC, L_weights, RN, transmission, per_wavelength):
         """Cherenkov photon yield per node = local Cherenkov scaling x transmission.
 
         ``transmission`` is the collapsed ``T_sum`` from _atmospheric_transmission
@@ -737,7 +697,7 @@ class CphotAng:
         transmission *= scaling
         return transmission, None
 
-    def _photon_sum(
+    def _kernel_energy_integral(
         self,
         eCthres,
         Eshow,
@@ -852,7 +812,7 @@ class CphotAng:
 
         return (dist_orbit / dist_det) ** 2
 
-    def _photon_density(
+    def _density_at_detector(
         self,
         photsum,
         node_contribs,
@@ -951,29 +911,15 @@ class CphotAng:
         ):
             return np.empty([]), np.empty([])
 
-        if chunks is None:
-            chunks = _auto_chunk_size(len(betaE))
-
-        #######################
-        args = [betaE, alt, Eshow100PeV, init_lat, init_long]
-        arx = [np.asarray(x) for x in args]
-        owns_cluster = client is None
-        cluster = None
-        if owns_cluster:
-            cluster = LocalCluster(processes=True)
-            client = Client(cluster)
-        d_args = [da.from_array(a, chunks=chunks) for a in arx]
-
         # Per block, run() yields density (N,) [collapsed] or (N, n_wl)
-        # [per-wavelength] plus Cang (N,). We pack both into a single
-        # (rows, N) block so one map_blocks carries them out: the first
-        # ``n_den`` rows are the density (n_den = 1 collapsed, n_wl per-
-        # wavelength), the last row is Cang. The collapsed path stays
-        # (2, N) -- bit-identical to before; per-wavelength avoids the
-        # (N, n_nodes, n_wl) tensor only when the caller actually wants it.
+        # [per-wavelength] plus Cang (N,). Pack both into a single (rows, N)
+        # block so one map_blocks carries them out: the first ``n_den`` rows are
+        # the density (n_den = 1 collapsed, n_wl per-wavelength), the last row
+        # is Cang. The collapsed path stays (2, N) -- bit-identical to before;
+        # per-wavelength avoids the (N, n_nodes, n_wl) tensor only when the
+        # caller actually wants it.
         n_wl = len(self.wmean)
         n_den = n_wl if per_wavelength else 1
-        n_rows = n_den + 1
 
         def chunk_worker(b, a, e, lat, lon):
             d_batch, c_batch = self.run(
@@ -994,56 +940,13 @@ class CphotAng:
             d_rows = d_batch.T if per_wavelength else d_batch[None, :]
             return np.concatenate([d_rows, c_batch[None, :]], axis=0)
 
-        # Apply vectorization via map_blocks. output will be 2D (n_rows, N)
-        result_grid = da.map_blocks(
+        results = map_showers_distributed(
             chunk_worker,
-            *d_args,
-            dtype=float,
-            chunks=(n_rows, d_args[0].chunks[0]),
-            new_axis=0,
+            (betaE, alt, Eshow100PeV, init_lat, init_long),
+            n_rows=n_den + 1,
+            chunks=chunks,
+            client=client,
         )
-
-        n_chunks = result_grid.npartitions
-        from rich.progress import BarColumn, ProgressColumn, TextColumn
-        from rich.text import Text
-
-        class _ElapsedSecondsColumn(ProgressColumn):
-            def render(self, task):
-                elapsed = (
-                    task.finished_time
-                    if task.finished_time is not None
-                    else task.elapsed
-                )
-                return Text(f"{elapsed:.2f}s")
-
-        # dask.diagnostics.Callback only works with synchronous schedulers.
-        # With the distributed scheduler, persist the dask graph so each array
-        # chunk has a Future, then drive the Rich progress bar incrementally via
-        # as_completed() as worker processes finish their chunks.
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Sending large graph")
-            persisted = client.persist(result_grid)
-
-        futures = client.futures_of(persisted)
-
-        with Progress(
-            TextColumn("[cyan]{task.description}"),
-            BarColumn(),
-            _ElapsedSecondsColumn(),
-        ) as progress:
-            progress_task = progress.add_task(
-                "Processing EAS photons...", total=n_chunks
-            )
-            for _ in as_completed(futures):
-                progress.advance(progress_task, 1)
-
-        # Gather result from workers (all futures already done by this point).
-        results = persisted.compute()
-
-        # Shut down workers quickly: close synchronously to avoid orphaned worker heartbeats.
-        if owns_cluster:
-            client.close(timeout=2)
-            cluster.close(timeout=2)
 
         # Unpack (n_rows, N): density rows then the Cang row. Collapsed ->
         # (N,); per-wavelength -> (N, n_wl) (transpose back the n_den rows).
