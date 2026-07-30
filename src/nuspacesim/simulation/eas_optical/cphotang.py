@@ -86,6 +86,7 @@ from .shower_properties import (
     particle_count_fluctuated_gaisser_hillas,
     particle_count_parameterized_gaisser_hillas,
     propagation_angle,
+    shower_state_at_nodes,
     slant_depth_of_greisen_particle_count,
 )
 
@@ -343,67 +344,6 @@ def cherenkov_area(AveCangI, dist_to_max):
 # ---------------------------------------------------------------------------
 # Pure functions: atmospheric columns, field evaluation, transmission
 # ---------------------------------------------------------------------------
-
-
-def shower_age(X_to_node, gb):
-    """Atmospheric depth parameter t and shower age s.
-
-    Parameters
-    ----------
-    X_to_node : ndarray, shape (..., n_nodes)
-        Cumulative slant depth to each node (g/cm²).
-    gb : ndarray, shape (n_showers,)
-        Greisen beta = log(Eshow / ecrit).
-
-    Returns
-    -------
-    t : ndarray, shape (..., n_nodes)
-    s : ndarray, shape (..., n_nodes)
-    """
-    t = X_to_node / 36.66
-    s = 3.0 * t / (t + 2.0 * np.atleast_1d(gb)[..., None])
-    return t, s
-
-
-def greisen_particles(t, s, gb):
-    """Greisen particle count at each node.
-
-    Parameters
-    ----------
-    t, s : ndarray, shape (..., n_nodes)
-    gb : ndarray, shape (n_showers,)
-
-    Returns
-    -------
-    RN : ndarray, shape (..., n_nodes)
-    """
-    alpha = 0.31 / np.sqrt(np.atleast_1d(gb))
-    safe_s = np.where(s > 0, s, 1.0)
-    RN = alpha[..., None] * np.exp(t * (1.0 - 1.5 * np.log(safe_s)))
-    return np.maximum(RN, 0.0)
-
-
-def hillas_e2(s):
-    """Hillas E-squared parameter e2hill from shower age."""
-    safe_s = np.where(s > 0, s, 1.0)
-    return np.where(s > 0, 1150.0 + 454.0 * np.log(safe_s), 0.0)
-
-
-def node_fields(z_nodes, X_to_node, gb):
-    """Per-node shower fields from the propagation grid.
-
-    Returns
-    -------
-    AirN : refractive index of air at each node
-    s : shower age
-    RN : Greisen particle count
-    e2hill : Hillas E² parameter
-    """
-    AirN = refractive_index(z_nodes)
-    t, s = shower_age(X_to_node, gb)
-    RN = greisen_particles(t, s, gb)
-    e2hill = hillas_e2(s)
-    return AirN, s, RN, e2hill
 
 
 # Dask block size (events/block) for __call__. Throughput is flat over a wide
@@ -755,7 +695,7 @@ class CphotAng:
         )
 
         # Phase 3: shower-physics fields and the derived Cherenkov quantities.
-        AirN, s, RN, e2hill = node_fields(z_nodes, X_to_node, gb)
+        AirN, s, RN, e2hill = shower_state_at_nodes(z_nodes, X_to_node, gb)
         eCthres, thetaC = cherenkov_threshold_angle(AirN)
         E0 = e0(z_nodes.shape, s)
         Tfrac = tracklen(E0, eCthres, s)
