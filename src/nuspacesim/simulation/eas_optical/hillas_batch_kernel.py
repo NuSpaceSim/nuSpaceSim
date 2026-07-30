@@ -16,18 +16,7 @@ import numpy as np
 
 from .hillas_kernel import hillas_w_mean
 from .hillas_params import HILLAS_HIGH_ENERGY, HILLAS_LOW_ENERGY
-
-
-@lru_cache(maxsize=32)
-def _cached_leggauss(n):
-    """Cached Gauss-Legendre reference nodes/weights on [-1,1].
-
-    The eigenvalue decomposition in ``np.polynomial.legendre.leggauss``
-    is expensive.  Since the nodes/weights on [-1,1] depend only on *n*,
-    caching avoids redundant recomputation across thousands of calls.
-    """
-    return np.polynomial.legendre.leggauss(int(n))
-
+from .quadrature import cached_leggauss as _cached_leggauss
 
 __all__ = [
     "gauss_legendre_interval",

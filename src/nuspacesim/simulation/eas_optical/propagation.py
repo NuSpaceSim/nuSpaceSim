@@ -9,6 +9,8 @@ Reference implementation: docs/Compact Shower Length.ipynb
 
 import numpy as np
 
+from .quadrature import cached_leggauss
+
 __all__ = [
     "Atmosphere",
     "us_std_atm_density",
@@ -460,9 +462,7 @@ def slant_depth(L0, L1, beta, R=6371.0, a=None, n=8):
     """
     if a is None:
         a = Atmosphere()
-    from .hillas_batch_kernel import _cached_leggauss
-
-    x, w = _cached_leggauss(n)
+    x, w = cached_leggauss(n)
     Zb = a.Z_b
     L0 = np.asarray(L0, dtype=np.float64)
     L1 = np.asarray(L1, dtype=np.float64)
@@ -495,9 +495,7 @@ def length_at_depth(L0, X, beta, R=6371.0, a=None, n=8, niter=8):
     """
     if a is None:
         a = Atmosphere()
-    from .hillas_batch_kernel import _cached_leggauss
-
-    x, w = _cached_leggauss(n)
+    x, w = cached_leggauss(n)
     Zb = a.Z_b
     L0 = np.asarray(L0, dtype=np.float64)
     beta = np.asarray(beta, dtype=np.float64)
@@ -575,9 +573,7 @@ def length_at_depth_hermite(
     """
     if a is None:
         a = Atmosphere()
-    from .hillas_batch_kernel import _cached_leggauss
-
-    x, w = _cached_leggauss(n)
+    x, w = cached_leggauss(n)
     L0 = np.asarray(L0, dtype=np.float64)
     beta = np.asarray(beta, dtype=np.float64)
     X = np.asarray(X, dtype=np.float64)
@@ -645,7 +641,7 @@ def length_at_depth_hermite(
     # tiny in-layer sub-interval, so a lower-order rule (n_polish) suffices. Each
     # target stays inside its bracket's layer, so the layer index is gathered once
     # from seg_layer via the bracket -- no per-iteration binary-search in dXl.
-    xp, wp = _cached_leggauss(n_polish)
+    xp, wp = cached_leggauss(n_polish)
     li_pol = np.take_along_axis(seg_layer.T, idx, axis=1)  # (n_showers, k)
     bb = beta[:, None]
     dX = X - x0
@@ -692,12 +688,10 @@ def length_at_depth_approx(L0, X, beta, z_top, R=6371.0, a=None, Nq=3, niter=1):
     """
     if a is None:
         a = Atmosphere()
-    from .hillas_batch_kernel import _cached_leggauss
-
     L0 = np.asarray(L0, dtype=np.float64)
     beta = np.asarray(beta, dtype=np.float64)
     X = np.asarray(X, dtype=np.float64)
-    qx, qw = _cached_leggauss(Nq)
+    qx, qw = cached_leggauss(Nq)
 
     # Decay-point layer (the candidate single layer for every target).
     z_dec = zexpr(L0, beta, R=R)
@@ -943,3 +937,151 @@ def shower_propagation_length(
     )
 
     return propagation_len[0] if return_as_scalar else propagation_len
+
+
+def propagation_grid(
+    alt,
+    betaE,
+    n_nodes,
+    n_slant_sub,
+    atm,
+    R,
+    z_shower_top,
+    X_lo_floor,
+    X_death,
+    X_peak_depth,
+    cloud_top=None,
+):
+    """GL-in-slant-depth propagation grid along each shower axis.
+
+    Three concerns, in order: the valid slant-depth window, the node grid
+    within it, and the geometry of those nodes. Because the grid spans
+    exactly the valid window, every node is physically valid by construction
+    -- no downstream masking. Returns ``L_max, X_top``, the slant depth to
+    each node ``X_nodes``, the per-node ``L_nodes, L_weights, z_nodes``, and
+    the altitude ``z_peak`` of the shower maximum (for the detector geometry).
+
+    ``cloud_top`` (``(N,)`` altitudes or ``None``) raises the window's lower
+    bound to where the shower clears the clouds (see :meth:`_valid_window`).
+
+    Shapes: ``alt, betaE, Eshow, gb`` are ``(N,)``. Returns ``L_max (N,)``,
+    ``X_top (N,)``, ``X_nodes (N, k)``, ``L_nodes (N, k)``,
+    ``L_weights (N, k)``, ``z_nodes (N, k)``, ``z_peak (N,)``.
+    """
+    L_start = lexpr(alt, betaE, R=R)
+    L_max = lexpr(float(z_shower_top), betaE, R=R)
+    X_lo, X_hi, X_top = visibility_window(
+        L_start, L_max, betaE, X_lo_floor, X_death, n_slant_sub, atm, R, cloud_top
+    )
+    X_nodes, wX, X_peak = gl_node_grid(X_lo, X_hi, X_peak_depth, n_nodes)
+    L_nodes, L_weights, z_nodes, z_peak = node_geometry(
+        L_start, X_nodes, X_peak, wX, betaE, atm, R, z_shower_top
+    )
+    return L_max, X_top, X_nodes, L_nodes, L_weights, z_nodes, z_peak
+
+
+def visibility_window(
+    L_start, L_max, betaE, X_lo_floor, X_death, n_slant_sub, atm, R, cloud_top=None
+):
+    """Slant-depth window ``[X_lo, X_hi]`` over which every node is valid.
+
+    The endpoints are the shower's *visible* slant-depth extremes:
+
+    * ``X_lo = max(_X_LO_COEFF * gb, X_cloud)`` -- the lower of the two
+      obscurations of the shower head. ``_X_LO_COEFF * gb`` is the depth
+      where the shower age first clears the e2hill floor (below it the Hillas
+      angular parameterization is undefined); ``X_cloud`` is the slant depth
+      to the cloud top (light generated below the clouds is obscured). With
+      no clouds (``cloud_top is None``) only the age floor applies.
+    * ``X_hi = min(Xtarg, X_top)`` -- the Greisen-death depth (particle count
+      back to 1), capped at ``X_top``, the slant depth to the shower's
+      visible top ``z_shower_top = min(detector_altitude, zMaxZ)``. Light
+      generated above the detector is beamed behind it (lost); light above
+      ``zMaxZ`` is from air too rarified to radiate. For an orbital detector
+      the radiation cap binds; for a low detector (balloon) the detector
+      altitude truncates the visible tail.
+
+    Folding the cloud cutoff into ``X_lo`` (rather than zeroing sub-cloud
+    nodes after the fact) keeps every Gauss-Legendre node inside the visible
+    window, so none of the quadrature resolution is wasted below the clouds.
+
+    A degenerate shower (visible window of zero or negative width -- decay
+    above the visible top, or clouds above the death depth) has
+    ``X_hi`` clamped up to ``X_lo``, so it yields exactly zero without
+    masking. Also returns ``X_top`` (the to-detector column reference).
+
+    Shapes: ``L_start, L_max, betaE, gb, Eshow`` are ``(N,)``; ``cloud_top``
+    is ``(N,)`` altitudes or ``None``. Returns ``X_lo, X_hi, X_top`` each
+    ``(N,)``.
+    """
+    X_top = slant_depth(L_start, L_max, betaE, R=R, a=atm, n=n_slant_sub)
+    X_lo = np.atleast_1d(X_lo_floor)
+    if cloud_top is not None:
+        # Depth from decay to where the shower rises above the cloud top.
+        # Clamp the cloud length to >= L_start so a decay already above the
+        # clouds contributes no extra lower bound (X_cloud = 0).
+        L_cloud = np.maximum(lexpr(cloud_top, betaE, R=R), L_start)
+        X_cloud = slant_depth(L_start, L_cloud, betaE, R=R, a=atm, n=n_slant_sub)
+        X_lo = np.maximum(X_lo, X_cloud)
+    X_hi = np.maximum(np.minimum(np.atleast_1d(X_death), X_top), X_lo)
+    return X_lo, X_hi, X_top
+
+
+def gl_node_grid(X_lo, X_hi, X_peak_depth, n_nodes):
+    """GL nodes in slant depth across ``[X_lo, X_hi]``, split at shower max.
+
+    Slant depth is the shower's natural development variable (shower age is a
+    function of X), so the peaked Greisen yield is smooth in X and
+    Gauss-Legendre resolves it well -- markedly better than placing nodes in
+    path length. The split at the shower-maximum depth (Greisen peak, s = 1
+    at ``X_peak = 36.66 * gb``) puts half the nodes on the rising edge and
+    half on the falling edge, doubling node density where the shower radiates
+    and recovering accuracy at n=16. Returns the node depths ``X_nodes``,
+    their Gauss-Legendre weights ``wX`` in X, and the shower-maximum depth
+    ``X_peak`` (clamped into the window) for the detector geometry.
+
+    Shapes: ``X_lo, X_hi, gb`` are ``(N,)``; returns ``X_nodes (N, k)``,
+    ``wX (N, k)``, ``X_peak (N,)``. The k nodes are two stacked panels of
+    ``k//2`` (rising edge) and ``k - k//2`` (falling edge).
+    """
+    X_peak = np.clip(np.atleast_1d(X_peak_depth), X_lo, X_hi)
+    n1 = n_nodes // 2
+    ref_x1, ref_w1 = cached_leggauss(n1)
+    ref_x2, ref_w2 = cached_leggauss(n_nodes - n1)
+    h1 = 0.5 * (X_peak - X_lo)
+    h2 = 0.5 * (X_hi - X_peak)
+    Xn1 = (0.5 * (X_peak + X_lo))[:, None] + h1[:, None] * ref_x1
+    Xn2 = (0.5 * (X_hi + X_peak))[:, None] + h2[:, None] * ref_x2
+    X_nodes = np.concatenate([Xn1, Xn2], axis=1)  # (n_showers, n_nodes)
+    wX = np.concatenate([h1[:, None] * ref_w1, h2[:, None] * ref_w2], axis=1)
+    return X_nodes, wX, X_peak
+
+
+def node_geometry(L_start, X_nodes, X_peak, wX, betaE, atm, R, z_shower_top):
+    """Map node depths to propagation length, altitude, and path weight.
+
+    Inverts slant depth for all node depths -- plus the shower-maximum depth
+    ``X_peak`` -- at once with :func:`length_at_depth_approx` (single global
+    Halley step per target for the near-ground-decay showers whose nodes stay
+    within one atmospheric layer, exact layer-walking fallback for the
+    kink-crossing minority). The to-node slant depth is ``X_nodes`` exactly
+    regardless, so L enters only the weak ``z_nodes``/``L_weights``
+    dependence -- far below the grid's quadrature floor. The path-length
+    quadrature weight follows from the change of variable
+    ``dL = dX / (dX/dL) = dX / dXl(L)``. Also returns the shower-maximum
+    altitude ``z_peak``.
+
+    Shapes: ``L_start, X_peak, betaE`` are ``(N,)``; ``X_nodes, wX`` are
+    ``(N, k)``. The inverse is solved for ``(N, k+1)`` targets at once (the k
+    nodes plus X_peak). Returns ``L_nodes (N, k)``, ``L_weights (N, k)``,
+    ``z_nodes (N, k)``, ``z_peak (N,)``.
+    """
+    targets = np.concatenate([X_nodes, X_peak[:, None]], axis=1)
+    L_all = length_at_depth_approx(
+        L_start, targets, betaE, float(z_shower_top), R=R, a=atm
+    )
+    L_nodes = L_all[:, :-1]
+    z_nodes = zexpr(L_nodes, betaE[:, None], R=R)
+    z_peak = zexpr(L_all[:, -1], betaE, R=R)
+    L_weights = wX / dXl(L_nodes, betaE[:, None], a=atm, R=R)
+    return L_nodes, L_weights, z_nodes, z_peak
