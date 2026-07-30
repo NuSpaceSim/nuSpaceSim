@@ -42,7 +42,6 @@ r"""Cherenkov photon density and angle determination class.
 """
 
 import os
-import threading
 import warnings
 from dataclasses import dataclass
 
@@ -52,6 +51,9 @@ from dask.distributed import Client, LocalCluster, as_completed
 from numpy.polynomial import Polynomial
 from rich.progress import Progress
 
+# Re-exported for backward compatibility: the cluster helper is pure
+# infrastructure and now lives with the other cross-cutting utilities.
+from ...utils.distributed import BackgroundCluster
 from .hillas_batch_kernel import (
     _cached_leggauss,
     delta_nphots_single_integral_NE16,
@@ -522,55 +524,6 @@ def _auto_chunk_size(n_events):
         ncores = os.cpu_count() or 4
     chunk = -(-int(n_events) // (_CHUNK_BLOCKS_PER_CORE * max(ncores, 1)))  # ceil div
     return int(min(max(chunk, _CHUNK_MIN), _CHUNK_MAX))
-
-
-class BackgroundCluster:
-    """A process-based dask ``LocalCluster`` spun up in a background thread.
-
-    A simulation runs exactly one :meth:`CphotAng.__call__`, so the cluster's
-    whole life fits inside that single call -- but its ~2s process spawn would
-    otherwise be paid serially right when the EAS optical stage starts. Creating
-    it here, at the top of the pipeline, lets the worker spawn overlap the
-    geometry/spectra/tau/decay stages (which release the GIL in their numpy/
-    C work, so the spawning thread makes real progress). By the time
-    :meth:`client` is called the workers are warm.
-
-    Own the lifecycle from the caller: construct early, pass :meth:`client` into
-    the EAS optical call, then :meth:`close`. Construction failures are deferred
-    and re-raised from :meth:`client` so the caller's stack frame sees them.
-    """
-
-    def __init__(self):
-        self._holder = {}
-        self._error = None
-        self._thread = threading.Thread(target=self._spawn, daemon=True)
-        self._thread.start()
-
-    def _spawn(self):
-        try:
-            cluster = LocalCluster(processes=True)
-            self._holder["cluster"] = cluster
-            self._holder["client"] = Client(cluster)
-        except BaseException as exc:
-            self._error = exc
-
-    def client(self):
-        """Block until the cluster is up and return its :class:`Client`."""
-        self._thread.join()
-        if self._error is not None:
-            raise self._error
-        return self._holder["client"]
-
-    def close(self):
-        """Tear the cluster down (idempotent; safe even if spawn failed)."""
-        self._thread.join()
-        client = self._holder.get("client")
-        cluster = self._holder.get("cluster")
-        if client is not None:
-            client.close(timeout=2)
-        if cluster is not None:
-            cluster.close(timeout=2)
-        self._holder.clear()
 
 
 class CphotAng:
