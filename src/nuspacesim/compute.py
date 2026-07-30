@@ -58,7 +58,6 @@ from rich.console import Console
 from . import results_table
 from .config import NssConfig
 from .simulation.atmosphere.clouds import CloudTopHeight
-from .simulation.eas_optical.cphotang import BackgroundCluster
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
@@ -67,6 +66,7 @@ from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
 # from .simulation.geometry.too import *
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .utils.distributed import BackgroundCluster
 
 __all__ = ["compute"]
 
