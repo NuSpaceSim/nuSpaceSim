@@ -273,11 +273,13 @@ def test_ozone_rate_is_derivative_of_ozone_losses():
     ozone_losses (TotZon) is piecewise-linear, so its analytic slope must
     match a finite difference everywhere except across the known breakpoints.
     """
+    from nuspacesim.simulation.eas_optical.atmospheric_models import OZ_ZETA
+
     cpa = _cpa()
     # Dense altitudes, then drop any sample whose +/-eps straddles a breakpoint.
     z = np.linspace(0.1, 99.0, 5000)
     eps = 1e-4
-    breaks = np.concatenate(([5.35], np.asarray(cpa.OzZeta, dtype=float)))
+    breaks = np.concatenate(([5.35], np.asarray(OZ_ZETA, dtype=float)))
     near_break = np.any(np.abs(z[:, None] - breaks[None, :]) < 1e-2, axis=1)
     zc = z[~near_break]
 
@@ -333,7 +335,9 @@ def test_aerosol_column_curved_slant():
     av = aerosol_column(
         Lv, lexpr(np.array([65.0]), bv), bv, cpa.aero_zbnd, cpa.aero_ext, R
     )
-    assert av[0, 0] == pytest.approx(float(cpa.aOD55[1]), rel=2e-2)
+    from nuspacesim.simulation.eas_optical.atmospheric_models import AOD55
+
+    assert av[0, 0] == pytest.approx(float(AOD55[1]), rel=2e-2)
 
 
 def test_call_matches_run_single_block():

@@ -54,6 +54,17 @@ from rich.progress import Progress
 # Re-exported for backward compatibility: the cluster helper is pure
 # infrastructure and now lives with the other cross-cutting utilities.
 from ...utils.distributed import BackgroundCluster
+from .atmospheric_models import (
+    AEROSOL_EXTINCTION,
+    AEROSOL_SEGMENT_BOUNDS,
+    OZONE_SEGMENT_BOUNDS,
+    OZONE_SEGMENT_RATES,
+    aerosol_column,
+    ozone_column,
+    ozone_losses,
+    ozone_rate,
+    refractive_index,
+)
 from .hillas_batch_kernel import (
     _cached_leggauss,
     delta_nphots_single_integral_NE16,
@@ -334,101 +345,6 @@ def cherenkov_area(AveCangI, dist_to_max):
 # ---------------------------------------------------------------------------
 
 
-def ozone_column(L_nodes, L_max, betaE, oz_zbnd, oz_seg_rate, R):
-    """Analytic ozone column from each node to L_max (exact layer-walk).
-
-    The ozone rate ``-dTotZon/dz`` is piecewise-constant in altitude, so the
-    slant ozone column ``integral rate(z(L)) dL`` from a node to the visible top
-    is just the sum, over the ozone altitude segments, of each segment's constant
-    rate times the path length the ray spends in it. That path length is
-    ``L(z_top_seg) - L(z_bot_seg)`` (via :func:`lexpr`) clamped to the node->top
-    interval. Exact (no quadrature) and free of the per-node ``searchsorted`` and
-    the ``(n, k, n_slant_sub)`` GL temporaries the former sub-quadrature needed --
-    and more accurate, since Gauss-Legendre converged poorly across the rate's
-    discontinuities (~5% median, ~30% max error at 8 nodes).
-
-    Parameters
-    ----------
-    L_nodes : ndarray, shape (n_showers, n_nodes)
-    L_max : ndarray, shape (n_showers,)
-    betaE : ndarray, shape (n_showers,)
-    oz_zbnd : ndarray, shape (n_seg + 1,)
-        Ascending ozone altitude boundaries (km), ``[0, *OzZeta]``.
-    oz_seg_rate : ndarray, shape (n_seg,)
-        Constant ozone rate within each ``[oz_zbnd[j], oz_zbnd[j+1]]`` segment.
-    R : float
-        Earth radius (km).
-
-    Returns
-    -------
-    ZonZ : ndarray, shape (n_showers, n_nodes)
-    """
-    # Propagation length of each ozone boundary, clamped into each ray's
-    # [L_node, L_max] window: a segment outside the window contributes zero.
-    Lb = lexpr(oz_zbnd[:, None], betaE[None, :], R=R)  # (n_seg+1, n_showers)
-    Lc = np.clip(Lb[:, :, None], L_nodes[None], L_max[None, :, None])
-    ZonZ = np.einsum("s,snk->nk", oz_seg_rate, Lc[1:] - Lc[:-1])
-    # An ozone column is non-negative; a degenerate (decay-above-atmosphere)
-    # shower has L_node >= L_max so every segment clamps to zero width -> 0.
-    return np.maximum(ZonZ, 0.0)
-
-
-def aerosol_column(L_nodes, L_max, betaE, aero_zbnd, aero_ext, R):
-    """Slant aerosol optical depth from each node to the top of the aerosol layer.
-
-    Identical in form to :func:`ozone_column`: the aerosol extinction
-    (``dfaOD55``, the per-km vertical optical depth) is piecewise-constant in
-    altitude, so the slant column ``integral ext(z(L)) dL`` is the sum over the
-    1 km aerosol bands of each band's constant extinction times the path length
-    the ray spends in it, ``L(z_top) - L(z_bot)`` (via :func:`lexpr`) clamped to
-    the node->top window.
-
-    This is the **curved-atmosphere** slant column. It replaces the former
-    plane-parallel ``vertical_OD / cos(theta)``, which (like ``main``) diverges
-    as ``cos(theta) -> 0`` at grazing incidence and so over-attenuates -- often
-    zeroing -- the most grazing showers. For a vertical shower the walk reduces
-    exactly to the vertical column ``aOD55(z_node)``.
-
-    Parameters
-    ----------
-    L_nodes : ndarray, shape (n_showers, n_nodes)
-    L_max : ndarray, shape (n_showers,)
-    betaE : ndarray, shape (n_showers,)
-    aero_zbnd : ndarray, shape (n_band + 1,)
-        Ascending aerosol altitude boundaries (km), ``[0, 1, ..., 30]``.
-    aero_ext : ndarray, shape (n_band,)
-        Constant aerosol extinction (optical depth per km) within each band.
-    R : float
-        Earth radius (km).
-
-    Returns
-    -------
-    AODepth : ndarray, shape (n_showers, n_nodes)
-        Slant aerosol optical depth (non-negative).
-    """
-    Lb = lexpr(aero_zbnd[:, None], betaE[None, :], R=R)  # (n_band+1, n_showers)
-    Lc = np.clip(Lb[:, :, None], L_nodes[None], L_max[None, :, None])
-    AODepth = np.einsum("s,snk->nk", aero_ext, Lc[1:] - Lc[:-1])
-    return np.maximum(AODepth, 0.0)
-
-
-def refractive_index(z):
-    """Refractive index of air from altitude (z) by vertical column_depth (g/cm²).
-    numerical parameterization for 1976 STD atmosphere.
-    """
-
-    # formerly grammage
-    Xv = np.empty_like(z)
-    mask1 = z < 11
-    mask2 = (z >= 11) & (z < 25)
-    mask3 = z >= 25
-    Xv[mask1] = ((z[mask1] - 44.34) / -11.861) ** (1 / 0.19)
-    Xv[mask2] = np.exp((z[mask2] - 45.5) / -6.34)
-    Xv[mask3] = np.exp(13.841 - np.sqrt(28.920 + 3.344 * z[mask3]))
-
-    return 1.0 + 0.000296 * (Xv / 1032.9414) * (273.2 / (204.0 + 0.091 * Xv))
-
-
 def shower_age(X_to_node, gb):
     """Atmospheric depth parameter t and shower age s.
 
@@ -555,46 +471,12 @@ class CphotAng:
         # fmt: on
         """internal wavelength step array"""
 
-        self.OzZeta = np.array(
-            [5.35, 10.2, 14.75, 19.15, 23.55, 28.1, 32.8, 37.7, 42.85, 48.25, 100.0],
-            dtype=self.dtype,
-        )
-        """internal Ozone zeta array"""
-
-        self.OzDepth = np.array(
-            [15.0, 9.0, 10.0, 31.0, 71.0, 87.2, 57.0, 29.4, 10.9, 3.2, 1.3],
-            dtype=self.dtype,
-        )
-        """internal Ozone depth array"""
-
-        self.OzDsum = np.array(
-            [310.0, 301.0, 291.0, 260.0, 189.0, 101.8, 44.8, 15.4, 4.5, 1.3, 0.1],
-            dtype=self.dtype,
-        )
-        """internal Ozone Dsum array"""
-
-        # The ozone column is the path integral of the *piecewise-constant* ozone
-        # rate (-dTotZon/dz), so it has an exact analytic layer-walk over the
-        # ozone altitude breakpoints -- no GL sub-quadrature, no per-node
-        # searchsorted (and exact where 8-point GL was ~5% off at the rate
-        # discontinuities). Precompute the 12 altitude boundaries ``[0, *OzZeta]``
-        # and the 11 per-segment constant rates (``ozone_rate`` at each segment
-        # midpoint; the rate is constant across a segment, so the midpoint is
-        # exact). See :func:`ozone_column`.
-        self.oz_zbnd = np.concatenate([[0.0], np.asarray(self.OzZeta, np.float64)])
-        self.oz_seg_rate = self.ozone_rate(0.5 * (self.oz_zbnd[:-1] + self.oz_zbnd[1:]))
-
-        # fmt: off
-        self.aOD55 = np.array(
-            [
-                0.250, 0.136, 0.086, 0.065, 0.055, 0.049, 0.045, 0.042, 0.038, 0.035,
-                0.032, 0.029, 0.026, 0.023, 0.020, 0.017, 0.015, 0.012, 0.010, 0.007,
-                0.006, 0.004, 0.003, 0.003, 0.002, 0.002, 0.001, 0.001, 0.001, 0.001,
-            ],
-            dtype=self.dtype,
-        )
-        """internal aOD55 array"""
-        # fmt: on
+        # Ozone / aerosol layer-walk tables live with the other atmospheric
+        # models; see atmospheric_models.py for their derivation and heritage.
+        self.oz_zbnd = OZONE_SEGMENT_BOUNDS
+        self.oz_seg_rate = OZONE_SEGMENT_RATES
+        self.aero_zbnd = AEROSOL_SEGMENT_BOUNDS
+        self.aero_ext = AEROSOL_EXTINCTION
 
         self.orbit_height = self.dtype(525.0)  # parin(2) orbit height km
         """Detector orbital altitude in Km"""
@@ -643,25 +525,6 @@ class CphotAng:
         self.Okappa = np.power(10.0, self.Okappa, dtype=self.dtype)
         self.Okappa *= self.dtype(-1e-3)
 
-        # c
-        # c calc OD/km difference
-        # c
-        # self.dfaOD55 = np.diff(self.aOD55[::-1], append=0)
-        tmp = [self.dtype(self.aOD55[i] - self.aOD55[i + 1]) for i in range(29)]
-        tmp.append(self.dtype(0))
-        self.dfaOD55 = np.array(tmp, dtype=self.dtype)
-        # np.append(self.dfaOD55, 0)
-
-        # Aerosol layer-walk table. ``dfaOD55[i]`` is the (vertical) aerosol
-        # optical depth across the 1 km band ``[i, i+1]``, i.e. a piecewise-
-        # constant extinction per km -- the same structure as the ozone rate. So
-        # the *slant* aerosol column has an exact analytic curved-atmosphere walk
-        # (see :func:`aerosol_column`), replacing the former plane-parallel
-        # ``vertical_OD / cos(theta)`` (which diverges at grazing incidence).
-        # 31 altitude boundaries [0, 1, ..., 30] km, 30 per-km extinctions.
-        self.aero_zbnd = np.arange(31.0)
-        self.aero_ext = np.asarray(self.dfaOD55, dtype=np.float64)
-
         self.alpha = np.reciprocal(self.dtype(137.04))
         self.pi = self.dtype(3.1415926)
 
@@ -703,44 +566,18 @@ class CphotAng:
                 )
 
     def ozone_losses(self, z):
-        """Calculate ozone losses from altitudes (z in km)."""
-        msk1 = z < 5.35
-        TotZon = np.empty_like(z)
-        TotZon[msk1] = 310 + ((5.35 - z[msk1]) / 5.35) * 15
-        msk2 = z >= 100
-        TotZon[msk2] = 0.1
+        """Calculate ozone losses from altitudes (z in km).
 
-        msk3 = ~msk1 & ~msk2
-        idxs = np.searchsorted(self.OzZeta, z[msk3])
-        TotZon[msk3] = (
-            self.OzDsum[idxs]
-            + (
-                (self.OzZeta[idxs] - z[msk3])
-                / (self.OzZeta[idxs] - self.OzZeta[idxs - 1])
-            )
-            * self.OzDepth[idxs]
-        )
-        return TotZon
+        Thin delegate; the model lives in :mod:`.atmospheric_models`.
+        """
+        return ozone_losses(z)
 
     def ozone_rate(self, z):
-        """Analytic ozone-column slope -dTotZon/dz (atm-cm per km), z in km.
+        """Ozone-column slope -dTotZon/dz (atm-cm per km), z in km.
 
-        ``ozone_losses`` (TotZon) is piecewise-linear in z, so its derivative
-        is piecewise-constant -- the exact within-segment slope using the same
-        searchsorted('left') segment convention. Replaces the old central
-        finite difference (two ozone_losses evaluations + 2*searchsorted),
-        which only smeared the breakpoints.
+        Thin delegate; the model lives in :mod:`.atmospheric_models`.
         """
-        # Dense form: one searchsorted over all z + np.where selection, instead
-        # of boolean-mask scatter (which gathered/wrote the large (n,k,n_slant_sub)
-        # array element-wise). idx is clipped to [1, len-1] so the segment-slope
-        # gather is always in-bounds; the values it produces outside [5.35, 100)
-        # are discarded by the np.where masks below.
-        idx = np.clip(np.searchsorted(self.OzZeta, z), 1, len(self.OzZeta) - 1)
-        seg = self.OzDepth[idx] / (self.OzZeta[idx] - self.OzZeta[idx - 1])
-        rate = np.where(z < 5.35, 15.0 / 5.35, seg)
-        rate[z >= 100.0] = 0.0
-        return rate
+        return ozone_rate(z)
 
     def theta_prop(self, z, sinThetView):
         """Theta propagation angle."""
