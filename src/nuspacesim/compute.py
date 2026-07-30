@@ -51,7 +51,9 @@ from __future__ import annotations
 from typing import Any, Iterable
 
 import numpy as np
+from astropy import units as u
 from astropy.table import Table as AstropyTable
+from astropy.units import Quantity
 from numpy.typing import ArrayLike
 from rich.console import Console
 
@@ -143,14 +145,33 @@ def compute(
     if verbose:
         console.rule("[bold blue] NuSpaceSim")
 
-    def mc_logv(mcint, mcintgeo, numEvPass, mcunc, method):
-        logv(f"\t[blue]Monte Carlo Integral [/][magenta][{method}][/]:", mcint)
+    def diff_logv(mcint, mcintgeo, numEvPass, mcunc, intexposure, method):
+        logv(f"\t[blue]Nu_tau acceptance (km^2 sr) [/][magenta][{method}][/]:", mcint)
         logv(
-            f"\t[blue]Monte Carlo Integral, GEO Only [/][magenta][{method}][/]:",
+            f"\t[blue]Geometry factor (km^2 sr) [/][magenta][{method}][/]:",
             mcintgeo,
         )
-        logv(f"\t[blue]Number of Passing Events [/][magenta][{method}][/]:", numEvPass)
-        logv(f"\t[blue]Stat uncert of MC Integral [/][magenta][{method}][/]:", mcunc)
+        logv(f"\t[blue]Number of passing Events [/][magenta][{method}][/]:", numEvPass)
+        logv(
+            f"\t[blue]Stat uncert of nu_tau acceptance (km^2 sr) [/][magenta][{method}][/]:",
+            mcunc,
+        )
+        logv(
+            f"\t[blue]Integrated exposure (km^2 sr yr) [/][magenta][{method}][/]:",
+            intexposure,
+        )
+
+    def target_logv(mcint, mcintgeo, numEvPass, mcunc, method):
+        logv(f"\t[blue]Nu_tau acceptance (km^2) [/][magenta][{method}][/]:", mcint)
+        logv(
+            f"\t[blue]Geometry factor (km^2) [/][magenta][{method}][/]:",
+            mcintgeo,
+        )
+        logv(f"\t[blue]Number of passing Events [/][magenta][{method}][/]:", numEvPass)
+        logv(
+            f"\t[blue]Stat uncert of nu_tau acceptance (km^2) [/][magenta][{method}][/]:",
+            mcunc,
+        )
 
     sim = results_table.init(config)
     geom = RegionGeomMonteCarlo(config)
@@ -269,8 +290,7 @@ def compute(
     logv("Computing [green] Decay Altitudes.[/]")
     altDec, lenDec = eas.altDec(beta_tr, tauBeta, tauLorentz, store=sw)
 
-    # if config.detector.method == "Optical" or config.detector.method == "Both":
-    if config.detector.optical.enable:
+    if config.detector.optical.enable and config.simulation.mode == "Diffuse":
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
         numPEs, costhetaChEff = eas(
@@ -297,14 +317,60 @@ def compute(
             store=sw,
         )
 
-        sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral")
-        sw.add_meta("OMCINTGO", mcintgeo, "Optical MonteCarlo Integral, GEO Only")
+        # Likely will need to implement something more robust than duty_cyle * time
+
+        flight_duration_yr = (
+            Quantity(config.detector.flight.duration, u.second).to(u.yr).value
+        )
+        intexposure = mcint * config.detector.optical.duty_cycle * flight_duration_yr
+
+        sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral [km^2 sr]")
+        sw.add_meta(
+            "OMCINTGO", mcintgeo, "Optical MonteCarlo Integral [km^2 sr], GEO Only"
+        )
         sw.add_meta("ONEVPASS", passEV, "Optical Number of Passing Events")
-        sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
+        sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral [km^2 sr]")
+        sw.add_meta("OMCINTEX", intexposure, "Integrated exposure [km^2 sr yr]")
 
-        mc_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
+        diff_logv(mcint, mcintgeo, passEV, mcunc, intexposure, "Optical")
 
-    if config.detector.radio.enable:
+    if config.detector.optical.enable and config.simulation.mode == "Target":
+        logv("Computing [green] EAS Optical Cherenkov light.[/]")
+
+        numPEs, costhetaChEff = eas(
+            beta_tr,
+            altDec,
+            showerEnergy,
+            init_lat,
+            init_long,
+            cloudf=cloud,
+            store=sw,
+            plot=to_plot,
+        )
+
+        logv("Computing [green] Optical Monte Carlo Integral.[/]")
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
+            numPEs,
+            costhetaChEff,
+            tauExitProb,
+            config.detector.optical.photo_electron_threshold,
+            mc_spec_norm,
+            spec_weights_sum,
+            lenDec=lenDec,
+            method="Optical",
+            store=sw,
+        )
+
+        sw.add_meta("OMCINT", mcint, "Optical MonteCarlo Integral [km^2]")
+        sw.add_meta(
+            "OMCINTGO", mcintgeo, "Optical MonteCarlo Integral [km^2], GEO Only"
+        )
+        sw.add_meta("ONEVPASS", passEV, "Optical Number of Passing Events")
+        sw.add_meta("OMCINTUN", mcunc, "Stat unc of MonteCarlo Integral [km^2]")
+
+        target_logv(mcint, mcintgeo, passEV, mcunc, "Optical")
+
+    if config.detector.radio.enable and config.simulation.mode == "Diffuse":
         logv("Computing [green] EAS Radio signal.[/]")
 
         eFields = eas_radio(
@@ -332,12 +398,59 @@ def compute(
             store=sw,
         )
 
-        sw.add_meta("RMCINT", mcint, "Radio MonteCarlo Integral")
-        sw.add_meta("RMCINTGO", mcintgeo, "Radio MonteCarlo Integral, GEO Only")
-        sw.add_meta("RNEVPASS", passEV, "Radio Number of Passing Events")
-        sw.add_meta("RMCINTUN", mcunc, "Stat unc of MonteCarlo Integral")
+        # Likely will need to implement something more robust than duty_cyle * time
 
-        mc_logv(mcint, mcintgeo, passEV, mcunc, "Radio")
+        flight_duration_yr = (
+            Quantity(config.detector.flight.duration, u.second).to(u.yr).value
+        )
+        intexposure = mcint * flight_duration_yr
+
+        sw.add_meta("RMCINT", mcint, "Optical MonteCarlo Integral [km^2 sr]")
+        sw.add_meta(
+            "RMCINTGO", mcintgeo, "Optical MonteCarlo Integral [km^2 sr], GEO Only"
+        )
+        sw.add_meta("RNEVPASS", passEV, "Optical Number of Passing Events")
+        sw.add_meta("RMCINTUN", mcunc, "Stat unc of MonteCarlo Integral [km^2 sr]")
+        sw.add_meta("RMCINTEX", intexposure, "Integrated exposure [km^2 sr yr]")
+
+        diff_logv(mcint, mcintgeo, passEV, mcunc, intexposure, "Radio")
+
+    if config.detector.radio.enable and config.simulation.mode == "Target":
+        logv("Computing [green] EAS Radio signal.[/]")
+
+        eFields = eas_radio(
+            beta_tr, altDec, lenDec, thetaArr, pathLenArr, showerEnergy, store=sw
+        )
+
+        snrs = calculate_snr(
+            eFields,
+            freqRange,
+            config.detector.initial_position.altitude,
+            config.detector.radio.nantennas,
+            config.detector.radio.gain,
+        )
+
+        logv("Computing [green] Radio Monte Carlo Integral.[/]")
+        mcint, mcintgeo, passEV, mcunc = geom.mcintegral(
+            snrs,
+            np.cos(config.simulation.max_cherenkov_angle),
+            tauExitProb,
+            config.detector.radio.snr_threshold,
+            mc_spec_norm,
+            spec_weights_sum,
+            lenDec=lenDec,
+            method="Radio",
+            store=sw,
+        )
+
+        sw.add_meta("RMCINT", mcint, "Optical MonteCarlo Integral [km^2]")
+        sw.add_meta(
+            "RMCINTGO", mcintgeo, "Optical MonteCarlo Integral [km^2], GEO Only"
+        )
+        sw.add_meta("RNEVPASS", passEV, "Optical Number of Passing Events")
+        sw.add_meta("RMCINTUN", mcunc, "Stat unc of MonteCarlo Integral [km^2]")
+
+        target_logv(mcint, mcintgeo, passEV, mcunc, "Radio")
 
     logv("\n :sparkles: [cyan]Done[/] :sparkles:")
 

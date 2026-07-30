@@ -240,6 +240,7 @@ class Detector(BaseModel):
         """ Quantum Efficiency of the detector telescope. """
         photo_electron_threshold: float = 10
         """ Photo Electron Threshold, Number Photo electrons. """
+        duty_cycle: float = 0.2
 
         @field_validator("telescope_effective_area", mode="before")
         @classmethod
@@ -625,6 +626,7 @@ def config_from_fits(filename: str) -> NssConfig:
                 "photo_electron_threshold": d("optical photo_electron_threshold"),
                 "quantum_efficiency": d("optical quantum_efficiency"),
                 "telescope_effective_area": d("optical telescope_effective_area"),
+                "duty_cycle": d("optical duty_cycle"),
             },
             "radio": {
                 "gain": d("radio gain"),
