@@ -40,7 +40,64 @@ from ...utils import decorators
 from .local_plots import geom_beta_tr_hist
 from .too import ToOEvent
 
-__all__ = ["RegionGeom", "RegionGeomToO"]
+__all__ = ["RegionGeom", "RegionGeomToO", "mc_contribution"]
+
+
+def mc_contribution(
+    cos_tr_sub_n,
+    cos_n_sub_v,
+    cos_tr_sub_v,
+    triggers,
+    costheta,
+    tauexitprob,
+    threshold,
+    spec_norm,
+    spec_weights_sum,
+    bshr=0.826,
+):
+    """Per-event Monte-Carlo integrand for the region geometry.
+
+    Pure function mapping per-(valid-)event geometry cosines and detector
+    response to the two per-event arrays the MC integral sums:
+
+    * ``geo``        : geometry-only factor *after* the separation-angle cut,
+      summed for the GEO-only integral.
+    * ``mcintfactor``: the full contribution (geometry x branching x
+      tau-exit-prob / spectrum weights), zeroed below the trigger threshold;
+      summed for the full integral, its variance, and the passing-event count.
+
+    This is the per-event half of :meth:`RegionGeom.mcintegral`, extracted so
+    the streaming sketch (:mod:`nuspacesim.simulation.streaming`) and the
+    one-shot batch integral share a single definition. It reproduces the
+    original in-place math byte-for-byte: ``geo`` is the separation-cut base
+    used for the GEO-only sum, and ``mcintfactor`` is built from it without
+    mutating it.
+
+    Parameters
+    ----------
+    cos_tr_sub_n, cos_n_sub_v, cos_tr_sub_v
+        Per-valid-event direction cosines (trajectory-vs-nadir, nadir-vs-view,
+        trajectory-vs-view). ``cos_tr_sub_v`` doubles as the separation cosine.
+    triggers
+        Per-event detector observable compared against ``threshold``
+        (numPEs for Optical, SNR for Radio).
+    costheta
+        Cherenkov-angle cosine cut; per-event (Optical) or scalar (Radio).
+    tauexitprob
+        Per-event tau exit probability.
+    threshold, spec_norm, spec_weights_sum, bshr
+        Scalar constants (detector threshold, spectrum normalization, spectrum
+        weight integral, shower branching ratio).
+    """
+    geo = cos_tr_sub_n / cos_n_sub_v / cos_tr_sub_v
+    geo[cos_tr_sub_v < costheta] = 0.0
+
+    mcintfactor = geo * (bshr * tauexitprob)
+    mcintfactor /= spec_norm
+    mcintfactor /= spec_weights_sum
+    mcintfactor[triggers < threshold] = 0.0
+
+    return mcintfactor, geo
 
 
 class RegionGeom:
@@ -373,34 +430,27 @@ class RegionGeom:
     ):
         """Monte Carlo integral."""
 
-        cossepangle = self.costhetaTrSubV[self.event_mask]
-
-        mcintfactor = (
-            self.valid_costhetaTrSubN()
-            / self.valid_costhetaNSubV()
-            / self.valid_costhetaTrSubV()
+        # Per-event integrand (shared with the streaming sketch). ``geo`` is the
+        # separation-cut geometry factor; ``mcintfactor`` adds branching, tau
+        # exit probability, spectrum weighting, and the trigger threshold cut.
+        mcintfactor, geo = mc_contribution(
+            self.valid_costhetaTrSubN(),
+            self.valid_costhetaNSubV(),
+            self.valid_costhetaTrSubV(),
+            triggers,
+            costheta,
+            tauexitprob,
+            threshold,
+            spec_norm,
+            spec_weights_sum,
         )
 
         mcnorm = self.mcnorm
 
-        # Number of Trajectories
+        # Number of Trajectories (all thrown, including geometry-invalid).
         numTrajs = len(self.betaTrSubN)
 
-        # Geometry Factors
-        mcintfactor[cossepangle < costheta] = 0
-        mcintegralgeoonly = np.sum(mcintfactor) * mcnorm / numTrajs
-
-        Bshr = 0.826
-
-        # Multiply by tau exit probability and branching ratio (currently ignores muon channel for tau decays; it's also hard coded in, so will need to be changed)
-        mcintfactor *= Bshr * tauexitprob
-
-        # Weighting by energy spectrum if other than monoenergetic spectrum
-        mcintfactor /= spec_norm
-        mcintfactor /= spec_weights_sum
-
-        # PE threshold
-        mcintfactor[triggers < threshold] = 0
+        mcintegralgeoonly = np.sum(geo) * mcnorm / numTrajs
         mcintegral = np.sum(mcintfactor) * mcnorm / numTrajs
         mcintegraluncert = np.sqrt(np.var(mcintfactor, ddof=1) / numTrajs) * mcnorm
 
