@@ -21,6 +21,10 @@ jobs:
     name: Test py${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
+    # Experimental jobs (next CPython pre-release) may fail without failing
+    # the workflow.
+    continue-on-error: ${{ matrix.experimental }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +32,16 @@ jobs:
         # Programming Language classifiers). Add a version here and there
         # together.
         os: [ubuntu-latest, macos-latest]
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        experimental: [false]
+        include:
+          # Next CPython, currently at release-candidate stage: test it so
+          # breakage is known early, but don't declare support (no classifier)
+          # or block the workflow on it. Promote into the matrix above -- and
+          # add its classifier -- once it releases and passes.
+          - os: ubuntu-latest
+            python: "3.15"
+            experimental: true
 
     steps:
     - uses: actions/checkout@v7
@@ -39,6 +52,7 @@ jobs:
     - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: ${{ matrix.experimental }}
 
     - name: Install package and test dependencies
       run: |
