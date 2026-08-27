@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         # Full history + tags: setuptools_scm derives the release version
         # from the tag, so a shallow clone produces a wrong version.
         fetch-depth: 0
 
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v7
       with:
         python-version: "3.12"
 
@@ -37,7 +37,7 @@ jobs:
         ls dist/ | grep -q -- '-py3-none-any\.whl$'
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: nuspacesim-dist-${{ github.run_id }}
         path: dist/*
@@ -50,7 +50,7 @@ jobs:
 
     steps:
     - name: Download Build Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: nuspacesim-dist-${{ github.run_id }}
         path: dist/
