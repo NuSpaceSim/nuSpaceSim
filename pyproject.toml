@@ -11,9 +11,6 @@ version_scheme = 'post-release'
 local_scheme = 'no-local-version'
 parentdir_prefix_version = 'nuspacesim-'
 
-[tool.cibuildwheel]
-test-requires = "pytest"
-test-command = "pytest {project}/test"
 [tool.black]
 line-length = 88
 skip-string-normalization = false

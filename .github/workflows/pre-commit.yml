@@ -10,6 +10,16 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
-    - uses: pre-commit/action@v3.0.0
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.x"
+    # Run pre-commit directly (with its cache) rather than via
+    # pre-commit/action, whose latest release still pins the deprecated
+    # Node 20 actions/cache internally.
+    - uses: actions/cache@v6
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+    - run: python -m pip install pre-commit
+    - run: pre-commit run --show-diff-on-failure --color=always --all-files
