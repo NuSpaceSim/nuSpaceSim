@@ -37,7 +37,7 @@ The member attributes are as follows:
 Simulation
 ********************
 
-This is a dataclass holding the Detector Characteristics for a given simulation.
+This is a dataclass holding the Simulation Parameters for a given simulation.
 The member attributes are as follows:
 
   * **N**: Number of thrown Trajectories
