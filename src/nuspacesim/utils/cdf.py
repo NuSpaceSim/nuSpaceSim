@@ -411,6 +411,8 @@ def grid_cdf_sampler(grid: NssGrid) -> Callable:
             ],
         )
 
+        _zz = grid["e_tau_frac"]
+        _nz = len(_zz)
         with it:
             for li, bi, ui, zi in it:
                 cdfs = interpn(
@@ -421,7 +423,14 @@ def grid_cdf_sampler(grid: NssGrid) -> Callable:
                     if u is None
                     else ui
                 )
-                zi[...] = vec_1d_interp(cdfs, grid["e_tau_frac"], ui)
+                K_chunk = len(ui)
+                idx = np.argmax(cdfs > ui[:, None], axis=1)
+                idx[(cdfs <= ui[:, None]).all(axis=1)] = _nz - 1
+                idx = np.clip(idx, 1, _nz - 1)
+                c0 = cdfs[np.arange(K_chunk), idx - 1]
+                c1 = cdfs[np.arange(K_chunk), idx]
+                fr = np.clip((ui - c0) / (c1 - c0 + 1e-300), 0.0, 1.0)
+                zi[...] = _zz[idx - 1] + fr * (_zz[idx] - _zz[idx - 1])
             return it.operands[3]
 
     return sample

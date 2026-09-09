@@ -91,10 +91,15 @@ class EAS:
         init_long,
         *args,
         cloudf=None,
+        client=None,
         **kwargs,
     ):
         """
         Electromagnetic Air Shower operation.
+
+            ``client`` is an optional pre-built distributed client forwarded to
+            :meth:`CphotAng.__call__`; see :class:`BackgroundCluster`. When ``None``
+            CphotAng spins up its own LocalCluster.
         """
 
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
@@ -107,6 +112,7 @@ class EAS:
         thetaCh100PeV = np.full_like(beta, 1.5)
 
         # Run CphotAng on in-bounds events
+        quad = self.config.simulation.cherenkov_quadrature
         dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
             beta[mask],
             altDec[mask],
@@ -114,6 +120,11 @@ class EAS:
             init_lat[mask],
             init_long[mask],
             cloudf,
+            client=client,
+            n_nodes=quad.n_nodes,
+            n_slant_sub=quad.n_slant_sub,
+            n_energy_low=quad.n_energy_low,
+            n_energy_high=quad.n_energy_high,
         )
 
         numPEs = (

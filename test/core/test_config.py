@@ -31,6 +31,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import os
 import tempfile
 from datetime import datetime
 
@@ -39,10 +40,12 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
+from nuspacesim import results_table
 from nuspacesim.config import (
     Detector,
     NssConfig,
     Simulation,
+    config_from_fits,
     config_from_toml,
     create_toml,
 )
@@ -291,6 +294,8 @@ def test_default_simulation():
     assert a.max_azimuth_angle == np.radians(360.0)
     assert a.angle_from_limb == np.radians(7.0)
     assert a.eas_long_profile == "Greisen"
+    assert a.use_refactored_photon_sum is False
+    assert a.refactored_photon_sum_variant == "v2"
     assert a.cherenkov_light_engine == "nuspacesim"
     assert a.ionosphere is not None
     assert a.ionosphere.total_electron_content == 10.0
@@ -308,11 +313,19 @@ def test_default_simulation():
         "max_azimuth_angle": "360.0 deg",
         "angle_from_limb": "7.0 deg",
         "eas_long_profile": "Greisen",
+        "use_refactored_photon_sum": False,
+        "refactored_photon_sum_variant": "v2",
         "cherenkov_light_engine": "nuspacesim",
         "ionosphere": {
             "enable": True,
             "total_electron_content": 10.0,
             "total_electron_error": 0.1,
+        },
+        "cherenkov_quadrature": {
+            "n_nodes": 12,
+            "n_slant_sub": 8,
+            "n_energy_low": 3,
+            "n_energy_high": 8,
         },
         "tau_shower": {"id": "nupyprop", "etau_frac": 0.5, "table_version": "3"},
         "spectrum": {"id": "monospectrum", "log_nu_energy": 8.0},
@@ -334,6 +347,8 @@ def test_custom_simulation():
         max_cherenkov_angle=3.5 * u.deg,
         max_azimuth_angle=270.0 * u.deg,
         angle_from_limb=10.0 * u.deg,
+        use_refactored_photon_sum=True,
+        refactored_photon_sum_variant="v3",
         ionosphere=Simulation.Ionosphere(total_electron_content=15.0),
         tau_shower=Simulation.NuPyPropShower(etau_frac=0.6),
         spectrum=Simulation.PowerSpectrum(index=2.5, lower_bound=7.0, upper_bound=11.0),
@@ -345,6 +360,8 @@ def test_custom_simulation():
     assert a.max_cherenkov_angle == np.radians(3.5)
     assert a.max_azimuth_angle == np.radians(270.0)
     assert a.angle_from_limb == np.radians(10.0)
+    assert a.use_refactored_photon_sum is True
+    assert a.refactored_photon_sum_variant == "v3"
     assert a.ionosphere is not None
     assert a.ionosphere.total_electron_content == 15.0
     assert a.tau_shower.etau_frac == 0.6
@@ -361,11 +378,55 @@ def test_invalid_cherenkov_angle():
         Simulation(max_cherenkov_angle="invalid_angle")
 
 
+def test_invalid_use_refactored_photon_sum_type():
+    with pytest.raises(
+        ValidationError, match="use_refactored_photon_sum must be a boolean"
+    ):
+        Simulation(use_refactored_photon_sum="true")
+
+
+def test_invalid_refactored_photon_sum_variant():
+    with pytest.raises(ValidationError):
+        Simulation(refactored_photon_sum_variant="vx")
+
+
 def test_invalid_ionosphere_content():
     with pytest.raises(ValidationError):
         Simulation(
             ionosphere=Simulation.Ionosphere(total_electron_content="invalid_content")
         )
+
+
+def test_cherenkov_quadrature_defaults():
+    q = Simulation().cherenkov_quadrature
+    assert q.n_nodes == 12
+    assert q.n_slant_sub == 8
+    assert q.n_energy_low == 3
+    assert q.n_energy_high == 8
+
+
+def test_cherenkov_quadrature_custom_values():
+    sim = Simulation(
+        cherenkov_quadrature=Simulation.CherenkovQuadrature(
+            n_nodes=16, n_slant_sub=10, n_energy_low=4, n_energy_high=12
+        )
+    )
+    assert sim.cherenkov_quadrature.n_nodes == 16
+    assert sim.cherenkov_quadrature.n_slant_sub == 10
+    assert sim.cherenkov_quadrature.n_energy_low == 4
+    assert sim.cherenkov_quadrature.n_energy_high == 12
+
+
+def test_cherenkov_quadrature_backward_compatible():
+    """A config file (TOML) lacking the section loads with kernel defaults."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
+        # Note: no [simulation.cherenkov_quadrature] table, as in older files.
+        tmp.write("[simulation]\nthrown_events = 42\n")
+        name = tmp.name
+    cfg = config_from_toml(name)
+    assert cfg.simulation.thrown_events == 42
+    assert cfg.simulation.cherenkov_quadrature.n_nodes == 12
+    assert cfg.simulation.cherenkov_quadrature.n_energy_high == 8
 
 
 def test_invalid_spectrum_type():
@@ -439,6 +500,42 @@ def test_config_serialization():
         loaded_config = config_from_toml(tmpfile_name)
 
     assert loaded_config.model_dump() == a.model_dump()
+
+
+def test_config_fits_roundtrip_default():
+    """The FITS header round-trip reconstructs the full default config."""
+    cfg = NssConfig()
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "default.fits")
+        results_table.init(cfg).write(path, format="fits", overwrite=True)
+        loaded = config_from_fits(path)
+    assert loaded.model_dump() == cfg.model_dump()
+
+
+def test_config_fits_roundtrip_preserves_distinct_lat_lon():
+    """Regression: FITS load must not alias longitude onto latitude.
+
+    The former hand-transcribed ``config_from_fits`` read ``initial_position
+    latitude`` into both fields; with distinct inputs that silently corrupted
+    longitude. The generic unflatten-based reader keeps them independent.
+    """
+    cfg = NssConfig(
+        detector=Detector(
+            initial_position=Detector.InitialPos(latitude=0.1, longitude=0.2)
+        )
+    )
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "latlon.fits")
+        results_table.init(cfg).write(path, format="fits", overwrite=True)
+        loaded = config_from_fits(path)
+
+    assert loaded.detector.initial_position.latitude == pytest.approx(0.1)
+    assert loaded.detector.initial_position.longitude == pytest.approx(0.2)
+    assert (
+        loaded.detector.initial_position.longitude
+        != loaded.detector.initial_position.latitude
+    )
+    assert loaded.model_dump() == cfg.model_dump()
 
 
 def test_eas_long_profile_default_replacement():

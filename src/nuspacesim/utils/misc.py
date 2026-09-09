@@ -24,5 +24,22 @@ def flatten_dict(d: MutableMapping, parent_key: str = "", sep: str = "."):
     return dict(_flat(d, parent_key, sep))
 
 
+def unflatten_dict(d: MutableMapping, sep: str = ".") -> dict:
+    """Inverse of :func:`flatten_dict`: rebuild a nested dict from flat keys.
+
+    Each key is split on ``sep`` into a path; intermediate dicts are created as
+    needed. ``unflatten_dict(flatten_dict(x)) == x`` for any nested mapping
+    whose keys do not themselves contain ``sep``.
+    """
+    out: dict = {}
+    for key, value in d.items():
+        parts = key.split(sep)
+        node = out
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+        node[parts[-1]] = value
+    return out
+
+
 def output_filename(state, filename) -> str:
     return filename if filename else f"nuspacesim_run_{state.sim_time}.fits"
