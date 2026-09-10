@@ -61,7 +61,11 @@ class BackgroundCluster:
     and re-raised from :meth:`client` so the caller's stack frame sees them.
     """
 
-    def __init__(self):
+    def __init__(self, **cluster_kwargs):
+        # Extra LocalCluster kwargs (e.g. ``threads_per_worker=1`` for the
+        # streaming driver, which seeds the global RNG per batch and so needs
+        # one task per worker process at a time). ``processes=True`` is forced.
+        self._cluster_kwargs = {"processes": True, **cluster_kwargs}
         self._holder = {}
         self._error = None
         self._thread = threading.Thread(target=self._spawn, daemon=True)
@@ -69,7 +73,7 @@ class BackgroundCluster:
 
     def _spawn(self):
         try:
-            cluster = LocalCluster(processes=True)
+            cluster = LocalCluster(**self._cluster_kwargs)
             self._holder["cluster"] = cluster
             self._holder["client"] = Client(cluster)
         except BaseException as exc:

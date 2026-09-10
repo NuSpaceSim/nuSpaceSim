@@ -30,36 +30,30 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Command line client source code.
 
-.. _cli:
+"""Streaming, distributed Monte-Carlo for nuspacesim (optical first cut).
 
-*****
- CLI
-*****
+Throws events in batches across the dask cluster, accumulates the optical MC
+integral as an exact additive :class:`~.sketch.MomentSketch`, keeps a bounded
+weighted :class:`~.reservoir.WeightedReservoir` of representative events, and
+stops on a relative-uncertainty target with a max-thrown backstop.
 
-.. currentmodule:: nuspacesim.apps.cli
-
-.. click:: nuspacesim.apps.cli:cli
-   :prog: nuspacesim
-   :show-nested:
-
+The integral sketch is *exact* (the MC integral is a mean of per-event
+contributions); the reservoir is a separate materialization artifact and never
+feeds the integral.
 """
 
-import click
+from .reservoir import WeightedReservoir
+from .sketch import MomentSketch
 
-from nuspacesim import version
-
-from . import create_config, run, show_plot, stream
-
-
-@click.group()
-@click.version_option(version=version, prog_name="nuspacesim")
-def cli():
-    pass
+__all__ = ["MomentSketch", "WeightedReservoir", "compute_streaming"]
 
 
-cli.add_command(run.run)
-cli.add_command(stream.stream)
-cli.add_command(create_config.create_config)
-cli.add_command(show_plot.show_plot)
+def __getattr__(name):
+    # Lazy import of the driver so importing the sketch/reservoir primitives
+    # does not pull in dask/rich until a streaming run is actually launched.
+    if name == "compute_streaming":
+        from .driver import compute_streaming
+
+        return compute_streaming
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
