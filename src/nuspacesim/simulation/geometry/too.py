@@ -35,6 +35,7 @@ import astropy.coordinates
 import astropy.time
 import astropy.units as u
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 
 class ToOEvent:
@@ -56,6 +57,7 @@ class ToOEvent:
         self.sourceDATE = self.config.simulation.target.source_date
         self.sourceDateFormat = self.config.simulation.target.source_date_format
         self.sourceOBSTime = self.config.simulation.target.source_obst
+        self.ephemeris_step = self.config.simulation.target.ephemeris_step
 
         self.eventtime = astropy.time.Time(
             self.sourceDATE, format=self.sourceDateFormat, scale="utc"
@@ -74,22 +76,74 @@ class ToOEvent:
             height=self.detalt * 1000 * u.m,
         )
 
+    def detframe(self, time):
+        return astropy.coordinates.AltAz(obstime=time, location=self.detcords)
+
+    def _ephemeris_grid(self, time):
+        """Coarse time grid spanning ``time`` for interpolated sky positions.
+
+        Returns ``(grid_time, grid_x, x)`` with ``x`` the query abscissae in
+        seconds, or ``None`` when exact evaluation is requested or is no more
+        work than the grid itself.
+        """
+        step = self.ephemeris_step
+        if step <= 0 or time.isscalar:
+            return None
+        x = time.utc.unix
+        x0, x1 = x.min(), x.max()
+        # Pad one step each side so every query is interior to the spline.
+        n_grid = int(np.ceil((x1 - x0) / step)) + 3
+        if n_grid >= x.size:
+            return None
+        grid_x = (x0 - step) + step * np.arange(n_grid)
+        grid_time = astropy.time.Time(grid_x, format="unix", scale="utc")
+        return grid_time, grid_x, x
+
     def localcoords(self, time):
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
-        return self.eventcoords.transform_to(detframe)
+        grid = self._ephemeris_grid(time)
+        if grid is None:
+            return self.eventcoords.transform_to(self.detframe(time))
+        grid_time, grid_x, x = grid
+        exact = self.eventcoords.transform_to(self.detframe(grid_time))
+        # Interpolate the unit vector, not (alt, az): azimuth wraps at 2pi.
+        cos_alt = np.cos(exact.alt.rad)
+        vec = np.stack(
+            [
+                cos_alt * np.cos(exact.az.rad),
+                cos_alt * np.sin(exact.az.rad),
+                np.sin(exact.alt.rad),
+            ]
+        )
+        vx, vy, vz = CubicSpline(grid_x, vec, axis=1)(x)
+        alt = np.arctan2(vz, np.hypot(vx, vy))
+        az = np.arctan2(vy, vx) % (2.0 * np.pi)
+        return astropy.coordinates.AltAz(
+            alt=alt * u.rad, az=az * u.rad, obstime=time, location=self.detcords
+        )
 
     def get_sun(self, time):
         sun_coord = astropy.coordinates.get_body("sun", time)
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
-        return sun_coord.transform_to(detframe)
+        return sun_coord.transform_to(self.detframe(time))
 
     def get_moon(self, time):
         moon_coord = astropy.coordinates.get_body("moon", time)
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
-        return moon_coord.transform_to(detframe)
+        return moon_coord.transform_to(self.detframe(time))
 
     @staticmethod
-    def moon_phase_angle(time: astropy.time.Time) -> float:
+    def phase_angle_from_bodies(sun, moon):
+        """
+        Moon phase angle in rad from geocentric sun and moon coordinates
+        0 -> full moon
+        pi -> new moon
+        """
+        elongation = sun.separation(moon)
+        return np.arctan2(
+            sun.distance * np.sin(elongation),
+            moon.distance - sun.distance * np.cos(elongation),
+        )
+
+    @classmethod
+    def moon_phase_angle(cls, time: astropy.time.Time) -> float:
         """
         Returns the moon phase angle in rad
         0 -> full moon
@@ -97,11 +151,34 @@ class ToOEvent:
         """
         sun = astropy.coordinates.get_body("sun", time)
         moon = astropy.coordinates.get_body("moon", time)
-        elongation = sun.separation(moon)
-        return np.arctan2(
-            sun.distance * np.sin(elongation),
-            moon.distance - sun.distance * np.cos(elongation),
+        return cls.phase_angle_from_bodies(sun, moon)
+
+    def _sun_moon_state(self, time):
+        """Exact (sun altitude, moon altitude, moon phase angle) in rad."""
+        # One ephemeris lookup per body and one AltAz frame serve the altitude
+        # cuts and the phase angle; the lookups dominate ToO-mode runtime.
+        sun = astropy.coordinates.get_body("sun", time)
+        moon = astropy.coordinates.get_body("moon", time)
+        detframe = self.detframe(time)
+        return np.stack(
+            [
+                sun.transform_to(detframe).alt.rad,
+                moon.transform_to(detframe).alt.rad,
+                self.phase_angle_from_bodies(sun, moon).value,
+            ]
         )
+
+    def sun_moon_state(self, time):
+        """(sun altitude, moon altitude, moon phase angle) in rad at ``time``.
+
+        Evaluated on the ephemeris grid and cubic-interpolated when that is
+        cheaper than evaluating every requested time.
+        """
+        grid = self._ephemeris_grid(time)
+        if grid is None:
+            return self._sun_moon_state(time)
+        grid_time, grid_x, x = grid
+        return CubicSpline(grid_x, self._sun_moon_state(grid_time), axis=1)(x)
 
     def sun_moon_cut(self, time: astropy.time.Time) -> bool:
         """
@@ -109,9 +186,8 @@ class ToOEvent:
         True -> observation possible
         False -> no observation posible
         """
-        sun_alt = self.get_sun(time).alt.rad < self.sun_alt_cut
-        moon_alt = self.get_moon(time).alt.rad < self.moon_alt_cut
-        moon_phase = self.moon_phase_angle(time).value > self.MoonMinPhaseAngleCut
-        moon_cut = np.logical_or(moon_phase, moon_alt)
-
-        return np.logical_and(sun_alt, moon_cut)
+        sun_alt, moon_alt, moon_phase = self.sun_moon_state(time)
+        moon_cut = np.logical_or(
+            moon_phase > self.MoonMinPhaseAngleCut, moon_alt < self.moon_alt_cut
+        )
+        return np.logical_and(sun_alt < self.sun_alt_cut, moon_cut)
