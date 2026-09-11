@@ -92,6 +92,7 @@ class EAS:
         *args,
         cloudf=None,
         client=None,
+        serial=False,
         **kwargs,
     ):
         """
@@ -99,7 +100,8 @@ class EAS:
 
             ``client`` is an optional pre-built distributed client forwarded to
             :meth:`CphotAng.__call__`; see :class:`BackgroundCluster`. When ``None``
-            CphotAng spins up its own LocalCluster.
+            CphotAng spins up its own LocalCluster. ``serial=True`` skips the
+            cluster entirely and runs CphotAng in this process.
         """
 
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
@@ -121,6 +123,7 @@ class EAS:
             init_long[mask],
             cloudf,
             client=client,
+            serial=serial,
             n_nodes=quad.n_nodes,
             n_slant_sub=quad.n_slant_sub,
             n_energy_low=quad.n_energy_low,
