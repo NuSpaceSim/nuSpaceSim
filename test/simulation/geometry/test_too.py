@@ -1,6 +1,6 @@
+import astropy.units as u
 import numpy as np
 import pytest
-import astropy.units as u
 from astropy.time import Time
 
 from nuspacesim.config import NssConfig
