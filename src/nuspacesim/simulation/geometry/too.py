@@ -74,22 +74,35 @@ class ToOEvent:
             height=self.detalt * 1000 * u.m,
         )
 
+    def detframe(self, time):
+        return astropy.coordinates.AltAz(obstime=time, location=self.detcords)
+
     def localcoords(self, time):
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
-        return self.eventcoords.transform_to(detframe)
+        return self.eventcoords.transform_to(self.detframe(time))
 
     def get_sun(self, time):
         sun_coord = astropy.coordinates.get_body("sun", time)
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
-        return sun_coord.transform_to(detframe)
+        return sun_coord.transform_to(self.detframe(time))
 
     def get_moon(self, time):
         moon_coord = astropy.coordinates.get_body("moon", time)
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
-        return moon_coord.transform_to(detframe)
+        return moon_coord.transform_to(self.detframe(time))
 
     @staticmethod
-    def moon_phase_angle(time: astropy.time.Time) -> float:
+    def phase_angle_from_bodies(sun, moon):
+        """
+        Moon phase angle in rad from geocentric sun and moon coordinates
+        0 -> full moon
+        pi -> new moon
+        """
+        elongation = sun.separation(moon)
+        return np.arctan2(
+            sun.distance * np.sin(elongation),
+            moon.distance - sun.distance * np.cos(elongation),
+        )
+
+    @classmethod
+    def moon_phase_angle(cls, time: astropy.time.Time) -> float:
         """
         Returns the moon phase angle in rad
         0 -> full moon
@@ -97,11 +110,7 @@ class ToOEvent:
         """
         sun = astropy.coordinates.get_body("sun", time)
         moon = astropy.coordinates.get_body("moon", time)
-        elongation = sun.separation(moon)
-        return np.arctan2(
-            sun.distance * np.sin(elongation),
-            moon.distance - sun.distance * np.cos(elongation),
-        )
+        return cls.phase_angle_from_bodies(sun, moon)
 
     def sun_moon_cut(self, time: astropy.time.Time) -> bool:
         """
@@ -109,9 +118,17 @@ class ToOEvent:
         True -> observation possible
         False -> no observation posible
         """
-        sun_alt = self.get_sun(time).alt.rad < self.sun_alt_cut
-        moon_alt = self.get_moon(time).alt.rad < self.moon_alt_cut
-        moon_phase = self.moon_phase_angle(time).value > self.MoonMinPhaseAngleCut
+        # One ephemeris lookup per body and one AltAz frame serve the altitude
+        # cuts and the phase angle; the lookups dominate ToO-mode runtime.
+        sun = astropy.coordinates.get_body("sun", time)
+        moon = astropy.coordinates.get_body("moon", time)
+        detframe = self.detframe(time)
+
+        sun_alt = sun.transform_to(detframe).alt.rad < self.sun_alt_cut
+        moon_alt = moon.transform_to(detframe).alt.rad < self.moon_alt_cut
+        moon_phase = (
+            self.phase_angle_from_bodies(sun, moon).value > self.MoonMinPhaseAngleCut
+        )
         moon_cut = np.logical_or(moon_phase, moon_alt)
 
         return np.logical_and(sun_alt, moon_cut)
