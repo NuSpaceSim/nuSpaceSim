@@ -336,6 +336,7 @@ def test_default_simulation():
             "source_date": "2022-06-02T01:00:00",
             "source_date_format": "isot",
             "source_obst": 86400,
+            "ephemeris_step": 60.0,
         },
     }
 

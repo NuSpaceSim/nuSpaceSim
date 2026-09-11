@@ -293,6 +293,10 @@ class Simulation(BaseModel):
         """Date of the event and format"""
         source_obst: float = 86400  # 24.0 * 60.0 * 60.0
         """Observation time (s). Default = 1 day"""
+        ephemeris_step: float = 60.0
+        """Grid spacing (s) for source/sun/moon sky positions, which are
+        evaluated exactly on the grid and cubic-interpolated to thrown times.
+        0 evaluates every thrown time exactly. Default = 60 s"""
 
     ################################################################################
 

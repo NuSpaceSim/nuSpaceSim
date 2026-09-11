@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import astropy.units as u
 from astropy.time import Time
 
 from nuspacesim.config import NssConfig
@@ -100,3 +101,37 @@ def test_sun_moon_cuts(too_event):
     darkmoon_date = "2022-11-29"
     dark = Time(darkmoon_date + "T22:00:00", format="isot", scale="utc")
     assert too_event.sun_moon_cut(dark)
+
+
+def test_ephemeris_grid_matches_exact(nss_config_event):
+    """Grid-interpolated sky positions must reproduce exact evaluation."""
+    import copy
+
+    exact_conf = copy.deepcopy(nss_config_event)
+    exact_conf.simulation.target.ephemeris_step = 0.0
+    exact = too.ToOEvent(exact_conf)
+    interp = too.ToOEvent(nss_config_event)
+    assert interp.ephemeris_step == 60.0
+
+    # Random times over one observation window: far more queries than grid points.
+    rng = np.random.default_rng(7)
+    times = exact.eventtime + rng.random(5000) * exact.sourceOBSTime * u.s
+
+    a, b = exact.localcoords(times), interp.localcoords(times)
+    sep = np.arccos(
+        np.clip(
+            np.sin(a.alt.rad) * np.sin(b.alt.rad)
+            + np.cos(a.alt.rad) * np.cos(b.alt.rad) * np.cos(a.az.rad - b.az.rad),
+            -1,
+            1,
+        )
+    )
+    assert sep.max() < 1e-6  # rad; ~0.2 arcsec
+
+    sa, sb = exact.sun_moon_state(times), interp.sun_moon_state(times)
+    assert np.abs(sa - sb).max() < 1e-6
+    assert np.array_equal(exact.sun_moon_cut(times), interp.sun_moon_cut(times))
+
+    # Scalar and few-point queries fall back to exact evaluation.
+    assert interp._ephemeris_grid(times[0]) is None
+    assert interp._ephemeris_grid(times[:3]) is None
