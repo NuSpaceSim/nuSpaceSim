@@ -304,6 +304,10 @@ class Simulation(BaseModel):
     """ The Simulation Mode """
     thrown_events: int = 1000
     """ Number of thrown event trajectories. """
+    eas_parallel_threshold: int = 150_000
+    """Valid showers at or above which the EAS optical stage runs on a
+    process-based dask cluster; below it the stage runs in-process, avoiding
+    the cluster's ~1 s spawn/teardown. 0 always uses the cluster."""
     max_cherenkov_angle: Radians = np.radians(3)
     """ Maximum Cherenkov Angle (Radians). """
     max_azimuth_angle: Radians = np.radians(360)

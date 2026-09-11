@@ -863,6 +863,7 @@ class CphotAng:
         n_slant_sub=8,
         n_energy_low=3,
         n_energy_high=8,
+        serial=False,
     ):
         """
         Iterate over the list of events and return the result as pair of
@@ -900,6 +901,11 @@ class CphotAng:
         Gauss-Legendre quadrature node counts forwarded to :meth:`run` (defaults
         match ``run()``). The pipeline wires these from
         ``config.simulation.cherenkov_quadrature``.
+
+        ``serial=True`` runs the whole batch in this process through the same
+        kernel the workers use and ignores ``client``; the pipeline picks it
+        below ``config.simulation.eas_parallel_threshold`` showers, where a
+        cluster's spawn and teardown would outweigh the work.
         """
 
         if (
@@ -940,13 +946,18 @@ class CphotAng:
             d_rows = d_batch.T if per_wavelength else d_batch[None, :]
             return np.concatenate([d_rows, c_batch[None, :]], axis=0)
 
-        results = map_showers_distributed(
-            chunk_worker,
-            (betaE, alt, Eshow100PeV, init_lat, init_long),
-            n_rows=n_den + 1,
-            chunks=chunks,
-            client=client,
-        )
+        if serial:
+            results = chunk_worker(
+                *(np.asarray(x) for x in (betaE, alt, Eshow100PeV, init_lat, init_long))
+            )
+        else:
+            results = map_showers_distributed(
+                chunk_worker,
+                (betaE, alt, Eshow100PeV, init_lat, init_long),
+                n_rows=n_den + 1,
+                chunks=chunks,
+                client=client,
+            )
 
         # Unpack (n_rows, N): density rows then the Cang row. Collapsed ->
         # (N,); per-wavelength -> (N, n_wl) (transpose back the n_den rows).

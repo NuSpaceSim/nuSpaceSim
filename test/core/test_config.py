@@ -309,6 +309,7 @@ def test_default_simulation():
     assert a.model_dump() == {
         "mode": "Diffuse",
         "thrown_events": 1000,
+        "eas_parallel_threshold": 150000,
         "max_cherenkov_angle": "3.0000000000000004 deg",
         "max_azimuth_angle": "360.0 deg",
         "angle_from_limb": "7.0 deg",
