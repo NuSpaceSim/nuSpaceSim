@@ -845,7 +845,10 @@ class ChasmCphotAng(CphotAng):
         Cherenkov_angles = np.abs(sig.axis.zenith - np.arccos(sig.cos_theta.sum(axis = 1)))
 
         photonDen = allphotons.sum(axis=-1).mean()
-        Cang = np.degrees(np.average(Cherenkov_angles, weights=allphotons))
+        if allphotons.sum() == 0:
+            Cang = np.nan
+        else:
+            Cang = np.degrees(np.average(Cherenkov_angles, weights=allphotons))
 
         # photonDen = sig.photons.sum(axis = -1).sum()
         # Cang = np.abs(sig.axis.zenith - np.arccos(sig.cos_theta)).mean()
