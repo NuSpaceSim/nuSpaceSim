@@ -77,7 +77,7 @@ class ToOEvent:
         )
 
     def detframe(self, time):
-        return astropy.coordinates.AltAz(obstime=time, location=self.detcords)
+        return astropy.coordinates.AltAz(obstime=time, location=self.detcoords)
 
     def _ephemeris_grid(self, time):
         """Coarse time grid spanning ``time`` for interpolated sky positions.
