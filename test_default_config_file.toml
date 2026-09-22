@@ -10,7 +10,7 @@ longitude = "0.0 deg"
 
 [detector.flight]
 id = "stationary"
-duration = "1.0 d"
+duration = "86400.0 s"
 start_date = "2022-06-02T01:00:00"
 start_date_format = "isot"
 
@@ -24,7 +24,10 @@ nadir_center_wrt_limb = "-3.5 deg"
 azimuth_center = "0.0 deg"
 
 [detector.sun_moon]
-id = "no_sun_moon_cuts"
+id = "apply_sun_moon_cuts"
+sun_alt_cut = "-40.5 deg"
+moon_alt_cut = "0.0 deg"
+moon_min_phase_angle_cut = "150.0 deg"
 
 [detector.optical]
 enable = true
@@ -42,20 +45,27 @@ nantennas = 10
 gain = "1.8 dB"
 
 [simulation]
-mode = "Diffuse"
-num_time_bins = 1
+mode = "Target"
+num_time_bins = 1000
 max_cherenkov_angle = "3.0000000000000004 deg"
 eas_long_profile = "Greisen"
+use_refactored_photon_sum = false
+refactored_photon_sum_variant = "v2"
 cherenkov_light_engine = "nuspacesim"
 
 [simulation.integ_method]
-id = "monte_carlo"
-num_events_per_time_bin = 1000
+id = "target_approx"
 
 [simulation.ionosphere]
 enable = true
 total_electron_content = 10.0
 total_electron_error = 0.1
+
+[simulation.cherenkov_quadrature]
+n_nodes = 12
+n_slant_sub = 8
+n_energy_low = 3
+n_energy_high = 8
 
 [simulation.tau_shower]
 id = "nupyprop"
@@ -70,4 +80,9 @@ log_nu_energy = 8.0
 id = "no_cloud"
 
 [simulation.target]
-id = "no_target"
+id = "single_pt_source"
+source_RA = "0.0 deg"
+source_DEC = "0.0 deg"
+source_date = "2022-06-02T01:00:00"
+source_date_format = "isot"
+source_obst = "86400.0 s"

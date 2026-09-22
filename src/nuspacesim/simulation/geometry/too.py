@@ -80,12 +80,12 @@ class ToOEvent:
 
     def get_sun(self, time):
         sun_coord = astropy.coordinates.get_body("sun", time)
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
+        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcoords)
         return sun_coord.transform_to(detframe)
 
     def get_moon(self, time):
         moon_coord = astropy.coordinates.get_body("moon", time)
-        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcords)
+        detframe = astropy.coordinates.AltAz(obstime=time, location=self.detcoords)
         return moon_coord.transform_to(detframe)
 
     @staticmethod

@@ -886,12 +886,20 @@ class RegionGeomTargetApprox:
         self.detLong = self.initial_detLong
 
         self.initial_det_height = self.config.detector.initial_position.altitude
-        self.det_altitude = self.initial_det_altitude
+        self.det_altitude = self.initial_det_height
 
         self.core_alt = self.earth_radius + self.det_altitude
         self.integ_method = self.config.simulation.integ_method
         # self.detection_mode = self.config.simulation.mode
-        self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
+        # self.sun_moon_cut = self.config.detector.sun_moon.sun_moon_cuts
+        if isinstance(self.config.detector.sun_moon, Detector.NoSunMoonCuts):
+            self.sun_moon_cut = False
+        elif isinstance(self.config.detector.sun_moon, Detector.SunMoonCuts):
+            self.sun_moon_cut = True
+        else:
+            RuntimeError(
+                f"Unrecognized Sun and Moon Cuts: {type(self.config.detector.sun_moon)}!"
+            )
 
         self.alphaHorizon = np.pi / 2 - np.arccos(self.earth_radius / self.core_alt)
 
@@ -1014,10 +1022,13 @@ class RegionGeomTargetApprox:
         # self.throw(self.num_time_bins)
         return self.beta_rad(), self.thetas(), self.pathLens(), self.val_times()
 
-    def throw(self, times=None) -> None:
+    def throw(self, u=None) -> None:
         """Throw N events with 1 * u random numbers for the Target detection mode"""
 
+        print(u)
+
         if isinstance(u, int):
+            # print(u)
             self.times = self.generate_times(u)
             local_coords = self.too_source.localcoords(
                 self.times
@@ -1034,6 +1045,8 @@ class RegionGeomTargetApprox:
 
             # Calculate the earth emergence angle from the nadir angle
             self.sourcebeta = self.get_beta_angle(self.sourceNadRad[self.horizon_mask])
+
+            # print(self.sourcebeta)
 
             # Define a cut if the source is below the horizon
             self.volume_mask = self.sourcebeta < np.min(

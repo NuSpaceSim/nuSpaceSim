@@ -175,18 +175,23 @@ def compute(
         )
 
     sim = results_table.init(config)
-    geom = RegionGeomMonteCarlo(config)
+    # geom = RegionGeomMonteCarlo(config)
+    geom = (
+        RegionGeomTargetApprox(config)
+        if config.simulation.integ_method.id == "target_approx"
+        else RegionGeomMonteCarlo(config)
+    )
     cloud = CloudTopHeight(config)
     spec = Spectra(config)
     tau = Taus(config)
     eas = EAS(config)
     eas_radio = EASRadio(config)
 
-    geom = (
-        RegionGeomTargetApprox(config)
-        if config.simulation.integ_method.id == "target_approx"
-        else RegionGeomMonteCarlo(config)
-    )
+    # geom = (
+    #     RegionGeomTargetApprox(config)
+    #     if config.simulation.integ_method.id == "target_approx"
+    #     else RegionGeomMonteCarlo(config)
+    # )
 
     # geom = (
     #    RegionGeomTargetApprox(config)
