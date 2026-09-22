@@ -28,4 +28,4 @@ repos:
     rev: v2.7.0
     hooks:
     -   id: setup-cfg-fmt
-        args: ["--include-version-classifiers", "--max-py-version=3.13"]
+        args: ["--include-version-classifiers", "--max-py-version=3.14"]

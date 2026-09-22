@@ -222,12 +222,6 @@ def compute(
 
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
-    # The single EAS optical __call__ needs a process-based dask cluster whose
-    # ~2s spawn would otherwise be paid serially at that stage. Start it now, in
-    # the background, so the spawn overlaps the geometry/spectra/tau/decay
-    # stages; it's handed to eas() warm and torn down right after.
-    optical_cluster = BackgroundCluster() if config.detector.optical.enable else None
-
     logv("Computing [green] Geometries.[/]")
     # beta_tr, thetaArr, pathLenArr, times_arr = geom(
     #    config.simulation.thrown_events, store=sw, plot=to_plot
@@ -280,9 +274,18 @@ def compute(
         console.log(
             "\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]"
         )
-        if optical_cluster is not None:
-            optical_cluster.close()
         return sim
+
+    # The single EAS optical __call__ can fan out over a process-based dask
+    # cluster, but its ~1s spawn/teardown only pays for itself on large valid
+    # batches. Decide now that the valid count is known; when a cluster is
+    # warranted, start it in the background so the spawn overlaps the
+    # spectra/tau/decay stages, then hand it to eas() warm and tear it down
+    # right after.
+    use_cluster = config.detector.optical.enable and (
+        beta_tr.size >= config.simulation.eas_parallel_threshold
+    )
+    optical_cluster = BackgroundCluster() if use_cluster else None
 
     init_lat, init_long = geom.find_lat_long_along_traj(np.zeros_like(beta_tr))
     sw(
@@ -314,14 +317,16 @@ def compute(
             init_lat,
             init_long,
             cloudf=cloud,
-            client=optical_cluster.client(),
+            client=optical_cluster.client() if use_cluster else None,
+            serial=not use_cluster,
             store=sw,
             plot=to_plot,
         )
 
         # Single consumer is done; release the warm cluster immediately.
-        optical_cluster.close()
-        optical_cluster = None
+        if use_cluster:
+            optical_cluster.close()
+            optical_cluster = None
 
         logv("Computing [green] Optical Monte Carlo Integral.[/]")
         mcint, mcintgeo, passEV, mcunc = geom.mcintegral(

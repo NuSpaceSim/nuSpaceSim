@@ -395,6 +395,10 @@ class Simulation(BaseModel):
         """Date of the event and format"""
         source_obst: Seconds = 86400.0  # 24.0 * 60.0 * 60.0
         """Observation time (s). Default = 1 day"""
+        ephemeris_step: float = 60.0
+        """Grid spacing (s) for source/sun/moon sky positions, which are
+        evaluated exactly on the grid and cubic-interpolated to thrown times.
+        0 evaluates every thrown time exactly. Default = 60 s"""
 
     ################################################################################
 
@@ -404,7 +408,11 @@ class Simulation(BaseModel):
     # """ Number of thrown event trajectories. """
     num_time_bins: int = 1
     """ Number of time bins (1 for instantaneous acceptance or time-integrated exposure calculations; actual number requested for time-differential or time-averaged calculations) """
-    max_cherenkov_angle: Radians = np.radians(3.0)
+    eas_parallel_threshold: int = 150_000
+    """Valid showers at or above which the EAS optical stage runs on a
+    process-based dask cluster; below it the stage runs in-process, avoiding
+    the cluster's ~1 s spawn/teardown. 0 always uses the cluster."""
+    max_cherenkov_angle: Radians = np.radians(3)
     """ Maximum Cherenkov Angle (Radians). """
     # max_azimuth_angle: Radians = np.radians(360)
     # """ Maximum Azimuthal Angle (Radians). """
