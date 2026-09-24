@@ -83,8 +83,8 @@ def nss_result_store(*names):
             values = func(*args, **kwargs)
             if store is not None:
                 if isinstance(values, tuple):
-                    assert len(names) == len(values)
-                    store(names, [*values])
+                    assert len(values) >= len(names)
+                    store(names, [*values[: len(names)]])
                 else:
                     assert len(names) == 1
                     store(names, [values])

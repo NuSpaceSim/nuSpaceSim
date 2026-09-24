@@ -35,6 +35,7 @@ max_cherenkov_angle = "3.0000000000000004 deg"
 max_azimuth_angle = "360.0 deg"
 angle_from_limb = "7.0 deg"
 eas_long_profile = "Greisen"
+conex_output = false
 cherenkov_light_engine = "nuspacesim"
 
 [simulation.ionosphere]

@@ -60,6 +60,13 @@ from .utils import parse_cloud_options, parse_spectra_options, read_plot_config
     "-o", "--output", type=click.Path(exists=False), default=None, help="Output file."
 )
 @click.option(
+    "-c",
+    "--conex-output",
+    is_flag=True,
+    default=False,
+    help="Generate CONEX-compatible ROOT output.",
+)
+@click.option(
     "-p",
     "--plot",
     type=click.Choice(list(registry), case_sensitive=False),
@@ -136,6 +143,7 @@ def run(
     count: float,
     no_result_file: bool,
     output: str,
+    conex_output: bool,
     plot: list,
     plotconfig: str,
     plotall: bool,
@@ -182,6 +190,9 @@ def run(
 
     # User Inputs
     config = config_from_toml(config_file)
+
+    if conex_output:
+        config.simulation.conex_output = True
 
     config.simulation.thrown_events = int(
         config.simulation.thrown_events if count == 0.0 else count

@@ -91,6 +91,7 @@ class EAS:
         init_long,
         *args,
         cloudf=None,
+        conex=False,
         client=None,
         serial=False,
         **kwargs,
@@ -115,13 +116,14 @@ class EAS:
 
         # Run CphotAng on in-bounds events
         quad = self.config.simulation.cherenkov_quadrature
-        dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
+        cphotang_result = self.CphotAng(
             beta[mask],
             altDec[mask],
             showerEnergy[mask],
             init_lat[mask],
             init_long[mask],
             cloudf,
+            conex,
             client=client,
             serial=serial,
             n_nodes=quad.n_nodes,
@@ -129,6 +131,7 @@ class EAS:
             n_energy_low=quad.n_energy_low,
             n_energy_high=quad.n_energy_high,
         )
+        dphots[mask], thetaCh100PeV[mask] = cphotang_result[:2]
 
         numPEs = (
             dphots
@@ -149,6 +152,8 @@ class EAS:
 
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
+        if conex:
+            return numPEs, costhetaChEff, *cphotang_result[2:]
         return numPEs, costhetaChEff
 
 
