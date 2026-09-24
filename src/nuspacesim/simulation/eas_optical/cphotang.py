@@ -388,6 +388,7 @@ class CphotAng:
         n_energy_low=3,
         n_energy_high=8,
         photon_model=None,
+        conex=False,
     ):
         """Main simulation: compute photon density and Cherenkov angle.
 
@@ -551,7 +552,10 @@ class CphotAng:
             altitude_scaling,
             per_wavelength,
         )
-        return photonDen.astype(self.dtype), Cang.astype(self.dtype)
+        result = photonDen.astype(self.dtype), Cang.astype(self.dtype)
+        if conex:
+            return result + (RN, z_nodes, X_to_node)
+        return result
 
     # ------------------------------------------------------------------
     # run() stages (each operates on (n_showers,) / (n_showers, n_nodes))
@@ -855,6 +859,7 @@ class CphotAng:
         init_lat,
         init_long,
         cloudf=None,
+        conex=False,
         chunks=None,
         photon_model=None,
         per_wavelength=False,
@@ -915,6 +920,14 @@ class CphotAng:
             or len(init_lat) < 1
             or len(init_long) < 1
         ):
+            if conex:
+                return (
+                    np.empty([]),
+                    np.empty([]),
+                    np.empty([]),
+                    np.empty([]),
+                    np.empty([]),
+                )
             return np.empty([]), np.empty([])
 
         # Per block, run() yields density (N,) [collapsed] or (N, n_wl)
@@ -923,18 +936,21 @@ class CphotAng:
         # the density (n_den = 1 collapsed, n_wl per-wavelength), the last row
         # is Cang. The collapsed path stays (2, N) -- bit-identical to before;
         # per-wavelength avoids the (N, n_nodes, n_wl) tensor only when the
-        # caller actually wants it.
+        # caller actually wants it. CONEX diagnostics are packed as n_nodes rows
+        # for each of RN, z_nodes, and X_to_node after the density and angle.
         n_wl = len(self.wmean)
         n_den = n_wl if per_wavelength else 1
+        diagnostic_rows = 3 * n_nodes if conex else 0
 
         def chunk_worker(b, a, e, lat, lon):
-            d_batch, c_batch = self.run(
+            run_result = self.run(
                 b,
                 a,
                 e,
                 lat,
                 lon,
                 cloudf=cloudf,
+                conex=conex,
                 n_nodes=n_nodes,
                 n_slant_sub=n_slant_sub,
                 per_wavelength=per_wavelength,
@@ -942,9 +958,16 @@ class CphotAng:
                 n_energy_high=n_energy_high,
                 photon_model=photon_model,
             )
+            if conex:
+                d_batch, c_batch, rn_batch, z_batch, x_batch = run_result
+            else:
+                d_batch, c_batch = run_result
             # d_batch is (N,) collapsed or (N, n_wl); make it (n_den, N).
             d_rows = d_batch.T if per_wavelength else d_batch[None, :]
-            return np.concatenate([d_rows, c_batch[None, :]], axis=0)
+            rows = [d_rows, c_batch[None, :]]
+            if conex:
+                rows.extend([rn_batch.T, z_batch.T, x_batch.T])
+            return np.concatenate(rows, axis=0)
 
         if serial:
             results = chunk_worker(
@@ -954,7 +977,7 @@ class CphotAng:
             results = map_showers_distributed(
                 chunk_worker,
                 (betaE, alt, Eshow100PeV, init_lat, init_long),
-                n_rows=n_den + 1,
+                n_rows=n_den + 1 + diagnostic_rows,
                 chunks=chunks,
                 client=client,
             )
@@ -962,4 +985,11 @@ class CphotAng:
         # Unpack (n_rows, N): density rows then the Cang row. Collapsed ->
         # (N,); per-wavelength -> (N, n_wl) (transpose back the n_den rows).
         dphots = results[0] if n_den == 1 else results[:n_den].T
-        return dphots, results[n_den]
+        cang = results[n_den]
+        if conex:
+            diagnostics = results[n_den + 1 :]
+            rn = diagnostics[:n_nodes].T
+            z_nodes = diagnostics[n_nodes : 2 * n_nodes].T
+            x_to_node = diagnostics[2 * n_nodes :].T
+            return dphots, cang, rn, z_nodes, x_to_node
+        return dphots, cang

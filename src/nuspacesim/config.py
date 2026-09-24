@@ -324,6 +324,8 @@ class Simulation(BaseModel):
 
     use_refactored_photon_sum: bool = False
     """Use Phase-B refactored photon-sum kernel in EAS optical simulation."""
+    conex_output: bool = False
+    """Enable CONEX output generation."""
     refactored_photon_sum_variant: Literal["v1", "v2", "v3", "v4", "v6"] = "v2"
     """Refactored photon-sum variant key (used when use_refactored_photon_sum=True)."""
 

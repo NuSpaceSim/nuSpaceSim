@@ -56,6 +56,7 @@ from numpy.typing import ArrayLike
 from rich.console import Console
 
 from . import results_table
+from .conex_out import conex_out
 from .config import NssConfig
 from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
@@ -191,6 +192,7 @@ def compute(
     beta_tr, thetaArr, pathLenArr, *_ = geom(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
+
     thrown_color = "[blue]" if beta_tr.size else "[red]"
     logv(
         f"\t{thrown_color}Threw {config.simulation.thrown_events} neutrinos.\
@@ -239,18 +241,36 @@ def compute(
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
-        numPEs, costhetaChEff = eas(
-            beta_tr,
-            altDec,
-            showerEnergy,
-            init_lat,
-            init_long,
-            cloudf=cloud,
-            client=optical_cluster.client() if use_cluster else None,
-            serial=not use_cluster,
-            store=sw,
-            plot=to_plot,
-        )
+        if config.simulation.conex_output:
+            numPEs, costhetaChEff, RN, z_nodes, X_to_node = eas(
+                beta_tr,
+                altDec,
+                showerEnergy,
+                init_lat,
+                init_long,
+                cloudf=cloud,
+                conex=True,
+                client=optical_cluster.client() if use_cluster else None,
+                serial=not use_cluster,
+                store=sw,
+                plot=to_plot,
+            )
+            conex_out(sim, RN, z_nodes, X_to_node, output_file)
+
+        else:
+            numPEs, costhetaChEff = eas(
+                beta_tr,
+                altDec,
+                showerEnergy,
+                init_lat,
+                init_long,
+                cloudf=cloud,
+                conex=False,
+                client=optical_cluster.client() if use_cluster else None,
+                serial=not use_cluster,
+                store=sw,
+                plot=to_plot,
+            )
 
         # Single consumer is done; release the warm cluster immediately.
         if use_cluster:

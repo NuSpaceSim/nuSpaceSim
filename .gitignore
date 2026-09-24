@@ -188,3 +188,7 @@ cython_debug/
 AGENTS.md
 .claude/
 docs/*.md
+
+#debug files
+*.root
+*.png
