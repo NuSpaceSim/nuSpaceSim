@@ -189,6 +189,5 @@ AGENTS.md
 .claude/
 docs/*.md
 
-#debug files
+# CONEX output files
 *.root
-*.png

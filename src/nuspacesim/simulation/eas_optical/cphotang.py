@@ -94,6 +94,7 @@ __all__ = [
     "BackgroundCluster",
     "CphotAng",
     "PhotonYieldInputs",
+    "ShowerProfile",
     "hillas_single_integral_model",
 ]
 
@@ -154,6 +155,52 @@ class PhotonYieldInputs:
     s: np.ndarray
     Eshow: np.ndarray
     n_nodes: int
+
+
+@dataclass(frozen=True)
+class ShowerProfile:
+    """Longitudinal profiles of a batch of showers on the fixed node grid.
+
+    Handed to an ``on_profile`` callable by :meth:`CphotAng.run` /
+    :meth:`CphotAng.__call__` / :meth:`EAS.__call__`, which lets a caller observe
+    the per-node shower state without changing what those functions return.
+    Every shower has exactly ``n_nodes`` nodes, so all arrays are fixed shape:
+    per-shower fields are ``(n_showers,)`` and per-node fields are
+    ``(n_showers, n_nodes)``. Nodes span the visible window of each shower in
+    two Gauss-Legendre panels split at the Greisen maximum, so ``X`` is
+    non-decreasing along each row. It is strictly increasing unless the
+    maximum lies outside the window: that panel then has zero width and its
+    nodes coincide on the window edge (contributing nothing).
+
+    Attributes
+    ----------
+    index : ndarray of int, shape (n_showers,)
+        Row of each shower in the *receiving caller's* event arrays. Each layer
+        re-maps it, so at the pipeline level it indexes ``beta_tr`` & co.
+    beta : ndarray, shape (n_showers,)
+        Earth emergence angle (rad) the node grid was built with (run() clamps
+        it to >= 1 deg).
+    altDec : ndarray, shape (n_showers,)
+        Tau decay altitude (km).
+    showerEnergy : ndarray, shape (n_showers,)
+        Shower energy (100 PeV).
+    X : ndarray, shape (n_showers, n_nodes)
+        Slant depth from the decay point to each node (g/cm^2).
+    z : ndarray, shape (n_showers, n_nodes)
+        Altitude of each node (km).
+    N : ndarray, shape (n_showers, n_nodes)
+        Charged-particle count at each node (the configured profile model).
+    """
+
+    index: np.ndarray
+    beta: np.ndarray
+    altDec: np.ndarray
+    showerEnergy: np.ndarray
+    X: np.ndarray
+    z: np.ndarray
+    N: np.ndarray
+
+    NODE_FIELDS = ("X", "z", "N")  # the (n_showers, n_nodes) fields, in order
 
 
 # Lower edge of the shower's valid slant-depth window. The Hillas e2 parameter
@@ -388,7 +435,7 @@ class CphotAng:
         n_energy_low=3,
         n_energy_high=8,
         photon_model=None,
-        conex=False,
+        on_profile=None,
     ):
         """Main simulation: compute photon density and Cherenkov angle.
 
@@ -448,6 +495,10 @@ class CphotAng:
             ``n_energy_low``/``n_energy_high``). Supply a custom callable to swap
             in a different parameterization, function approximation, or physical
             model without changing the surrounding pipeline.
+        on_profile : callable, optional
+            Called once with the batch's :class:`ShowerProfile` (``index`` =
+            ``arange(n_showers)``) as soon as the per-node shower state exists.
+            Observation only: it does not change the return value. Default None.
 
         Returns
         -------
@@ -507,6 +558,18 @@ class CphotAng:
 
         # Phase 3: shower-physics fields and the derived Cherenkov quantities.
         AirN, s, RN, e2hill = shower_state_at_nodes(z_nodes, X_to_node, gb)
+        if on_profile is not None:
+            on_profile(
+                ShowerProfile(
+                    index=np.arange(betaE.shape[0]),
+                    beta=betaE,
+                    altDec=alt,
+                    showerEnergy=np.atleast_1d(np.asarray(Eshow100PeV, np.float64)),
+                    X=X_to_node,
+                    z=z_nodes,
+                    N=RN,
+                )
+            )
         eCthres, thetaC = cherenkov_threshold_angle(AirN)
         E0 = hillas_scale_energy(z_nodes.shape, s)
         Tfrac = tracklen(E0, eCthres, s)
@@ -552,10 +615,7 @@ class CphotAng:
             altitude_scaling,
             per_wavelength,
         )
-        result = photonDen.astype(self.dtype), Cang.astype(self.dtype)
-        if conex:
-            return result + (RN, z_nodes, X_to_node)
-        return result
+        return photonDen.astype(self.dtype), Cang.astype(self.dtype)
 
     # ------------------------------------------------------------------
     # run() stages (each operates on (n_showers,) / (n_showers, n_nodes))
@@ -859,7 +919,6 @@ class CphotAng:
         init_lat,
         init_long,
         cloudf=None,
-        conex=False,
         chunks=None,
         photon_model=None,
         per_wavelength=False,
@@ -869,6 +928,7 @@ class CphotAng:
         n_energy_low=3,
         n_energy_high=8,
         serial=False,
+        on_profile=None,
     ):
         """
         Iterate over the list of events and return the result as pair of
@@ -911,6 +971,12 @@ class CphotAng:
         kernel the workers use and ignores ``client``; the pipeline picks it
         below ``config.simulation.eas_parallel_threshold`` showers, where a
         cluster's spawn and teardown would outweigh the work.
+
+        ``on_profile`` (optional) is called once, in this process, with the whole
+        batch's :class:`ShowerProfile` (``index`` = ``arange(n)``). Each block's
+        per-node arrays ride back from the workers as extra fixed-width rows of
+        the packed block, so this works serially and distributed alike, and the
+        return value is unchanged. None (default) adds no work.
         """
 
         if (
@@ -920,14 +986,6 @@ class CphotAng:
             or len(init_lat) < 1
             or len(init_long) < 1
         ):
-            if conex:
-                return (
-                    np.empty([]),
-                    np.empty([]),
-                    np.empty([]),
-                    np.empty([]),
-                    np.empty([]),
-                )
             return np.empty([]), np.empty([])
 
         # Per block, run() yields density (N,) [collapsed] or (N, n_wl)
@@ -936,37 +994,35 @@ class CphotAng:
         # the density (n_den = 1 collapsed, n_wl per-wavelength), the last row
         # is Cang. The collapsed path stays (2, N) -- bit-identical to before;
         # per-wavelength avoids the (N, n_nodes, n_wl) tensor only when the
-        # caller actually wants it. CONEX diagnostics are packed as n_nodes rows
-        # for each of RN, z_nodes, and X_to_node after the density and angle.
+        # caller actually wants it.
         n_wl = len(self.wmean)
         n_den = n_wl if per_wavelength else 1
-        diagnostic_rows = 3 * n_nodes if conex else 0
+        # With an on_profile observer, each ShowerProfile.NODE_FIELDS array adds
+        # n_nodes rows after Cang (fixed width: every shower has n_nodes nodes).
+        profile_fields = ShowerProfile.NODE_FIELDS if on_profile is not None else ()
+        n_rows = n_den + 1 + len(profile_fields) * n_nodes
 
         def chunk_worker(b, a, e, lat, lon):
-            run_result = self.run(
+            captured = []
+            d_batch, c_batch = self.run(
                 b,
                 a,
                 e,
                 lat,
                 lon,
                 cloudf=cloudf,
-                conex=conex,
                 n_nodes=n_nodes,
                 n_slant_sub=n_slant_sub,
                 per_wavelength=per_wavelength,
                 n_energy_low=n_energy_low,
                 n_energy_high=n_energy_high,
                 photon_model=photon_model,
+                on_profile=captured.append if profile_fields else None,
             )
-            if conex:
-                d_batch, c_batch, rn_batch, z_batch, x_batch = run_result
-            else:
-                d_batch, c_batch = run_result
             # d_batch is (N,) collapsed or (N, n_wl); make it (n_den, N).
             d_rows = d_batch.T if per_wavelength else d_batch[None, :]
             rows = [d_rows, c_batch[None, :]]
-            if conex:
-                rows.extend([rn_batch.T, z_batch.T, x_batch.T])
+            rows += [getattr(p, f).T for p in captured for f in profile_fields]
             return np.concatenate(rows, axis=0)
 
         if serial:
@@ -977,7 +1033,7 @@ class CphotAng:
             results = map_showers_distributed(
                 chunk_worker,
                 (betaE, alt, Eshow100PeV, init_lat, init_long),
-                n_rows=n_den + 1 + diagnostic_rows,
+                n_rows=n_rows,
                 chunks=chunks,
                 client=client,
             )
@@ -985,11 +1041,19 @@ class CphotAng:
         # Unpack (n_rows, N): density rows then the Cang row. Collapsed ->
         # (N,); per-wavelength -> (N, n_wl) (transpose back the n_den rows).
         dphots = results[0] if n_den == 1 else results[:n_den].T
-        cang = results[n_den]
-        if conex:
-            diagnostics = results[n_den + 1 :]
-            rn = diagnostics[:n_nodes].T
-            z_nodes = diagnostics[n_nodes : 2 * n_nodes].T
-            x_to_node = diagnostics[2 * n_nodes :].T
-            return dphots, cang, rn, z_nodes, x_to_node
-        return dphots, cang
+        if profile_fields:
+            node_rows = results[n_den + 1 :].reshape(len(profile_fields), n_nodes, -1)
+            # The same coerced (beta-clamped) inputs run() built the grid with.
+            beta_grid, alt_grid, *_ = self._coerce_inputs(
+                betaE, alt, Eshow100PeV, init_lat, init_long
+            )
+            on_profile(
+                ShowerProfile(
+                    index=np.arange(node_rows.shape[-1]),
+                    beta=beta_grid,
+                    altDec=alt_grid,
+                    showerEnergy=np.asarray(Eshow100PeV, np.float64),
+                    **{f: rows.T for f, rows in zip(profile_fields, node_rows)},
+                )
+            )
+        return dphots, results[n_den]

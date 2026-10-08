@@ -297,6 +297,7 @@ def test_default_simulation():
     assert a.use_refactored_photon_sum is False
     assert a.refactored_photon_sum_variant == "v2"
     assert a.cherenkov_light_engine == "nuspacesim"
+    assert a.conex_output is False
     assert a.ionosphere is not None
     assert a.ionosphere.total_electron_content == 10.0
     assert a.ionosphere.total_electron_error == 0.1
@@ -317,6 +318,7 @@ def test_default_simulation():
         "use_refactored_photon_sum": False,
         "refactored_photon_sum_variant": "v2",
         "cherenkov_light_engine": "nuspacesim",
+        "conex_output": False,
         "ionosphere": {
             "enable": True,
             "total_electron_content": 10.0,

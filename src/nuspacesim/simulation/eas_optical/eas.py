@@ -31,6 +31,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import dataclasses
+
 import numpy as np
 from astropy import units
 from astropy.constants import R_earth, c
@@ -91,9 +93,9 @@ class EAS:
         init_long,
         *args,
         cloudf=None,
-        conex=False,
         client=None,
         serial=False,
+        on_profile=None,
         **kwargs,
     ):
         """
@@ -103,6 +105,10 @@ class EAS:
             :meth:`CphotAng.__call__`; see :class:`BackgroundCluster`. When ``None``
             CphotAng spins up its own LocalCluster. ``serial=True`` skips the
             cluster entirely and runs CphotAng in this process.
+
+            ``on_profile`` is an optional callable receiving the
+            :class:`~.cphotang.ShowerProfile` of the simulated (in-bounds)
+            showers; its ``index`` refers to rows of *these* input arrays.
         """
 
         # Mask out-of-bounds events. Do not pass to CphotAng. Instead use
@@ -116,22 +122,21 @@ class EAS:
 
         # Run CphotAng on in-bounds events
         quad = self.config.simulation.cherenkov_quadrature
-        cphotang_result = self.CphotAng(
+        dphots[mask], thetaCh100PeV[mask] = self.CphotAng(
             beta[mask],
             altDec[mask],
             showerEnergy[mask],
             init_lat[mask],
             init_long[mask],
             cloudf,
-            conex,
             client=client,
             serial=serial,
+            on_profile=_reindexed(on_profile, np.flatnonzero(mask)),
             n_nodes=quad.n_nodes,
             n_slant_sub=quad.n_slant_sub,
             n_energy_low=quad.n_energy_low,
             n_energy_high=quad.n_energy_high,
         )
-        dphots[mask], thetaCh100PeV[mask] = cphotang_result[:2]
 
         numPEs = (
             dphots
@@ -152,9 +157,18 @@ class EAS:
 
         costhetaChEff = np.cos(np.radians(thetaChEff))
 
-        if conex:
-            return numPEs, costhetaChEff, *cphotang_result[2:]
         return numPEs, costhetaChEff
+
+
+def _reindexed(on_profile, rows):
+    """Wrap ``on_profile`` so a profile's ``index`` maps through ``rows``."""
+    if on_profile is None:
+        return None
+
+    def forward(profile):
+        on_profile(dataclasses.replace(profile, index=rows[profile.index]))
+
+    return forward
 
 
 def show_plot(sim, simclass, plot):

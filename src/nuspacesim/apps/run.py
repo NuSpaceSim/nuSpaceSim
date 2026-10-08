@@ -49,6 +49,7 @@
 import click
 
 from ..compute import compute
+from ..conex import ConexWriter, conex_path
 from ..config import config_from_toml
 from ..results_table import output_filename
 from ..utils.plot_function_registry import registry
@@ -209,12 +210,14 @@ def run(
     plot = read_plot_config(registry, plotall, plotconfig, plot)
 
     output = output_filename(output)
+    conex = ConexWriter(conex_path(output)) if config.simulation.conex_output else None
     simulation = compute(
         config,
         verbose=True,
         to_plot=plot,
         output_file=output,
         write_stages=write_stages,
+        on_shower_profile=conex,
     )
 
     if not no_result_file:

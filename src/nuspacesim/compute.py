@@ -48,7 +48,7 @@ NuSpaceSim Simulation
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import numpy as np
 from astropy.table import Table as AstropyTable
@@ -56,9 +56,9 @@ from numpy.typing import ArrayLike
 from rich.console import Console
 
 from . import results_table
-from .conex_out import conex_out
 from .config import NssConfig
 from .simulation.atmosphere.clouds import CloudTopHeight
+from .simulation.eas_optical.cphotang import ShowerProfile
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
 from .simulation.eas_radio.radio_antenna import calculate_snr
@@ -78,6 +78,7 @@ def compute(
     output_file: str | None = None,
     to_plot: list = [],
     write_stages=False,
+    on_shower_profile: Callable[[ShowerProfile], None] | None = None,
 ) -> AstropyTable:
     r"""Simulate an upward going shower.
 
@@ -120,6 +121,12 @@ def compute(
         Call the listed plotting functions as appropritate.
     write_stages: bool, optional
         Enable writing intermediate results to the output_file.
+    on_shower_profile: callable, optional
+        Called with the :class:`ShowerProfile` (fixed-shape longitudinal
+        profiles) of the optically simulated showers; its ``index`` refers to
+        rows of the thrown-event arrays. Use it to emit per-shower outputs such
+        as CONEX files (:class:`nuspacesim.conex.ConexWriter`) without changing
+        the simulation. Default None.
 
     Returns
     -------
@@ -192,7 +199,6 @@ def compute(
     beta_tr, thetaArr, pathLenArr, *_ = geom(
         config.simulation.thrown_events, store=sw, plot=to_plot
     )
-
     thrown_color = "[blue]" if beta_tr.size else "[red]"
     logv(
         f"\t{thrown_color}Threw {config.simulation.thrown_events} neutrinos.\
@@ -241,36 +247,19 @@ def compute(
     if config.detector.optical.enable:
         logv("Computing [green] EAS Optical Cherenkov light.[/]")
 
-        if config.simulation.conex_output:
-            numPEs, costhetaChEff, RN, z_nodes, X_to_node = eas(
-                beta_tr,
-                altDec,
-                showerEnergy,
-                init_lat,
-                init_long,
-                cloudf=cloud,
-                conex=True,
-                client=optical_cluster.client() if use_cluster else None,
-                serial=not use_cluster,
-                store=sw,
-                plot=to_plot,
-            )
-            conex_out(sim, RN, z_nodes, X_to_node, output_file)
-
-        else:
-            numPEs, costhetaChEff = eas(
-                beta_tr,
-                altDec,
-                showerEnergy,
-                init_lat,
-                init_long,
-                cloudf=cloud,
-                conex=False,
-                client=optical_cluster.client() if use_cluster else None,
-                serial=not use_cluster,
-                store=sw,
-                plot=to_plot,
-            )
+        numPEs, costhetaChEff = eas(
+            beta_tr,
+            altDec,
+            showerEnergy,
+            init_lat,
+            init_long,
+            cloudf=cloud,
+            client=optical_cluster.client() if use_cluster else None,
+            serial=not use_cluster,
+            on_profile=on_shower_profile,
+            store=sw,
+            plot=to_plot,
+        )
 
         # Single consumer is done; release the warm cluster immediately.
         if use_cluster:

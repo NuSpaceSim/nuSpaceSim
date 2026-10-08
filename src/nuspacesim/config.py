@@ -324,8 +324,6 @@ class Simulation(BaseModel):
 
     use_refactored_photon_sum: bool = False
     """Use Phase-B refactored photon-sum kernel in EAS optical simulation."""
-    conex_output: bool = False
-    """Enable CONEX output generation."""
     refactored_photon_sum_variant: Literal["v1", "v2", "v3", "v4", "v6"] = "v2"
     """Refactored photon-sum variant key (used when use_refactored_photon_sum=True)."""
 
@@ -357,6 +355,10 @@ class Simulation(BaseModel):
         if value == "Default":
             return "nuspacesim"
         return value
+
+    conex_output: bool = False
+    """Write the optical showers' longitudinal profiles to a CONEX ROOT file
+    (``conex_<results stem>.root``; see :mod:`nuspacesim.conex`)."""
 
     ionosphere: Optional[Ionosphere] = Ionosphere()
     cherenkov_quadrature: CherenkovQuadrature = CherenkovQuadrature()
