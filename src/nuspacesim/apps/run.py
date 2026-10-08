@@ -49,6 +49,7 @@
 import click
 
 from ..compute import compute
+from ..conex import ConexWriter, conex_path
 from ..config import config_from_toml
 from ..results_table import output_filename
 from ..utils.plot_function_registry import registry
@@ -58,6 +59,13 @@ from .utils import parse_cloud_options, parse_spectra_options, read_plot_config
 @click.command()
 @click.option(
     "-o", "--output", type=click.Path(exists=False), default=None, help="Output file."
+)
+@click.option(
+    "-c",
+    "--conex-output",
+    is_flag=True,
+    default=False,
+    help="Generate CONEX-compatible ROOT output.",
 )
 @click.option(
     "-p",
@@ -136,6 +144,7 @@ def run(
     count: float,
     no_result_file: bool,
     output: str,
+    conex_output: bool,
     plot: list,
     plotconfig: str,
     plotall: bool,
@@ -183,6 +192,9 @@ def run(
     # User Inputs
     config = config_from_toml(config_file)
 
+    if conex_output:
+        config.simulation.conex_output = True
+
     config.simulation.thrown_events = int(
         config.simulation.thrown_events if count == 0.0 else count
     )
@@ -198,12 +210,14 @@ def run(
     plot = read_plot_config(registry, plotall, plotconfig, plot)
 
     output = output_filename(output)
+    conex = ConexWriter(conex_path(output)) if config.simulation.conex_output else None
     simulation = compute(
         config,
         verbose=True,
         to_plot=plot,
         output_file=output,
         write_stages=write_stages,
+        on_shower_profile=conex,
     )
 
     if not no_result_file:

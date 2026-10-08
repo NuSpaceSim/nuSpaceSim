@@ -356,6 +356,10 @@ class Simulation(BaseModel):
             return "nuspacesim"
         return value
 
+    conex_output: bool = False
+    """Write the optical showers' longitudinal profiles to a CONEX ROOT file
+    (``conex_<results stem>.root``; see :mod:`nuspacesim.conex`)."""
+
     ionosphere: Optional[Ionosphere] = Ionosphere()
     cherenkov_quadrature: CherenkovQuadrature = CherenkovQuadrature()
     """Optical Cherenkov quadrature node-count knobs (optional; defaults match CphotAng)."""
