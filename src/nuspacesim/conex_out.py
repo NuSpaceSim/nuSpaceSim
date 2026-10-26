@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 #from .simulation.eas_optical.atmospheric_models import slant_depth
 from .simulation.eas_optical.shower_properties import path_length_tau_atm
 from .augermc import ecef_to_utm, earth_radius_centerlat, slant_depth, altitude_from_ecef
+from .cutflow import cutflow_rows
 import matplotlib.pyplot as plt
 
 #from .simulation.auger_sim import geomsim as asim
@@ -18,18 +19,40 @@ def GH(X, X0, Xmax, Nmax, p3, p2, p1):
         
 
 
-def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
-                ,beta,TauEnergy,Zfirst,azim,gpsarray
+def conex_out(X_builder,RN_builder, dEdX_builder, id,norig,groundecef
+                ,beta,TauEnergy,showerEnergy,Zfirst,azim,gpsarray
                 ,NuEnergy,tauExitProb, ghparams
                 , Xfirstinteract,output_file
                 , xmaxecef,xstartecef,n_tel_array,
-                heightcompare1, heightcompare2, distcompare1, distcompare2
+                heightcompare1, heightcompare2, distcompare1, distcompare2,
+                *, nexitprobcandidates=None, naccepted=None, pmax=None, cut_counts=None,
+                nu_energy_bounds=None
                 ):
+
+    # norig counts original sphere-pair candidates; nexitprobcandidates counts exit trials
+    # after geometry cuts. Both exclude the unused tail of the final batch.
+    # A legacy caller without a cut flow gets -1 for unavailable stage counts.
+    cut_counts = {} if cut_counts is None else cut_counts
+    if any(value is not None for value in (nexitprobcandidates, naccepted, pmax)):
+        if any(value is None for value in (nexitprobcandidates, naccepted, pmax)):
+            raise ValueError(
+                "Exit-selection metadata requires nexitprobcandidates, naccepted, and pmax."
+            )
 
     X = X_builder.snapshot()
     RN = RN_builder.snapshot()
     dEdX = dEdX_builder.snapshot()
     n=np.size(Zfirst)
+    if cut_counts:
+        cutflow_rows(cut_counts)
+        if cut_counts["norig"] != norig or cut_counts["n_trigger"] != n:
+            raise ValueError("Cut-flow totals must match norig and the output event count.")
+        if (cut_counts["n_beta"] != nexitprobcandidates
+                or cut_counts["n_exitprob"] != naccepted):
+            raise ValueError("Cut-flow exit counts must match exit-selection metadata.")
+    if n == 0:
+        # Preserve a typed empty profile dimension for writing a zero-event tree.
+        X = RN = dEdX = ak.Array(np.empty((0, 0), dtype=np.float32))
     #D = ak.ArrayBuilder()
     #Xfirst=[]
     ghparams=np.array(ghparams)
@@ -101,8 +124,13 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
     zmax = np.array([132], dtype='i4')
     nan4 = np.array([np.nan], dtype='f4')
     nan8 = np.array([np.nan], dtype='f8')
-    nuEmax=np.array([np.max(NuEnergy)], dtype='f8')
-    nuEmin=np.array([np.min(NuEnergy)], dtype='f8')
+    if nu_energy_bounds is None:
+        nu_energy_bounds = (
+            (float(np.min(NuEnergy)), float(np.max(NuEnergy)))
+            if n else (np.nan, np.nan)
+        )
+    nuEmin = np.array([nu_energy_bounds[0]], dtype='f8')
+    nuEmax = np.array([nu_energy_bounds[1]], dtype='f8')
 
     int4 = np.array([-1], dtype='i4')
     intn = np.full(n, -1, dtype='i4')
@@ -261,7 +289,8 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
     #print('bad chi2 ',chi2[mask])
     #Dp = ak.values_astype(D.snapshot(), np.float32)
     output_file= get_filename(output_file)
-    filename=f"nss_n{n}_lgE{int(nuEmax[0])}.root"
+    energy_tag = str(int(nuEmax[0])) if np.isfinite(nuEmax[0]) else "unknown"
+    filename=f"nss_n{n}_lgE{energy_tag}.root"
     directory=output_file
     #print(directory,filename,directory+filename)
     print('Generating conex-like output in ', filename)
@@ -272,9 +301,24 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
 
 
     branches_header = {
-        "Seed1": np.dtype('i4')
+          "Seed1": np.dtype('i4')
         , "Particle": np.dtype('i4')
         , "Alpha": np.dtype('f8')
+        , "norig": np.dtype('i8')
+        , "n_involume": np.dtype('i8')
+        , "n_cutEarth": np.dtype('i8')
+        , "n_beta": np.dtype('i8')
+        , "n_exitprob": np.dtype('i8')
+        , "n_energy": np.dtype('i8')
+        , "n_decayalt": np.dtype('i8')
+        , "n_geometry": np.dtype('i8')
+        , "n_startatm": np.dtype('i8')
+        , "n_grammage": np.dtype('i8')
+        , "n_showerfov": np.dtype('i8')
+        , "n_trigger": np.dtype('i8')
+        , "nexitprobcandidates": np.dtype('i8')
+        , "naccepted": np.dtype('i8')
+        , "pmax": np.dtype('f8')
         , "lgEmin": np.dtype('f8')
         , "lgEmax": np.dtype('f8')
         , "zMin": np.dtype('f8')
@@ -304,6 +348,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
     branches_shower = {
         "lgE": np.dtype('f4')
         , "lgnuE": np.dtype('f4')
+        , "lgshowerEnergy": np.dtype('f4')
         , "ExitProb": np.dtype('f4')  
         , "zenith": np.dtype('f4')
         , "azimuth": np.dtype('f4')
@@ -358,6 +403,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
         , "distcompare2": np.dtype('f4')
     }
     f = uproot.recreate(directory+filename)
+
     shifted_azimuth = (azim + np.pi) % (2*np.pi)
     f.mktree("Header", branches_header, title="run header")
     f.mktree("Shower", branches_shower, title="shower info")
@@ -365,6 +411,21 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
         "Seed1": int4
         , "Particle": PID  # Proton type (no specific ID for tau)
         , "Alpha": nan8
+        , "norig": [norig]
+        , "n_involume": [cut_counts.get("n_involume", -1)]
+        , "n_cutEarth": [cut_counts.get("n_cutEarth", -1)]
+        , "n_beta": [cut_counts.get("n_beta", -1)]
+        , "n_exitprob": [cut_counts.get("n_exitprob", -1)]
+        , "n_energy": [cut_counts.get("n_energy", -1)]
+        , "n_decayalt": [cut_counts.get("n_decayalt", -1)]
+        , "n_geometry": [cut_counts.get("n_geometry", -1)]
+        , "n_startatm": [cut_counts.get("n_startatm", -1)]
+        , "n_grammage": [cut_counts.get("n_grammage", -1)]
+        , "n_showerfov": [cut_counts.get("n_showerfov", -1)]
+        , "n_trigger": [cut_counts.get("n_trigger", -1)]
+        , "nexitprobcandidates": [nexitprobcandidates if nexitprobcandidates is not None else -1]
+        , "naccepted": [naccepted if naccepted is not None else -1]
+        , "pmax": [pmax if pmax is not None else np.nan]
         , "lgEmin": nuEmin
         , "lgEmax": nuEmax
         , "zMin": zmin
@@ -390,9 +451,15 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,groundecef
         , "lambdaHelium": a
         , "lambdaNitrogen": a
         , "lambdaIron": a})
+    if n == 0:
+        # mktree already created the complete empty shower schema. No baskets
+        # need extending; the run's cut flow remains available in the Header.
+        f.close()
+        return
     f["Shower"].extend({
         "lgE": TauEnergy
         , "lgnuE": NuEnergy
+        , "lgshowerEnergy": showerEnergy
         , "ExitProb": tauExitProb
         , "zenith": zenith  # 90+np.degree(beta_rad)
         , "azimuth": np.degrees(shifted_azimuth)

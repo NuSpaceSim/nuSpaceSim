@@ -154,7 +154,6 @@ COthetatot=[np.min(COelev)-telangle,np.max(COelev)+telangle]
 #Central phi and elevation
 telphi=[np.mean(LLphitot),np.mean(LLphitot)-LLphitot[0],np.mean(LMphitot),np.mean(LMphitot)-LMphitot[0],np.mean(LAphitot),np.mean(LAphitot)-LAphitot[0],np.mean(COphitot),np.mean(COphitot)-COphitot[0]]
 teltheta=[np.mean(LLthetatot),np.mean(LLthetatot)-LLthetatot[0],np.mean(LMthetatot),np.mean(LMthetatot)-LMthetatot[0],np.mean(LAthetatot),np.mean(LAthetatot)-LAthetatot[0],np.mean(COthetatot),np.mean(COthetatot)-COthetatot[0]]
-print(np.degrees(telphi),np.degrees(teltheta))
 # Extract easting and northing values
 easting_values = [LL[0], LM[0], LA[0], CO[0]]
 northing_values = [LL[1], LM[1], LA[1], CO[1]]
@@ -545,9 +544,17 @@ def calcradius(E,num_ang,extraradius=1.01,plotfig=False):
     return np.max(d_stack)
 
 #Take random point in hemisphere (surface). Returns points in the ground and vectors pointing up
-def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
+def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0),*,return_all=False,
+               return_cutflow=False):
+    """Generate isotropic geometries, optionally returning every valid proposal.
+
+    n controls the number of sphere pairs drawn through ninit. return_all lets
+    exit selection consume the entire valid batch instead of truncating it to n.
+    return_cutflow returns (geometry, ancestry), recording original candidate
+    indices at each geometry cut so a partially consumed batch can be counted.
+    """
     #33% more because we remove 1/4 bcs of FoV. 10% more to make sure we reach the intended n with maxang
-    ninit=int((1+1/3)*1.5*n/np.sin(maxang)) #
+    ninit=int((1+1/3)*1.5*n/np.sin(maxang)*50) #
     xr=np.random.normal(size=(ninit))
     yr=np.random.normal(size=(ninit))
     zr=np.random.normal(size=(ninit))
@@ -580,12 +587,25 @@ def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0)):
     coordecef=coord1ecef[maskfov]
     vcoordecef=(coord2ecef[maskfov]-coordecef)/ np.linalg.norm((coord2ecef[maskfov]-coordecef), axis=1, keepdims=True)
 
-    groundecef, vcoordecefground, beta, azimuth= ground_xy(coordecef,vcoordecef)
+    ground_result = ground_xy(coordecef, vcoordecef, return_mask=return_cutflow)
+    groundecef, vcoordecefground, beta, azimuth = ground_result[:4]
 
     mask=(beta<=maxang)&(beta>=minang)  #CUIDADO CON ESTO
-    return groundecef[mask,:][0:n,:], vcoordecefground[mask,:][0:n,:],beta[mask][0:n],azimuth[mask][0:n]#coordg[mask,:][0:n,:], vcoordg[mask,:][0:n,:]
+    limit = slice(None) if return_all else slice(0, n)
+    geometry = (groundecef[mask][limit], vcoordecefground[mask][limit],
+                beta[mask][limit], azimuth[mask][limit])
+    if return_cutflow:
+        volume_indices = np.flatnonzero(maskfov)
+        earth_indices = volume_indices[ground_result[4]]
+        return geometry, {
+            "n_generated": ninit,
+            "volume_indices": volume_indices,
+            "earth_indices": earth_indices,
+            "beta_indices": earth_indices[mask][limit],
+        }
+    return geometry
 
-def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
+def ground_xy(coord,vcoord,height=h,*,return_mask=False):   #Now included inside gen_points
     #c2t**2+c1t+c0=0 
     b2=(6356752.314245+h)**2
     a2 = (6378137.0+h)**2
@@ -618,7 +638,8 @@ def ground_xy(coord,vcoord,height=h):   #Now included inside gen_points
     azimuth = np.where(sign >= 0, theta, 2*np.pi - theta)
     beta=np.pi/2-np.arccos(dotprod)
     print('Cut the Earth, ',beta.size)
-    return groundecef,vcoord, beta, azimuth
+    geometry = groundecef, vcoord, beta, azimuth
+    return (*geometry, mask) if return_mask else geometry
 
 def starting_point(coord,vcoord,startatm):
     earth_safety_margin=startatm+1
@@ -935,7 +956,6 @@ def atmdensity_interpolation(height_km):
     log_dens = np.log(densities_auger)
     log_interp = np.interp(h_m, heights_auger, log_dens)
     return np.exp(log_interp)
-print('ATM DENSITY AT 1415 ',atmdensity_interpolation(1.415))
 
 def atmdensity(z):
     """
@@ -2158,7 +2178,7 @@ def xmax_inside_fov_grams(lgE, groundecef, xmaxecef, xstart,xend, id, ntels=1,
 
 
 
-def energy_at_tel(groundecef, vecef, x, rn, min_e,xmax,distances,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2)):
+def energy_at_tel(groundecef, vecef, x, rn, min_e,xmax,distances,ntels=1,telphi=telphi,teltheta=teltheta, extraangle=np.radians(2), *, return_cutflow=False):
     def alpha(s):
         c1 = 47.9511   # MeV g^-1 cm^2
         c2 = 0.971315
@@ -2175,6 +2195,7 @@ def energy_at_tel(groundecef, vecef, x, rn, min_e,xmax,distances,ntels=1,telphi=
     dedx=alpha(showerage(x))*rn
     code=[2,3,5,7]
     codeout=1
+    has_fov = False
     xstep=x[1]-x[0]
     e_per_m2=0
     #n_e_per_m2=0
@@ -2199,6 +2220,7 @@ def energy_at_tel(groundecef, vecef, x, rn, min_e,xmax,distances,ntels=1,telphi=
 
         if infov.sum()==0:
             continue
+        has_fov = True
         
         disttel=np.linalg.norm(coordsenu[infov],axis=1)
         e_per_m2_cond=max(0,xstep*np.sum(dedx[infov]/disttel**2)/4/np.pi)
@@ -2209,7 +2231,8 @@ def energy_at_tel(groundecef, vecef, x, rn, min_e,xmax,distances,ntels=1,telphi=
             codeout=codeout*code[i]
             #print(code[i],e_per_m2_cond)
 
-    return codeout, e_per_m2, dedx
+    result = codeout, e_per_m2, dedx
+    return (*result, has_fov) if return_cutflow else result
 
 
 def summarize_mask(mask):
@@ -2457,6 +2480,7 @@ def plot_telescope_hist(events):
     plt.close()
 
 def plot_telescope_multiplicity(events):
+
     """
     Plots a histogram showing the distribution of events based on 
     how many telescopes (primes) they are divisible by.
@@ -2499,3 +2523,6 @@ def plot_telescope_multiplicity(events):
     
     plt.savefig('telescope_coincidence.png')
     plt.close()
+
+
+  

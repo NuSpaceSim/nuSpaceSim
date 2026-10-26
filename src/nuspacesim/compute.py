@@ -48,6 +48,7 @@ NuSpaceSim Simulation
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Iterable
 
 import numpy as np
@@ -57,6 +58,7 @@ from rich.console import Console
 
 from . import results_table
 from .config import NssConfig
+from .cutflow import plot_cutflow
 from .simulation.atmosphere.clouds import CloudTopHeight
 from .simulation.eas_optical.eas import EAS
 from .simulation.eas_radio.radio import EASRadio
@@ -67,6 +69,8 @@ from .simulation.geometry.region_geometry import RegionGeom, RegionGeomToO
 
 from .simulation.spectra.spectra import Spectra
 from .simulation.taus.taus import Taus
+from .simulation.taus.exit_sampling import sample_exit_geometries
+from .simulation.taus.local_plots import plot_exit_selection
 from .augermc import *
 #from .augermc_seniordesign import *
 
@@ -120,6 +124,15 @@ def compute(
     At each stage of the simulation, array results are stored as contiguous columns,
     and scalar results are stored as attributes, both in the :class:`AstropyTable`
     object.
+
+    For the Auger geometry path, simulation.thrown_events is the number of
+    equally weighted exiting taus retained before shower cuts. Monoenergetic
+    geometry candidates are selected with Pexit / pmax(E). The CONEX ROOT Header
+    records norig (original sphere-pair candidates), every event cut count,
+    nexitprobcandidates (exit trials), naccepted, and pmax. Unused final-batch candidates
+    are excluded at every stage; naccepted is the number retained for showers.
+    Shower.ExitProb is diagnostic, not an event
+    weight for this selected sample.
 
 
     Parameters
@@ -318,10 +331,11 @@ def compute(
 
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
-    logv("Computing [green] Geometries.[/]")
-    logv(
-        f"\t[blue]Threw {config.simulation.thrown_events} neutrinos. All were valid.[/]"
-    )
+    if config.simulation.spectrum.id != "monospectrum":
+        raise ValueError(
+            "Exit-selected geometry generation requires a monoenergetic spectrum."
+        )
+    logv("Computing [green] Exit-selected geometries.[/]")
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
@@ -331,7 +345,6 @@ def compute(
     nuE = np.array(9 + log_e_nu)
     n = config.simulation.thrown_events
     print('N=', n)
-
     # PARAMETERS
     maxangle = np.radians(30)
     radiusfactor = 2
@@ -340,15 +353,40 @@ def compute(
     ntels = 4
     # PARAMETERS
     radius = roundcalcradius(maxE, radiusfactor)
-    groundecef, vecef, beta_tr, azimuth = gen_points(n, radius, maxang=maxangle)
-    if beta_tr.size == 0:
-        console.log("\t[red] WARNING: No valid events thrown! Exiting early! Check geometry![/]")
-        return sim
+
+
+    exit_sample = sample_exit_geometries(
+        tau, gen_points, n, radius, float(log_e_nu[0]), maxangle, log=logv
+    )
+    cut_counts = exit_sample.cut_counts.copy()
+    norig = cut_counts["norig"]
+    groundecef = exit_sample.groundecef
+    vecef = exit_sample.vecef
+    beta_tr = exit_sample.beta_tr
+    azimuth = exit_sample.azimuth
+    sw.add_meta(
+        "NCAND", exit_sample.nexitprobcandidates, "Geometry candidates tested for tau exit"
+    )
+    sw.add_meta(
+        "NACCEPT", exit_sample.naccepted, "Accepted exit trials retained for simulation"
+    )
+    sw.add_meta(
+        "PEXITMAX", exit_sample.pmax, "Exit probability bound at input neutrino energy"
+    )
+    plot_path = Path(__file__).resolve().parents[2] / (
+        f"beta_exit_selection_lgEnu{float(log_e_nu[0]) + 9:g}.png"
+    )
+    plot_exit_selection(exit_sample, tau, float(log_e_nu[0]), plot_path)
+    logv(f"Saved exit-selection plot to {plot_path}")
 
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
         beta_tr, log_e_nu, store=sw, plot=to_plot
     )
+    # ExitProb is diagnostic: the events already include exit probability via
+    # selection and must not be weighted by it again in downstream analysis.
+
+
     energies = np.log10(tauEnergy) + 9
 
     logv("Computing [green] Decay Altitudes.[/]")
@@ -385,12 +423,19 @@ def compute(
 
     print('Calculating Shower Development cuts')
 
-    # Cut 1: energy threshold + altitude
+    # Cut 1: sampled shower energy, then decay altitude.
     maxalt=35
-    cut1 = (variables["energies"] > energy_threshold) & (variables["altDec"] < maxalt)
-    cumulative_indices = cumulative_indices[cut1]
-    variables = apply_cut(variables, cut1)
-    print(variables["energies"].size, f' Valid events over 10^16 eV and decay altitude < {maxalt} km')
+    # showerEnergy is in units of 100 PeV (1e17 eV).
+    cut_energy = variables["showerEnergy"] > 10.0 ** (energy_threshold - 17)
+    cumulative_indices = cumulative_indices[cut_energy]
+    variables = apply_cut(variables, cut_energy)
+    cut_counts["n_energy"] = len(cumulative_indices)
+    cut_altitude = variables["altDec"] < maxalt
+    cumulative_indices = cumulative_indices[cut_altitude]
+    variables = apply_cut(variables, cut_altitude)
+    cut_counts["n_decayalt"] = len(cumulative_indices)
+    print(variables["energies"].size,
+          f' Valid events with shower energy over 10^{energy_threshold} eV and decay altitude < {maxalt} km')
 
     # Compute Xnuclearcollision
     meancollisionlength = 61.3
@@ -407,6 +452,7 @@ def compute(
     cut2 = id_temp != 1
     cumulative_indices = cumulative_indices[cut2]
     variables = apply_cut(variables, cut2)
+    cut_counts["n_geometry"] = len(cumulative_indices)
 
     # Post-cut2 computations
     dist2EarthCenter = np.sqrt(variables['groundecef'][:, 0]**2 + variables['groundecef'][:, 1]**2 + variables['groundecef'][:, 2]**2)
@@ -422,6 +468,7 @@ def compute(
     cut2_1=mask_start
     cumulative_indices = cumulative_indices[cut2_1]
     variables = apply_cut(variables, cut2_1)
+    cut_counts["n_startatm"] = len(cumulative_indices)
 
     Xfirst_offline = integrated_grammage_opt(variables['startingecef'], variables['decayecef'], delta)
     variables['Xfirst_offline'] = Xfirst_offline
@@ -430,6 +477,9 @@ def compute(
     variables['Xfirstinteract'] = Xfirstinteract
 
     remainingn = len(variables['Xfirst_offline'])
+    cut_counts["n_grammage"] = 0
+    cut_counts["n_showerfov"] = 0
+    cut_counts["n_trigger"] = 0
     xlimfactor = 5
     deltaX=10
     startoutcounter=0
@@ -439,7 +489,7 @@ def compute(
     xmax_outside_atm_counter = 0
     xmax_outside_atm_and_trigg = 0
     finalmask = np.zeros(remainingn, dtype=bool)
-    min_e=0.05
+    min_e=0.05 #default value
     variables['xstartecef']=np.zeros((remainingn,3))
     xfinal=np.zeros(remainingn)
     height_compare1=np.zeros(remainingn)
@@ -464,10 +514,14 @@ def compute(
                                                 altitude_from_ecef,          # alt_m(ECEF) -> meters
                                                 startatm,   )
         start_slant=Xfirstinteract[i]
+        global_i = cumulative_indices[i]
+
         if start_slant+100>slant[-1]:
             startoutcounter+=1
+            id_full[global_i] = 1
             #print('Skip event, start slant outside atmosphere',start_slant,slant[-1])
             continue
+        cut_counts["n_grammage"] += 1
         start_dist=np.interp(start_slant,slant,dist)
         variables['xstartecef'][i,:]=variables['groundecef'][i,:]+start_dist*variables['vecef'][i,:]
 
@@ -504,8 +558,16 @@ def compute(
         shiftedghparams = np.array([shiftedX0, shiftedXmax, Nmax, shiftedp3, shiftedp2, shiftedp1])
         all_ghparams[i] = shiftedghparams
         distances_along_shower=np.interp(x+start_slant,slant,dist)
+        if len(np.unique(distances_along_shower)) < len(distances_along_shower):
+            print(f"WARNING: 'distances_along_shower' contains duplicate values!")
+            print(f"Values: {distances_along_shower}")
         rn = gaisser_hillas_particle_count_exp_form(x, shiftedX0, shiftedXmax, Nmax, shiftedgh_lam)
-        code, n_e_per_m2, dedx = energy_at_tel(variables['groundecef'][i,:], variables['vecef'][i,:], x, rn, min_e,shiftedXmax,distances_along_shower,ntels)
+        code, n_e_per_m2, dedx, has_fov = energy_at_tel(
+            variables['groundecef'][i,:], variables['vecef'][i,:], x, rn,
+            min_e, shiftedXmax, distances_along_shower, ntels,
+            return_cutflow=True,
+        )
+        cut_counts["n_showerfov"] += int(has_fov)
         """plt.figure(figsize=(12,10),dpi=200)
         plt.plot(x,rn,label='No. of particles')
         plt.plot(x,rn*0.0025935,label='dEdX constant')
@@ -515,7 +577,6 @@ def compute(
         plt.grid()
         plt.savefig(f'dedx_over_rn_example_{i}.png')
         exit()"""
-        global_i = cumulative_indices[i]
         #print(id_full[global_i], ' ID before', code, ' ID after')
         id_full[global_i] = code
 
@@ -530,6 +591,7 @@ def compute(
             print(f"Done {i}/{remainingn} ({remainingn - i} left)")
         if code == 1:
             continue
+        cut_counts["n_trigger"] += 1
         disttoxmax=np.interp(shiftedXmax+start_slant,slant,dist)
         xmaxecef[i, :] = variables['groundecef'][i, :] + disttoxmax * variables['vecef'][i, :]
         n_e_array[i] = n_e_per_m2
@@ -554,12 +616,21 @@ def compute(
     print(startoutcounter, ' Start shower outside atmosphere')
 
     print(np.sum(finalmask), ' Events with enough shower development in view of detector')
+    print('Number of valid events ', np.sum(id_full != 1))
+
     #print(xmax_outside_atm_counter, ' Events with Xmax outside atmosphere')
     #print(xmax_outside_atm_and_trigg, ' Events with Xmax outside atmosphere that still triggered')
 
     final_local = np.flatnonzero(finalmask)
     final_global = cumulative_indices[final_local]
-    print(id_full[final_global], 'FINAL IDs')
+    cutflow_path = Path(__file__).resolve().parents[2] / (
+        f"cutflow_lgEnu{float(log_e_nu[0]) + 9:g}.png"
+    )
+    plot_cutflow(
+        cut_counts, cutflow_path,
+        title=rf"Simulation cut flow — $E_\nu = 10^{{{float(log_e_nu[0]) + 9:g}}}$ eV",
+    )
+    logv(f"Saved cut-flow plot to {cutflow_path}")
     plot_telescope_hist(id_full[final_global])
     plot_telescope_multiplicity(id_full[final_global])
     #Re run GEOM cut to check if its a redundant cut after e_at_tel cut. Does it keep the zenith, azim distribution the same? 
@@ -701,13 +772,17 @@ def compute(
 
 
 
-    print('Maximum Alt Decay:', np.max(variables['altDec'][final_local]))
+    if final_local.size:
+        print('Maximum Alt Decay:', np.max(variables['altDec'][final_local]))
+    else:
+        print('No events remain after the simulation cuts; writing the run header.')
     conex_out(
         X_builder, RN_builder, dEdX_builder,
-        id_full[final_global],
+        id_full[final_global], norig,
         originals["groundecef"][final_global],
         originals["beta_tr"][final_global],
         originals["energies"][final_global],
+        np.log10(originals["showerEnergy"][final_global]*1e17),
         originals["altDec"][final_global],
         originals["azimuth"][final_global],
         originals["gpsarray"][final_global],
@@ -722,7 +797,12 @@ def compute(
         height_compare1[final_local],
         height_compare2[final_local],
         dist_compare1[final_local],
-        dist_compare2[final_local]
+        dist_compare2[final_local],
+        nexitprobcandidates=exit_sample.nexitprobcandidates,
+        naccepted=exit_sample.naccepted,
+        pmax=exit_sample.pmax,
+        cut_counts=cut_counts,
+        nu_energy_bounds=(float(np.min(nuE)), float(np.max(nuE))),
     )
     """
     # Full root out with full originals and final id (rejects=1, passers !=1)

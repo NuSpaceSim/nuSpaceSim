@@ -36,6 +36,59 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
+def plot_exit_selection(sample, tau, log_e_nu, output_path):
+    """Compare geometry proposals, weighted expectation, and exiting events."""
+    edges = np.degrees(sample.beta_bins)
+    widths = np.diff(edges)
+    accepted_counts = np.histogram(sample.beta_tr, bins=sample.beta_bins)[0]
+
+    def density(counts):
+        return counts / (np.sum(counts) * widths)
+
+    # Include table knots so the plotted curve resolves interpolation peaks.
+    curve_beta = np.unique(np.concatenate((
+        np.linspace(sample.beta_bins[0], sample.beta_bins[-1], 1000),
+        tau.pexit_grid["beta_rad"],
+    )))
+    curve_beta = curve_beta[
+        (curve_beta >= sample.beta_bins[0]) & (curve_beta <= sample.beta_bins[-1])
+    ]
+    curve_prob = tau.tau_exit_prob(
+        curve_beta, np.full(curve_beta.shape, log_e_nu, dtype=float)
+    )
+    fig, axes = plt.subplots(2, 1, figsize=(10, 9), sharex=True,
+                             constrained_layout=True)
+    axes[0].stairs(density(sample.before_counts), edges, fill=True, alpha=0.35,
+                   label=f"Before exit selection ({sample.nexitprobcandidates:,} candidates)")
+    axes[1].stairs(density(accepted_counts), edges, fill=True, alpha=0.35,
+                   label=f"After exit selection ({sample.beta_tr.size:,} events)")
+    axes[1].stairs(density(sample.weighted_counts), edges, color="black",
+                   linestyle="--", label="Pexit-weighted candidate expectation")
+    for ax, title in zip(axes, ("Before exit-probability selection",
+                                "After exit-probability selection")):
+        ax.set_title(title)
+        ax.set_ylabel("Normalized event density (1/degree)")
+        ax.grid(alpha=0.25)
+        prob_ax = ax.twinx()
+        prob_ax.plot(np.degrees(curve_beta), curve_prob, color="tab:red",
+                     label=r"$P_{\mathrm{exit}}(\beta_{\mathrm{tr}}, E_\nu)$")
+        prob_ax.set_ylabel("Tau exit probability", color="tab:red")
+        prob_ax.tick_params(axis="y", colors="tab:red")
+        prob_ax.set_ylim(0, sample.pmax * 1.05)
+        lines, labels = ax.get_legend_handles_labels()
+        prob_lines, prob_labels = prob_ax.get_legend_handles_labels()
+        ax.legend(lines + prob_lines, labels + prob_labels, loc="upper right")
+    axes[1].set_xlabel(r"Emergence angle $\beta_{\mathrm{tr}}$ (degrees)")
+    fig.suptitle(
+        rf"$E_\nu = 10^{{{log_e_nu + 9:g}}}$ eV; "
+        rf"$p_{{\max}} = {sample.pmax:.5g}$"
+    )
+    try:
+        fig.savefig(output_path, dpi=200)
+    finally:
+        plt.close(fig)
+
+
 def get_profile(x, y, nbins, useStd=True, *args, **kwargs):
     if sum(np.isnan(y)) > 0:
         # print "Array contains NaN, removing them for profile plot"

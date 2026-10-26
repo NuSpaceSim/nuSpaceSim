@@ -95,6 +95,19 @@ class Taus(object):
             / f"nu2tau_cdf.{config.simulation.tau_shower.table_version}.h5"
         ) as file:
             self.tau_cdf_grid = NssGrid.read(file, format="hdf5")
+        # Require the empirical shower-energy fractions; do not substitute a
+        # fixed config fraction when the table is unavailable.
+        with as_file(files("nuspacesim.data") / "energy_fractions.txt") as file:
+            self.energy_fractions = np.atleast_1d(np.loadtxt(file, dtype=np.float64))
+        if (
+            self.energy_fractions.ndim != 1
+            or self.energy_fractions.size == 0
+            or not np.all(np.isfinite(self.energy_fractions))
+            or np.any(self.energy_fractions < 0)
+            or np.any(self.energy_fractions > 1)
+        ):
+            raise ValueError("Shower energy fractions must be a nonempty vector in [0, 1].")
+
 
     def tau_exit_prob(self, betas, log_e_nu):
         """
@@ -121,6 +134,23 @@ class Taus(object):
 
         return 10**Pexit
 
+    def tau_exit_prob_max(self, log_e_nu):
+        """Bound exit probability at one neutrino energy over every beta.
+
+        At fixed energy, log-probability interpolation is piecewise linear in
+        beta, so its maximum occurs at a beta grid point. Include the epsilon
+        probability used above the table's beta range as well. Below the grid,
+        the probability is held at the first angle's value.
+        """
+        betas = self.pexit_grid["beta_rad"]
+        probabilities = self.tau_exit_prob(
+            betas, np.full(betas.shape, log_e_nu, dtype=float)
+        )
+        pmax = float(max(np.max(probabilities), np.finfo(np.float32).eps))
+        if not np.isfinite(pmax) or not 0 < pmax <= 1:
+            raise ValueError("Tau exit probabilities must be finite and in [0, 1].")
+        return pmax
+
     def tau_energy(self, betas, log_e_nu, u=None):
         """
         Tau energies interpolated from tau_cdf_sampler for given beta index.
@@ -143,13 +173,25 @@ class Taus(object):
         )
         E_tau[beta_high] = np.finfo(np.float32).eps
         return E_tau * (10**log_e_nu)
+    def sample_etau_frac(self, n_samples):
+        """
+        Efficiently samples energy fractions from the loaded data array.
+        Returns a vectorized array of samples.
+        """
+        return np.random.choice(self.energy_fractions, size=n_samples, replace=True)
 
+    
     @decorators.nss_result_plot(
         taus_density_beta, taus_histogram, taus_pexit, taus_overview
     )
     @decorators.nss_result_store(
         "tauBeta", "tauLorentz", "tauEnergy", "showerEnergy", "tauExitProb"
     )
+
+
+
+
+    
     def __call__(self, betas, log_e_nu, *args, **kwargs):
         r"""Perform main operation for Taus module.
 
@@ -173,12 +215,13 @@ class Taus(object):
         tauExitProb = self.tau_exit_prob(betas, log_e_nu)
         tauEnergy = self.tau_energy(betas, log_e_nu)
 
+        # Sample the energy fraction array
+        etau_frac = self.sample_etau_frac(len(betas))
         # in units of 100 PeV
-        showerEnergy = self.config.simulation.tau_shower.etau_frac * tauEnergy / 1e8
+        showerEnergy = etau_frac * tauEnergy / 1e8
 
         tauLorentz = tauEnergy / massTau
         tauBeta = np.sqrt(1.0 - np.reciprocal(tauLorentz**2))
-
         return tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb
 
 
