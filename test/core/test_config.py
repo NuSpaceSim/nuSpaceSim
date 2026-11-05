@@ -300,6 +300,7 @@ def test_default_simulation():
     assert a.tau_shower.table_version == "3"
     assert isinstance(a.spectrum, Simulation.MonoSpectrum)
     assert isinstance(a.cloud_model, Simulation.NoCloud)
+    assert a.exit_prob_sampling is False
 
     assert a.model_dump() == {
         "mode": "Diffuse",
@@ -317,6 +318,8 @@ def test_default_simulation():
         "tau_shower": {"id": "nupyprop", "etau_frac": 0.5, "table_version": "3"},
         "spectrum": {"id": "monospectrum", "log_nu_energy": 8.0},
         "cloud_model": {"id": "no_cloud"},
+        "conex_output": False,
+        "exit_prob_sampling": False,
         "target": {
             "source_DEC": "0.0 deg",
             "source_RA": "0.0 deg",

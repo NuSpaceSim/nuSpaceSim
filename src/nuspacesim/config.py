@@ -355,6 +355,8 @@ class Simulation(BaseModel):
         default=NoCloud(), discriminator="id"
     )
     conex_output: bool = False
+    exit_prob_sampling: bool = False
+    """Select geometries with Pexit / pmax; otherwise use proposals directly."""
 
     target: Optional[TargetOfOpportunity] = TargetOfOpportunity()
 
@@ -397,8 +399,7 @@ def create_toml(filename: str, c: NssConfig):
 
 
 def config_from_fits(filename: str) -> NssConfig:
-    hdul = fits.open(filename, mode="readonly")
-    h = hdul[1].header
+    h = fits.getheader(filename, ext=1)
 
     # header config (v)alue assocciated with partial key string.
     def v(key: str):
@@ -464,7 +465,8 @@ def config_from_fits(filename: str) -> NssConfig:
                 "table_version": s("tau_shower table_version"),
             },
             "thrown_events": s("thrown_events"),
-            "conex_output": s("conex_output")
+            "conex_output": s("conex_output"),
+            "exit_prob_sampling": h.get("Config simulation exit_prob_sampling", False),
         },
         "title": h["Config title"],
     }

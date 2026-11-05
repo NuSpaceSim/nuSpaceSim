@@ -37,6 +37,8 @@ angle_from_limb = "7.0 deg"
 eas_long_profile = "Gaisser-Hillas Fluctuated"
 cherenkov_light_engine = "nuspacesim"
 conex_output = true
+# Enable exit-probability rejection sampling for a monospectrum.
+exit_prob_sampling = false
 
 [simulation.ionosphere]
 enable = true

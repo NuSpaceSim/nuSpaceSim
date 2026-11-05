@@ -26,7 +26,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,norig,groundecef
                 , xmaxecef,xstartecef,n_tel_array,
                 heightcompare1, heightcompare2, distcompare1, distcompare2,
                 *, nexitprobcandidates=None, naccepted=None, pmax=None, cut_counts=None,
-                nu_energy_bounds=None
+                nu_energy_bounds=None, exit_prob_sampling=False
                 ):
 
     # norig counts original sphere-pair candidates; nexitprobcandidates counts exit trials
@@ -47,7 +47,8 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,norig,groundecef
         cutflow_rows(cut_counts)
         if cut_counts["norig"] != norig or cut_counts["n_trigger"] != n:
             raise ValueError("Cut-flow totals must match norig and the output event count.")
-        if (cut_counts["n_beta"] != nexitprobcandidates
+        if nexitprobcandidates is not None and (
+                cut_counts["n_beta"] != nexitprobcandidates
                 or cut_counts["n_exitprob"] != naccepted):
             raise ValueError("Cut-flow exit counts must match exit-selection metadata.")
     if n == 0:
@@ -319,6 +320,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,norig,groundecef
         , "nexitprobcandidates": np.dtype('i8')
         , "naccepted": np.dtype('i8')
         , "pmax": np.dtype('f8')
+        , "exit_prob_sampling": np.dtype('?')
         , "lgEmin": np.dtype('f8')
         , "lgEmax": np.dtype('f8')
         , "zMin": np.dtype('f8')
@@ -403,7 +405,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,norig,groundecef
         , "distcompare2": np.dtype('f4')
     }
     f = uproot.recreate(directory+filename)
-
+    f.file._cascading.streamers._lookup.add(("TBranchRef", 1))
     shifted_azimuth = (azim + np.pi) % (2*np.pi)
     f.mktree("Header", branches_header, title="run header")
     f.mktree("Shower", branches_shower, title="shower info")
@@ -426,6 +428,7 @@ def conex_out(X_builder,RN_builder, dEdX_builder, id,norig,groundecef
         , "nexitprobcandidates": [nexitprobcandidates if nexitprobcandidates is not None else -1]
         , "naccepted": [naccepted if naccepted is not None else -1]
         , "pmax": [pmax if pmax is not None else np.nan]
+        , "exit_prob_sampling": [exit_prob_sampling]
         , "lgEmin": nuEmin
         , "lgEmax": nuEmax
         , "zMin": zmin

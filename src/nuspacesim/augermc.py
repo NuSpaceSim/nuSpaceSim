@@ -554,7 +554,7 @@ def gen_points(n,r,maxang=np.radians(90),minang=np.radians(0),*,return_all=False
     indices at each geometry cut so a partially consumed batch can be counted.
     """
     #33% more because we remove 1/4 bcs of FoV. 10% more to make sure we reach the intended n with maxang
-    ninit=int((1+1/3)*1.5*n/np.sin(maxang)*50) #
+    ninit=int((1+1/3)*1.5*n/np.sin(maxang)) #
     xr=np.random.normal(size=(ninit))
     yr=np.random.normal(size=(ninit))
     zr=np.random.normal(size=(ninit))

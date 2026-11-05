@@ -125,14 +125,14 @@ def compute(
     and scalar results are stored as attributes, both in the :class:`AstropyTable`
     object.
 
-    For the Auger geometry path, simulation.thrown_events is the number of
-    equally weighted exiting taus retained before shower cuts. Monoenergetic
-    geometry candidates are selected with Pexit / pmax(E). The CONEX ROOT Header
-    records norig (original sphere-pair candidates), every event cut count,
-    nexitprobcandidates (exit trials), naccepted, and pmax. Unused final-batch candidates
-    are excluded at every stage; naccepted is the number retained for showers.
-    Shower.ExitProb is diagnostic, not an event
-    weight for this selected sample.
+    By default, the Auger geometry path uses gen_points proposals directly,
+    without selecting events by tau exit probability. If
+    simulation.exit_prob_sampling is true, simulation.thrown_events is the
+    number of equally weighted exiting taus retained before shower cuts;
+    monoenergetic candidates are selected with Pexit / pmax(E). The CONEX ROOT
+    Header records the sampling mode, cut counts, and optional exit-selection
+    statistics. Shower.ExitProb is diagnostic for an exit-selected sample and
+    must not be applied as an additional event weight in that mode.
 
 
     Parameters
@@ -331,11 +331,15 @@ def compute(
 
     logv(f"Running NuSpaceSim with Energy Spectrum ({config.simulation.spectrum})")
 
-    if config.simulation.spectrum.id != "monospectrum":
+    exit_prob_sampling = config.simulation.exit_prob_sampling
+    if exit_prob_sampling and config.simulation.spectrum.id != "monospectrum":
         raise ValueError(
             "Exit-selected geometry generation requires a monoenergetic spectrum."
         )
-    logv("Computing [green] Exit-selected geometries.[/]")
+    logv(
+        "Computing [green] Exit-selected geometries.[/]"
+        if exit_prob_sampling else "Computing [green] Geometries.[/]"
+    )
     logv("Computing [green] Energy Spectra.[/]")
 
     log_e_nu, mc_spec_norm, spec_weights_sum = spec(
@@ -355,36 +359,64 @@ def compute(
     radius = roundcalcradius(maxE, radiusfactor)
 
 
-    exit_sample = sample_exit_geometries(
-        tau, gen_points, n, radius, float(log_e_nu[0]), maxangle, log=logv
-    )
-    cut_counts = exit_sample.cut_counts.copy()
+    exit_metadata = {}
+    if exit_prob_sampling:
+        exit_sample = sample_exit_geometries(
+            tau, gen_points, n, radius, float(log_e_nu[0]), maxangle, log=logv
+        )
+        cut_counts = exit_sample.cut_counts.copy()
+        groundecef = exit_sample.groundecef
+        vecef = exit_sample.vecef
+        beta_tr = exit_sample.beta_tr
+        azimuth = exit_sample.azimuth
+        exit_metadata = dict(
+            nexitprobcandidates=exit_sample.nexitprobcandidates,
+            naccepted=exit_sample.naccepted,
+            pmax=exit_sample.pmax,
+        )
+        sw.add_meta(
+            "NCAND", exit_sample.nexitprobcandidates, "Geometry candidates tested for tau exit"
+        )
+        sw.add_meta(
+            "NACCEPT", exit_sample.naccepted, "Accepted exit trials retained for simulation"
+        )
+        sw.add_meta(
+            "PEXITMAX", exit_sample.pmax, "Exit probability bound at input neutrino energy"
+        )
+        plot_path = Path(__file__).resolve().parents[2] / (
+            f"beta_exit_selection_lgEnu{float(log_e_nu[0]) + 9:g}.png"
+        )
+        plot_exit_selection(exit_sample, tau, float(log_e_nu[0]), plot_path)
+        logv(f"Saved exit-selection plot to {plot_path}")
+    else:
+        geometry, ancestry = gen_points(n, radius, maxang=maxangle, return_cutflow=True)
+        groundecef, vecef, beta_tr, azimuth = geometry
+        if beta_tr.size == 0:
+            console.log("[red]No valid events thrown! Check geometry![/]")
+            return sim
+        # Preserve the direct geometry sample, even if fewer than n were available.
+        raw_stop = (
+            int(ancestry["beta_indices"][-1]) + 1
+            if beta_tr.size == n else int(ancestry["n_generated"])
+        )
+        n = beta_tr.size
+        log_e_nu = log_e_nu[:n]
+        nuE = nuE[:n]
+        sim = sim[:n]
+        cut_counts = dict(
+            norig=raw_stop,
+            n_involume=int(np.searchsorted(ancestry["volume_indices"], raw_stop)),
+            n_cutEarth=int(np.searchsorted(ancestry["earth_indices"], raw_stop)),
+            n_beta=n,
+            n_exitprob=n,  # Sampling disabled: this cut passes every geometry.
+        )
     norig = cut_counts["norig"]
-    groundecef = exit_sample.groundecef
-    vecef = exit_sample.vecef
-    beta_tr = exit_sample.beta_tr
-    azimuth = exit_sample.azimuth
-    sw.add_meta(
-        "NCAND", exit_sample.nexitprobcandidates, "Geometry candidates tested for tau exit"
-    )
-    sw.add_meta(
-        "NACCEPT", exit_sample.naccepted, "Accepted exit trials retained for simulation"
-    )
-    sw.add_meta(
-        "PEXITMAX", exit_sample.pmax, "Exit probability bound at input neutrino energy"
-    )
-    plot_path = Path(__file__).resolve().parents[2] / (
-        f"beta_exit_selection_lgEnu{float(log_e_nu[0]) + 9:g}.png"
-    )
-    plot_exit_selection(exit_sample, tau, float(log_e_nu[0]), plot_path)
-    logv(f"Saved exit-selection plot to {plot_path}")
 
     logv("Computing [green] Taus.[/]")
     tauBeta, tauLorentz, tauEnergy, showerEnergy, tauExitProb = tau(
         beta_tr, log_e_nu, store=sw, plot=to_plot
     )
-    # ExitProb is diagnostic: the events already include exit probability via
-    # selection and must not be weighted by it again in downstream analysis.
+    # Only exit-selected events already include tauExitProb through sampling.
 
 
     energies = np.log10(tauEnergy) + 9
@@ -421,6 +453,7 @@ def compute(
     def apply_cut(variables, mask):
         return {k: v[mask] for k, v in variables.items()}
 
+    print('Initial number of events with trajectories inside generation volume: ', len(variables['nuE']))
     print('Calculating Shower Development cuts')
 
     # Cut 1: sampled shower energy, then decay altitude.
@@ -798,9 +831,8 @@ def compute(
         height_compare2[final_local],
         dist_compare1[final_local],
         dist_compare2[final_local],
-        nexitprobcandidates=exit_sample.nexitprobcandidates,
-        naccepted=exit_sample.naccepted,
-        pmax=exit_sample.pmax,
+        exit_prob_sampling=exit_prob_sampling,
+        **exit_metadata,
         cut_counts=cut_counts,
         nu_energy_bounds=(float(np.min(nuE)), float(np.max(nuE))),
     )
