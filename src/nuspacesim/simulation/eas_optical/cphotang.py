@@ -784,9 +784,9 @@ def get_chasm_ckv(Eshow, zenith, azimuth, decay_alt_meters, det_alt_meters, minl
         raise("not yet implemented")
 
     
-    # add telescopes
-    n_side = 5
-    grid_width = 100000.
+    # add telescopes with 2 km spacing on a 100 by 100 km grid
+    n_side = 51
+    grid_width = 50000.
     x = np.linspace(-grid_width, grid_width, n_side)
     y = np.linspace(-grid_width, grid_width, n_side)
     xx, yy = np.meshgrid(x,y)
